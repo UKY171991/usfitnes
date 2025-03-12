@@ -1,3 +1,20 @@
+<?php
+// Login Page
+include 'config.php';
+session_start();
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+  $username = $_POST['username'];
+  $password = $_POST['password'];
+  $query = "SELECT * FROM users WHERE username='$username' AND password=MD5('$password')";
+  $result = mysqli_query($conn, $query);
+  if (mysqli_num_rows($result) > 0) {
+    $_SESSION['user_id'] = mysqli_fetch_assoc($result)['id'];
+    header('Location: index.php');
+  } else {
+    echo "Invalid credentials!";
+  }
+}
+?>
 <!doctype html>
 <html lang="en">
   <!--begin::Head-->
@@ -58,7 +75,7 @@
           <p class="login-box-msg">Sign in to start your session</p>
           <form action="../index3.html" method="post">
             <div class="input-group mb-3">
-              <input type="text" class="form-control" placeholder="Email" />
+              <input type="text" class="form-control" placeholder="User" />
               <div class="input-group-text"><span class="bi bi-user"></span></div>
             </div>
             <div class="input-group mb-3">
