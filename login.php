@@ -73,7 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
       <div class="card">
         <div class="card-body login-card-body">
           <p class="login-box-msg">Sign in to start your session</p>
-          <form action="../index3.html" method="post">
+          <form action="" method="post">
             <div class="input-group mb-3">
               <input type="text" class="form-control" placeholder="User" />
               <div class="input-group-text"><span class="bi bi-user"></span></div>
