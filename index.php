@@ -9,7 +9,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
   $result = mysqli_query($conn, $query);
   if (mysqli_num_rows($result) > 0) {
     $_SESSION['user_id'] = mysqli_fetch_assoc($result)['id'];
-    header('Location: index.php');
+    header('Location: dashboard.php');
   } else {
     echo "Invalid credentials!";
   }
