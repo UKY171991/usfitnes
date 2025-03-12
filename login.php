@@ -58,8 +58,8 @@
           <p class="login-box-msg">Sign in to start your session</p>
           <form action="../index3.html" method="post">
             <div class="input-group mb-3">
-              <input type="email" class="form-control" placeholder="Email" />
-              <div class="input-group-text"><span class="bi bi-envelope"></span></div>
+              <input type="text" class="form-control" placeholder="Email" />
+              <div class="input-group-text"><span class="bi bi-user"></span></div>
             </div>
             <div class="input-group mb-3">
               <input type="password" class="form-control" placeholder="Password" />
