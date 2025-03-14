@@ -1,7 +1,15 @@
 <?php
 // Login Page
-include 'config.php';
+include 'inc/config.php';
+$message ='';
 session_start();
+
+// Redirect if session is already active
+if (isset($_SESSION['user_id'])) {
+    header('Location: dashboard.php');
+    exit();
+}
+
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
   $username = $_POST['username'];
   $password = $_POST['password'];
@@ -11,7 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $_SESSION['user_id'] = mysqli_fetch_assoc($result)['id'];
     header('Location: dashboard.php');
   } else {
-    echo "Invalid credentials!";
+    $message = "<p class='text-center text-danger'>Invalid credentials!</p>";
   }
 }
 ?>
@@ -32,7 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
   <link href="assets/css/nucleo-icons.css" rel="stylesheet" />
   <link href="assets/css/nucleo-svg.css" rel="stylesheet" />
   <!-- Font Awesome Icons -->
-  <script src="https://kit.fontawesome.com/42d5adcbca.js" crossorigin="anonymous"></script>
+  <!-- <script src="https://kit.fontawesome.com/42d5adcbca.js" crossorigin="anonymous"></script> -->
   <!-- Material Icons -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" />
   <!-- CSS Files -->
@@ -46,7 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         <!-- Navbar -->
         <nav class="navbar navbar-expand-lg blur border-radius-xl top-0 z-index-3 shadow position-absolute my-3 py-2 start-0 end-0 mx-4">
           <div class="container-fluid ps-2 pe-0">
-            <a class="navbar-brand font-weight-bolder ms-lg-0 ms-3 " href="dashboard.html">
+            <a class="navbar-brand font-weight-bolder ms-lg-0 ms-3 " href="dashboard.php">
               Material Dashboard 3
             </a>
             <button class="navbar-toggler shadow-none ms-2" type="button" data-bs-toggle="collapse" data-bs-target="#navigation" aria-controls="navigation" aria-expanded="false" aria-label="Toggle navigation">
@@ -59,38 +67,38 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             <div class="collapse navbar-collapse" id="navigation">
               <ul class="navbar-nav mx-auto">
                 <li class="nav-item">
-                  <a class="nav-link d-flex align-items-center me-2 active" aria-current="page" href="dashboard.html">
+                  <a class="nav-link d-flex align-items-center me-2 active" aria-current="page" href="dashboard.php">
                     <i class="fa fa-chart-pie opacity-6 text-dark me-1"></i>
                     Dashboard
                   </a>
                 </li>
                 <li class="nav-item">
-                  <a class="nav-link me-2" href="profile.html">
+                  <a class="nav-link me-2" href="profile.php">
                     <i class="fa fa-user opacity-6 text-dark me-1"></i>
                     Profile
                   </a>
                 </li>
                 <li class="nav-item">
-                  <a class="nav-link me-2" href="sign-up.html">
+                  <a class="nav-link me-2" href="sign-up.php">
                     <i class="fas fa-user-circle opacity-6 text-dark me-1"></i>
                     Sign Up
                   </a>
                 </li>
                 <li class="nav-item">
-                  <a class="nav-link me-2" href="sign-in.html">
+                  <a class="nav-link me-2" href="index.php">
                     <i class="fas fa-key opacity-6 text-dark me-1"></i>
                     Sign In
                   </a>
                 </li>
               </ul>
-              <ul class="navbar-nav d-lg-flex d-none">
+              <!-- <ul class="navbar-nav d-lg-flex d-none">
                 <li class="nav-item d-flex align-items-center">
                   <a class="btn btn-outline-primary btn-sm mb-0 me-2" target="_blank" href="https://www.creative-tim.com/builder?ref=navbar-material-dashboard">Online Builder</a>
                 </li>
                 <li class="nav-item">
                   <a href="https://www.creative-tim.com/product/material-dashboard" class="btn btn-sm mb-0 me-1 bg-gradient-dark">Free download</a>
                 </li>
-              </ul>
+              </ul> -->
             </div>
           </div>
         </nav>
@@ -128,7 +136,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 </div>
               </div>
               <div class="card-body">
-                <form action="#" class="text-start" method="post">
+                <?=$message; ?>
+                <form action="" class="text-start" method="post">
                   <div class="input-group input-group-outline my-3">
                     <label class="form-label">User</label>
                     <input type="text" name="username" class="form-control">
@@ -142,11 +151,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     <label class="form-check-label mb-0 ms-3" for="rememberMe">Remember me</label>
                   </div>
                   <div class="text-center">
-                    <button type="button" class="btn bg-gradient-dark w-100 my-4 mb-2">Sign in</button>
+                    <button type="submit" class="btn bg-gradient-dark w-100 my-4 mb-2">Sign in</button>
                   </div>
                   <p class="mt-4 text-sm text-center">
                     Don't have an account?
-                    <a href="sign-up.html" class="text-primary text-gradient font-weight-bold">Sign up</a>
+                    <a href="sign-up.php" class="text-primary text-gradient font-weight-bold">Sign up</a>
                   </p>
                 </form>
               </div>
@@ -191,7 +200,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
   <!--   Core JS Files   -->
   <script src="assets/js/core/popper.min.js"></script>
   <script src="assets/js/core/bootstrap.min.js"></script>
-  <script src="assets/js/plugins/perfect-scrollbar.min.js"></script>
+  <!-- <script src="assets/js/plugins/perfect-scrollbar.min.js"></script> -->
   <script src="assets/js/plugins/smooth-scrollbar.min.js"></script>
   <script>
     var win = navigator.platform.indexOf('Win') > -1;
@@ -203,7 +212,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
   </script>
   <!-- Github buttons -->
-  <!-- <script async defer src="https://buttons.github.io/buttons.js"></script> -->
+  <script async defer src="https://buttons.github.io/buttons.js"></script>
   <!-- Control Center for Material Dashboard: parallax effects, scripts for the example pages etc -->
   <!-- <script src="assets/js/material-dashboard.min.js?v=3.2.0"></script> -->
 </body>
