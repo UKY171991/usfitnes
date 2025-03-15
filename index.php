@@ -3,7 +3,6 @@
 include 'inc/auth.php';
 include 'inc/config.php';
 $message ='';
-session_start();
 
 // Redirect if session is already active
 if (isset($_SESSION['user_id'])) {
