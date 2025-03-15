@@ -1,5 +1,6 @@
 <?php
 // Login Page
+include 'inc/auth.php';
 include 'inc/config.php';
 $message ='';
 session_start();
