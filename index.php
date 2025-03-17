@@ -6,8 +6,8 @@ $message ='';
 
 // Redirect if session is already active
 if (isset($_SESSION['user_id'])) {
-    header('Location: dashboard.php');
-    exit();
+    //header('Location: dashboard.php');
+    //exit();
 }
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
