@@ -66,13 +66,13 @@
                 </a>
                 <ul class="nav nav-treeview">
                   <li class="nav-item">
-                    <a href="./widgets/small-box.html" class="nav-link">
+                    <a href="add-test.php" class="nav-link">
                       <i class="nav-icon bi bi-circle"></i>
                       <p>Add Test</p>
                     </a>
                   </li>
                   <li class="nav-item">
-                    <a href="./widgets/info-box.html" class="nav-link">
+                    <a href="test.php" class="nav-link">
                       <i class="nav-icon bi bi-circle"></i>
                       <p>All Test</p>
                     </a>
