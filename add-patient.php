@@ -89,7 +89,7 @@ include('conn.php');
 
 
                     <!-- Patient Insert Form -->
-					<form action="insert_patient.php" method="POST">
+					<form action="includes/insert_patient.php" method="POST">
 					    <div class="card mb-4">
 					        <div class="card-header bg-primary">
 					            <h3 class="card-title text-white">New Patient Registration</h3>
