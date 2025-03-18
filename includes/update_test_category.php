@@ -1,13 +1,33 @@
 <?php
-error_reporting(1);
+error_reporting(E_ALL);
 include('../inc/conn.php');
 
-if(isset($_POST['id'], $_POST['category_name'])){
-    $id = $_POST['id'];
-    $name = $_POST['category_name'];
+if (isset($_POST['id']) && isset($_POST['category_name'])) {
 
-    $stmt = $conn->prepare("UPDATE test_categories SET category_name=? WHERE id=?");
-    $stmt->bind_param("si", $name, $id);
-    $stmt->execute();
+    $id = (int)$_POST['id'];
+    $category_name = trim($_POST['category_name']);
+
+    if (!empty($category_name)) {
+        $stmt = $conn->prepare("UPDATE test_categories SET category_name=? WHERE id=?");
+
+        if ($stmt === false) {
+            die("Prepare failed: " . htmlspecialchars($conn->error));
+        }
+
+        $stmt->bind_param("si", $category_name, $id);
+        $execute = $stmt->execute();
+
+        if (!$execute) {
+            die("Execute failed: " . htmlspecialchars($stmt->error));
+        }
+
+        $stmt->close();
+
+        echo "success";
+    } else {
+        die("Category name cannot be empty.");
+    }
+} else {
+    die("Invalid Request: Required parameters missing.");
 }
 ?>
