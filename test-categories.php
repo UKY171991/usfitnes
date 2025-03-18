@@ -88,7 +88,7 @@ $(document).ready(function(){
         var categoryName = $('#category_name').val();
 
         if(categoryName != ''){
-        	alert(categoryName);
+        	//alert(categoryName);
         	//return false;
 
             $.ajax({
