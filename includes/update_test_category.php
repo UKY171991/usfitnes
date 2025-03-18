@@ -8,8 +8,10 @@ if (isset($_POST['id']) && isset($_POST['category_name'])) {
     $category_name = trim($_POST['category_name']);
 
     if (!empty($category_name)) {
-    	echo "Hello";    exit();
+
         $stmt = $conn->prepare("UPDATE test_categories SET category_name=? WHERE id=?");
+
+        echo "Hello";    exit();
 
         if ($stmt === false) {
             die("Prepare failed: " . htmlspecialchars($conn->error));
