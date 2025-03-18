@@ -54,6 +54,20 @@
           </div>
           <!--end::Container-->
         </div>
+        <section class="content-header">
+            <div class="container-fluid">
+                <div class="row mb-2">
+                    <div class="col-sm-6">
+                        <h1>Patient Management</h1>
+                    </div>
+                    <div class="col-sm-6 text-right">
+                        <button class="btn btn-primary" data-toggle="modal" data-target="#newPatientModal">
+                            <i class="fas fa-user-plus"></i> New Patient
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
         <!--end::App Content Header-->
         <!--begin::App Content-->
         <div class="app-content">
