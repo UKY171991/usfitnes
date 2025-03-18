@@ -31,7 +31,7 @@
       
       <!--end::Header-->
       <!--begin::Sidebar-->
-      <?php include('inc/top.php'); ?>
+      <?php include('inc/sidebar.php'); ?>
       
       <!--end::Sidebar-->
       <!--begin::App Main-->
