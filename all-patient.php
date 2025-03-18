@@ -66,60 +66,36 @@
                   <div class="card-header"><h3 class="card-title">Bordered Table</h3></div>
                   <!-- /.card-header -->
                   <div class="card-body">
-                    <table class="table table-bordered">
-                      <thead>
-                        <tr>
-                          <th style="width: 10px">#</th>
-                          <th>Task</th>
-                          <th>Progress</th>
-                          <th style="width: 40px">Label</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr class="align-middle">
-                          <td>1.</td>
-                          <td>Update software</td>
-                          <td>
-                            <div class="progress progress-xs">
-                              <div
-                                class="progress-bar progress-bar-danger"
-                                style="width: 55%"
-                              ></div>
-                            </div>
-                          </td>
-                          <td><span class="badge text-bg-danger">55%</span></td>
-                        </tr>
-                        <tr class="align-middle">
-                          <td>2.</td>
-                          <td>Clean database</td>
-                          <td>
-                            <div class="progress progress-xs">
-                              <div class="progress-bar text-bg-warning" style="width: 70%"></div>
-                            </div>
-                          </td>
-                          <td><span class="badge text-bg-warning">70%</span></td>
-                        </tr>
-                        <tr class="align-middle">
-                          <td>3.</td>
-                          <td>Cron job running</td>
-                          <td>
-                            <div class="progress progress-xs progress-striped active">
-                              <div class="progress-bar text-bg-primary" style="width: 30%"></div>
-                            </div>
-                          </td>
-                          <td><span class="badge text-bg-primary">30%</span></td>
-                        </tr>
-                        <tr class="align-middle">
-                          <td>4.</td>
-                          <td>Fix and squish bugs</td>
-                          <td>
-                            <div class="progress progress-xs progress-striped active">
-                              <div class="progress-bar text-bg-success" style="width: 90%"></div>
-                            </div>
-                          </td>
-                          <td><span class="badge text-bg-success">90%</span></td>
-                        </tr>
-                      </tbody>
+                    <table id="patientTable" class="table table-bordered table-striped">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Age</th>
+                                <th>Gender</th>
+                                <th>Contact</th>
+                                <th>Referring Doctor</th>
+                                <th>Registration Date</th>
+                                <th>History</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php
+                            $patients = mysqli_query($con, "SELECT * FROM patients ORDER BY id DESC");
+                            while($row = mysqli_fetch_assoc($patients)) {
+                                echo '<tr>
+                                    <td>'.$row['id'].'</td>
+                                    <td>'.$row['name'].'</td>
+                                    <td>'.$row['age'].'</td>
+                                    <td>'.$row['gender'].'</td>
+                                    <td>'.$row['contact'].'</td>
+                                    <td>'.$row['referring_doctor'].'</td>
+                                    <td>'.$row['registration_date'].'</td>
+                                    <td><a href="patient_history.php?id='.$row['id'].'" class="btn btn-sm btn-info"><i class="fas fa-history"></i> History</a></td>
+                                </tr>';
+                            }
+                            ?>
+                        </tbody>
                     </table>
                   </div>
                   <!-- /.card-body -->
