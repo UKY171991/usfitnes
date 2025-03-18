@@ -423,12 +423,6 @@
                       </li>
                     </ul>
                   </li>
-                  <li class="nav-item">
-                    <a href="./examples/lockscreen.html" class="nav-link">
-                      <i class="nav-icon bi bi-circle"></i>
-                      <p>Lockscreen</p>
-                    </a>
-                  </li>
                 </ul>
               </li>
             </ul>
