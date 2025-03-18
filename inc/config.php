@@ -1,4 +1,6 @@
 <?php
+
+echo "Hello"; die;
 // Database Connection
 $servername = "localhost";
 $username = "u902379465_fitness";
