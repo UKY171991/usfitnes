@@ -60,7 +60,7 @@
                 <a href="#" class="nav-link">
                   <i class="nav-icon bi bi-box-seam-fill"></i>
                   <p>
-                    Widgets
+                    Test Management
                     <i class="nav-arrow bi bi-chevron-right"></i>
                   </p>
                 </a>
@@ -68,19 +68,59 @@
                   <li class="nav-item">
                     <a href="./widgets/small-box.html" class="nav-link">
                       <i class="nav-icon bi bi-circle"></i>
-                      <p>Small Box</p>
+                      <p>Add Test</p>
                     </a>
                   </li>
                   <li class="nav-item">
                     <a href="./widgets/info-box.html" class="nav-link">
                       <i class="nav-icon bi bi-circle"></i>
-                      <p>info Box</p>
+                      <p>All Test</p>
+                    </a>
+                  </li>
+                </ul>
+              </li>
+              <li class="nav-item">
+                <a href="#" class="nav-link">
+                  <i class="nav-icon bi bi-box-seam-fill"></i>
+                  <p>
+                    Report Management
+                    <i class="nav-arrow bi bi-chevron-right"></i>
+                  </p>
+                </a>
+                <ul class="nav nav-treeview">
+                  <li class="nav-item">
+                    <a href="./widgets/small-box.html" class="nav-link">
+                      <i class="nav-icon bi bi-circle"></i>
+                      <p>Add Report</p>
                     </a>
                   </li>
                   <li class="nav-item">
-                    <a href="./widgets/cards.html" class="nav-link">
+                    <a href="./widgets/info-box.html" class="nav-link">
                       <i class="nav-icon bi bi-circle"></i>
-                      <p>Cards</p>
+                      <p>All Report</p>
+                    </a>
+                  </li>
+                </ul>
+              </li>
+              <li class="nav-item">
+                <a href="#" class="nav-link">
+                  <i class="nav-icon bi bi-box-seam-fill"></i>
+                  <p>
+                    Billing & Payments
+                    <i class="nav-arrow bi bi-chevron-right"></i>
+                  </p>
+                </a>
+                <ul class="nav nav-treeview">
+                  <li class="nav-item">
+                    <a href="./widgets/small-box.html" class="nav-link">
+                      <i class="nav-icon bi bi-circle"></i>
+                      <p>Add Billing</p>
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a href="./widgets/info-box.html" class="nav-link">
+                      <i class="nav-icon bi bi-circle"></i>
+                      <p>All Billing</p>
                     </a>
                   </li>
                 </ul>
@@ -114,6 +154,7 @@
                   </li>
                 </ul>
               </li>
+
               <li class="nav-item">
                 <a href="#" class="nav-link">
                   <i class="nav-icon bi bi-box-seam-fill"></i>
@@ -143,6 +184,97 @@
                   </li>
                 </ul>
               </li>
+
+              <li class="nav-item">
+                <a href="#" class="nav-link">
+                  <i class="nav-icon bi bi-box-seam-fill"></i>
+                  <p>
+                    Widgets
+                    <i class="nav-arrow bi bi-chevron-right"></i>
+                  </p>
+                </a>
+                <ul class="nav nav-treeview">
+                  <li class="nav-item">
+                    <a href="./widgets/small-box.html" class="nav-link">
+                      <i class="nav-icon bi bi-circle"></i>
+                      <p>Small Box</p>
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a href="./widgets/info-box.html" class="nav-link">
+                      <i class="nav-icon bi bi-circle"></i>
+                      <p>info Box</p>
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a href="./widgets/cards.html" class="nav-link">
+                      <i class="nav-icon bi bi-circle"></i>
+                      <p>Cards</p>
+                    </a>
+                  </li>
+                </ul>
+              </li>
+
+              <li class="nav-item">
+                <a href="#" class="nav-link">
+                  <i class="nav-icon bi bi-box-seam-fill"></i>
+                  <p>
+                    Widgets
+                    <i class="nav-arrow bi bi-chevron-right"></i>
+                  </p>
+                </a>
+                <ul class="nav nav-treeview">
+                  <li class="nav-item">
+                    <a href="./widgets/small-box.html" class="nav-link">
+                      <i class="nav-icon bi bi-circle"></i>
+                      <p>Small Box</p>
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a href="./widgets/info-box.html" class="nav-link">
+                      <i class="nav-icon bi bi-circle"></i>
+                      <p>info Box</p>
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a href="./widgets/cards.html" class="nav-link">
+                      <i class="nav-icon bi bi-circle"></i>
+                      <p>Cards</p>
+                    </a>
+                  </li>
+                </ul>
+              </li>
+
+              <li class="nav-item">
+                <a href="#" class="nav-link">
+                  <i class="nav-icon bi bi-box-seam-fill"></i>
+                  <p>
+                    Widgets
+                    <i class="nav-arrow bi bi-chevron-right"></i>
+                  </p>
+                </a>
+                <ul class="nav nav-treeview">
+                  <li class="nav-item">
+                    <a href="./widgets/small-box.html" class="nav-link">
+                      <i class="nav-icon bi bi-circle"></i>
+                      <p>Small Box</p>
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a href="./widgets/info-box.html" class="nav-link">
+                      <i class="nav-icon bi bi-circle"></i>
+                      <p>info Box</p>
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a href="./widgets/cards.html" class="nav-link">
+                      <i class="nav-icon bi bi-circle"></i>
+                      <p>Cards</p>
+                    </a>
+                  </li>
+                </ul>
+              </li>
+
               <li class="nav-item">
                 <a href="#" class="nav-link">
                   <i class="nav-icon bi bi-box-seam-fill"></i>
