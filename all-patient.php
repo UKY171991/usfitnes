@@ -43,7 +43,7 @@
                     <div class="col-sm-6">
                         <h1>Patient Management</h1>
                     </div>
-                    <div class="col-sm-6 text-right">
+                    <div class="col-sm-6 text-end">
                         <button class="btn btn-primary" data-toggle="modal" data-target="#newPatientModal">
                             <i class="fas fa-user-plus"></i> New Patient
                         </button>
