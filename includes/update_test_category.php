@@ -1,4 +1,5 @@
 <?php
+error_reporting(1);
 include('../inc/conn.php');
 
 if(isset($_POST['id'], $_POST['category_name'])){
