@@ -43,13 +43,13 @@
                 </a>
                 <ul class="nav nav-treeview">
                   <li class="nav-item">
-                    <a href="./widgets/small-box.html" class="nav-link">
+                    <a href="add-patient.php" class="nav-link">
                       <i class="nav-icon bi bi-circle"></i>
                       <p>Add Patient</p>
                     </a>
                   </li>
                   <li class="nav-item">
-                    <a href="./widgets/info-box.html" class="nav-link">
+                    <a href="all-patient.php" class="nav-link">
                       <i class="nav-icon bi bi-circle"></i>
                       <p>All Patient</p>
                     </a>
