@@ -105,6 +105,5 @@ $(document).ready(function(){
 });
 </script>
 
-<?php include('inc/js.php'); ?>
 </body>
 </html>
