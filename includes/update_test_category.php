@@ -7,7 +7,8 @@ if(isset($_POST['id'], $_POST['category_name'])){
     $name = $_POST['category_name'];
 
     $stmt = $conn->prepare("UPDATE test_categories SET category_name=? WHERE id=?");
-    $stmt->bind_param("si", $name, $id);
+    $stmt->bind_param("s", $name);
+    //$stmt->bind_param("si", $name, $id);
     $stmt->execute();
 }
 ?>
