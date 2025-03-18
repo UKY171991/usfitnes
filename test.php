@@ -79,7 +79,7 @@
 <div class="modal fade" id="newTestModal">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <form action="insert_test.php" method="POST">
+            <form action="includes/insert-test.php" method="POST">
                 <div class="modal-header bg-primary">
                     <h5 class="modal-title">Add New Test</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
