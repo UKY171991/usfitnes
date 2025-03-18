@@ -4,7 +4,8 @@ include('../inc/conn.php');
 
 if (isset($_POST['id']) && isset($_POST['category_name'])) {
 
-    $id = (int)$_POST['id'];
+    echo $id = (int)$_POST['id'];
+    exit();
     $category_name = trim($_POST['category_name']);
 
     if (!empty($category_name)) {
