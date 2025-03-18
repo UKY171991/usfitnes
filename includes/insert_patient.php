@@ -35,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     mysqli_close($con);
 
     // Redirect back to patient list page
-    header('Location: ../add-patitent.php');
+    header('Location: ../add-patient.php');
     exit();
 }
 ?>
