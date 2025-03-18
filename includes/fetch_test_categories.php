@@ -1,5 +1,5 @@
 <?php
-include('conn.php');
+include('../inc/conn.php');
 
 $query = mysqli_query($con, "SELECT * FROM test_categories ORDER BY id DESC");
 echo '<table class="table table-bordered table-striped">
