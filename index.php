@@ -1,4 +1,5 @@
 <?php
+echo "Hello"; die;
 // Login Page
 include 'inc/auth.php';
 include 'inc/config.php';
