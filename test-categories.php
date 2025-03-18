@@ -73,7 +73,7 @@ $(document).ready(function(){
     // Fetch and display categories
     function loadCategories(){
         $.ajax({
-            url: 'fetch_categories.php',
+            url: 'fetch_test_categories.php',
             type: 'GET',
             success: function(data){
                 $('.card-body').html(data);
@@ -89,7 +89,7 @@ $(document).ready(function(){
 
         if(categoryName != ''){
             $.ajax({
-                url: 'insert_category.php',
+                url: 'insert_test_category.php',
                 type: 'POST',
                 data: {category_name: category_name},
                 success: function(response){
