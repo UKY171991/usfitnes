@@ -1,7 +1,6 @@
 <?php
 // Login Page
 include 'inc/auth.php';
-echo "Hello"; die;
 include 'inc/config.php';
 $message ='';
 
