@@ -44,9 +44,9 @@
                         <h3>Patient Management</h3>
                     </div>
                     <div class="col-sm-6 text-end">
-                        <button class="btn btn-primary" data-toggle="modal" data-target="#newPatientModal">
-                            <i class="fas fa-user-plus"></i> New Patient
-                        </button>
+                        <a href="add-patient.php" class="btn btn-primary">
+                            <i class="fas fa-user-plus"></i>Add New Patient
+                        </a>
                     </div>
                 </div>
             </div>
