@@ -4,11 +4,11 @@ include('../inc/conn.php');
 
 if (isset($_POST['id']) && isset($_POST['category_name'])) {
 
-    echo $id = (int)$_POST['id'];
-    exit();
+    $id = (int)$_POST['id'];
     $category_name = trim($_POST['category_name']);
 
     if (!empty($category_name)) {
+    	echo "Hello";    exit();
         $stmt = $conn->prepare("UPDATE test_categories SET category_name=? WHERE id=?");
 
         if ($stmt === false) {
