@@ -89,7 +89,7 @@ include('conn.php');
 
 
 					<!-- Test Insert Form integrated with AdminLTE 4 Template -->
-					<form action="insert_test.php" method="POST">
+					<form action="insert-test.php" method="POST">
 					    <div class="card mb-4">
 					        <div class="card-header bg-primary">
 					            <h3 class="card-title text-white">Add New Test</h3>
