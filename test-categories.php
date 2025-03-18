@@ -81,7 +81,7 @@ $(document).ready(function(){
         });
     }
 
-    loadCategories();
+    //loadCategories();
 
     // Save new category using AJAX
     $('#saveCategory').click(function(){
