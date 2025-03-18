@@ -84,24 +84,26 @@ $(document).ready(function(){
     //loadCategories();
 
     // Save new category using AJAX
+    // Corrected AJAX Call
     $('#saveCategory').click(function(){
         var categoryName = $('#category_name').val();
 
-        if(categoryName != ''){
-        	//alert(categoryName);
-        	//return false;
-
+        if(categoryName !== ''){
             $.ajax({
                 url: 'includes/insert_test_category.php',
                 type: 'POST',
-                data: {category_name: category_name},
+                data: { category_name: categoryName }, // <-- corrected variable here
                 success: function(response){
                     $('#newCategoryModal').modal('hide');
+                    $('#category_name').val(''); // clear input after saving
                     loadCategories();
                 }
             });
+        } else {
+            alert('Please enter a category name.');
         }
     });
+
 
     // Initial category loading
     loadCategories();
