@@ -1,1 +1,0 @@
-insert_category_ajax.php
