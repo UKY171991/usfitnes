@@ -1,5 +1,5 @@
 <?php
-include('conn.php');
+include('../inc/conn.php');
 
 if(isset($_POST['category_name'])){
     $name = mysqli_real_escape_string($con, $_POST['category_name']);
