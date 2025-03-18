@@ -1,11 +1,11 @@
 <?php
-//error_reporting(E_ALL);
 include('../inc/conn.php');
 
 if (isset($_POST['id'], $_POST['category_name'])) {
     
     $id = (int) $_POST['id'];
     $category_name = trim($_POST['category_name']);
+    echo "Hello"; die;
 
     if (empty($category_name)) {
         die("Error: Category name is empty.");
