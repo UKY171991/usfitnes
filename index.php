@@ -10,7 +10,7 @@ if (isset($_SESSION['user_id'])) {
     //exit();
 }
 
-exit('hi');
+exit();
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
   $username = $_POST['username'];
