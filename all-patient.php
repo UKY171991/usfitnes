@@ -39,9 +39,9 @@
         <!--begin::App Content Header-->
         <section class="content-header">
             <div class="container-fluid">
-                <div class="row mb-2">
+                <div class="row mb-2 mt-2">
                     <div class="col-sm-6">
-                        <h1>Patient Management</h1>
+                        <h3>Patient Management</h3>
                     </div>
                     <div class="col-sm-6 text-end">
                         <button class="btn btn-primary" data-toggle="modal" data-target="#newPatientModal">
