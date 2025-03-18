@@ -1,7 +1,7 @@
 <?php
-echo "Hello"; die;
-include('../inc/conn.php');
 
+include('../inc/conn.php');
+echo "Hello"; die;
 $sql = "SELECT * FROM test_categories ORDER BY id DESC";
 $result = $conn->query($sql);
 
