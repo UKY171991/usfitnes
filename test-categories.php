@@ -62,6 +62,26 @@
         </div>
     </div>
 
+    <div class="modal fade" id="editCategoryModal">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header bg-warning">
+            <h5 class="modal-title">Edit Test Category</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" id="edit_category_id">
+            <input type="text" id="edit_category_name" class="form-control" placeholder="Category Name" required>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-warning" id="updateCategory">Update</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
     <?php include('inc/footer.php'); ?>
 </div>
 
@@ -70,45 +90,84 @@
 <script>
 $(document).ready(function(){
 
-    // Fetch and display categories
+    // Load categories function
     function loadCategories(){
         $.ajax({
             url: 'includes/fetch_test_categories.php',
             type: 'GET',
             success: function(data){
-                $('.card-body').html(data);
+                $('#categoryList').html(data);
             }
         });
     }
 
-    //loadCategories();
+    // Initial load
+    loadCategories();
 
-    // Save new category using AJAX
-    // Corrected AJAX Call
+    // Save Category
     $('#saveCategory').click(function(){
-        var categoryName = $('#category_name').val();
-
+        let categoryName = $('#category_name').val();
         if(categoryName !== ''){
             $.ajax({
                 url: 'includes/insert_test_category.php',
                 type: 'POST',
-                data: { category_name: categoryName }, // <-- corrected variable here
-                success: function(response){
+                data: {category_name: categoryName},
+                success: function(){
                     $('#newCategoryModal').modal('hide');
-                    $('#category_name').val(''); // clear input after saving
+                    $('#category_name').val('');
                     loadCategories();
                 }
             });
         } else {
-            alert('Please enter a category name.');
+            alert('Category name required.');
         }
     });
 
+    // Edit Category - Populate Modal
+    $(document).on('click', '.edit-btn', function(){
+        $('#editCategoryModal').modal('show');
+        let id = $(this).data('id');
+        let name = $(this).data('name');
+        $('#edit_category_id').val(id);
+        $('#edit_category_name').val(name);
+    });
 
-    // Initial category loading
-    loadCategories();
+    // Update Category
+    $('#updateCategory').click(function(){
+        let id = $('#edit_category_id').val();
+        let name = $('#edit_category_name').val();
+        if(name !== ''){
+            $.ajax({
+                url: 'includes/update_test_category.php',
+                type: 'POST',
+                data: {id: id, category_name: name},
+                success: function(){
+                    $('#editCategoryModal').modal('hide');
+                    loadCategories();
+                }
+            });
+        } else {
+            alert('Category name required.');
+        }
+    });
+
+    // Delete Category
+    $(document).on('click', '.delete-btn', function(){
+        if(confirm('Are you sure to delete this category?')){
+            let id = $(this).data('id');
+            $.ajax({
+                url: 'includes/delete_test_category.php',
+                type: 'POST',
+                data: {id: id},
+                success: function(){
+                    loadCategories();
+                }
+            });
+        }
+    });
 });
 </script>
+
 
 </body>
 </html>
