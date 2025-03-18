@@ -86,6 +86,8 @@ $(document).ready(function(){
     // Save new category using AJAX
     $('#saveCategory').click(function(){
         var categoryName = $('#category_name').val();
+        alert(categoryName);
+        return false;
 
         if(categoryName != ''){
             $.ajax({
