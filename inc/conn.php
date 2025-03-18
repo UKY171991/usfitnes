@@ -1,4 +1,5 @@
 <?php
+echo "Hello"; die;
 session_start();  // Start session at the beginning
 $servername = "localhost";   // Replace if using another host
 $username = "u902379465_fitness";          // Replace with your DB username
