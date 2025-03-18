@@ -1,10 +1,10 @@
 <?php
 
 include('../inc/conn.php');
-echo "Hello"; die;
+
 $sql = "SELECT * FROM test_categories ORDER BY id DESC";
 $result = $conn->query($sql);
-
+echo "Hello"; die;
 echo '<table class="table table-bordered">';
 echo '<thead><tr><th>#</th><th>Category Name</th><th>Created At</th><th>Action</th></tr></thead><tbody>';
 $i = 1;
