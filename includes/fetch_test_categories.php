@@ -1,4 +1,5 @@
 <?php
+echo "Hello"; die;
 include('../inc/conn.php');
 
 $sql = "SELECT * FROM test_categories ORDER BY id DESC";
