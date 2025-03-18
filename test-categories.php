@@ -140,10 +140,16 @@ $(document).ready(function(){
             $.ajax({
                 url: 'includes/update_test_category.php',
                 type: 'POST',
-                data: {id: id, category_name: name},
-                success: function(){
+                data: {
+                    id: $('#edit_category_id').val(),
+                    category_name: $('#edit_category_name').val()
+                },
+                success: function(response){
                     $('#editCategoryModal').modal('hide');
                     loadCategories();
+                },
+                error: function(xhr, status, error) {
+                    alert('Error: ' + xhr.responseText);
                 }
             });
         } else {
