@@ -15,7 +15,7 @@ while ($row = mysqli_fetch_assoc($query)) {
     echo "<tr>
             <td>{$row['id']}</td>
             <td>{$row['category_name']}</td>
-            <button class='btn btn-sm btn-danger delete-btn' data-id='{$row['id']}'>Delete</button>
+            <td><button class='btn btn-sm btn-danger delete-btn' data-id='{$row['id']}'>Delete</button></td>
           </tr>";
 }
 ?>
