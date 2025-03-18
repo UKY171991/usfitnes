@@ -2,7 +2,8 @@
 // Login Page
 include 'inc/auth.php';
 include 'inc/config.php';
-$message ='';
+
+$message = '';
 
 // Redirect if session is already active
 if (isset($_SESSION['user_id'])) {
@@ -10,20 +11,25 @@ if (isset($_SESSION['user_id'])) {
     exit();
 }
 
-
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-  $username = $_POST['username'];
-  $password = $_POST['password'];
-  $query = "SELECT * FROM users WHERE username='$username' AND password=MD5('$password')";
-  $result = mysqli_query($conn, $query);
-  if (mysqli_num_rows($result) > 0) {
-    $_SESSION['user_id'] = mysqli_fetch_assoc($result)['id'];
-    header('Location: dashboard.php');
-  } else {
-    $message = "<p class='text-center text-danger'>Invalid credentials!</p>";
-  }
+    $username = $_POST['username'];
+    $password = $_POST['password'];
+
+    $stmt = $conn->prepare("SELECT id FROM users WHERE username = ? AND password = MD5(?)");
+    $stmt->bind_param("ss", $username, $password);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    if ($result->num_rows > 0) {
+        $_SESSION['user_id'] = $result->fetch_assoc()['id'];
+        header('Location: dashboard.php');
+        exit();
+    } else {
+        $message = "<p class='text-center text-danger'>Invalid credentials!</p>";
+    }
 }
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 
