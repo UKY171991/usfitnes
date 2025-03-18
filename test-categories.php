@@ -89,7 +89,7 @@ $(document).ready(function(){
 
         if(categoryName != ''){
         	alert(categoryName);
-        	return false;
+        	//return false;
 
             $.ajax({
                 url: 'includes/insert_test_category.php',
