@@ -17,7 +17,7 @@ if (!in_array($_SESSION['role'], ['Admin', 'Doctor', 'Technician'])) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $first_name = $_POST['first_name'];
     $last_name = $_POST['last_name'];
-    $dob = $_POST['dob'];
+    $date_of_birth = $_POST['date_of_birth'];
     $gender = $_POST['gender'];
     $contact_number = $_POST['contact_number'];
     $email = $_POST['email'];
@@ -28,11 +28,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (isset($_POST['patient_id']) && !empty($_POST['patient_id'])) {
             // Update patient
             $patient_id = $_POST['patient_id'];
-            $stmt = $pdo->prepare("UPDATE Patients SET first_name = :first_name, last_name = :last_name, dob = :dob, gender = :gender, contact_number = :contact_number, email = :email, address = :address WHERE patient_id = :patient_id");
+            $stmt = $pdo->prepare("UPDATE Patients SET first_name = :first_name, last_name = :last_name, date_of_birth = :date_of_birth, gender = :gender, contact_number = :contact_number, email = :email, address = :address WHERE patient_id = :patient_id");
             $stmt->execute([
                 'first_name' => $first_name,
                 'last_name' => $last_name,
-                'dob' => $dob,
+                'date_of_birth' => $date_of_birth,
                 'gender' => $gender,
                 'contact_number' => $contact_number,
                 'email' => $email,
@@ -41,11 +41,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ]);
         } else {
             // Insert new patient
-            $stmt = $pdo->prepare("INSERT INTO Patients (first_name, last_name, dob, gender, contact_number, email, address, created_by) VALUES (:first_name, :last_name, :dob, :gender, :contact_number, :email, :address, :created_by)");
+            $stmt = $pdo->prepare("INSERT INTO Patients (first_name, last_name, date_of_birth, gender, contact_number, email, address, created_by) VALUES (:first_name, :last_name, :date_of_birth, :gender, :contact_number, :email, :address, :created_by)");
             $stmt->execute([
                 'first_name' => $first_name,
                 'last_name' => $last_name,
-                'dob' => $dob,
+                'date_of_birth' => $date_of_birth,
                 'gender' => $gender,
                 'contact_number' => $contact_number,
                 'email' => $email,
@@ -116,8 +116,8 @@ if (isset($_GET['edit'])) {
                                             <input type="text" class="form-control" id="last_name" name="last_name" value="<?php echo $edit_patient ? htmlspecialchars($edit_patient['last_name']) : ''; ?>" required>
                                         </div>
                                         <div class="mb-3">
-                                            <label for="dob" class="form-label">Date of Birth</label>
-                                            <input type="date" class="form-control" id="dob" name="dob" value="<?php echo $edit_patient ? htmlspecialchars($edit_patient['dob']) : ''; ?>" required>
+                                            <label for="date_of_birth" class="form-label">Date of Birth</label>
+                                            <input type="date" class="form-control" id="date_of_birth" name="date_of_birth" value="<?php echo $edit_patient ? htmlspecialchars($edit_patient['date_of_birth']) : ''; ?>" required>
                                         </div>
                                         <div class="mb-3">
                                             <label for="gender" class="form-label">Gender</label>
