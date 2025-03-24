@@ -226,6 +226,30 @@
                   </li>
                 </ul>
               </li>
+
+              <li class="nav-item">
+                <a href="#" class="nav-link">
+                  <i class="nav-icon bi bi-box-seam-fill"></i>
+                  <p>
+                    Users
+                    <i class="nav-arrow bi bi-chevron-right"></i>
+                  </p>
+                </a>
+                <ul class="nav nav-treeview">
+                  <li class="nav-item">
+                    <a href="add_user.php" class="nav-link">
+                      <i class="nav-icon bi bi-circle"></i>
+                      <p>Add User</p>
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a href="users.php" class="nav-link">
+                      <i class="nav-icon bi bi-circle"></i>
+                      <p>All User</p>
+                    </a>
+                  </li>
+                </ul>
+              </li>
               
             </ul>
             <!--end::Sidebar Menu-->
