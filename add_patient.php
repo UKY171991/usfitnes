@@ -27,14 +27,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['patient_id']) && !empty($_POST['patient_id'])) {
         // Update patient
         $patient_id = $_POST['patient_id'];
-        $stmt = $pdo->prepare("UPDATE Patients SET first_name = :first_name, last_name = :last_name, dob = :dob, gender = :gender, contact_number = :contact_number, email = :email, address = :address WHERE patient_id = :patient_id");
+        $stmt = $pdo->prepare("UPDATE Patients SET first_name = :first_name, last_name = :last_name, date_of_birth = :dob, gender = :gender, contact_number = :contact_number, email = :email, address = :address WHERE patient_id = :patient_id");
         $stmt->execute([
-            'first_name' => $first_name, 'last_name' => $last_name, 'dob' => $dob, 'gender' => $gender,
+            'first_name' => $first_name, 'last_name' => $last_name, 'date_of_birth' => $dob, 'gender' => $gender,
             'contact_number' => $contact_number, 'email' => $email, 'address' => $address, 'patient_id' => $patient_id
         ]);
     } else {
         // Insert new patient
-        $stmt = $pdo->prepare("INSERT INTO Patients (first_name, last_name, dob, gender, contact_number, email, address, created_by) VALUES (:first_name, :last_name, :dob, :gender, :contact_number, :email, :address, :created_by)");
+        $stmt = $pdo->prepare("INSERT INTO Patients (first_name, last_name, date_of_birth, gender, contact_number, email, address, created_by) VALUES (:first_name, :last_name, :dob, :gender, :contact_number, :email, :address, :created_by)");
         $stmt->execute([
             'first_name' => $first_name, 'last_name' => $last_name, 'dob' => $dob, 'gender' => $gender,
             'contact_number' => $contact_number, 'email' => $email, 'address' => $address, 'created_by' => $created_by
