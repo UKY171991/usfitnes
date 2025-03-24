@@ -89,15 +89,7 @@
             </div>
             <!--end::Row-->
           </form>
-          <div class="social-auth-links text-center mb-3 d-grid gap-2">
-            <p>- OR -</p>
-            <a href="#" class="btn btn-primary">
-              <i class="bi bi-facebook me-2"></i> Sign in using Facebook
-            </a>
-            <a href="#" class="btn btn-danger">
-              <i class="bi bi-google me-2"></i> Sign in using Google+
-            </a>
-          </div>
+         
           <!-- /.social-auth-links -->
           <p class="mb-0">
             <a href="login.php" class="text-center"> I already have a membership </a>
