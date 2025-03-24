@@ -120,7 +120,7 @@ if (isset($_GET['delete']) && $_SESSION['role'] === 'Admin') {
                                     <td>${patient.first_name} ${patient.last_name}</td>
                                     <td>${patient.date_of_birth}</td>
                                     <td>${patient.gender}</td>
-                                    <td>${patient.contact_number || '-'}</td>
+                                    <td>${patient.phone || '-'}</td>
                                     <td>${patient.email || '-'}</td>
                                     <td>${patient.created_by_name || 'Unknown'}</td>
                                     <td>
