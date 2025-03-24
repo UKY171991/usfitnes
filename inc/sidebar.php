@@ -66,13 +66,7 @@
                 </a>
                 <ul class="nav nav-treeview">
                   <li class="nav-item">
-                    <a href="test-categories.php" class="nav-link">
-                      <i class="nav-icon bi bi-circle"></i>
-                      <p>Test Categories</p>
-                    </a>
-                  </li>
-                  <li class="nav-item">
-                    <a href="add-test.php" class="nav-link">
+                    <a href="add_test.php" class="nav-link">
                       <i class="nav-icon bi bi-circle"></i>
                       <p>Add Test</p>
                     </a>
