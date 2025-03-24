@@ -18,17 +18,22 @@ $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $offset = ($page - 1) * $limit;
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 
-$query = "SELECT * FROM Patients";
-$count_query = "SELECT COUNT(*) FROM Patients";
+// Base query with JOIN to get creator's name
+$query = "SELECT p.*, CONCAT(u.first_name, ' ', u.last_name) AS created_by_name 
+          FROM Patients p 
+          LEFT JOIN Users u ON p.created_by = u.user_id";
+$count_query = "SELECT COUNT(*) 
+                FROM Patients p 
+                LEFT JOIN Users u ON p.created_by = u.user_id";
 $params = [];
 
 if (!empty($search)) {
-    $query .= " WHERE CONCAT(first_name, ' ', last_name) LIKE :search OR email LIKE :search";
-    $count_query .= " WHERE CONCAT(first_name, ' ', last_name) LIKE :search OR email LIKE :search";
+    $query .= " WHERE CONCAT(p.first_name, ' ', p.last_name) LIKE :search OR p.email LIKE :search";
+    $count_query .= " WHERE CONCAT(p.first_name, ' ', p.last_name) LIKE :search OR p.email LIKE :search";
     $params[':search'] = "%$search%";
 }
 
-$query .= " ORDER BY patient_id DESC LIMIT :limit OFFSET :offset";
+$query .= " ORDER BY p.patient_id DESC LIMIT :limit OFFSET :offset";
 
 $total_stmt = $pdo->prepare($count_query);
 if (!empty($search)) {
