@@ -79,6 +79,31 @@
                   </li>
                 </ul>
               </li>
+
+              <li class="nav-item">
+                <a href="#" class="nav-link">
+                  <i class="nav-icon bi bi-box-seam-fill"></i>
+                  <p>
+                    Test Requests
+                    <i class="nav-arrow bi bi-chevron-right"></i>
+                  </p>
+                </a>
+                <ul class="nav nav-treeview">
+                  <li class="nav-item">
+                    <a href="add_test_request.php" class="nav-link">
+                      <i class="nav-icon bi bi-circle"></i>
+                      <p>Add Test Request</p>
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a href="test_requests.php" class="nav-link">
+                      <i class="nav-icon bi bi-circle"></i>
+                      <p>Test Requests</p>
+                    </a>
+                  </li>
+                </ul>
+              </li>
+
               <li class="nav-item">
                 <a href="#" class="nav-link">
                   <i class="nav-icon bi bi-box-seam-fill"></i>
