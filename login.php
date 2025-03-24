@@ -2,6 +2,24 @@
 session_start(); // Start session for user authentication
 require_once 'db_connect.php'; // Include database connection
 
+
+// Run this once to update passwords (e.g., in a setup script)
+require_once 'db_connect.php';
+
+$users = [
+    ['email' => 'alice@lab.com', 'password' => 'admin123'],
+    ['email' => 'bob@lab.com', 'password' => 'doctor456'],
+    // Add others as needed
+];
+
+foreach ($users as $user) {
+    $hashed_password = password_hash($user['password'], PASSWORD_DEFAULT);
+    $stmt = $pdo->prepare("UPDATE Users SET password = :password WHERE email = :email");
+    $stmt->execute(['password' => $hashed_password, 'email' => $user['email']]);
+}
+echo "Passwords updated.";
+
+
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = filter_input(INPUT_POST, 'email', FILTER_SANITIZE_EMAIL);
