@@ -131,7 +131,7 @@ if (isset($_GET['edit'])) {
                                             </select>
                                         </div>
                                         <div class="mb-3">
-                                            <label for="ordered_by" class="form-label">Ordered By</label>
+                                            <label for="ordered_by" class="form-label">Ordered By (Dr. Name)</label>
                                             <input type="text" class="form-control" id="ordered_by" name="ordered_by" value="<?php echo $edit_request ? htmlspecialchars($edit_request['ordered_by']) : ''; ?>" required>
                                         </div>
                                         <div class="mb-3">
