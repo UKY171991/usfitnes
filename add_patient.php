@@ -24,32 +24,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $address = $_POST['address'];
     $created_by = $_SESSION['user_id'];
 
-    if (isset($_POST['patient_id']) && !empty($_POST['patient_id'])) {
-        // Update patient
-        $patient_id = $_POST['patient_id'];
-        $stmt = $pdo->prepare("UPDATE Patients SET first_name = :first_name, last_name = :last_name, date_of_birth = :dob, gender = :gender, contact_number = :contact_number, email = :email, address = :address WHERE patient_id = :patient_id");
-        $stmt->execute([
-            'first_name' => $first_name, 'last_name' => $last_name, 'date_of_birth' => $dob, 'gender' => $gender,
-            'contact_number' => $contact_number, 'email' => $email, 'address' => $address, 'patient_id' => $patient_id
-        ]);
-    } else {
-        // Insert new patient
-        $stmt = $pdo->prepare("INSERT INTO Patients (first_name, last_name, date_of_birth, gender, contact_number, email, address, created_by) VALUES (:first_name, :last_name, :dob, :gender, :contact_number, :email, :address, :created_by)");
-        $stmt->execute([
-            'first_name' => $first_name, 'last_name' => $last_name, 'dob' => $dob, 'gender' => $gender,
-            'contact_number' => $contact_number, 'email' => $email, 'address' => $address, 'created_by' => $created_by
-        ]);
+    try {
+        if (isset($_POST['patient_id']) && !empty($_POST['patient_id'])) {
+            // Update patient
+            $patient_id = $_POST['patient_id'];
+            $stmt = $pdo->prepare("UPDATE Patients SET first_name = :first_name, last_name = :last_name, dob = :dob, gender = :gender, contact_number = :contact_number, email = :email, address = :address WHERE patient_id = :patient_id");
+            $stmt->execute([
+                'first_name' => $first_name,
+                'last_name' => $last_name,
+                'dob' => $dob,
+                'gender' => $gender,
+                'contact_number' => $contact_number,
+                'email' => $email,
+                'address' => $address,
+                'patient_id' => $patient_id
+            ]);
+        } else {
+            // Insert new patient
+            $stmt = $pdo->prepare("INSERT INTO Patients (first_name, last_name, dob, gender, contact_number, email, address, created_by) VALUES (:first_name, :last_name, :dob, :gender, :contact_number, :email, :address, :created_by)");
+            $stmt->execute([
+                'first_name' => $first_name,
+                'last_name' => $last_name,
+                'dob' => $dob,
+                'gender' => $gender,
+                'contact_number' => $contact_number,
+                'email' => $email,
+                'address' => $address,
+                'created_by' => $created_by
+            ]);
+        }
+        header("Location: patients.php");
+        exit();
+    } catch (PDOException $e) {
+        echo "Error: " . $e->getMessage(); // Debugging output
+        exit();
     }
-    header("Location: patients.php");
-    exit();
 }
 
 // Fetch patient data for editing
 $edit_patient = null;
 if (isset($_GET['edit'])) {
-    $stmt = $pdo->prepare("SELECT * FROM Patients WHERE patient_id = :patient_id");
-    $stmt->execute(['patient_id' => $_GET['edit']]);
-    $edit_patient = $stmt->fetch(PDO::FETCH_ASSOC);
+    try {
+        $stmt = $pdo->prepare("SELECT * FROM Patients WHERE patient_id = :patient_id");
+        $stmt->execute(['patient_id' => $_GET['edit']]);
+        $edit_patient = $stmt->fetch(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        echo "Error fetching patient: " . $e->getMessage(); // Debugging output
+        exit();
+    }
 }
 ?>
 
