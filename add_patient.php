@@ -22,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $phone = $_POST['phone'];
     $email = $_POST['email'];
     $address = $_POST['address'];
-    $created_by = $_SESSION['user_id'];
+    $user_id = $_SESSION['user_id'];
 
     try {
         if (isset($_POST['patient_id']) && !empty($_POST['patient_id'])) {
@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ]);
         } else {
             // Insert new patient
-            $stmt = $pdo->prepare("INSERT INTO Patients (first_name, last_name, date_of_birth, gender, phone, email, address, created_by) VALUES (:first_name, :last_name, :date_of_birth, :gender, :phone, :email, :address, :created_by)");
+            $stmt = $pdo->prepare("INSERT INTO Patients (first_name, last_name, date_of_birth, gender, phone, email, address, user_id) VALUES (:first_name, :last_name, :date_of_birth, :gender, :phone, :email, :address, :user_id)");
             $stmt->execute([
                 'first_name' => $first_name,
                 'last_name' => $last_name,
@@ -50,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'phone' => $phone,
                 'email' => $email,
                 'address' => $address,
-                'created_by' => $created_by
+                'user_id' => $user_id
             ]);
         }
         header("Location: patients.php");
