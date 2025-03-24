@@ -9,7 +9,7 @@ if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in']) {
 
 // Restrict access to Admin only
 if ($_SESSION['role'] !== 'Admin') {
-    header("Location: index.php"); // Redirect non-Admins to dashboard
+    header("Location: index3.php"); // Redirect non-Admins to dashboard
     exit();
 }
 
@@ -58,6 +58,14 @@ if (isset($_GET['delete'])) {
             </section>
             <div class="app-content">
                 <div class="container-fluid">
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <div class="input-group">
+                                <input type="text" id="searchInput" class="form-control" placeholder="Search by username, name, or email">
+                                <button class="btn btn-primary" onclick="loadUsers(1)">Search</button>
+                            </div>
+                        </div>
+                    </div>
                     <div class="row">
                         <div class="col-md-12">
                             <div class="card mb-4">
@@ -95,7 +103,10 @@ if (isset($_GET['delete'])) {
     <?php include('inc/js.php'); ?>
     <script>
         function loadUsers(page = 1) {
-            fetch(`includes/fetch_users.php?page=${page}`) // Adjusted path from includes/fetch_users.php
+            const searchQuery = document.getElementById('searchInput').value.trim();
+            const url = `fetch_users.php?page=${page}${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''}`;
+            
+            fetch(url)
                 .then(response => {
                     if (!response.ok) throw new Error('Network response was not ok');
                     return response.json();
@@ -130,19 +141,14 @@ if (isset($_GET['delete'])) {
                     const pagination = document.getElementById('pagination');
                     pagination.innerHTML = '';
                     if (data.total_pages > 1) {
-                        // Previous button
                         pagination.innerHTML += `<li class="page-item ${data.current_page === 1 ? 'disabled' : ''}">
                             <a class="page-link" href="#" onclick="loadUsers(${data.current_page - 1}); return false;">«</a>
                         </li>`;
-
-                        // Page numbers
                         for (let i = 1; i <= data.total_pages; i++) {
                             pagination.innerHTML += `<li class="page-item ${i === data.current_page ? 'active' : ''}">
                                 <a class="page-link" href="#" onclick="loadUsers(${i}); return false;">${i}</a>
                             </li>`;
                         }
-
-                        // Next button
                         pagination.innerHTML += `<li class="page-item ${data.current_page === data.total_pages ? 'disabled' : ''}">
                             <a class="page-link" href="#" onclick="loadUsers(${data.current_page + 1}); return false;">»</a>
                         </li>`;
@@ -153,6 +159,13 @@ if (isset($_GET['delete'])) {
 
         // Load users on page load
         document.addEventListener('DOMContentLoaded', () => loadUsers(1));
+
+        // Add Enter key support for search
+        document.getElementById('searchInput').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                loadUsers(1);
+            }
+        });
 
         const SELECTOR_SIDEBAR_WRAPPER = '.sidebar-wrapper';
         const Default = {
