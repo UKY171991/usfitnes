@@ -50,7 +50,7 @@
   <body class="login-page bg-body-secondary">
     <div class="login-box">
       <div class="login-logo">
-        <a href="../index2.php"><b>Admin</b>LTE</a>
+        <a href="index.php"><b>Admin</b>LTE</a>
       </div>
       <!-- /.login-logo -->
       <div class="card">
