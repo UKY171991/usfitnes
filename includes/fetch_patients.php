@@ -26,10 +26,10 @@ $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 // Base query with JOIN to get creator's name
 $query = "SELECT p.*, CONCAT(u.first_name, ' ', u.last_name) AS created_by_name 
           FROM Patients p 
-          LEFT JOIN Users u ON p.created_by = u.user_id";
+          LEFT JOIN Users u ON p.user_id = u.user_id";
 $count_query = "SELECT COUNT(*) 
                 FROM Patients p 
-                LEFT JOIN Users u ON p.created_by = u.user_id";
+                LEFT JOIN Users u ON p.user_id = u.user_id";
 $params = [];
 
 if (!empty($search)) {
