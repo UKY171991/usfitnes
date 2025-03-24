@@ -1,4 +1,3 @@
-<?php include('conn.php'); ?>
 <!--begin::Fonts-->
     <link
       rel="stylesheet"
