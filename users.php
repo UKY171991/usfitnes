@@ -7,7 +7,7 @@ if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in']) {
     exit();
 }
 
-// Delete user
+// Delete user (still handled via GET for simplicity, but could be AJAX too)
 if (isset($_GET['delete'])) {
     $user_id = $_GET['delete'];
     $stmt = $pdo->prepare("DELETE FROM Users WHERE user_id = :user_id AND user_id != :current_user");
@@ -15,10 +15,6 @@ if (isset($_GET['delete'])) {
     header("Location: users.php");
     exit();
 }
-
-// Fetch all users
-$stmt = $pdo->query("SELECT * FROM Users ORDER BY user_id DESC");
-$users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <!doctype html>
@@ -71,33 +67,11 @@ $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                                 <th>Actions</th>
                                             </tr>
                                         </thead>
-                                        <tbody>
-                                            <?php foreach ($users as $user): ?>
-                                                <tr>
-                                                    <td><?php echo htmlspecialchars($user['user_id']); ?></td>
-                                                    <td><?php echo htmlspecialchars($user['username']); ?></td>
-                                                    <td><?php echo htmlspecialchars($user['first_name'] . ' ' . $user['last_name']); ?></td>
-                                                    <td><?php echo htmlspecialchars($user['email']); ?></td>
-                                                    <td><?php echo htmlspecialchars($user['role']); ?></td>
-                                                    <td><?php echo htmlspecialchars($user['created_at']); ?></td>
-                                                    <td>
-                                                        <a href="add_user.php?edit=<?php echo $user['user_id']; ?>" class="btn btn-sm btn-warning"><i class="bi bi-pencil"></i> Edit</a>
-                                                        <?php if ($user['user_id'] != $_SESSION['user_id']): ?>
-                                                            <a href="users.php?delete=<?php echo $user['user_id']; ?>" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?');"><i class="bi bi-trash"></i> Delete</a>
-                                                        <?php endif; ?>
-                                                    </td>
-                                                </tr>
-                                            <?php endforeach; ?>
-                                        </tbody>
+                                        <tbody id="userTableBody"></tbody>
                                     </table>
                                 </div>
                                 <div class="card-footer clearfix">
-                                    <ul class="pagination pagination-sm m-0 float-end">
-                                        <li class="page-item"><a class="page-link" href="#">«</a></li>
-                                        <li class="page-item"><a class="page-link" href="#">1</a></li>
-                                        <li class="page-item"><a class="page-link" href="#">2</a></li>
-                                        <li class="page-item"><a class="page-link" href="#">»</a></li>
-                                    </ul>
+                                    <ul class="pagination pagination-sm m-0 float-end" id="pagination"></ul>
                                 </div>
                             </div>
                         </div>
@@ -112,6 +86,61 @@ $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
     </div>
     <?php include('inc/js.php'); ?>
     <script>
+        function loadUsers(page = 1) {
+            fetch(`includes/fetch_users.php?page=${page}`)
+                .then(response => response.json())
+                .then(data => {
+                    const tbody = document.getElementById('userTableBody');
+                    tbody.innerHTML = ''; // Clear existing rows
+
+                    // Populate table
+                    data.users.forEach(user => {
+                        const row = `
+                            <tr>
+                                <td>${user.user_id}</td>
+                                <td>${user.username}</td>
+                                <td>${user.first_name} ${user.last_name}</td>
+                                <td>${user.email}</td>
+                                <td>${user.role}</td>
+                                <td>${user.created_at}</td>
+                                <td>
+                                    <a href="add_user.php?edit=${user.user_id}" class="btn btn-sm btn-warning"><i class="bi bi-pencil"></i> Edit</a>
+                                    ${user.user_id != <?php echo $_SESSION['user_id']; ?> ? 
+                                        `<a href="users.php?delete=${user.user_id}" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?');"><i class="bi bi-trash"></i> Delete</a>` 
+                                        : ''}
+                                </td>
+                            </tr>`;
+                        tbody.innerHTML += row;
+                    });
+
+                    // Generate pagination
+                    const pagination = document.getElementById('pagination');
+                    pagination.innerHTML = '';
+                    if (data.total_pages > 1) {
+                        // Previous button
+                        pagination.innerHTML += `<li class="page-item ${data.current_page === 1 ? 'disabled' : ''}">
+                            <a class="page-link" href="#" onclick="loadUsers(${data.current_page - 1}); return false;">«</a>
+                        </li>`;
+
+                        // Page numbers
+                        for (let i = 1; i <= data.total_pages; i++) {
+                            pagination.innerHTML += `<li class="page-item ${i === data.current_page ? 'active' : ''}">
+                                <a class="page-link" href="#" onclick="loadUsers(${i}); return false;">${i}</a>
+                            </li>`;
+                        }
+
+                        // Next button
+                        pagination.innerHTML += `<li class="page-item ${data.current_page === data.total_pages ? 'disabled' : ''}">
+                            <a class="page-link" href="#" onclick="loadUsers(${data.current_page + 1}); return false;">»</a>
+                        </li>`;
+                    }
+                })
+                .catch(error => console.error('Error fetching users:', error));
+        }
+
+        // Load users on page load
+        document.addEventListener('DOMContentLoaded', () => loadUsers(1));
+
         const SELECTOR_SIDEBAR_WRAPPER = '.sidebar-wrapper';
         const Default = {
             scrollbarTheme: 'os-theme-light',
