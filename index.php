@@ -1,7 +1,3 @@
-<?php
-session_start(); // Start session for user authentication
-require_once 'db_connect.php'; // Include database connection
-?>
 <!doctype html>
 <html lang="en">
   <!--begin::Head-->
