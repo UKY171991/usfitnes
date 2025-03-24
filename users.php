@@ -95,7 +95,7 @@ if (isset($_GET['delete'])) {
     <?php include('inc/js.php'); ?>
     <script>
         function loadUsers(page = 1) {
-            fetch(`fetch_users.php?page=${page}`) // Adjusted path from includes/fetch_users.php
+            fetch(`includes/fetch_users.php?page=${page}`) // Adjusted path from includes/fetch_users.php
                 .then(response => {
                     if (!response.ok) throw new Error('Network response was not ok');
                     return response.json();
