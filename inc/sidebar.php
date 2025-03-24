@@ -108,7 +108,7 @@
                 <a href="#" class="nav-link">
                   <i class="nav-icon bi bi-box-seam-fill"></i>
                   <p>
-                    Report Management
+                    Test Results
                     <i class="nav-arrow bi bi-chevron-right"></i>
                   </p>
                 </a>
@@ -116,13 +116,13 @@
                   <li class="nav-item">
                     <a href="./widgets/small-box.html" class="nav-link">
                       <i class="nav-icon bi bi-circle"></i>
-                      <p>Add Report</p>
+                      <p>Add Test Result</p>
                     </a>
                   </li>
                   <li class="nav-item">
                     <a href="./widgets/info-box.html" class="nav-link">
                       <i class="nav-icon bi bi-circle"></i>
-                      <p>All Report</p>
+                      <p>All Test Result</p>
                     </a>
                   </li>
                 </ul>
