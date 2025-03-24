@@ -7,7 +7,13 @@ if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in']) {
     exit();
 }
 
-// Delete user (still handled via GET for simplicity, but could be AJAX too)
+// Restrict access to Admin only
+if ($_SESSION['role'] !== 'Admin') {
+    header("Location: index3.php"); // Redirect non-Admins to dashboard
+    exit();
+}
+
+// Delete user (Admin-only action)
 if (isset($_GET['delete'])) {
     $user_id = $_GET['delete'];
     $stmt = $pdo->prepare("DELETE FROM Users WHERE user_id = :user_id AND user_id != :current_user");
@@ -41,9 +47,11 @@ if (isset($_GET['delete'])) {
                             <h3>User Management</h3>
                         </div>
                         <div class="col-sm-6 text-end">
-                            <a href="add_user.php" class="btn btn-primary">
-                                <i class="bi bi-person-plus"></i> Add New User
-                            </a>
+                            <?php if ($_SESSION['role'] === 'Admin'): ?>
+                                <a href="add_user.php" class="btn btn-primary">
+                                    <i class="bi bi-person-plus"></i> Add New User
+                                </a>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
@@ -87,8 +95,11 @@ if (isset($_GET['delete'])) {
     <?php include('inc/js.php'); ?>
     <script>
         function loadUsers(page = 1) {
-            fetch(`includes/fetch_users.php?page=${page}`)
-                .then(response => response.json())
+            fetch(`fetch_users.php?page=${page}`) // Adjusted path from includes/fetch_users.php
+                .then(response => {
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    return response.json();
+                })
                 .then(data => {
                     const tbody = document.getElementById('userTableBody');
                     tbody.innerHTML = ''; // Clear existing rows
@@ -104,10 +115,12 @@ if (isset($_GET['delete'])) {
                                 <td>${user.role}</td>
                                 <td>${user.created_at}</td>
                                 <td>
-                                    <a href="add_user.php?edit=${user.user_id}" class="btn btn-sm btn-warning"><i class="bi bi-pencil"></i> Edit</a>
-                                    ${user.user_id != <?php echo $_SESSION['user_id']; ?> ? 
-                                        `<a href="users.php?delete=${user.user_id}" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?');"><i class="bi bi-trash"></i> Delete</a>` 
-                                        : ''}
+                                    <?php if ($_SESSION['role'] === 'Admin'): ?>
+                                        <a href="add_user.php?edit=${user.user_id}" class="btn btn-sm btn-warning"><i class="bi bi-pencil"></i> Edit</a>
+                                        ${user.user_id != <?php echo $_SESSION['user_id']; ?> ? 
+                                            `<a href="users.php?delete=${user.user_id}" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?');"><i class="bi bi-trash"></i> Delete</a>` 
+                                            : ''}
+                                    <?php endif; ?>
                                 </td>
                             </tr>`;
                         tbody.innerHTML += row;
