@@ -99,7 +99,7 @@ if (isset($_GET['delete']) && $_SESSION['role'] === 'Admin') {
     <script>
         function loadPatients(page = 1) {
             const searchQuery = document.getElementById('searchInput').value.trim();
-            const url = `fetch_patients.php?page=${page}${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''}`; // Adjusted path
+            const url = `includes/fetch_patients.php?page=${page}${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''}`; // Adjusted path
             
             fetch(url)
                 .then(response => {
