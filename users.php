@@ -104,7 +104,7 @@ if (isset($_GET['delete'])) {
     <script>
         function loadUsers(page = 1) {
             const searchQuery = document.getElementById('searchInput').value.trim();
-            const url = `fetch_users.php?page=${page}${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''}`;
+            const url = `includes/fetch_users.php?page=${page}${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''}`;
             
             fetch(url)
                 .then(response => {
