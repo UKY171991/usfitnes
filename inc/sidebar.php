@@ -114,7 +114,7 @@
                 </a>
                 <ul class="nav nav-treeview">
                   <li class="nav-item">
-                    <a href="./widgets/small-box.html" class="nav-link">
+                    <a href="add_test_result.php" class="nav-link">
                       <i class="nav-icon bi bi-circle"></i>
                       <p>Add Test Result</p>
                     </a>
