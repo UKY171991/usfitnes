@@ -2,6 +2,8 @@
 session_start(); // Start session for user authentication
 require_once 'db_connect.php'; // Include database connection
 ?>
+
+rtyuisdfgh
 <!doctype html>
 <html lang="en">
   <!--begin::Head-->
