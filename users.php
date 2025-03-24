@@ -7,7 +7,7 @@ if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in']) {
     exit();
 }
 
-// Delete user
+// Delete user (still handled via GET for simplicity, but could be AJAX too)
 if (isset($_GET['delete'])) {
     $user_id = $_GET['delete'];
     $stmt = $pdo->prepare("DELETE FROM Users WHERE user_id = :user_id AND user_id != :current_user");
@@ -27,20 +27,11 @@ if (isset($_GET['delete'])) {
     <meta name="author" content="Your Name" />
     <meta name="description" content="Pathology Management System - User CRUD" />
     <meta name="keywords" content="pathology, users, crud, adminlte" />
-    <!-- Fonts -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/source-sans-3@5.0.12/index.css" integrity="sha256-tXJfXfp6Ewt1ilPzLDtQnJV4hclT9XuaZUKyUvmyr+Q=" crossorigin="anonymous" />
-    <!-- OverlayScrollbars -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/overlayscrollbars@2.10.1/styles/overlayscrollbars.min.css" integrity="sha256-tZHrRjVqNSRyWg2wbppGnT833E/Ys0DHWGwT04GiqQg=" crossorigin="anonymous" />
-    <!-- Bootstrap Icons -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" integrity="sha256-9kPW/n5nn53j4WMRYAxe9c1rCY96Oogo/MKSVdKzPmI=" crossorigin="anonymous" />
-    <!-- AdminLTE CSS (adjusted path) -->
-    <link rel="stylesheet" href="../dist/css/adminlte.css" />
+    <?php include('inc/head.php'); ?>
 </head>
 <body class="layout-fixed sidebar-expand-lg bg-body-tertiary">
     <div class="app-wrapper">
-        <!-- Top Navbar -->
         <?php include('inc/top.php'); ?>
-        <!-- Sidebar -->
         <?php include('inc/sidebar.php'); ?>
         <main class="app-main">
             <section class="content-header">
@@ -93,18 +84,11 @@ if (isset($_GET['delete'])) {
             <strong>Copyright © 2025 <a href="#" class="text-decoration-none">Pathology System</a>.</strong> All rights reserved.
         </footer>
     </div>
-    <!-- JavaScript -->
-    <script src="https://cdn.jsdelivr.net/npm/overlayscrollbars@2.10.1/browser/overlayscrollbars.browser.es6.min.js" integrity="sha256-dghWARbRe2eLlIJ56wNB+b760ywulqK3DzZYEpsg2fQ=" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js" integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js" integrity="sha384-0pUGZvbkm6XF6gxjEnlmuGrJXVbNuzT9qBBavbLwCsOGabYfZo0T0to5eqruptLy" crossorigin="anonymous"></script>
-    <script src="../dist/js/adminlte.js"></script>
+    <?php include('inc/js.php'); ?>
     <script>
         function loadUsers(page = 1) {
-            fetch(`includes/fetch_users.php?page=${page}`) // Adjusted path
-                .then(response => {
-                    if (!response.ok) throw new Error('Network response was not ok');
-                    return response.json();
-                })
+            fetch(`includes/fetch_users.php?page=${page}`)
+                .then(response => response.json())
                 .then(data => {
                     const tbody = document.getElementById('userTableBody');
                     tbody.innerHTML = ''; // Clear existing rows
