@@ -99,7 +99,7 @@ if (isset($_GET['delete']) && $_SESSION['role'] === 'Admin') {
     <script>
         function loadPatients(page = 1) {
             const searchQuery = document.getElementById('searchInput').value.trim();
-            const url = `includes/fetch_patients.php?page=${page}${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''}`;
+            const url = `fetch_patients.php?page=${page}${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''}`; // Adjusted path
             
             fetch(url)
                 .then(response => {
@@ -118,11 +118,11 @@ if (isset($_GET['delete']) && $_SESSION['role'] === 'Admin') {
                                 <tr>
                                     <td>${patient.patient_id}</td>
                                     <td>${patient.first_name} ${patient.last_name}</td>
-                                    <td>${patient.date_of_birth}</td>
+                                    <td>${patient.dob}</td>
                                     <td>${patient.gender}</td>
-                                    <td>${patient.phone || '-'}</td>
+                                    <td>${patient.contact_number || '-'}</td>
                                     <td>${patient.email || '-'}</td>
-                                    <td>${patient.user_id}</td>
+                                    <td>${patient.created_by_name || 'Unknown'}</td>
                                     <td>
                                         <a href="add_patient.php?edit=${patient.patient_id}" class="btn btn-sm btn-warning"><i class="bi bi-pencil"></i> Edit</a>
                                         <?php if ($_SESSION['role'] === 'Admin'): ?>
