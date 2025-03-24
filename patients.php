@@ -122,7 +122,7 @@ if (isset($_GET['delete']) && $_SESSION['role'] === 'Admin') {
                                     <td>${patient.gender}</td>
                                     <td>${patient.phone || '-'}</td>
                                     <td>${patient.email || '-'}</td>
-                                    <td>${patient.created_by}</td>
+                                    <td>${patient.user_id}</td>
                                     <td>
                                         <a href="add_patient.php?edit=${patient.patient_id}" class="btn btn-sm btn-warning"><i class="bi bi-pencil"></i> Edit</a>
                                         <?php if ($_SESSION['role'] === 'Admin'): ?>
