@@ -1,4 +1,6 @@
 <?php
+
+echo "Hello"; die;
 require_once '../db_connect.php';
 
 session_start();
