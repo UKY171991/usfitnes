@@ -50,13 +50,13 @@
   <body class="register-page bg-body-secondary">
     <div class="register-box">
       <div class="register-logo">
-        <a href="../index2.html"><b>Admin</b>LTE</a>
+        <a href="../index2.php"><b>Admin</b>LTE</a>
       </div>
       <!-- /.register-logo -->
       <div class="card">
         <div class="card-body register-card-body">
           <p class="register-box-msg">Register a new membership</p>
-          <form action="../index3.html" method="post">
+          <form action="../index3.php" method="post">
             <div class="input-group mb-3">
               <input type="text" class="form-control" placeholder="Full Name" />
               <div class="input-group-text"><span class="bi bi-person"></span></div>
@@ -100,7 +100,7 @@
           </div>
           <!-- /.social-auth-links -->
           <p class="mb-0">
-            <a href="login.html" class="text-center"> I already have a membership </a>
+            <a href="login.php" class="text-center"> I already have a membership </a>
           </p>
         </div>
         <!-- /.register-card-body -->
