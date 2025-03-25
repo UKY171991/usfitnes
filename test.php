@@ -552,7 +552,7 @@ $tests = $tests_stmt->fetchAll(PDO::FETCH_ASSOC);
         $(document).ready(function() {
             $('.select2').select2({
                 placeholder: "Select parameters",
-                allowClear: true
+                //allowClear: true
             });
         });
 
