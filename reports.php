@@ -1,7 +1,7 @@
 <?php
 require_once 'db_connect.php';
 require_once 'vendor/tcpdf/tcpdf.php'; // Adjust path as needed
-
+echo "Hello"; die;
 session_start();
 if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in']) {
     header("Location: login.php");
