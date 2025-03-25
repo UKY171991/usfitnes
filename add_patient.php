@@ -120,26 +120,30 @@ if (isset($_GET['edit'])) {
                                                     <input type="text" class="form-control" id="last_name" name="last_name" value="<?php echo $edit_patient ? htmlspecialchars($edit_patient['last_name']) : ''; ?>" required>
                                                 </div>
                                             </div>
-                                            <div class="col-md-6"></div>
-                                            <div class="col-md-6"></div>
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label for="date_of_birth" class="form-label">Date of Birth</label>
+                                                    <input type="date" class="form-control" id="date_of_birth" name="date_of_birth" value="<?php echo $edit_patient ? htmlspecialchars($edit_patient['date_of_birth']) : ''; ?>" required>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label for="gender" class="form-label">Gender</label>
+                                                    <select class="form-control" id="gender" name="gender" required>
+                                                        <option value="Male" <?php echo $edit_patient && $edit_patient['gender'] === 'Male' ? 'selected' : ''; ?>>Male</option>
+                                                        <option value="Female" <?php echo $edit_patient && $edit_patient['gender'] === 'Female' ? 'selected' : ''; ?>>Female</option>
+                                                        <option value="Other" <?php echo $edit_patient && $edit_patient['gender'] === 'Other' ? 'selected' : ''; ?>>Other</option>
+                                                    </select>
+                                                </div>
+                                            </div>
                                             <div class="col-md-6"></div>
                                             <div class="col-md-6"></div>
                                             <div class="col-md-6"></div>
                                         </div>
                                         
                                         
-                                        <div class="mb-3">
-                                            <label for="date_of_birth" class="form-label">Date of Birth</label>
-                                            <input type="date" class="form-control" id="date_of_birth" name="date_of_birth" value="<?php echo $edit_patient ? htmlspecialchars($edit_patient['date_of_birth']) : ''; ?>" required>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label for="gender" class="form-label">Gender</label>
-                                            <select class="form-control" id="gender" name="gender" required>
-                                                <option value="Male" <?php echo $edit_patient && $edit_patient['gender'] === 'Male' ? 'selected' : ''; ?>>Male</option>
-                                                <option value="Female" <?php echo $edit_patient && $edit_patient['gender'] === 'Female' ? 'selected' : ''; ?>>Female</option>
-                                                <option value="Other" <?php echo $edit_patient && $edit_patient['gender'] === 'Other' ? 'selected' : ''; ?>>Other</option>
-                                            </select>
-                                        </div>
+                                        
+                                        
                                         <div class="mb-3">
                                             <label for="phone" class="form-label">Contact Number</label>
                                             <input type="text" class="form-control" id="phone" name="phone" value="<?php echo $edit_patient ? htmlspecialchars($edit_patient['phone']) : ''; ?>">
