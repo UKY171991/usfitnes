@@ -4,9 +4,9 @@ require_once 'db_connect.php'; // Include database connection
 
 
 // Run this once to update passwords (e.g., in a setup script)
-/*
+
 $users = [
-    ['email' => 'alice@lab.com', 'password' => 'admin123'],
+    ['email' => 'alice@lab.com', 'password' => 'Uma@171991'],
     ['email' => 'bob@lab.com', 'password' => 'doctor456'],
     // Add others as needed
 ];
@@ -17,7 +17,7 @@ foreach ($users as $user) {
     $stmt->execute(['password' => $hashed_password, 'email' => $user['email']]);
 }
 echo "Passwords updated.";
-*/
+
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
