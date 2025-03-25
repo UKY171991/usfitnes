@@ -38,7 +38,7 @@ if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in']) {
                                 <div class="card-header"><h3 class="card-title">Manage Tests</h3></div>
                                 <div class="card-body">
                                     <p>Add or edit pathology tests like CBC.</p>
-                                    <a href="tests.php" class="btn btn-primary">Go to Tests</a>
+                                    <a href="test.php" class="btn btn-primary">Go to Tests</a>
                                 </div>
                             </div>
                         </div>
