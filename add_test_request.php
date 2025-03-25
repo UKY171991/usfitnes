@@ -13,11 +13,16 @@ if (!in_array($_SESSION['role'], ['Admin', 'Doctor', 'Technician'])) {
     exit();
 }
 
-// Fetch patients and tests for dropdowns
+// Fetch patients for dropdown
 $patients_stmt = $pdo->query("SELECT patient_id, CONCAT(first_name, ' ', last_name) AS patient_name FROM Patients ORDER BY patient_name");
 $patients = $patients_stmt->fetchAll(PDO::FETCH_ASSOC);
 
-$tests_stmt = $pdo->query("SELECT test_id, test_name FROM Tests_Catalog ORDER BY test_name");
+// Fetch test categories for dropdown
+$categories_stmt = $pdo->query("SELECT category_id, category_name FROM Test_Categories ORDER BY category_name");
+$categories = $categories_stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Fetch tests for dropdown (we'll filter dynamically with JavaScript)
+$tests_stmt = $pdo->query("SELECT test_id, test_name, category_id FROM Tests_Catalog ORDER BY test_name");
 $tests = $tests_stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Handle form submission
@@ -66,7 +71,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $edit_request = null;
 if (isset($_GET['edit'])) {
     try {
-        $stmt = $pdo->prepare("SELECT * FROM Test_Requests WHERE request_id = :request_id");
+        $stmt = $pdo->prepare("SELECT tr.*, tc.category_id 
+                               FROM Test_Requests tr 
+                               JOIN Tests_Catalog tc ON tr.test_id = tc.test_id 
+                               WHERE tr.request_id = :request_id");
         $stmt->execute(['request_id' => $_GET['edit']]);
         $edit_request = $stmt->fetch(PDO::FETCH_ASSOC);
     } catch (PDOException $e) {
@@ -120,14 +128,29 @@ if (isset($_GET['edit'])) {
                                             </select>
                                         </div>
                                         <div class="mb-3">
+                                            <label for="category_id" class="form-label">Test Category</label>
+                                            <select class="form-control" id="category_id" name="category_id" required>
+                                                <option value="">Select Category</option>
+                                                <?php foreach ($categories as $category): ?>
+                                                    <option value="<?php echo $category['category_id']; ?>" <?php echo $edit_request && $edit_request['category_id'] == $category['category_id'] ? 'selected' : ''; ?>>
+                                                        <?php echo htmlspecialchars($category['category_name']); ?>
+                                                    </option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
                                             <label for="test_id" class="form-label">Test</label>
                                             <select class="form-control" id="test_id" name="test_id" required>
                                                 <option value="">Select Test</option>
-                                                <?php foreach ($tests as $test): ?>
-                                                    <option value="<?php echo $test['test_id']; ?>" <?php echo $edit_request && $edit_request['test_id'] == $test['test_id'] ? 'selected' : ''; ?>>
-                                                        <?php echo htmlspecialchars($test['test_name']); ?>
-                                                    </option>
-                                                <?php endforeach; ?>
+                                                <?php if ($edit_request): ?>
+                                                    <?php foreach ($tests as $test): ?>
+                                                        <?php if ($test['category_id'] == $edit_request['category_id']): ?>
+                                                            <option value="<?php echo $test['test_id']; ?>" <?php echo $edit_request['test_id'] == $test['test_id'] ? 'selected' : ''; ?>>
+                                                                <?php echo htmlspecialchars($test['test_name']); ?>
+                                                            </option>
+                                                        <?php endif; ?>
+                                                    <?php endforeach; ?>
+                                                <?php endif; ?>
                                             </select>
                                         </div>
                                         <div class="mb-3">
@@ -166,6 +189,38 @@ if (isset($_GET['edit'])) {
     </div>
     <?php include('inc/js.php'); ?>
     <script>
+        // Pass PHP tests array to JavaScript
+        const tests = <?php echo json_encode($tests); ?>;
+
+        // Function to filter tests based on selected category
+        function filterTests() {
+            const categoryId = document.getElementById('category_id').value;
+            const testSelect = document.getElementById('test_id');
+            
+            // Clear current options
+            testSelect.innerHTML = '<option value="">Select Test</option>';
+            
+            // Filter tests by category and populate dropdown
+            if (categoryId) {
+                tests.forEach(test => {
+                    if (test.category_id == categoryId) {
+                        const option = document.createElement('option');
+                        option.value = test.test_id;
+                        option.textContent = test.test_name;
+                        testSelect.appendChild(option);
+                    }
+                });
+            }
+        }
+
+        // Add event listener to category dropdown
+        document.getElementById('category_id').addEventListener('change', filterTests);
+
+        // Trigger filter on page load if editing
+        <?php if ($edit_request): ?>
+            filterTests();
+        <?php endif; ?>
+
         const SELECTOR_SIDEBAR_WRAPPER = '.sidebar-wrapper';
         const Default = {
             scrollbarTheme: 'os-theme-light',
