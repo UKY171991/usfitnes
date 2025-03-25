@@ -148,7 +148,7 @@ if (isset($_GET['edit'])) {
                                                     <input type="email" class="form-control" id="email" name="email" value="<?php echo $edit_patient ? htmlspecialchars($edit_patient['email']) : ''; ?>">
                                                 </div>
                                             </div>
-                                            <div class="col-md-6">
+                                            <div class="col-md-12">
                                                 <div class="mb-3">
                                                     <label for="address" class="form-label">Address</label>
                                                     <textarea class="form-control" id="address" name="address"><?php echo $edit_patient ? htmlspecialchars($edit_patient['address']) : ''; ?></textarea>
