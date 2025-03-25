@@ -9,7 +9,7 @@ if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in']) {
 
 // Restrict access to Admin only
 if ($_SESSION['role'] !== 'Admin') {
-    header("Location: index3.php"); // Redirect non-Admins to dashboard
+    header("Location: index.php"); // Redirect non-Admins to dashboard
     exit();
 }
 
