@@ -24,6 +24,7 @@ if (!in_array($_SESSION['role'], ['Admin', 'Doctor', 'Technician'])) {
 }
 
 // Generate PDF if requested
+// Generate PDF if requested
 if (isset($_GET['generate_pdf']) && !empty($_GET['result_id'])) {
     $result_id = $_GET['result_id'];
 
@@ -49,6 +50,15 @@ if (isset($_GET['generate_pdf']) && !empty($_GET['result_id'])) {
         if (!$result) {
             die("No result found for result_id: $result_id");
         }
+
+        // Fetch sub-test details for CBC
+        $sub_stmt = $pdo->prepare("
+            SELECT sub_test_name, result_value, unit, normal_range
+            FROM Test_Result_Details
+            WHERE result_id = :result_id
+        ");
+        $sub_stmt->execute(['result_id' => $result_id]);
+        $sub_tests = $sub_stmt->fetchAll(PDO::FETCH_ASSOC);
 
         // Create new PDF document
         $pdf = new TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
@@ -106,7 +116,7 @@ if (isset($_GET['generate_pdf']) && !empty($_GET['result_id'])) {
         $pdf->Cell(0, 5, 'COMPLETE BLOOD COUNT', 0, 1, 'C', false, '', 0, false, 'T', 'T');
         $pdf->Ln(2);
 
-        // CBC Table
+        // CBC Table (Dynamic)
         $pdf->SetFont('helvetica', '', 9);
         $html = '
         <table border="1" cellpadding="3">
@@ -115,143 +125,22 @@ if (isset($_GET['generate_pdf']) && !empty($_GET['result_id'])) {
                 <th width="20%"><strong>RESULT</strong></th>
                 <th width="20%"><strong>UNIT</strong></th>
                 <th width="20%"><strong>NORMAL VALUE</strong></th>
-            </tr>
+            </tr>';
+
+        foreach ($sub_tests as $sub_test) {
+            $html .= '
             <tr>
-                <td>Total WBC Count</td>
-                <td>2300</td>
-                <td>cu mm</td>
-                <td>4000-11000</td>
-            </tr>
-            <tr>
-                <td><strong>Total WBC Count</strong></td>
-                <td></td>
-                <td></td>
-                <td></td>
-            </tr>
-            <tr>
-                <td>Neutrophils</td>
-                <td>47</td>
-                <td>%</td>
-                <td>40-80</td>
-            </tr>
-            <tr>
-                <td>Lymphocytes</td>
-                <td>45</td>
-                <td>%</td>
-                <td>20-40</td>
-            </tr>
-            <tr>
-                <td>Eosinophils</td>
-                <td>08</td>
-                <td>%</td>
-                <td>01-6</td>
-            </tr>
-            <tr>
-                <td>Monocytes</td>
-                <td>00</td>
-                <td>%</td>
-                <td>00-1</td>
-            </tr>
-            <tr>
-                <td>Basophils</td>
-                <td>00</td>
-                <td>%</td>
-                <td>00-0</td>
-            </tr>
-            <tr>
-                <td>Haemoglobin</td>
-                <td>9.4</td>
-                <td>gm%</td>
-                <td>11-16</td>
-            </tr>
-            <tr>
-                <td><strong>RBC Indices</strong></td>
-                <td></td>
-                <td></td>
-                <td></td>
-            </tr>
-            <tr>
-                <td>PCT</td>
-                <td>0.106</td>
-                <td>%</td>
-                <td>0.106</td>
-            </tr>
-            <tr>
-                <td>PDW</td>
-                <td>16.7</td>
-                <td>%</td>
-                <td>10-1</td>
-            </tr>
-            <tr>
-                <td>MPV</td>
-                <td>14.0</td>
-                <td>FI</td>
-                <td>7-11</td>
-            </tr>
-            <tr>
-                <td>RDW-SD</td>
-                <td>55.6</td>
-                <td>FI</td>
-                <td>35</td>
-            </tr>
-            <tr>
-                <td>RDW-CV</td>
-                <td>15.7</td>
-                <td>%</td>
-                <td>10-15%</td>
-            </tr>
-            <tr>
-                <td>MCHC</td>
-                <td>36.2</td>
-                <td>%</td>
-                <td>30-34%</td>
-            </tr>
-            <tr>
-                <td>MCH</td>
-                <td>37.2</td>
-                <td>Pg</td>
-                <td>28-32pg</td>
-            </tr>
-            <tr>
-                <td>MCV</td>
-                <td>102</td>
-                <td>FI</td>
-                <td>80-99FI</td>
-            </tr>
-            <tr>
-                <td><strong>RBC Count</strong></td>
-                <td></td>
-                <td></td>
-                <td></td>
-            </tr>
-            <tr>
-                <td>Platelets</td>
-                <td>0.76</td>
-                <td>million/cu mm</td>
-                <td>3.8-4.8million/cu mm</td>
-            </tr>
-            <tr>
-                <td><strong>Platelet Count</strong></td>
-                <td></td>
-                <td></td>
-                <td></td>
-            </tr>
-            <tr>
-                <td>PCV</td>
-                <td>26.0</td>
-                <td>%</td>
-                <td>35-45%</td>
-            </tr>
-            <tr>
-                <td>MP</td>
-                <td>NEGATIVE</td>
-                <td></td>
-                <td></td>
-            </tr>
-        </table>';
+                <td>' . htmlspecialchars($sub_test['sub_test_name']) . '</td>
+                <td>' . htmlspecialchars($sub_test['result_value']) . '</td>
+                <td>' . htmlspecialchars($sub_test['unit']) . '</td>
+                <td>' . htmlspecialchars($sub_test['normal_range']) . '</td>
+            </tr>';
+        }
+
+        $html .= '</table>';
         $pdf->writeHTML($html, true, false, true, false, '');
 
-        // Widal Test Section
+        // Widal Test Section (Hardcoded for now)
         $pdf->Ln(5);
         $pdf->SetFont('helvetica', 'B', 10);
         $pdf->Cell(0, 5, 'WIDAL TEST', 0, 1, 'C', false, '', 0, false, 'T', 'T');
