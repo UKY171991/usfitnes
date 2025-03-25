@@ -107,14 +107,27 @@ if (isset($_GET['edit'])) {
                                         <?php if ($edit_patient): ?>
                                             <input type="hidden" name="patient_id" value="<?php echo $edit_patient['patient_id']; ?>">
                                         <?php endif; ?>
-                                        <div class="mb-3">
-                                            <label for="first_name" class="form-label">First Name</label>
-                                            <input type="text" class="form-control" id="first_name" name="first_name" value="<?php echo $edit_patient ? htmlspecialchars($edit_patient['first_name']) : ''; ?>" required>
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label for="first_name" class="form-label">First Name</label>
+                                                    <input type="text" class="form-control" id="first_name" name="first_name" value="<?php echo $edit_patient ? htmlspecialchars($edit_patient['first_name']) : ''; ?>" required>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label for="last_name" class="form-label">Last Name</label>
+                                                    <input type="text" class="form-control" id="last_name" name="last_name" value="<?php echo $edit_patient ? htmlspecialchars($edit_patient['last_name']) : ''; ?>" required>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6"></div>
+                                            <div class="col-md-6"></div>
+                                            <div class="col-md-6"></div>
+                                            <div class="col-md-6"></div>
+                                            <div class="col-md-6"></div>
                                         </div>
-                                        <div class="mb-3">
-                                            <label for="last_name" class="form-label">Last Name</label>
-                                            <input type="text" class="form-control" id="last_name" name="last_name" value="<?php echo $edit_patient ? htmlspecialchars($edit_patient['last_name']) : ''; ?>" required>
-                                        </div>
+                                        
+                                        
                                         <div class="mb-3">
                                             <label for="date_of_birth" class="form-label">Date of Birth</label>
                                             <input type="date" class="form-control" id="date_of_birth" name="date_of_birth" value="<?php echo $edit_patient ? htmlspecialchars($edit_patient['date_of_birth']) : ''; ?>" required>
