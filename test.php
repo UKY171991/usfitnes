@@ -33,6 +33,10 @@ $tests_stmt = $pdo->query("
     ORDER BY t.test_name
 ");
 $tests = $tests_stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Fetch all possible parameters dynamically
+$parameters_stmt = $pdo->query("SELECT parameter_name FROM Test_Parameters ORDER BY parameter_name");
+$possible_parameters = $parameters_stmt->fetchAll(PDO::FETCH_COLUMN);
 ?>
 
 <!doctype html>
@@ -42,6 +46,25 @@ $tests = $tests_stmt->fetchAll(PDO::FETCH_ASSOC);
     <title>Shiva Pathology Centre | Test Management</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <?php include('inc/head.php'); ?>
+    <!-- Custom CSS for Select2 -->
+    <style>
+        .select2-container {
+            width: 100% !important;
+        }
+        .select2-container .select2-selection--multiple {
+            min-height: 38px;
+            border: 1px solid #ced4da;
+            border-radius: 0.25rem;
+        }
+        .select2-container--default .select2-selection--multiple .select2-selection__choice {
+            background-color: #007bff;
+            color: white;
+            border: 1px solid #006fe6;
+        }
+        .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+            color: white;
+        }
+    </style>
 </head>
 <body class="layout-fixed sidebar-expand-lg bg-body-tertiary">
     <div class="app-wrapper">
@@ -249,7 +272,15 @@ $tests = $tests_stmt->fetchAll(PDO::FETCH_ASSOC);
                                                                     </div>
                                                                     <div class="mb-3">
                                                                         <label>Parameters</label>
-                                                                        <textarea class="form-control" name="parameters" required><?php echo htmlspecialchars($test['parameters']); ?></textarea>
+                                                                        <select class="form-control select2" name="parameters[]" multiple required>
+                                                                            <?php
+                                                                            $selected_parameters = explode(',', $test['parameters']);
+                                                                            foreach ($possible_parameters as $param): ?>
+                                                                                <option value="<?php echo htmlspecialchars($param); ?>" <?php echo in_array($param, $selected_parameters) ? 'selected' : ''; ?>>
+                                                                                    <?php echo htmlspecialchars($param); ?>
+                                                                                </option>
+                                                                            <?php endforeach; ?>
+                                                                        </select>
                                                                     </div>
                                                                     <div class="mb-3">
                                                                         <label>Reference Range</label>
@@ -339,7 +370,13 @@ $tests = $tests_stmt->fetchAll(PDO::FETCH_ASSOC);
                         </div>
                         <div class="mb-3">
                             <label>Parameters</label>
-                            <textarea class="form-control" name="parameters" placeholder="Enter Parameters (comma separated)" required></textarea>
+                            <select class="form-control select2" name="parameters[]" multiple required>
+                                <?php foreach ($possible_parameters as $param): ?>
+                                    <option value="<?php echo htmlspecialchars($param); ?>">
+                                        <?php echo htmlspecialchars($param); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
                         </div>
                         <div class="mb-3">
                             <label>Reference Range</label>
@@ -361,6 +398,14 @@ $tests = $tests_stmt->fetchAll(PDO::FETCH_ASSOC);
 
     <?php include('inc/js.php'); ?>
     <script>
+        // Initialize Select2 on all elements with class 'select2'
+        $(document).ready(function() {
+            $('.select2').select2({
+                placeholder: "Select parameters",
+                allowClear: true
+            });
+        });
+
         const SELECTOR_SIDEBAR_WRAPPER = '.sidebar-wrapper';
         const Default = {
             scrollbarTheme: 'os-theme-light',
