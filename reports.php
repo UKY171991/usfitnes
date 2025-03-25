@@ -27,7 +27,7 @@ if (isset($_GET['generate_pdf']) && !empty($_GET['result_id'])) {
     $stmt = $pdo->prepare("
         SELECT 
             trs.result_id, trs.result_value, trs.comments, trs.recorded_at,
-            CONCAT(p.first_name, ' ', p.last_name) AS patient_name, p.dob, p.gender,
+            CONCAT(p.first_name, ' ', p.last_name) AS patient_name, p.date_of_birth, p.gender,
             t.test_name, t.test_code, t.normal_range, t.unit,
             CONCAT(s.first_name, ' ', s.last_name) AS recorded_by_name, s.role AS recorded_by_role,
             tr.request_date, tr.ordered_by
@@ -67,7 +67,7 @@ if (isset($_GET['generate_pdf']) && !empty($_GET['result_id'])) {
         <table border="1" cellpadding="4">
             <tr><td><strong>Result ID:</strong></td><td>' . htmlspecialchars($result['result_id']) . '</td></tr>
             <tr><td><strong>Patient Name:</strong></td><td>' . htmlspecialchars($result['patient_name']) . '</td></tr>
-            <tr><td><strong>Date of Birth:</strong></td><td>' . htmlspecialchars($result['dob']) . '</td></tr>
+            <tr><td><strong>Date of Birth:</strong></td><td>' . htmlspecialchars($result['date_of_birth']) . '</td></tr>
             <tr><td><strong>Gender:</strong></td><td>' . htmlspecialchars($result['gender']) . '</td></tr>
             <tr><td><strong>Test Name:</strong></td><td>' . htmlspecialchars($result['test_name']) . '</td></tr>
             <tr><td><strong>Test Code:</strong></td><td>' . htmlspecialchars($result['test_code']) . '</td></tr>
