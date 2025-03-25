@@ -136,26 +136,26 @@ if (isset($_GET['edit'])) {
                                                     </select>
                                                 </div>
                                             </div>
-                                            <div class="col-md-6"></div>
-                                            <div class="col-md-6"></div>
-                                            <div class="col-md-6"></div>
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label for="phone" class="form-label">Contact Number</label>
+                                                    <input type="text" class="form-control" id="phone" name="phone" value="<?php echo $edit_patient ? htmlspecialchars($edit_patient['phone']) : ''; ?>">
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label for="email" class="form-label">Email</label>
+                                                    <input type="email" class="form-control" id="email" name="email" value="<?php echo $edit_patient ? htmlspecialchars($edit_patient['email']) : ''; ?>">
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label for="address" class="form-label">Address</label>
+                                                    <textarea class="form-control" id="address" name="address"><?php echo $edit_patient ? htmlspecialchars($edit_patient['address']) : ''; ?></textarea>
+                                                </div>
+                                            </div>
                                         </div>
                                         
-                                        
-                                        
-                                        
-                                        <div class="mb-3">
-                                            <label for="phone" class="form-label">Contact Number</label>
-                                            <input type="text" class="form-control" id="phone" name="phone" value="<?php echo $edit_patient ? htmlspecialchars($edit_patient['phone']) : ''; ?>">
-                                        </div>
-                                        <div class="mb-3">
-                                            <label for="email" class="form-label">Email</label>
-                                            <input type="email" class="form-control" id="email" name="email" value="<?php echo $edit_patient ? htmlspecialchars($edit_patient['email']) : ''; ?>">
-                                        </div>
-                                        <div class="mb-3">
-                                            <label for="address" class="form-label">Address</label>
-                                            <textarea class="form-control" id="address" name="address"><?php echo $edit_patient ? htmlspecialchars($edit_patient['address']) : ''; ?></textarea>
-                                        </div>
                                         <button type="submit" class="btn btn-primary">Save</button>
                                         <a href="patients.php" class="btn btn-secondary">Cancel</a>
                                     </form>
