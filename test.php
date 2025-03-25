@@ -1,5 +1,5 @@
 <?php
-require_once 'db_connect.php';
+include('conn.php');
 
 session_start();
 if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in']) {
@@ -25,6 +25,26 @@ foreach ($categories as $category) {
     $category_usage[$category['category_id']] = $stmt->fetchColumn();
 }
 
+// Fetch all parameters for the dropdown and parameter list
+$parameters_stmt = $pdo->query("SELECT * FROM Test_Parameters ORDER BY parameter_name");
+$parameters = $parameters_stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Check if each parameter is in use (used in tests)
+$parameter_usage = [];
+foreach ($parameters as $param) {
+    $in_use = false;
+    $stmt = $pdo->query("SELECT parameters FROM Tests_Catalog");
+    $tests = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    foreach ($tests as $test) {
+        $test_params = explode(',', $test['parameters']);
+        if (in_array($param['parameter_name'], $test_params)) {
+            $in_use = true;
+            break;
+        }
+    }
+    $parameter_usage[$param['parameter_id']] = $in_use;
+}
+
 // Fetch all tests for display
 $tests_stmt = $pdo->query("
     SELECT t.*, c.category_name 
@@ -33,10 +53,6 @@ $tests_stmt = $pdo->query("
     ORDER BY t.test_name
 ");
 $tests = $tests_stmt->fetchAll(PDO::FETCH_ASSOC);
-
-// Fetch all possible parameters dynamically
-$parameters_stmt = $pdo->query("SELECT parameter_name FROM Test_Parameters ORDER BY parameter_name");
-$possible_parameters = $parameters_stmt->fetchAll(PDO::FETCH_COLUMN);
 ?>
 
 <!doctype html>
@@ -81,6 +97,9 @@ $possible_parameters = $parameters_stmt->fetchAll(PDO::FETCH_COLUMN);
                             <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newCategoryModal">
                                 <i class="fas fa-plus"></i> New Category
                             </button>
+                            <button class="btn btn-info" data-bs-toggle="modal" data-bs-target="#newParameterModal">
+                                <i class="fas fa-plus"></i> New Parameter
+                            </button>
                             <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#newTestModal">
                                 <i class="fas fa-vial"></i> New Test
                             </button>
@@ -90,31 +109,16 @@ $possible_parameters = $parameters_stmt->fetchAll(PDO::FETCH_COLUMN);
             </section>
             <div class="app-content">
                 <div class="container-fluid">
+                    <!-- Alert Section -->
+                    <div id="alert-container"></div>
+
                     <!-- Test Category Section -->
                     <div class="row">
                         <div class="col-md-12">
                             <div class="card mb-4">
                                 <div class="card-header"><h3 class="card-title">Test Category List</h3></div>
                                 <div class="card-body">
-                                    <?php
-                                    if (isset($_SESSION['success'])) {
-                                        echo "<div class='alert alert-success alert-dismissible fade show' role='alert'>"
-                                            . $_SESSION['success'] .
-                                            "<button type='button' class='btn-close' data-bs-dismiss='alert'></button>
-                                        </div>";
-                                        unset($_SESSION['success']);
-                                    }
-
-                                    if (isset($_SESSION['error'])) {
-                                        echo "<div class='alert alert-danger alert-dismissible fade show' role='alert'>"
-                                            . $_SESSION['error'] .
-                                            "<button type='button' class='btn-close' data-bs-dismiss='alert'></button>
-                                        </div>";
-                                        unset($_SESSION['error']);
-                                    }
-                                    ?>
-
-                                    <table class="table table-bordered table-striped">
+                                    <table class="table table-bordered table-striped" id="category-table">
                                         <thead>
                                             <tr>
                                                 <th>ID</th>
@@ -130,16 +134,16 @@ $possible_parameters = $parameters_stmt->fetchAll(PDO::FETCH_COLUMN);
                                                 </tr>
                                             <?php else: ?>
                                                 <?php foreach ($categories as $category): ?>
-                                                    <tr>
+                                                    <tr data-id="<?php echo $category['category_id']; ?>">
                                                         <td><?php echo htmlspecialchars($category['category_id']); ?></td>
                                                         <td><?php echo htmlspecialchars($category['category_name']); ?></td>
                                                         <td><?php echo htmlspecialchars($category['created_at']); ?></td>
                                                         <td>
-                                                            <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#editCategoryModal<?php echo $category['category_id']; ?>">
+                                                            <button class="btn btn-sm btn-primary edit-category" data-id="<?php echo $category['category_id']; ?>" data-name="<?php echo htmlspecialchars($category['category_name']); ?>">
                                                                 <i class="fas fa-edit"></i> Edit
                                                             </button>
                                                             <?php if ($category_usage[$category['category_id']] == 0): ?>
-                                                                <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteCategoryModal<?php echo $category['category_id']; ?>">
+                                                                <button class="btn btn-sm btn-danger delete-category" data-id="<?php echo $category['category_id']; ?>">
                                                                     <i class="fas fa-trash"></i> Delete
                                                                 </button>
                                                             <?php else: ?>
@@ -149,52 +153,56 @@ $possible_parameters = $parameters_stmt->fetchAll(PDO::FETCH_COLUMN);
                                                             <?php endif; ?>
                                                         </td>
                                                     </tr>
+                                                <?php endforeach; ?>
+                                            <?php endif; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
-                                                    <!-- Edit Category Modal -->
-                                                    <div class="modal fade" id="editCategoryModal<?php echo $category['category_id']; ?>" tabindex="-1" aria-labelledby="editCategoryModalLabel" aria-hidden="true">
-                                                        <div class="modal-dialog">
-                                                            <div class="modal-content">
-                                                                <div class="modal-header">
-                                                                    <h5 class="modal-title" id="editCategoryModalLabel">Edit Category</h5>
-                                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                                </div>
-                                                                <form action="includes/update-category.php" method="POST">
-                                                                    <div class="modal-body">
-                                                                        <input type="hidden" name="category_id" value="<?php echo $category['category_id']; ?>">
-                                                                        <div class="mb-3">
-                                                                            <label>Category Name</label>
-                                                                            <input type="text" class="form-control" name="category_name" value="<?php echo htmlspecialchars($category['category_name']); ?>" required>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div class="modal-footer">
-                                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                                                        <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Changes</button>
-                                                                    </div>
-                                                                </form>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    <!-- Delete Category Modal -->
-                                                    <div class="modal fade" id="deleteCategoryModal<?php echo $category['category_id']; ?>" tabindex="-1" aria-labelledby="deleteCategoryModalLabel" aria-hidden="true">
-                                                        <div class="modal-dialog">
-                                                            <div class="modal-content">
-                                                                <div class="modal-header">
-                                                                    <h5 class="modal-title" id="deleteCategoryModalLabel">Confirm Deletion</h5>
-                                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                                </div>
-                                                                <div class="modal-body">
-                                                                    Are you sure you want to delete the category "<strong><?php echo htmlspecialchars($category['category_name']); ?></strong>"? This action cannot be undone.
-                                                                </div>
-                                                                <div class="modal-footer">
-                                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                                                    <a href="includes/delete-category.php?category_id=<?php echo $category['category_id']; ?>" class="btn btn-danger">
-                                                                        <i class="fas fa-trash"></i> Delete
-                                                                    </a>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
+                    <!-- Test Parameter Section -->
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="card mb-4">
+                                <div class="card-header"><h3 class="card-title">Test Parameter List</h3></div>
+                                <div class="card-body">
+                                    <table class="table table-bordered table-striped" id="parameter-table">
+                                        <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Parameter Name</th>
+                                                <th>Created At</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php if (empty($parameters)): ?>
+                                                <tr>
+                                                    <td colspan="4" class="text-center">No parameters found</td>
+                                                </tr>
+                                            <?php else: ?>
+                                                <?php foreach ($parameters as $param): ?>
+                                                    <tr data-id="<?php echo $param['parameter_id']; ?>">
+                                                        <td><?php echo htmlspecialchars($param['parameter_id']); ?></td>
+                                                        <td><?php echo htmlspecialchars($param['parameter_name']); ?></td>
+                                                        <td><?php echo htmlspecialchars($param['created_at']); ?></td>
+                                                        <td>
+                                                            <button class="btn btn-sm btn-primary edit-parameter" data-id="<?php echo $param['parameter_id']; ?>" data-name="<?php echo htmlspecialchars($param['parameter_name']); ?>">
+                                                                <i class="fas fa-edit"></i> Edit
+                                                            </button>
+                                                            <?php if (!$parameter_usage[$param['parameter_id']]): ?>
+                                                                <button class="btn btn-sm btn-danger delete-parameter" data-id="<?php echo $param['parameter_id']; ?>">
+                                                                    <i class="fas fa-trash"></i> Delete
+                                                                </button>
+                                                            <?php else: ?>
+                                                                <button class="btn btn-sm btn-danger" disabled title="Cannot delete: Parameter is in use">
+                                                                    <i class="fas fa-trash"></i> Delete
+                                                                </button>
+                                                            <?php endif; ?>
+                                                        </td>
+                                                    </tr>
                                                 <?php endforeach; ?>
                                             <?php endif; ?>
                                         </tbody>
@@ -210,7 +218,7 @@ $possible_parameters = $parameters_stmt->fetchAll(PDO::FETCH_COLUMN);
                             <div class="card mb-4">
                                 <div class="card-header"><h3 class="card-title">Test List</h3></div>
                                 <div class="card-body">
-                                    <table class="table table-bordered table-striped">
+                                    <table class="table table-bordered table-striped" id="test-table">
                                         <thead>
                                             <tr>
                                                 <th>ID</th>
@@ -225,7 +233,7 @@ $possible_parameters = $parameters_stmt->fetchAll(PDO::FETCH_COLUMN);
                                         </thead>
                                         <tbody>
                                             <?php foreach ($tests as $test): ?>
-                                                <tr>
+                                                <tr data-id="<?php echo $test['test_id']; ?>">
                                                     <td><?php echo htmlspecialchars($test['test_id']); ?></td>
                                                     <td><?php echo htmlspecialchars($test['test_name']); ?></td>
                                                     <td><?php echo htmlspecialchars($test['category_name']); ?></td>
@@ -234,71 +242,14 @@ $possible_parameters = $parameters_stmt->fetchAll(PDO::FETCH_COLUMN);
                                                     <td><?php echo htmlspecialchars($test['reference_range']); ?></td>
                                                     <td><?php echo htmlspecialchars($test['price']); ?></td>
                                                     <td>
-                                                        <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#editTestModal<?php echo $test['test_id']; ?>">
+                                                        <button class="btn btn-sm btn-primary edit-test" data-id="<?php echo $test['test_id']; ?>">
                                                             <i class="fas fa-edit"></i> Edit
+                                                        </button>
+                                                        <button class="btn btn-sm btn-danger delete-test" data-id="<?php echo $test['test_id']; ?>">
+                                                            <i class="fas fa-trash"></i> Delete
                                                         </button>
                                                     </td>
                                                 </tr>
-
-                                                <!-- Edit Test Modal -->
-                                                <div class="modal fade" id="editTestModal<?php echo $test['test_id']; ?>" tabindex="-1" aria-labelledby="editTestModalLabel" aria-hidden="true">
-                                                    <div class="modal-dialog">
-                                                        <div class="modal-content">
-                                                            <div class="modal-header">
-                                                                <h5 class="modal-title" id="editTestModalLabel">Edit Test</h5>
-                                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                            </div>
-                                                            <form action="includes/update-test.php" method="POST">
-                                                                <div class="modal-body">
-                                                                    <input type="hidden" name="test_id" value="<?php echo $test['test_id']; ?>">
-                                                                    <div class="mb-3">
-                                                                        <label>Test Name</label>
-                                                                        <input type="text" class="form-control" name="test_name" value="<?php echo htmlspecialchars($test['test_name']); ?>" required>
-                                                                    </div>
-                                                                    <div class="mb-3">
-                                                                        <label>Category</label>
-                                                                        <select class="form-control" name="category_id" required>
-                                                                            <option value="">Select Category</option>
-                                                                            <?php foreach ($categories as $category): ?>
-                                                                                <option value="<?php echo $category['category_id']; ?>" <?php echo $category['category_id'] == $test['category_id'] ? 'selected' : ''; ?>>
-                                                                                    <?php echo htmlspecialchars($category['category_name']); ?>
-                                                                                </option>
-                                                                            <?php endforeach; ?>
-                                                                        </select>
-                                                                    </div>
-                                                                    <div class="mb-3">
-                                                                        <label>Test Code</label>
-                                                                        <input type="text" class="form-control" name="test_code" value="<?php echo htmlspecialchars($test['test_code']); ?>" required>
-                                                                    </div>
-                                                                    <div class="mb-3">
-                                                                        <label>Parameters</label>
-                                                                        <select class="form-control select2" name="parameters[]" multiple required>
-                                                                            <?php
-                                                                            $selected_parameters = explode(',', $test['parameters']);
-                                                                            foreach ($possible_parameters as $param): ?>
-                                                                                <option value="<?php echo htmlspecialchars($param); ?>" <?php echo in_array($param, $selected_parameters) ? 'selected' : ''; ?>>
-                                                                                    <?php echo htmlspecialchars($param); ?>
-                                                                                </option>
-                                                                            <?php endforeach; ?>
-                                                                        </select>
-                                                                    </div>
-                                                                    <div class="mb-3">
-                                                                        <label>Reference Range</label>
-                                                                        <textarea class="form-control" name="reference_range"><?php echo htmlspecialchars($test['reference_range']); ?></textarea>
-                                                                    </div>
-                                                                    <div class="mb-3">
-                                                                        <label>Price ($)</label>
-                                                                        <input type="number" step="0.01" class="form-control" name="price" value="<?php echo htmlspecialchars($test['price']); ?>" required>
-                                                                    </div>
-                                                                </div>
-                                                                <div class="modal-footer">
-                                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                                                    <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Changes</button>
-                                                                </div>
-                                                            </form>
-                                                        </div>
-                                                    </div>
-                                                </div>
                                             <?php endforeach; ?>
                                         </tbody>
                                     </table>
@@ -323,7 +274,7 @@ $possible_parameters = $parameters_stmt->fetchAll(PDO::FETCH_COLUMN);
                     <h5 class="modal-title" id="newCategoryModalLabel">Add New Category</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <form action="includes/insert-category.php" method="POST">
+                <form id="add-category-form">
                     <div class="modal-body">
                         <div class="mb-3">
                             <label>Category Name</label>
@@ -339,6 +290,118 @@ $possible_parameters = $parameters_stmt->fetchAll(PDO::FETCH_COLUMN);
         </div>
     </div>
 
+    <!-- Edit Category Modal -->
+    <div class="modal fade" id="editCategoryModal" tabindex="-1" aria-labelledby="editCategoryModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editCategoryModalLabel">Edit Category</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="edit-category-form">
+                    <div class="modal-body">
+                        <input type="hidden" name="category_id">
+                        <div class="mb-3">
+                            <label>Category Name</label>
+                            <input type="text" class="form-control" name="category_name" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Category Modal -->
+    <div class="modal fade" id="deleteCategoryModal" tabindex="-1" aria-labelledby="deleteCategoryModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteCategoryModalLabel">Confirm Deletion</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    Are you sure you want to delete the category "<span id="delete-category-name"></span>"? This action cannot be undone.
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirm-delete-category"><i class="fas fa-trash"></i> Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Parameter Modal -->
+    <div class="modal fade" id="newParameterModal" tabindex="-1" aria-labelledby="newParameterModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="newParameterModalLabel">Add New Parameter</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="add-parameter-form">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label>Parameter Name</label>
+                            <input type="text" class="form-control" name="parameter_name" placeholder="Enter Parameter Name" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Parameter</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Parameter Modal -->
+    <div class="modal fade" id="editParameterModal" tabindex="-1" aria-labelledby="editParameterModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editParameterModalLabel">Edit Parameter</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="edit-parameter-form">
+                    <div class="modal-body">
+                        <input type="hidden" name="parameter_id">
+                        <div class="mb-3">
+                            <label>Parameter Name</label>
+                            <input type="text" class="form-control" name="parameter_name" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Parameter Modal -->
+    <div class="modal fade" id="deleteParameterModal" tabindex="-1" aria-labelledby="deleteParameterModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteParameterModalLabel">Confirm Deletion</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    Are you sure you want to delete the parameter "<span id="delete-parameter-name"></span>"? This action cannot be undone.
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirm-delete-parameter"><i class="fas fa-trash"></i> Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- New Test Modal -->
     <div class="modal fade" id="newTestModal" tabindex="-1" aria-labelledby="newTestModalLabel" aria-hidden="true">
         <div class="modal-dialog">
@@ -347,7 +410,7 @@ $possible_parameters = $parameters_stmt->fetchAll(PDO::FETCH_COLUMN);
                     <h5 class="modal-title" id="newTestModalLabel">Add New Test</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <form action="includes/insert-test.php" method="POST">
+                <form id="add-test-form">
                     <div class="modal-body">
                         <div class="mb-3">
                             <label>Test Name</label>
@@ -355,7 +418,7 @@ $possible_parameters = $parameters_stmt->fetchAll(PDO::FETCH_COLUMN);
                         </div>
                         <div class="mb-3">
                             <label>Category</label>
-                            <select class="form-control" name="category_id" required>
+                            <select class="form-control" name="category_id" id="category-select" required>
                                 <option value="">Select Category</option>
                                 <?php foreach ($categories as $category): ?>
                                     <option value="<?php echo $category['category_id']; ?>">
@@ -370,10 +433,10 @@ $possible_parameters = $parameters_stmt->fetchAll(PDO::FETCH_COLUMN);
                         </div>
                         <div class="mb-3">
                             <label>Parameters</label>
-                            <select class="form-control select2" name="parameters[]" multiple required>
-                                <?php foreach ($possible_parameters as $param): ?>
-                                    <option value="<?php echo htmlspecialchars($param); ?>">
-                                        <?php echo htmlspecialchars($param); ?>
+                            <select class="form-control select2" name="parameters[]" id="parameter-select" multiple required>
+                                <?php foreach ($parameters as $param): ?>
+                                    <option value="<?php echo htmlspecialchars($param['parameter_name']); ?>">
+                                        <?php echo htmlspecialchars($param['parameter_name']); ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>
@@ -396,13 +459,422 @@ $possible_parameters = $parameters_stmt->fetchAll(PDO::FETCH_COLUMN);
         </div>
     </div>
 
+    <!-- Edit Test Modal -->
+    <div class="modal fade" id="editTestModal" tabindex="-1" aria-labelledby="editTestModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editTestModalLabel">Edit Test</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="edit-test-form">
+                    <div class="modal-body">
+                        <input type="hidden" name="test_id">
+                        <div class="mb-3">
+                            <label>Test Name</label>
+                            <input type="text" class="form-control" name="test_name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label>Category</label>
+                            <select class="form-control" name="category_id" id="edit-category-select" required>
+                                <option value="">Select Category</option>
+                                <?php foreach ($categories as $category): ?>
+                                    <option value="<?php echo $category['category_id']; ?>">
+                                        <?php echo htmlspecialchars($category['category_name']); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label>Test Code</label>
+                            <input type="text" class="form-control" name="test_code" required>
+                        </div>
+                        <div class="mb-3">
+                            <label>Parameters</label>
+                            <select class="form-control select2" name="parameters[]" id="edit-parameter-select" multiple required>
+                                <?php foreach ($parameters as $param): ?>
+                                    <option value="<?php echo htmlspecialchars($param['parameter_name']); ?>">
+                                        <?php echo htmlspecialchars($param['parameter_name']); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label>Reference Range</label>
+                            <textarea class="form-control" name="reference_range"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label>Price ($)</label>
+                            <input type="number" step="0.01" class="form-control" name="price" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Test Modal -->
+    <div class="modal fade" id="deleteTestModal" tabindex="-1" aria-labelledby="deleteTestModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteTestModalLabel">Confirm Deletion</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    Are you sure you want to delete the test "<span id="delete-test-name"></span>"? This action cannot be undone.
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirm-delete-test"><i class="fas fa-trash"></i> Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <?php include('inc/js.php'); ?>
     <script>
-        // Initialize Select2 on all elements with class 'select2'
+        // Function to show alerts
+        function showAlert(message, type) {
+            const alertHtml = `
+                <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>`;
+            $('#alert-container').html(alertHtml);
+        }
+
+        // Initialize Select2
         $(document).ready(function() {
             $('.select2').select2({
                 placeholder: "Select parameters",
                 allowClear: true
+            });
+        });
+
+        // Function to update category dropdowns
+        function updateCategoryDropdowns() {
+            $.ajax({
+                url: 'includes/category-ajax.php',
+                type: 'POST',
+                data: { action: 'fetch' },
+                success: function(response) {
+                    const categories = JSON.parse(response);
+                    let options = '<option value="">Select Category</option>';
+                    categories.forEach(category => {
+                        options += `<option value="${category.category_id}">${category.category_name}</option>`;
+                    });
+                    $('#category-select').html(options);
+                    $('#edit-category-select').html(options);
+                }
+            });
+        }
+
+        // Function to update parameter dropdowns
+        function updateParameterDropdowns() {
+            $.ajax({
+                url: 'includes/parameter-ajax.php',
+                type: 'POST',
+                data: { action: 'fetch' },
+                success: function(response) {
+                    const parameters = JSON.parse(response);
+                    let options = '';
+                    parameters.forEach(param => {
+                        options += `<option value="${param.parameter_name}">${param.parameter_name}</option>`;
+                    });
+                    $('#parameter-select').html(options).trigger('change');
+                    $('#edit-parameter-select').html(options).trigger('change');
+                }
+            });
+        }
+
+        // Test Category AJAX
+        $('#add-category-form').on('submit', function(e) {
+            e.preventDefault();
+            $.ajax({
+                url: 'includes/category-ajax.php',
+                type: 'POST',
+                data: $(this).serialize() + '&action=add',
+                success: function(response) {
+                    const result = JSON.parse(response);
+                    showAlert(result.message, result.success ? 'success' : 'danger');
+                    if (result.success) {
+                        $('#newCategoryModal').modal('hide');
+                        $('#add-category-form')[0].reset();
+                        // Refresh category table
+                        const newRow = `
+                            <tr data-id="${result.category_id}">
+                                <td>${result.category_id}</td>
+                                <td>${result.category_name}</td>
+                                <td>${new Date().toISOString().slice(0, 19).replace('T', ' ')}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-primary edit-category" data-id="${result.category_id}" data-name="${result.category_name}">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </button>
+                                    <button class="btn btn-sm btn-danger delete-category" data-id="${result.category_id}">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </button>
+                                </td>
+                            </tr>`;
+                        $('#category-table tbody').prepend(newRow);
+                        updateCategoryDropdowns();
+                    }
+                }
+            });
+        });
+
+        $(document).on('click', '.edit-category', function() {
+            const id = $(this).data('id');
+            const name = $(this).data('name');
+            $('#editCategoryModal').modal('show');
+            $('#edit-category-form [name="category_id"]').val(id);
+            $('#edit-category-form [name="category_name"]').val(name);
+        });
+
+        $('#edit-category-form').on('submit', function(e) {
+            e.preventDefault();
+            $.ajax({
+                url: 'includes/category-ajax.php',
+                type: 'POST',
+                data: $(this).serialize() + '&action=edit',
+                success: function(response) {
+                    const result = JSON.parse(response);
+                    showAlert(result.message, result.success ? 'success' : 'danger');
+                    if (result.success) {
+                        $('#editCategoryModal').modal('hide');
+                        const id = $('#edit-category-form [name="category_id"]').val();
+                        const name = $('#edit-category-form [name="category_name"]').val();
+                        $(`#category-table tr[data-id="${id}"] td:nth-child(2)`).text(name);
+                        updateCategoryDropdowns();
+                    }
+                }
+            });
+        });
+
+        $(document).on('click', '.delete-category', function() {
+            const id = $(this).data('id');
+            const name = $(`#category-table tr[data-id="${id}"] td:nth-child(2)`).text();
+            $('#deleteCategoryModal').modal('show');
+            $('#delete-category-name').text(name);
+            $('#confirm-delete-category').data('id', id);
+        });
+
+        $('#confirm-delete-category').on('click', function() {
+            const id = $(this).data('id');
+            $.ajax({
+                url: 'includes/category-ajax.php',
+                type: 'POST',
+                data: { action: 'delete', category_id: id },
+                success: function(response) {
+                    const result = JSON.parse(response);
+                    showAlert(result.message, result.success ? 'success' : 'danger');
+                    if (result.success) {
+                        $('#deleteCategoryModal').modal('hide');
+                        $(`#category-table tr[data-id="${id}"]`).remove();
+                        updateCategoryDropdowns();
+                    }
+                }
+            });
+        });
+
+        // Test Parameter AJAX
+        $('#add-parameter-form').on('submit', function(e) {
+            e.preventDefault();
+            $.ajax({
+                url: 'includes/parameter-ajax.php',
+                type: 'POST',
+                data: $(this).serialize() + '&action=add',
+                success: function(response) {
+                    const result = JSON.parse(response);
+                    showAlert(result.message, result.success ? 'success' : 'danger');
+                    if (result.success) {
+                        $('#newParameterModal').modal('hide');
+                        $('#add-parameter-form')[0].reset();
+                        // Refresh parameter table
+                        const newRow = `
+                            <tr data-id="${result.parameter_id}">
+                                <td>${result.parameter_id}</td>
+                                <td>${result.parameter_name}</td>
+                                <td>${new Date().toISOString().slice(0, 19).replace('T', ' ')}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-primary edit-parameter" data-id="${result.parameter_id}" data-name="${result.parameter_name}">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </button>
+                                    <button class="btn btn-sm btn-danger delete-parameter" data-id="${result.parameter_id}">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </button>
+                                </td>
+                            </tr>`;
+                        $('#parameter-table tbody').prepend(newRow);
+                        updateParameterDropdowns();
+                    }
+                }
+            });
+        });
+
+        $(document).on('click', '.edit-parameter', function() {
+            const id = $(this).data('id');
+            const name = $(this).data('name');
+            $('#editParameterModal').modal('show');
+            $('#edit-parameter-form [name="parameter_id"]').val(id);
+            $('#edit-parameter-form [name="parameter_name"]').val(name);
+        });
+
+        $('#edit-parameter-form').on('submit', function(e) {
+            e.preventDefault();
+            $.ajax({
+                url: 'includes/parameter-ajax.php',
+                type: 'POST',
+                data: $(this).serialize() + '&action=edit',
+                success: function(response) {
+                    const result = JSON.parse(response);
+                    showAlert(result.message, result.success ? 'success' : 'danger');
+                    if (result.success) {
+                        $('#editParameterModal').modal('hide');
+                        const id = $('#edit-parameter-form [name="parameter_id"]').val();
+                        const name = $('#edit-parameter-form [name="parameter_name"]').val();
+                        $(`#parameter-table tr[data-id="${id}"] td:nth-child(2)`).text(name);
+                        updateParameterDropdowns();
+                    }
+                }
+            });
+        });
+
+        $(document).on('click', '.delete-parameter', function() {
+            const id = $(this).data('id');
+            const name = $(`#parameter-table tr[data-id="${id}"] td:nth-child(2)`).text();
+            $('#deleteParameterModal').modal('show');
+            $('#delete-parameter-name').text(name);
+            $('#confirm-delete-parameter').data('id', id);
+        });
+
+        $('#confirm-delete-parameter').on('click', function() {
+            const id = $(this).data('id');
+            $.ajax({
+                url: 'includes/parameter-ajax.php',
+                type: 'POST',
+                data: { action: 'delete', parameter_id: id },
+                success: function(response) {
+                    const result = JSON.parse(response);
+                    showAlert(result.message, result.success ? 'success' : 'danger');
+                    if (result.success) {
+                        $('#deleteParameterModal').modal('hide');
+                        $(`#parameter-table tr[data-id="${id}"]`).remove();
+                        updateParameterDropdowns();
+                    }
+                }
+            });
+        });
+
+        // Test AJAX
+        $('#add-test-form').on('submit', function(e) {
+            e.preventDefault();
+            $.ajax({
+                url: 'includes/test-ajax.php',
+                type: 'POST',
+                data: $(this).serialize() + '&action=add',
+                success: function(response) {
+                    const result = JSON.parse(response);
+                    showAlert(result.message, result.success ? 'success' : 'danger');
+                    if (result.success) {
+                        $('#newTestModal').modal('hide');
+                        $('#add-test-form')[0].reset();
+                        $('#parameter-select').val(null).trigger('change');
+                        // Refresh test table
+                        const newRow = `
+                            <tr data-id="${result.test_id}">
+                                <td>${result.test_id}</td>
+                                <td>${result.test_name}</td>
+                                <td>${$('#category-select option[value="' + result.category_id + '"]').text()}</td>
+                                <td>${result.test_code}</td>
+                                <td>${result.parameters}</td>
+                                <td>${result.reference_range}</td>
+                                <td>${result.price}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-primary edit-test" data-id="${result.test_id}">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </button>
+                                    <button class="btn btn-sm btn-danger delete-test" data-id="${result.test_id}">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </button>
+                                </td>
+                            </tr>`;
+                        $('#test-table tbody').prepend(newRow);
+                    }
+                }
+            });
+        });
+
+        $(document).on('click', '.edit-test', function() {
+            const id = $(this).data('id');
+            const row = $(`#test-table tr[data-id="${id}"]`);
+            const test_name = row.find('td:nth-child(2)').text();
+            const category_id = $('#category-select option:contains("' + row.find('td:nth-child(3)').text() + '")').val();
+            const test_code = row.find('td:nth-child(4)').text();
+            const parameters = row.find('td:nth-child(5)').text().split(',');
+            const reference_range = row.find('td:nth-child(6)').text();
+            const price = row.find('td:nth-child(7)').text();
+
+            $('#editTestModal').modal('show');
+            $('#edit-test-form [name="test_id"]').val(id);
+            $('#edit-test-form [name="test_name"]').val(test_name);
+            $('#edit-test-form [name="category_id"]').val(category_id);
+            $('#edit-test-form [name="test_code"]').val(test_code);
+            $('#edit-parameter-select').val(parameters).trigger('change');
+            $('#edit-test-form [name="reference_range"]').val(reference_range);
+            $('#edit-test-form [name="price"]').val(price);
+        });
+
+        $('#edit-test-form').on('submit', function(e) {
+            e.preventDefault();
+            $.ajax({
+                url: 'includes/test-ajax.php',
+                type: 'POST',
+                data: $(this).serialize() + '&action=edit',
+                success: function(response) {
+                    const result = JSON.parse(response);
+                    showAlert(result.message, result.success ? 'success' : 'danger');
+                    if (result.success) {
+                        $('#editTestModal').modal('hide');
+                        const id = $('#edit-test-form [name="test_id"]').val();
+                        const row = $(`#test-table tr[data-id="${id}"]`);
+                        row.find('td:nth-child(2)').text(result.test_name);
+                        row.find('td:nth-child(3)').text($('#edit-category-select option[value="' + result.category_id + '"]').text());
+                        row.find('td:nth-child(4)').text(result.test_code);
+                        row.find('td:nth-child(5)').text(result.parameters);
+                        row.find('td:nth-child(6)').text(result.reference_range);
+                        row.find('td:nth-child(7)').text(result.price);
+                    }
+                }
+            });
+        });
+
+        $(document).on('click', '.delete-test', function() {
+            const id = $(this).data('id');
+            const name = $(`#test-table tr[data-id="${id}"] td:nth-child(2)`).text();
+            $('#deleteTestModal').modal('show');
+            $('#delete-test-name').text(name);
+            $('#confirm-delete-test').data('id', id);
+        });
+
+        $('#confirm-delete-test').on('click', function() {
+            const id = $(this).data('id');
+            $.ajax({
+                url: 'includes/test-ajax.php',
+                type: 'POST',
+                data: { action: 'delete', test_id: id },
+                success: function(response) {
+                    const result = JSON.parse(response);
+                    showAlert(result.message, result.success ? 'success' : 'danger');
+                    if (result.success) {
+                        $('#deleteTestModal').modal('hide');
+                        $(`#test-table tr[data-id="${id}"]`).remove();
+                    }
+                }
             });
         });
 
