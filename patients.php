@@ -1,33 +1,21 @@
 <?php
 require_once 'db_connect.php';
-
 session_start();
+
 if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in']) {
     header("Location: login.php");
     exit();
 }
 
-// Restrict to Admin, Doctor, Technician
-if (!in_array($_SESSION['role'], ['Admin', 'Doctor', 'Technician'])) {
-    header("Location: index3.php");
-    exit();
-}
-
-// Delete patient (Admin-only)
-if (isset($_GET['delete']) && $_SESSION['role'] === 'Admin') {
-    $patient_id = $_GET['delete'];
-    $stmt = $pdo->prepare("DELETE FROM Patients WHERE patient_id = :patient_id");
-    $stmt->execute(['patient_id' => $patient_id]);
-    header("Location: patients.php");
-    exit();
-}
+$stmt = $pdo->query("SELECT * FROM Patients ORDER BY first_name");
+$patients = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <!doctype html>
 <html lang="en">
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>Pathology | Patient Management</title>
+    <title>Shiva Pathology Centre | Patients</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <?php include('inc/head.php'); ?>
 </head>
@@ -43,46 +31,117 @@ if (isset($_GET['delete']) && $_SESSION['role'] === 'Admin') {
                             <h3>Patient Management</h3>
                         </div>
                         <div class="col-sm-6 text-end">
-                            <a href="add_patient.php" class="btn btn-primary">
-                                <i class="bi bi-person-plus"></i> Add New Patient
-                            </a>
+                            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newPatientModal">
+                                <i class="fas fa-user-plus"></i> New Patient
+                            </button>
                         </div>
                     </div>
                 </div>
             </section>
             <div class="app-content">
                 <div class="container-fluid">
-                    <div class="row mb-3">
-                        <div class="col-md-4">
-                            <div class="input-group">
-                                <input type="text" id="searchInput" class="form-control" placeholder="Search by name or email">
-                                <button class="btn btn-primary" onclick="loadPatients(1)">Search</button>
-                            </div>
-                        </div>
-                    </div>
                     <div class="row">
                         <div class="col-md-12">
                             <div class="card mb-4">
                                 <div class="card-header"><h3 class="card-title">Patient List</h3></div>
                                 <div class="card-body">
-                                    <table id="patientTable" class="table table-bordered table-striped">
+                                    <?php
+                                    if (isset($_SESSION['success'])) {
+                                        echo "<div class='alert alert-success alert-dismissible fade show' role='alert'>"
+                                            . $_SESSION['success'] .
+                                            "<button type='button' class='btn-close' data-bs-dismiss='alert'></button>
+                                        </div>";
+                                        unset($_SESSION['success']);
+                                    }
+
+                                    if (isset($_SESSION['error'])) {
+                                        echo "<div class='alert alert-danger alert-dismissible fade show' role='alert'>"
+                                            . $_SESSION['error'] .
+                                            "<button type='button' class='btn-close' data-bs-dismiss='alert'></button>
+                                        </div>";
+                                        unset($_SESSION['error']);
+                                    }
+                                    ?>
+
+                                    <table class="table table-bordered table-striped">
                                         <thead>
                                             <tr>
                                                 <th>ID</th>
                                                 <th>Name</th>
-                                                <th>DOB</th>
+                                                <th>Date of Birth</th>
                                                 <th>Gender</th>
-                                                <th>Contact</th>
-                                                <th>Email</th>
-                                                <th>Created By</th>
+                                                <th>Address</th>
+                                                <th>Patient ID</th>
                                                 <th>Actions</th>
                                             </tr>
                                         </thead>
-                                        <tbody id="patientTableBody"></tbody>
+                                        <tbody>
+                                            <?php foreach ($patients as $patient): ?>
+                                                <tr>
+                                                    <td><?php echo htmlspecialchars($patient['patient_id']); ?></td>
+                                                    <td><?php echo htmlspecialchars($patient['first_name'] . ' ' . $patient['last_name']); ?></td>
+                                                    <td><?php echo htmlspecialchars($patient['date_of_birth']); ?></td>
+                                                    <td><?php echo htmlspecialchars($patient['gender']); ?></td>
+                                                    <td><?php echo htmlspecialchars($patient['address'] ?: '-'); ?></td>
+                                                    <td><?php echo htmlspecialchars($patient['patient_unique_id']); ?></td>
+                                                    <td>
+                                                        <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#editPatientModal<?php echo $patient['patient_id']; ?>">
+                                                            <i class="fas fa-edit"></i> Edit
+                                                        </button>
+                                                    </td>
+                                                </tr>
+
+                                                <!-- Edit Patient Modal -->
+                                                <div class="modal fade" id="editPatientModal<?php echo $patient['patient_id']; ?>" tabindex="-1" aria-labelledby="editPatientModalLabel" aria-hidden="true">
+                                                    <div class="modal-dialog">
+                                                        <div class="modal-content">
+                                                            <div class="modal-header">
+                                                                <h5 class="modal-title" id="editPatientModalLabel">Edit Patient</h5>
+                                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                            </div>
+                                                            <form action="includes/update-patient.php" method="POST">
+                                                                <div class="modal-body">
+                                                                    <input type="hidden" name="patient_id" value="<?php echo $patient['patient_id']; ?>">
+                                                                    <div class="mb-3">
+                                                                        <label>First Name</label>
+                                                                        <input type="text" class="form-control" name="first_name" value="<?php echo htmlspecialchars($patient['first_name']); ?>" required>
+                                                                    </div>
+                                                                    <div class="mb-3">
+                                                                        <label>Last Name</label>
+                                                                        <input type="text" class="form-control" name="last_name" value="<?php echo htmlspecialchars($patient['last_name']); ?>" required>
+                                                                    </div>
+                                                                    <div class="mb-3">
+                                                                        <label>Date of Birth</label>
+                                                                        <input type="date" class="form-control" name="date_of_birth" value="<?php echo htmlspecialchars($patient['date_of_birth']); ?>" required>
+                                                                    </div>
+                                                                    <div class="mb-3">
+                                                                        <label>Gender</label>
+                                                                        <select class="form-control" name="gender" required>
+                                                                            <option value="Male" <?php echo $patient['gender'] == 'Male' ? 'selected' : ''; ?>>Male</option>
+                                                                            <option value="Female" <?php echo $patient['gender'] == 'Female' ? 'selected' : ''; ?>>Female</option>
+                                                                            <option value="Other" <?php echo $patient['gender'] == 'Other' ? 'selected' : ''; ?>>Other</option>
+                                                                        </select>
+                                                                    </div>
+                                                                    <div class="mb-3">
+                                                                        <label>Address</label>
+                                                                        <textarea class="form-control" name="address"><?php echo htmlspecialchars($patient['address']); ?></textarea>
+                                                                    </div>
+                                                                    <div class="mb-3">
+                                                                        <label>Patient ID</label>
+                                                                        <input type="text" class="form-control" name="patient_unique_id" value="<?php echo htmlspecialchars($patient['patient_unique_id']); ?>" required>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="modal-footer">
+                                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                                                    <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Changes</button>
+                                                                </div>
+                                                            </form>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            <?php endforeach; ?>
+                                        </tbody>
                                     </table>
-                                </div>
-                                <div class="card-footer clearfix">
-                                    <ul class="pagination pagination-sm m-0 float-end" id="pagination"></ul>
                                 </div>
                             </div>
                         </div>
@@ -92,78 +151,61 @@ if (isset($_GET['delete']) && $_SESSION['role'] === 'Admin') {
         </main>
         <footer class="app-footer">
             <div class="float-end d-none d-sm-inline">Anything you want</div>
-            <strong>Copyright © 2025 <a href="#" class="text-decoration-none">Pathology System</a>.</strong> All rights reserved.
+            <strong>Copyright © 2025 <a href="#" class="text-decoration-none">Shiva Pathology Centre</a>.</strong> All rights reserved.
         </footer>
     </div>
+
+    <!-- New Patient Modal -->
+    <div class="modal fade" id="newPatientModal" tabindex="-1" aria-labelledby="newPatientModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="newPatientModalLabel">Add New Patient</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="includes/insert-patient.php" method="POST">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label>First Name</label>
+                            <input type="text" class="form-control" name="first_name" placeholder="Enter First Name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label>Last Name</label>
+                            <input type="text" class="form-control" name="last_name" placeholder="Enter Last Name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label>Date of Birth</label>
+                            <input type="date" class="form-control" name="date_of_birth" required>
+                        </div>
+                        <div class="mb-3">
+                            <label>Gender</label>
+                            <select class="form-control" name="gender" required>
+                                <option value="">Select Gender</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label>Address</label>
+                            <textarea class="form-control" name="address" placeholder="Enter Address"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label>Patient ID</label>
+                            <input type="text" class="form-control" name="patient_unique_id" placeholder="Enter Patient ID" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> Save Patient</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <?php include('inc/js.php'); ?>
     <script>
-        function loadPatients(page = 1) {
-            const searchQuery = document.getElementById('searchInput').value.trim();
-            const url = `includes/fetch_patients.php?page=${page}${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''}`; // Adjusted path
-            
-            fetch(url)
-                .then(response => {
-                    if (!response.ok) throw new Error('Network response was not ok');
-                    return response.json();
-                })
-                .then(data => {
-                    const tbody = document.getElementById('patientTableBody');
-                    tbody.innerHTML = '';
-
-                    if (data.patients.length === 0) {
-                        tbody.innerHTML = '<tr><td colspan="8" class="text-center">No patients found</td></tr>';
-                    } else {
-                        data.patients.forEach(patient => {
-                            const row = `
-                                <tr>
-                                    <td>${patient.patient_id}</td>
-                                    <td>${patient.first_name} ${patient.last_name}</td>
-                                    <td>${patient.date_of_birth}</td>
-                                    <td>${patient.gender}</td>
-                                    <td>${patient.phone || '-'}</td>
-                                    <td>${patient.email || '-'}</td>
-                                    <td>${patient.created_by_name || 'Unknown'}</td>
-                                    <td>
-                                        <a href="add_patient.php?edit=${patient.patient_id}" class="btn btn-sm btn-warning"><i class="bi bi-pencil"></i> Edit</a>
-                                        <?php if ($_SESSION['role'] === 'Admin'): ?>
-                                            <a href="patients.php?delete=${patient.patient_id}" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?');"><i class="bi bi-trash"></i> Delete</a>
-                                        <?php endif; ?>
-                                    </td>
-                                </tr>`;
-                            tbody.innerHTML += row;
-                        });
-                    }
-
-                    const pagination = document.getElementById('pagination');
-                    pagination.innerHTML = '';
-                    if (data.total_pages > 1) {
-                        pagination.innerHTML += `<li class="page-item ${data.current_page === 1 ? 'disabled' : ''}">
-                            <a class="page-link" href="#" onclick="loadPatients(${data.current_page - 1}); return false;">«</a>
-                        </li>`;
-                        for (let i = 1; i <= data.total_pages; i++) {
-                            pagination.innerHTML += `<li class="page-item ${i === data.current_page ? 'active' : ''}">
-                                <a class="page-link" href="#" onclick="loadPatients(${i}); return false;">${i}</a>
-                            </li>`;
-                        }
-                        pagination.innerHTML += `<li class="page-item ${data.current_page === data.total_pages ? 'disabled' : ''}">
-                            <a class="page-link" href="#" onclick="loadPatients(${data.current_page + 1}); return false;">»</a>
-                        </li>`;
-                    }
-                })
-                .catch(error => {
-                    console.error('Error fetching patients:', error);
-                    document.getElementById('patientTableBody').innerHTML = '<tr><td colspan="8" class="text-center">Error loading patients</td></tr>';
-                });
-        }
-
-        document.addEventListener('DOMContentLoaded', () => loadPatients(1));
-
-        document.getElementById('searchInput').addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') {
-                loadPatients(1);
-            }
-        });
-
         const SELECTOR_SIDEBAR_WRAPPER = '.sidebar-wrapper';
         const Default = {
             scrollbarTheme: 'os-theme-light',
