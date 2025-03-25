@@ -1,10 +1,12 @@
 <?php
+
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-require_once 'db_connect.php';
 
+require_once 'db_connect.php';
+require_once 'vendor/tcpdf/tcpdf.php'; // Adjust path as needed
 session_start();
 if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in']) {
     header("Location: login.php");
@@ -17,305 +19,74 @@ if (!in_array($_SESSION['role'], ['Admin', 'Doctor', 'Technician'])) {
     exit();
 }
 
-// Check if TCPDF is available
-if (!file_exists('vendor/tcpdf/tcpdf.php')) {
-    die("TCPDF library not found at 'vendor/tcpdf/tcpdf.php'. Please install it.");
-}
-require_once 'vendor/tcpdf/tcpdf.php';
-
 // Generate PDF if requested
 if (isset($_GET['generate_pdf']) && !empty($_GET['result_id'])) {
     $result_id = $_GET['result_id'];
+    
+    // Fetch result details
+    $stmt = $pdo->prepare("
+        SELECT 
+            trs.result_id, trs.result_value, trs.comments, trs.recorded_at,
+            CONCAT(p.first_name, ' ', p.last_name) AS patient_name, p.date_of_birth, p.gender,
+            t.test_name, t.test_code, t.normal_range, t.unit,
+            CONCAT(s.first_name, ' ', s.last_name) AS recorded_by_name, s.role AS recorded_by_role,
+            tr.request_date, tr.ordered_by
+        FROM Test_Results trs
+        JOIN Test_Requests tr ON trs.request_id = tr.request_id
+        JOIN Patients p ON tr.patient_id = p.patient_id
+        JOIN Tests_Catalog t ON tr.test_id = t.test_id
+        JOIN Staff s ON trs.recorded_by = s.staff_id
+        WHERE trs.result_id = :result_id
+    ");
+    $stmt->execute(['result_id' => $result_id]);
+    $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    try {
-        // Fetch result details
-        $stmt = $pdo->prepare("
-            SELECT 
-                trs.result_id, trs.result_value, trs.comments, trs.recorded_at,
-                CONCAT(p.first_name, ' ', p.last_name) AS patient_name, p.dob, p.gender,
-                t.test_name, t.test_code, t.normal_range, t.unit,
-                CONCAT(s.first_name, ' ', s.last_name) AS recorded_by_name, s.role AS recorded_by_role,
-                tr.request_date, tr.ordered_by
-            FROM Test_Results trs
-            JOIN Test_Requests tr ON trs.request_id = tr.request_id
-            JOIN Patients p ON tr.patient_id = p.patient_id
-            JOIN Tests_Catalog t ON tr.test_id = t.test_id
-            JOIN Staff s ON trs.recorded_by = s.staff_id
-            WHERE trs.result_id = :result_id
-        ");
-        $stmt->execute(['result_id' => $result_id]);
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        if (!$result) {
-            die("No result found for result_id: $result_id");
-        }
-
+    if ($result) {
         // Create new PDF document
         $pdf = new TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
         $pdf->SetCreator(PDF_CREATOR);
-        $pdf->SetAuthor('Shiva Pathology Centre');
-        $pdf->SetTitle('Pathological Report');
+        $pdf->SetAuthor('Pathology System');
+        $pdf->SetTitle('Test Result Report');
         $pdf->SetSubject('Test Result');
-        $pdf->SetMargins(15, 15, 15);
-        $pdf->SetAutoPageBreak(TRUE, 15);
-        $pdf->setFont('helvetica', '', 10);
-
-        // Disable default header/footer
-        $pdf->setPrintHeader(false);
-        $pdf->setPrintFooter(false);
+        $pdf->SetHeaderData('', 0, 'Pathology System Report', 'Generated on ' . date('Y-m-d H:i:s'));
+        $pdf->setHeaderFont([PDF_FONT_NAME_MAIN, '', PDF_FONT_SIZE_MAIN]);
+        $pdf->setFooterFont([PDF_FONT_NAME_DATA, '', PDF_FONT_SIZE_DATA]);
+        $pdf->SetDefaultMonospacedFont(PDF_FONT_MONOSPACED);
+        $pdf->SetMargins(PDF_MARGIN_LEFT, PDF_MARGIN_TOP, PDF_MARGIN_RIGHT);
+        $pdf->SetHeaderMargin(PDF_MARGIN_HEADER);
+        $pdf->SetFooterMargin(PDF_MARGIN_FOOTER);
+        $pdf->SetAutoPageBreak(TRUE, PDF_MARGIN_BOTTOM);
+        $pdf->setFont('helvetica', '', 12);
 
         // Add a page
         $pdf->AddPage();
 
-        // Header
-        $pdf->SetFont('helvetica', 'B', 14);
-        $pdf->Cell(0, 10, 'SHIVA PATHOLOGY CENTRE', 0, 1, 'C');
-        $pdf->SetFont('helvetica', '', 10);
-        $pdf->Cell(0, 5, 'Sambhugan Jaipur', 0, 1, 'C');
-        $pdf->SetFont('helvetica', 'B', 12);
-        $pdf->Cell(0, 10, 'Pathological Report', 0, 1, 'C');
-        $pdf->Ln(2);
-
-        // Patient Details (Left and Right Columns)
-        $pdf->SetFont('helvetica', '', 10);
+        // HTML content for PDF
         $html = '
-        <table cellpadding="2">
-            <tr>
-                <td width="50%">
-                    <strong>Patient Name:</strong> ' . htmlspecialchars($result['patient_name']) . '<br>
-                    <strong>Age:</strong> ' . (date('Y') - date('Y', strtotime($result['dob']))) . '<br>
-                    <strong>Sex:</strong> ' . htmlspecialchars($result['gender']) . '<br>
-                    <strong>Ref. By:</strong> ' . htmlspecialchars($result['ordered_by']) . '<br>
-                    <strong>Address:</strong> -<br>
-                </td>
-                <td width="50%">
-                    <strong>First Name:</strong> -<br>
-                    <strong>Last Name:</strong> -<br>
-                    <strong>Patient ID:</strong> -<br>
-                    <strong>Sample ID:</strong> -<br>
-                    <strong>Mode:</strong> -<br>
-                    <strong>Time of Analysis:</strong> ' . htmlspecialchars($result['recorded_at']) . '<br>
-                </td>
-            </tr>
+        <h1>Test Result Report</h1>
+        <table border="1" cellpadding="4">
+            <tr><td><strong>Result ID:</strong></td><td>' . htmlspecialchars($result['result_id']) . '</td></tr>
+            <tr><td><strong>Patient Name:</strong></td><td>' . htmlspecialchars($result['patient_name']) . '</td></tr>
+            <tr><td><strong>Date of Birth:</strong></td><td>' . htmlspecialchars($result['date_of_birth']) . '</td></tr>
+            <tr><td><strong>Gender:</strong></td><td>' . htmlspecialchars($result['gender']) . '</td></tr>
+            <tr><td><strong>Test Name:</strong></td><td>' . htmlspecialchars($result['test_name']) . '</td></tr>
+            <tr><td><strong>Test Code:</strong></td><td>' . htmlspecialchars($result['test_code']) . '</td></tr>
+            <tr><td><strong>Result Value:</strong></td><td>' . htmlspecialchars($result['result_value']) . '</td></tr>
+            <tr><td><strong>Normal Range:</strong></td><td>' . htmlspecialchars($result['normal_range']) . '</td></tr>
+            <tr><td><strong>Unit:</strong></td><td>' . htmlspecialchars($result['unit']) . '</td></tr>
+            <tr><td><strong>Comments:</strong></td><td>' . htmlspecialchars($result['comments']) . '</td></tr>
+            <tr><td><strong>Recorded By:</strong></td><td>' . htmlspecialchars($result['recorded_by_name']) . ' (' . htmlspecialchars($result['recorded_by_role']) . ')</td></tr>
+            <tr><td><strong>Recorded At:</strong></td><td>' . htmlspecialchars($result['recorded_at']) . '</td></tr>
+            <tr><td><strong>Request Date:</strong></td><td>' . htmlspecialchars($result['request_date']) . '</td></tr>
+            <tr><td><strong>Ordered By:</strong></td><td>' . htmlspecialchars($result['ordered_by']) . '</td></tr>
         </table>';
+
+        // Output HTML to PDF
         $pdf->writeHTML($html, true, false, true, false, '');
-
-        // Test Results Section
-        $pdf->SetFont('helvetica', 'B', 10);
-        $pdf->Cell(0, 5, 'TEST', 0, 1, 'C');
-        $pdf->Cell(0, 5, 'COMPLETE BLOOD COUNT', 0, 1, 'C', false, '', 0, false, 'T', 'T');
-        $pdf->Ln(2);
-
-        // CBC Table
-        $pdf->SetFont('helvetica', '', 9);
-        $html = '
-        <table border="1" cellpadding="3">
-            <tr>
-                <th width="40%"><strong>TEST</strong></th>
-                <th width="20%"><strong>RESULT</strong></th>
-                <th width="20%"><strong>UNIT</strong></th>
-                <th width="20%"><strong>NORMAL VALUE</strong></th>
-            </tr>
-            <tr>
-                <td>Total WBC Count</td>
-                <td>2300</td>
-                <td>cu mm</td>
-                <td>4000-11000</td>
-            </tr>
-            <tr>
-                <td><strong>Total WBC Count</strong></td>
-                <td></td>
-                <td></td>
-                <td></td>
-            </tr>
-            <tr>
-                <td>Neutrophils</td>
-                <td>47</td>
-                <td>%</td>
-                <td>40-80</td>
-            </tr>
-            <tr>
-                <td>Lymphocytes</td>
-                <td>45</td>
-                <td>%</td>
-                <td>20-40</td>
-            </tr>
-            <tr>
-                <td>Eosinophils</td>
-                <td>08</td>
-                <td>%</td>
-                <td>01-6</td>
-            </tr>
-            <tr>
-                <td>Monocytes</td>
-                <td>00</td>
-                <td>%</td>
-                <td>00-1</td>
-            </tr>
-            <tr>
-                <td>Basophils</td>
-                <td>00</td>
-                <td>%</td>
-                <td>00-0</td>
-            </tr>
-            <tr>
-                <td>Haemoglobin</td>
-                <td>9.4</td>
-                <td>gm%</td>
-                <td>11-16</td>
-            </tr>
-            <tr>
-                <td><strong>RBC Indices</strong></td>
-                <td></td>
-                <td></td>
-                <td></td>
-            </tr>
-            <tr>
-                <td>PCT</td>
-                <td>0.106</td>
-                <td>%</td>
-                <td>0.106</td>
-            </tr>
-            <tr>
-                <td>PDW</td>
-                <td>16.7</td>
-                <td>%</td>
-                <td>10-1</td>
-            </tr>
-            <tr>
-                <td>MPV</td>
-                <td>14.0</td>
-                <td>FI</td>
-                <td>7-11</td>
-            </tr>
-            <tr>
-                <td>RDW-SD</td>
-                <td>55.6</td>
-                <td>FI</td>
-                <td>35</td>
-            </tr>
-            <tr>
-                <td>RDW-CV</td>
-                <td>15.7</td>
-                <td>%</td>
-                <td>10-15%</td>
-            </tr>
-            <tr>
-                <td>MCHC</td>
-                <td>36.2</td>
-                <td>%</td>
-                <td>30-34%</td>
-            </tr>
-            <tr>
-                <td>MCH</td>
-                <td>37.2</td>
-                <td>Pg</td>
-                <td>28-32pg</td>
-            </tr>
-            <tr>
-                <td>MCV</td>
-                <td>102</td>
-                <td>FI</td>
-                <td>80-99FI</td>
-            </tr>
-            <tr>
-                <td><strong>RBC Count</strong></td>
-                <td></td>
-                <td></td>
-                <td></td>
-            </tr>
-            <tr>
-                <td>Platelets</td>
-                <td>0.76</td>
-                <td>million/cu mm</td>
-                <td>3.8-4.8million/cu mm</td>
-            </tr>
-            <tr>
-                <td><strong>Platelet Count</strong></td>
-                <td></td>
-                <td></td>
-                <td></td>
-            </tr>
-            <tr>
-                <td>PCV</td>
-                <td>26.0</td>
-                <td>%</td>
-                <td>35-45%</td>
-            </tr>
-            <tr>
-                <td>MP</td>
-                <td>NEGATIVE</td>
-                <td></td>
-                <td></td>
-            </tr>
-        </table>';
-        $pdf->writeHTML($html, true, false, true, false, '');
-
-        // Widal Test Section
-        $pdf->Ln(5);
-        $pdf->SetFont('helvetica', 'B', 10);
-        $pdf->Cell(0, 5, 'WIDAL TEST', 0, 1, 'C', false, '', 0, false, 'T', 'T');
-        $pdf->SetFont('helvetica', '', 9);
-        $pdf->Cell(0, 5, 'Finding POSITIVE', 0, 1, 'L');
-        $pdf->Ln(2);
-
-        // Widal Test Table
-        $html = '
-        <table border="1" cellpadding="3">
-            <tr>
-                <th width="20%"><strong>Dilution</strong></th>
-                <th width="16%"><strong>1:40</strong></th>
-                <th width="16%"><strong>1:80</strong></th>
-                <th width="16%"><strong>1:160</strong></th>
-                <th width="16%"><strong>1:320</strong></th>
-                <th width="16%"><strong>1:640</strong></th>
-            </tr>
-            <tr>
-                <td>S. Typhi "O"</td>
-                <td>+</td>
-                <td>-</td>
-                <td>-</td>
-                <td>-</td>
-                <td>-</td>
-            </tr>
-            <tr>
-                <td>S. Typhi "H"</td>
-                <td>+</td>
-                <td>+</td>
-                <td>-</td>
-                <td>-</td>
-                <td>-</td>
-            </tr>
-            <tr>
-                <td>S. Paratyphi "AH"</td>
-                <td>-</td>
-                <td>-</td>
-                <td>-</td>
-                <td>-</td>
-                <td>-</td>
-            </tr>
-            <tr>
-                <td>S. Paratyphi "BH"</td>
-                <td>-</td>
-                <td>-</td>
-                <td>-</td>
-                <td>-</td>
-                <td>-</td>
-            </tr>
-        </table>';
-        $pdf->writeHTML($html, true, false, true, false, '');
-
-        // Footer
-        $pdf->Ln(10);
-        $pdf->SetFont('helvetica', '', 9);
-        $pdf->Cell(0, 5, '2024/08/11 11:05', 0, 1, 'L');
-        $pdf->Cell(0, 5, 'Lab Incharge', 0, 1, 'R');
 
         // Output PDF
-        $pdf->Output('pathology_report_' . $result_id . '.pdf', 'D');
+        $pdf->Output('test_result_' . $result_id . '.pdf', 'D'); // 'D' forces download
         exit();
-    } catch (Exception $e) {
-        die("PDF Generation Error: " . $e->getMessage());
     }
 }
 ?>
@@ -391,7 +162,7 @@ if (isset($_GET['generate_pdf']) && !empty($_GET['result_id'])) {
     <script>
         function loadReports(page = 1) {
             const searchQuery = document.getElementById('searchInput').value.trim();
-            const url = `fetch_reports.php?page=${page}${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''}`;
+            const url = `includes/fetch_reports.php?page=${page}${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''}`;
             
             fetch(url)
                 .then(response => {
