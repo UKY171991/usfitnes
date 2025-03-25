@@ -131,7 +131,7 @@
                 <a href="#" class="nav-link">
                   <i class="nav-icon bi bi-box-seam-fill"></i>
                   <p>
-                    Billing & Payments
+                    Reports
                     <i class="nav-arrow bi bi-chevron-right"></i>
                   </p>
                 </a>
@@ -143,9 +143,9 @@
                     </a>
                   </li>
                   <li class="nav-item">
-                    <a href="./widgets/info-box.html" class="nav-link">
+                    <a href=".reports.php" class="nav-link">
                       <i class="nav-icon bi bi-circle"></i>
-                      <p>All Billing</p>
+                      <p>All Reports</p>
                     </a>
                   </li>
                 </ul>
