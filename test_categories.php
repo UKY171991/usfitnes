@@ -16,6 +16,14 @@ if ($_SESSION['role'] !== 'Admin') {
 // Fetch all test categories for display
 $stmt = $pdo->query("SELECT * FROM Test_Categories ORDER BY category_name");
 $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Check if each category is in use (has associated tests)
+$category_usage = [];
+foreach ($categories as $category) {
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM Tests_Catalog WHERE category_id = :category_id");
+    $stmt->execute(['category_id' => $category['category_id']]);
+    $category_usage[$category['category_id']] = $stmt->fetchColumn();
+}
 ?>
 
 <!doctype html>
@@ -94,6 +102,15 @@ $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                                             <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#editCategoryModal<?php echo $category['category_id']; ?>">
                                                                 <i class="fas fa-edit"></i> Edit
                                                             </button>
+                                                            <?php if ($category_usage[$category['category_id']] == 0): ?>
+                                                                <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteCategoryModal<?php echo $category['category_id']; ?>">
+                                                                    <i class="fas fa-trash"></i> Delete
+                                                                </button>
+                                                            <?php else: ?>
+                                                                <button class="btn btn-sm btn-danger" disabled title="Cannot delete: Category is in use">
+                                                                    <i class="fas fa-trash"></i> Delete
+                                                                </button>
+                                                            <?php endif; ?>
                                                         </td>
                                                     </tr>
 
@@ -118,6 +135,27 @@ $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                                                         <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Changes</button>
                                                                     </div>
                                                                 </form>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Delete Category Modal -->
+                                                    <div class="modal fade" id="deleteCategoryModal<?php echo $category['category_id']; ?>" tabindex="-1" aria-labelledby="deleteCategoryModalLabel" aria-hidden="true">
+                                                        <div class="modal-dialog">
+                                                            <div class="modal-content">
+                                                                <div class="modal-header">
+                                                                    <h5 class="modal-title" id="deleteCategoryModalLabel">Confirm Deletion</h5>
+                                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                                </div>
+                                                                <div class="modal-body">
+                                                                    Are you sure you want to delete the category "<strong><?php echo htmlspecialchars($category['category_name']); ?></strong>"? This action cannot be undone.
+                                                                </div>
+                                                                <div class="modal-footer">
+                                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                                    <a href="includes/delete-category.php?category_id=<?php echo $category['category_id']; ?>" class="btn btn-danger">
+                                                                        <i class="fas fa-trash"></i> Delete
+                                                                    </a>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
