@@ -2,7 +2,7 @@
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
-session_start();
+
 require_once 'db_connect.php';
 
 session_start();
@@ -32,7 +32,7 @@ if (isset($_GET['generate_pdf']) && !empty($_GET['result_id'])) {
         $stmt = $pdo->prepare("
             SELECT 
                 trs.result_id, trs.result_value, trs.comments, trs.recorded_at,
-                CONCAT(p.first_name, ' ', p.last_name) AS patient_name, p.date_of_birth, p.gender,
+                CONCAT(p.first_name, ' ', p.last_name) AS patient_name, p.dob, p.gender,
                 t.test_name, t.test_code, t.normal_range, t.unit,
                 CONCAT(s.first_name, ' ', s.last_name) AS recorded_by_name, s.role AS recorded_by_role,
                 tr.request_date, tr.ordered_by
@@ -83,7 +83,7 @@ if (isset($_GET['generate_pdf']) && !empty($_GET['result_id'])) {
             <tr>
                 <td width="50%">
                     <strong>Patient Name:</strong> ' . htmlspecialchars($result['patient_name']) . '<br>
-                    <strong>Age:</strong> ' . (date('Y') - date('Y', strtotime($result['date_of_birth']))) . '<br>
+                    <strong>Age:</strong> ' . (date('Y') - date('Y', strtotime($result['dob']))) . '<br>
                     <strong>Sex:</strong> ' . htmlspecialchars($result['gender']) . '<br>
                     <strong>Ref. By:</strong> ' . htmlspecialchars($result['ordered_by']) . '<br>
                     <strong>Address:</strong> -<br>
