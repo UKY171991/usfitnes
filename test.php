@@ -1,5 +1,5 @@
 <?php
-require_once 'db_connect.php';
+include('conn.php');
 
 session_start();
 if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in']) {
@@ -79,6 +79,17 @@ $tests = $tests_stmt->fetchAll(PDO::FETCH_ASSOC);
         }
         .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
             color: white;
+        }
+        .select2-container .select2-selection--single {
+            height: 38px;
+            border: 1px solid #ced4da;
+            border-radius: 0.25rem;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 38px;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 38px;
         }
     </style>
 </head>
@@ -418,7 +429,7 @@ $tests = $tests_stmt->fetchAll(PDO::FETCH_ASSOC);
                         </div>
                         <div class="mb-3">
                             <label>Category</label>
-                            <select class="form-control" name="category_id" id="category-select" required>
+                            <select class="form-control select2" name="category_id" id="category-select" required>
                                 <option value="">Select Category</option>
                                 <?php foreach ($categories as $category): ?>
                                     <option value="<?php echo $category['category_id']; ?>">
@@ -476,7 +487,7 @@ $tests = $tests_stmt->fetchAll(PDO::FETCH_ASSOC);
                         </div>
                         <div class="mb-3">
                             <label>Category</label>
-                            <select class="form-control" name="category_id" id="edit-category-select" required>
+                            <select class="form-control select2" name="category_id" id="edit-category-select" required>
                                 <option value="">Select Category</option>
                                 <?php foreach ($categories as $category): ?>
                                     <option value="<?php echo $category['category_id']; ?>">
@@ -548,11 +559,18 @@ $tests = $tests_stmt->fetchAll(PDO::FETCH_ASSOC);
             $('#alert-container').html(alertHtml);
         }
 
-        // Initialize Select2
-        $(document).ready(function() {
-            $('.select2').select2({
-                placeholder: "Select parameters",
+        // Function to initialize Select2 on a specific element
+        function initializeSelect2(element) {
+            $(element).select2({
+                placeholder: $(element).hasClass('select2-multiple') ? "Select parameters" : "Select an option",
                 allowClear: true
+            });
+        }
+
+        // Initialize Select2 on page load for all select2 elements
+        $(document).ready(function() {
+            $('.select2').each(function() {
+                initializeSelect2(this);
             });
         });
 
@@ -563,13 +581,44 @@ $tests = $tests_stmt->fetchAll(PDO::FETCH_ASSOC);
                 type: 'POST',
                 data: { action: 'fetch' },
                 success: function(response) {
-                    const categories = JSON.parse(response);
-                    let options = '<option value="">Select Category</option>';
-                    categories.forEach(category => {
-                        options += `<option value="${category.category_id}">${category.category_name}</option>`;
-                    });
-                    $('#category-select').html(options);
-                    $('#edit-category-select').html(options);
+                    try {
+                        const categories = JSON.parse(response);
+                        let options = '<option value="">Select Category</option>';
+                        categories.forEach(category => {
+                            options += `<option value="${category.category_id}">${category.category_name}</option>`;
+                        });
+
+                        // Update both category dropdowns
+                        const $categorySelect = $('#category-select');
+                        const $editCategorySelect = $('#edit-category-select');
+
+                        // Store current selections
+                        const currentCategory = $categorySelect.val();
+                        const currentEditCategory = $editCategorySelect.val();
+
+                        // Destroy existing Select2 instances
+                        $categorySelect.select2('destroy');
+                        $editCategorySelect.select2('destroy');
+
+                        // Update options
+                        $categorySelect.html(options);
+                        $editCategorySelect.html(options);
+
+                        // Reinitialize Select2
+                        initializeSelect2($categorySelect);
+                        initializeSelect2($editCategorySelect);
+
+                        // Restore selections
+                        $categorySelect.val(currentCategory).trigger('change');
+                        $editCategorySelect.val(currentEditCategory).trigger('change');
+                    } catch (e) {
+                        console.error('Error updating category dropdowns:', e);
+                        showAlert('Failed to update category dropdowns', 'danger');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('AJAX error updating category dropdowns:', status, error);
+                    showAlert('Error fetching categories', 'danger');
                 }
             });
         }
@@ -581,13 +630,46 @@ $tests = $tests_stmt->fetchAll(PDO::FETCH_ASSOC);
                 type: 'POST',
                 data: { action: 'fetch' },
                 success: function(response) {
-                    const parameters = JSON.parse(response);
-                    let options = '';
-                    parameters.forEach(param => {
-                        options += `<option value="${param.parameter_name}">${param.parameter_name}</option>`;
-                    });
-                    $('#parameter-select').html(options).trigger('change');
-                    $('#edit-parameter-select').html(options).trigger('change');
+                    try {
+                        const parameters = JSON.parse(response);
+                        let options = '';
+                        parameters.forEach(param => {
+                            options += `<option value="${param.parameter_name}">${param.parameter_name}</option>`;
+                        });
+
+                        // Update both parameter dropdowns
+                        const $parameterSelect = $('#parameter-select');
+                        const $editParameterSelect = $('#edit-parameter-select');
+
+                        // Store current selections
+                        const currentParameters = $parameterSelect.val();
+                        const currentEditParameters = $editParameterSelect.val();
+
+                        // Destroy existing Select2 instances
+                        $parameterSelect.select2('destroy');
+                        $editParameterSelect.select2('destroy');
+
+                        // Update options
+                        $parameterSelect.html(options);
+                        $editParameterSelect.html(options);
+
+                        // Reinitialize Select2
+                        $parameterSelect.addClass('select2-multiple');
+                        $editParameterSelect.addClass('select2-multiple');
+                        initializeSelect2($parameterSelect);
+                        initializeSelect2($editParameterSelect);
+
+                        // Restore selections
+                        $parameterSelect.val(currentParameters).trigger('change');
+                        $editParameterSelect.val(currentEditParameters).trigger('change');
+                    } catch (e) {
+                        console.error('Error updating parameter dropdowns:', e);
+                        showAlert('Failed to update parameter dropdowns', 'danger');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('AJAX error updating parameter dropdowns:', status, error);
+                    showAlert('Error fetching parameters', 'danger');
                 }
             });
         }
@@ -600,29 +682,38 @@ $tests = $tests_stmt->fetchAll(PDO::FETCH_ASSOC);
                 type: 'POST',
                 data: $(this).serialize() + '&action=add',
                 success: function(response) {
-                    const result = JSON.parse(response);
-                    showAlert(result.message, result.success ? 'success' : 'danger');
-                    if (result.success) {
-                        $('#newCategoryModal').modal('hide');
-                        $('#add-category-form')[0].reset();
-                        // Refresh category table
-                        const newRow = `
-                            <tr data-id="${result.category_id}">
-                                <td>${result.category_id}</td>
-                                <td>${result.category_name}</td>
-                                <td>${new Date().toISOString().slice(0, 19).replace('T', ' ')}</td>
-                                <td>
-                                    <button class="btn btn-sm btn-primary edit-category" data-id="${result.category_id}" data-name="${result.category_name}">
-                                        <i class="fas fa-edit"></i> Edit
-                                    </button>
-                                    <button class="btn btn-sm btn-danger delete-category" data-id="${result.category_id}">
-                                        <i class="fas fa-trash"></i> Delete
-                                    </button>
-                                </td>
-                            </tr>`;
-                        $('#category-table tbody').prepend(newRow);
-                        updateCategoryDropdowns();
+                    try {
+                        const result = JSON.parse(response);
+                        showAlert(result.message, result.success ? 'success' : 'danger');
+                        if (result.success) {
+                            $('#newCategoryModal').modal('hide');
+                            $('#add-category-form')[0].reset();
+                            // Refresh category table
+                            const newRow = `
+                                <tr data-id="${result.category_id}">
+                                    <td>${result.category_id}</td>
+                                    <td>${result.category_name}</td>
+                                    <td>${new Date().toISOString().slice(0, 19).replace('T', ' ')}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-primary edit-category" data-id="${result.category_id}" data-name="${result.category_name}">
+                                            <i class="fas fa-edit"></i> Edit
+                                        </button>
+                                        <button class="btn btn-sm btn-danger delete-category" data-id="${result.category_id}">
+                                            <i class="fas fa-trash"></i> Delete
+                                        </button>
+                                    </td>
+                                </tr>`;
+                            $('#category-table tbody').prepend(newRow);
+                            updateCategoryDropdowns();
+                        }
+                    } catch (e) {
+                        console.error('Error adding category:', e);
+                        showAlert('Failed to add category', 'danger');
                     }
+                },
+                error: function(xhr, status, error) {
+                    console.error('AJAX error adding category:', status, error);
+                    showAlert('Error adding category', 'danger');
                 }
             });
         });
@@ -642,15 +733,24 @@ $tests = $tests_stmt->fetchAll(PDO::FETCH_ASSOC);
                 type: 'POST',
                 data: $(this).serialize() + '&action=edit',
                 success: function(response) {
-                    const result = JSON.parse(response);
-                    showAlert(result.message, result.success ? 'success' : 'danger');
-                    if (result.success) {
-                        $('#editCategoryModal').modal('hide');
-                        const id = $('#edit-category-form [name="category_id"]').val();
-                        const name = $('#edit-category-form [name="category_name"]').val();
-                        $(`#category-table tr[data-id="${id}"] td:nth-child(2)`).text(name);
-                        updateCategoryDropdowns();
+                    try {
+                        const result = JSON.parse(response);
+                        showAlert(result.message, result.success ? 'success' : 'danger');
+                        if (result.success) {
+                            $('#editCategoryModal').modal('hide');
+                            const id = $('#edit-category-form [name="category_id"]').val();
+                            const name = $('#edit-category-form [name="category_name"]').val();
+                            $(`#category-table tr[data-id="${id}"] td:nth-child(2)`).text(name);
+                            updateCategoryDropdowns();
+                        }
+                    } catch (e) {
+                        console.error('Error editing category:', e);
+                        showAlert('Failed to edit category', 'danger');
                     }
+                },
+                error: function(xhr, status, error) {
+                    console.error('AJAX error editing category:', status, error);
+                    showAlert('Error editing category', 'danger');
                 }
             });
         });
@@ -670,13 +770,22 @@ $tests = $tests_stmt->fetchAll(PDO::FETCH_ASSOC);
                 type: 'POST',
                 data: { action: 'delete', category_id: id },
                 success: function(response) {
-                    const result = JSON.parse(response);
-                    showAlert(result.message, result.success ? 'success' : 'danger');
-                    if (result.success) {
-                        $('#deleteCategoryModal').modal('hide');
-                        $(`#category-table tr[data-id="${id}"]`).remove();
-                        updateCategoryDropdowns();
+                    try {
+                        const result = JSON.parse(response);
+                        showAlert(result.message, result.success ? 'success' : 'danger');
+                        if (result.success) {
+                            $('#deleteCategoryModal').modal('hide');
+                            $(`#category-table tr[data-id="${id}"]`).remove();
+                            updateCategoryDropdowns();
+                        }
+                    } catch (e) {
+                        console.error('Error deleting category:', e);
+                        showAlert('Failed to delete category', 'danger');
                     }
+                },
+                error: function(xhr, status, error) {
+                    console.error('AJAX error deleting category:', status, error);
+                    showAlert('Error deleting category', 'danger');
                 }
             });
         });
@@ -689,29 +798,38 @@ $tests = $tests_stmt->fetchAll(PDO::FETCH_ASSOC);
                 type: 'POST',
                 data: $(this).serialize() + '&action=add',
                 success: function(response) {
-                    const result = JSON.parse(response);
-                    showAlert(result.message, result.success ? 'success' : 'danger');
-                    if (result.success) {
-                        $('#newParameterModal').modal('hide');
-                        $('#add-parameter-form')[0].reset();
-                        // Refresh parameter table
-                        const newRow = `
-                            <tr data-id="${result.parameter_id}">
-                                <td>${result.parameter_id}</td>
-                                <td>${result.parameter_name}</td>
-                                <td>${new Date().toISOString().slice(0, 19).replace('T', ' ')}</td>
-                                <td>
-                                    <button class="btn btn-sm btn-primary edit-parameter" data-id="${result.parameter_id}" data-name="${result.parameter_name}">
-                                        <i class="fas fa-edit"></i> Edit
-                                    </button>
-                                    <button class="btn btn-sm btn-danger delete-parameter" data-id="${result.parameter_id}">
-                                        <i class="fas fa-trash"></i> Delete
-                                    </button>
-                                </td>
-                            </tr>`;
-                        $('#parameter-table tbody').prepend(newRow);
-                        updateParameterDropdowns();
+                    try {
+                        const result = JSON.parse(response);
+                        showAlert(result.message, result.success ? 'success' : 'danger');
+                        if (result.success) {
+                            $('#newParameterModal').modal('hide');
+                            $('#add-parameter-form')[0].reset();
+                            // Refresh parameter table
+                            const newRow = `
+                                <tr data-id="${result.parameter_id}">
+                                    <td>${result.parameter_id}</td>
+                                    <td>${result.parameter_name}</td>
+                                    <td>${new Date().toISOString().slice(0, 19).replace('T', ' ')}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-primary edit-parameter" data-id="${result.parameter_id}" data-name="${result.parameter_name}">
+                                            <i class="fas fa-edit"></i> Edit
+                                        </button>
+                                        <button class="btn btn-sm btn-danger delete-parameter" data-id="${result.parameter_id}">
+                                            <i class="fas fa-trash"></i> Delete
+                                        </button>
+                                    </td>
+                                </tr>`;
+                            $('#parameter-table tbody').prepend(newRow);
+                            updateParameterDropdowns();
+                        }
+                    } catch (e) {
+                        console.error('Error adding parameter:', e);
+                        showAlert('Failed to add parameter', 'danger');
                     }
+                },
+                error: function(xhr, status, error) {
+                    console.error('AJAX error adding parameter:', status, error);
+                    showAlert('Error adding parameter', 'danger');
                 }
             });
         });
@@ -731,15 +849,24 @@ $tests = $tests_stmt->fetchAll(PDO::FETCH_ASSOC);
                 type: 'POST',
                 data: $(this).serialize() + '&action=edit',
                 success: function(response) {
-                    const result = JSON.parse(response);
-                    showAlert(result.message, result.success ? 'success' : 'danger');
-                    if (result.success) {
-                        $('#editParameterModal').modal('hide');
-                        const id = $('#edit-parameter-form [name="parameter_id"]').val();
-                        const name = $('#edit-parameter-form [name="parameter_name"]').val();
-                        $(`#parameter-table tr[data-id="${id}"] td:nth-child(2)`).text(name);
-                        updateParameterDropdowns();
+                    try {
+                        const result = JSON.parse(response);
+                        showAlert(result.message, result.success ? 'success' : 'danger');
+                        if (result.success) {
+                            $('#editParameterModal').modal('hide');
+                            const id = $('#edit-parameter-form [name="parameter_id"]').val();
+                            const name = $('#edit-parameter-form [name="parameter_name"]').val();
+                            $(`#parameter-table tr[data-id="${id}"] td:nth-child(2)`).text(name);
+                            updateParameterDropdowns();
+                        }
+                    } catch (e) {
+                        console.error('Error editing parameter:', e);
+                        showAlert('Failed to edit parameter', 'danger');
                     }
+                },
+                error: function(xhr, status, error) {
+                    console.error('AJAX error editing parameter:', status, error);
+                    showAlert('Error editing parameter', 'danger');
                 }
             });
         });
@@ -759,13 +886,22 @@ $tests = $tests_stmt->fetchAll(PDO::FETCH_ASSOC);
                 type: 'POST',
                 data: { action: 'delete', parameter_id: id },
                 success: function(response) {
-                    const result = JSON.parse(response);
-                    showAlert(result.message, result.success ? 'success' : 'danger');
-                    if (result.success) {
-                        $('#deleteParameterModal').modal('hide');
-                        $(`#parameter-table tr[data-id="${id}"]`).remove();
-                        updateParameterDropdowns();
+                    try {
+                        const result = JSON.parse(response);
+                        showAlert(result.message, result.success ? 'success' : 'danger');
+                        if (result.success) {
+                            $('#deleteParameterModal').modal('hide');
+                            $(`#parameter-table tr[data-id="${id}"]`).remove();
+                            updateParameterDropdowns();
+                        }
+                    } catch (e) {
+                        console.error('Error deleting parameter:', e);
+                        showAlert('Failed to delete parameter', 'danger');
                     }
+                },
+                error: function(xhr, status, error) {
+                    console.error('AJAX error deleting parameter:', status, error);
+                    showAlert('Error deleting parameter', 'danger');
                 }
             });
         });
@@ -778,33 +914,43 @@ $tests = $tests_stmt->fetchAll(PDO::FETCH_ASSOC);
                 type: 'POST',
                 data: $(this).serialize() + '&action=add',
                 success: function(response) {
-                    const result = JSON.parse(response);
-                    showAlert(result.message, result.success ? 'success' : 'danger');
-                    if (result.success) {
-                        $('#newTestModal').modal('hide');
-                        $('#add-test-form')[0].reset();
-                        $('#parameter-select').val(null).trigger('change');
-                        // Refresh test table
-                        const newRow = `
-                            <tr data-id="${result.test_id}">
-                                <td>${result.test_id}</td>
-                                <td>${result.test_name}</td>
-                                <td>${$('#category-select option[value="' + result.category_id + '"]').text()}</td>
-                                <td>${result.test_code}</td>
-                                <td>${result.parameters}</td>
-                                <td>${result.reference_range}</td>
-                                <td>${result.price}</td>
-                                <td>
-                                    <button class="btn btn-sm btn-primary edit-test" data-id="${result.test_id}">
-                                        <i class="fas fa-edit"></i> Edit
-                                    </button>
-                                    <button class="btn btn-sm btn-danger delete-test" data-id="${result.test_id}">
-                                        <i class="fas fa-trash"></i> Delete
-                                    </button>
-                                </td>
-                            </tr>`;
-                        $('#test-table tbody').prepend(newRow);
+                    try {
+                        const result = JSON.parse(response);
+                        showAlert(result.message, result.success ? 'success' : 'danger');
+                        if (result.success) {
+                            $('#newTestModal').modal('hide');
+                            $('#add-test-form')[0].reset();
+                            $('#parameter-select').val(null).trigger('change');
+                            $('#category-select').val(null).trigger('change');
+                            // Refresh test table
+                            const newRow = `
+                                <tr data-id="${result.test_id}">
+                                    <td>${result.test_id}</td>
+                                    <td>${result.test_name}</td>
+                                    <td>${$('#category-select option[value="' + result.category_id + '"]').text()}</td>
+                                    <td>${result.test_code}</td>
+                                    <td>${result.parameters}</td>
+                                    <td>${result.reference_range}</td>
+                                    <td>${result.price}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-primary edit-test" data-id="${result.test_id}">
+                                            <i class="fas fa-edit"></i> Edit
+                                        </button>
+                                        <button class="btn btn-sm btn-danger delete-test" data-id="${result.test_id}">
+                                            <i class="fas fa-trash"></i> Delete
+                                        </button>
+                                    </td>
+                                </tr>`;
+                            $('#test-table tbody').prepend(newRow);
+                        }
+                    } catch (e) {
+                        console.error('Error adding test:', e);
+                        showAlert('Failed to add test', 'danger');
                     }
+                },
+                error: function(xhr, status, error) {
+                    console.error('AJAX error adding test:', status, error);
+                    showAlert('Error adding test', 'danger');
                 }
             });
         });
@@ -822,7 +968,7 @@ $tests = $tests_stmt->fetchAll(PDO::FETCH_ASSOC);
             $('#editTestModal').modal('show');
             $('#edit-test-form [name="test_id"]').val(id);
             $('#edit-test-form [name="test_name"]').val(test_name);
-            $('#edit-test-form [name="category_id"]').val(category_id);
+            $('#edit-test-form [name="category_id"]').val(category_id).trigger('change');
             $('#edit-test-form [name="test_code"]').val(test_code);
             $('#edit-parameter-select').val(parameters).trigger('change');
             $('#edit-test-form [name="reference_range"]').val(reference_range);
@@ -836,19 +982,28 @@ $tests = $tests_stmt->fetchAll(PDO::FETCH_ASSOC);
                 type: 'POST',
                 data: $(this).serialize() + '&action=edit',
                 success: function(response) {
-                    const result = JSON.parse(response);
-                    showAlert(result.message, result.success ? 'success' : 'danger');
-                    if (result.success) {
-                        $('#editTestModal').modal('hide');
-                        const id = $('#edit-test-form [name="test_id"]').val();
-                        const row = $(`#test-table tr[data-id="${id}"]`);
-                        row.find('td:nth-child(2)').text(result.test_name);
-                        row.find('td:nth-child(3)').text($('#edit-category-select option[value="' + result.category_id + '"]').text());
-                        row.find('td:nth-child(4)').text(result.test_code);
-                        row.find('td:nth-child(5)').text(result.parameters);
-                        row.find('td:nth-child(6)').text(result.reference_range);
-                        row.find('td:nth-child(7)').text(result.price);
+                    try {
+                        const result = JSON.parse(response);
+                        showAlert(result.message, result.success ? 'success' : 'danger');
+                        if (result.success) {
+                            $('#editTestModal').modal('hide');
+                            const id = $('#edit-test-form [name="test_id"]').val();
+                            const row = $(`#test-table tr[data-id="${id}"]`);
+                            row.find('td:nth-child(2)').text(result.test_name);
+                            row.find('td:nth-child(3)').text($('#edit-category-select option[value="' + result.category_id + '"]').text());
+                            row.find('td:nth-child(4)').text(result.test_code);
+                            row.find('td:nth-child(5)').text(result.parameters);
+                            row.find('td:nth-child(6)').text(result.reference_range);
+                            row.find('td:nth-child(7)').text(result.price);
+                        }
+                    } catch (e) {
+                        console.error('Error editing test:', e);
+                        showAlert('Failed to edit test', 'danger');
                     }
+                },
+                error: function(xhr, status, error) {
+                    console.error('AJAX error editing test:', status, error);
+                    showAlert('Error editing test', 'danger');
                 }
             });
         });
@@ -868,12 +1023,21 @@ $tests = $tests_stmt->fetchAll(PDO::FETCH_ASSOC);
                 type: 'POST',
                 data: { action: 'delete', test_id: id },
                 success: function(response) {
-                    const result = JSON.parse(response);
-                    showAlert(result.message, result.success ? 'success' : 'danger');
-                    if (result.success) {
-                        $('#deleteTestModal').modal('hide');
-                        $(`#test-table tr[data-id="${id}"]`).remove();
+                    try {
+                        const result = JSON.parse(response);
+                        showAlert(result.message, result.success ? 'success' : 'danger');
+                        if (result.success) {
+                            $('#deleteTestModal').modal('hide');
+                            $(`#test-table tr[data-id="${id}"]`).remove();
+                        }
+                    } catch (e) {
+                        console.error('Error deleting test:', e);
+                        showAlert('Failed to delete test', 'danger');
                     }
+                },
+                error: function(xhr, status, error) {
+                    console.error('AJAX error deleting test:', status, error);
+                    showAlert('Error deleting test', 'danger');
                 }
             });
         });
