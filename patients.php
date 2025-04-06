@@ -30,6 +30,14 @@ if (isset($_GET['delete']) && $_SESSION['role'] === 'Admin') {
     <title>Pathology | Patient Management</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <?php include('inc/head.php'); ?>
+    <style>
+        .table-hover tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+        .btn-secondary {
+            margin-left: 5px;
+        }
+    </style>
 </head>
 <body class="layout-fixed sidebar-expand-lg bg-body-tertiary">
     <div class="app-wrapper">
@@ -46,6 +54,52 @@ if (isset($_GET['delete']) && $_SESSION['role'] === 'Admin') {
                             <a href="add_patient.php" class="btn btn-primary">
                                 <i class="bi bi-person-plus"></i> Add New Patient
                             </a>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="input-group">
+                                <input type="text" id="searchInput" class="form-control" placeholder="Search by name or email">
+                                <button class="btn btn-primary" onclick="loadPatients(1)">
+                                    <i class="bi bi-search"></i> Search
+                                </button>
+                                <button class="btn btn-secondary" onclick="document.getElementById('searchInput').value=''; loadPatients(1);">
+                                    <i class="bi bi-x-circle"></i> Clear
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="card mb-4">
+                                <div class="card-header bg-primary text-white">
+                                    <h3 class="card-title mb-0">Patient List</h3>
+                                </div>
+                                <div class="card-body">
+                                    <table id="patientTable" class="table table-bordered table-striped table-hover">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Name</th>
+                                                <th>DOB</th>
+                                                <th>Gender</th>
+                                                <th>Contact</th>
+                                                <th>Email</th>
+                                                <th>Created By</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="patientTableBody">
+                                            <tr>
+                                                <td colspan="8" class="text-center">Loading...</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="card-footer clearfix">
+                                    <ul class="pagination pagination-sm m-0 float-end" id="pagination"></ul>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
