@@ -102,62 +102,82 @@ if (isset($_GET['edit'])) {
                     <div class="row">
                         <div class="col-md-12">
                             <div class="card mb-4">
+                                <div class="card-header bg-primary text-white">
+                                    <h5 class="mb-0"><?php echo $edit_patient ? 'Edit Patient' : 'Add New Patient'; ?></h5>
+                                </div>
                                 <div class="card-body">
-                                    <form method="post">
+                                    <form method="post" novalidate>
                                         <?php if ($edit_patient): ?>
                                             <input type="hidden" name="patient_id" value="<?php echo $edit_patient['patient_id']; ?>">
                                         <?php endif; ?>
-                                        <div class="row">
-                                            <div class="col-md-6">
-                                                <div class="mb-3">
-                                                    <label for="first_name" class="form-label">First Name</label>
-                                                    <input type="text" class="form-control" id="first_name" name="first_name" value="<?php echo $edit_patient ? htmlspecialchars($edit_patient['first_name']) : ''; ?>" required>
+                                        <fieldset class="border p-3 mb-4">
+                                            <legend class="w-auto px-2">Personal Information</legend>
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <div class="mb-3">
+                                                        <label for="first_name" class="form-label">First Name</label>
+                                                        <input type="text" class="form-control" id="first_name" name="first_name" value="<?php echo $edit_patient ? htmlspecialchars($edit_patient['first_name']) : ''; ?>" required>
+                                                        <div class="invalid-feedback">Please enter the first name.</div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="mb-3">
+                                                        <label for="last_name" class="form-label">Last Name</label>
+                                                        <input type="text" class="form-control" id="last_name" name="last_name" value="<?php echo $edit_patient ? htmlspecialchars($edit_patient['last_name']) : ''; ?>" required>
+                                                        <div class="invalid-feedback">Please enter the last name.</div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="mb-3">
+                                                        <label for="date_of_birth" class="form-label">Date of Birth</label>
+                                                        <input type="date" class="form-control" id="date_of_birth" name="date_of_birth" value="<?php echo $edit_patient ? htmlspecialchars($edit_patient['date_of_birth']) : ''; ?>" required>
+                                                        <div class="invalid-feedback">Please select a valid date of birth.</div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="mb-3">
+                                                        <label for="gender" class="form-label">Gender</label>
+                                                        <select class="form-control" id="gender" name="gender" required>
+                                                            <option value="Male" <?php echo $edit_patient && $edit_patient['gender'] === 'Male' ? 'selected' : ''; ?>>Male</option>
+                                                            <option value="Female" <?php echo $edit_patient && $edit_patient['gender'] === 'Female' ? 'selected' : ''; ?>>Female</option>
+                                                            <option value="Other" <?php echo $edit_patient && $edit_patient['gender'] === 'Other' ? 'selected' : ''; ?>>Other</option>
+                                                        </select>
+                                                        <div class="invalid-feedback">Please select a gender.</div>
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <div class="col-md-6">
-                                                <div class="mb-3">
-                                                    <label for="last_name" class="form-label">Last Name</label>
-                                                    <input type="text" class="form-control" id="last_name" name="last_name" value="<?php echo $edit_patient ? htmlspecialchars($edit_patient['last_name']) : ''; ?>" required>
+                                        </fieldset>
+                                        <fieldset class="border p-3 mb-4">
+                                            <legend class="w-auto px-2">Contact Information</legend>
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <div class="mb-3">
+                                                        <label for="phone" class="form-label">Contact Number</label>
+                                                        <input type="text" class="form-control" id="phone" name="phone" value="<?php echo $edit_patient ? htmlspecialchars($edit_patient['phone']) : ''; ?>">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="mb-3">
+                                                        <label for="email" class="form-label">Email</label>
+                                                        <input type="email" class="form-control" id="email" name="email" value="<?php echo $edit_patient ? htmlspecialchars($edit_patient['email']) : ''; ?>">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-12">
+                                                    <div class="mb-3">
+                                                        <label for="address" class="form-label">Address</label>
+                                                        <textarea class="form-control" id="address" name="address"><?php echo $edit_patient ? htmlspecialchars($edit_patient['address']) : ''; ?></textarea>
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <div class="col-md-6">
-                                                <div class="mb-3">
-                                                    <label for="date_of_birth" class="form-label">Date of Birth</label>
-                                                    <input type="date" class="form-control" id="date_of_birth" name="date_of_birth" value="<?php echo $edit_patient ? htmlspecialchars($edit_patient['date_of_birth']) : ''; ?>" required>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <div class="mb-3">
-                                                    <label for="gender" class="form-label">Gender</label>
-                                                    <select class="form-control" id="gender" name="gender" required>
-                                                        <option value="Male" <?php echo $edit_patient && $edit_patient['gender'] === 'Male' ? 'selected' : ''; ?>>Male</option>
-                                                        <option value="Female" <?php echo $edit_patient && $edit_patient['gender'] === 'Female' ? 'selected' : ''; ?>>Female</option>
-                                                        <option value="Other" <?php echo $edit_patient && $edit_patient['gender'] === 'Other' ? 'selected' : ''; ?>>Other</option>
-                                                    </select>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <div class="mb-3">
-                                                    <label for="phone" class="form-label">Contact Number</label>
-                                                    <input type="text" class="form-control" id="phone" name="phone" value="<?php echo $edit_patient ? htmlspecialchars($edit_patient['phone']) : ''; ?>">
-                                                </div>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <div class="mb-3">
-                                                    <label for="email" class="form-label">Email</label>
-                                                    <input type="email" class="form-control" id="email" name="email" value="<?php echo $edit_patient ? htmlspecialchars($edit_patient['email']) : ''; ?>">
-                                                </div>
-                                            </div>
-                                            <div class="col-md-12">
-                                                <div class="mb-3">
-                                                    <label for="address" class="form-label">Address</label>
-                                                    <textarea class="form-control" id="address" name="address"><?php echo $edit_patient ? htmlspecialchars($edit_patient['address']) : ''; ?></textarea>
-                                                </div>
-                                            </div>
+                                        </fieldset>
+                                        <div class="d-flex justify-content-end">
+                                            <button type="submit" class="btn btn-primary me-2">
+                                                <i class="bi bi-save"></i> Save
+                                            </button>
+                                            <a href="patients.php" class="btn btn-secondary">
+                                                <i class="bi bi-x-circle"></i> Cancel
+                                            </a>
                                         </div>
-                                        
-                                        <button type="submit" class="btn btn-primary">Save</button>
-                                        <a href="patients.php" class="btn btn-secondary">Cancel</a>
                                     </form>
                                 </div>
                             </div>
