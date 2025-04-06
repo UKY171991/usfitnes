@@ -127,10 +127,12 @@ $tests = $tests_stmt->fetchAll(PDO::FETCH_ASSOC);
                     <div class="row">
                         <div class="col-md-12">
                             <div class="card mb-4">
-                                <div class="card-header"><h3 class="card-title">Test Category List</h3></div>
+                                <div class="card-header bg-primary text-white">
+                                    <h5 class="mb-0">Test Category List</h5>
+                                </div>
                                 <div class="card-body">
-                                    <table class="table table-bordered table-striped" id="category-table">
-                                        <thead>
+                                    <table class="table table-bordered table-striped table-hover">
+                                        <thead class="table-light">
                                             <tr>
                                                 <th>ID</th>
                                                 <th>Category Name</th>
@@ -150,11 +152,11 @@ $tests = $tests_stmt->fetchAll(PDO::FETCH_ASSOC);
                                                         <td><?php echo htmlspecialchars($category['category_name']); ?></td>
                                                         <td><?php echo htmlspecialchars($category['created_at']); ?></td>
                                                         <td>
-                                                            <button class="btn btn-sm btn-primary edit-category" data-id="<?php echo $category['category_id']; ?>" data-name="<?php echo htmlspecialchars($category['category_name']); ?>">
+                                                            <button class="btn btn-sm btn-warning me-2" data-bs-toggle="modal" data-bs-target="#editCategoryModal" data-id="<?php echo $category['category_id']; ?>" data-name="<?php echo htmlspecialchars($category['category_name']); ?>">
                                                                 <i class="fas fa-edit"></i> Edit
                                                             </button>
                                                             <?php if ($category_usage[$category['category_id']] == 0): ?>
-                                                                <button class="btn btn-sm btn-danger delete-category" data-id="<?php echo $category['category_id']; ?>">
+                                                                <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteCategoryModal" data-id="<?php echo $category['category_id']; ?>">
                                                                     <i class="fas fa-trash"></i> Delete
                                                                 </button>
                                                             <?php else: ?>
@@ -177,10 +179,12 @@ $tests = $tests_stmt->fetchAll(PDO::FETCH_ASSOC);
                     <div class="row">
                         <div class="col-md-12">
                             <div class="card mb-4">
-                                <div class="card-header"><h3 class="card-title">Test Parameter List</h3></div>
+                                <div class="card-header bg-info text-white">
+                                    <h5 class="mb-0">Test Parameter List</h5>
+                                </div>
                                 <div class="card-body">
-                                    <table class="table table-bordered table-striped" id="parameter-table">
-                                        <thead>
+                                    <table class="table table-bordered table-striped table-hover">
+                                        <thead class="table-light">
                                             <tr>
                                                 <th>ID</th>
                                                 <th>Parameter Name</th>
@@ -200,11 +204,11 @@ $tests = $tests_stmt->fetchAll(PDO::FETCH_ASSOC);
                                                         <td><?php echo htmlspecialchars($param['parameter_name']); ?></td>
                                                         <td><?php echo htmlspecialchars($param['created_at']); ?></td>
                                                         <td>
-                                                            <button class="btn btn-sm btn-primary edit-parameter" data-id="<?php echo $param['parameter_id']; ?>" data-name="<?php echo htmlspecialchars($param['parameter_name']); ?>">
+                                                            <button class="btn btn-sm btn-warning me-2" data-bs-toggle="modal" data-bs-target="#editParameterModal" data-id="<?php echo $param['parameter_id']; ?>" data-name="<?php echo htmlspecialchars($param['parameter_name']); ?>">
                                                                 <i class="fas fa-edit"></i> Edit
                                                             </button>
                                                             <?php if (!$parameter_usage[$param['parameter_id']]): ?>
-                                                                <button class="btn btn-sm btn-danger delete-parameter" data-id="<?php echo $param['parameter_id']; ?>">
+                                                                <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteParameterModal" data-id="<?php echo $param['parameter_id']; ?>">
                                                                     <i class="fas fa-trash"></i> Delete
                                                                 </button>
                                                             <?php else: ?>
@@ -227,10 +231,12 @@ $tests = $tests_stmt->fetchAll(PDO::FETCH_ASSOC);
                     <div class="row">
                         <div class="col-md-12">
                             <div class="card mb-4">
-                                <div class="card-header"><h3 class="card-title">Test List</h3></div>
+                                <div class="card-header bg-success text-white">
+                                    <h5 class="mb-0">Test List</h5>
+                                </div>
                                 <div class="card-body">
-                                    <table class="table table-bordered table-striped" id="test-table">
-                                        <thead>
+                                    <table class="table table-bordered table-striped table-hover">
+                                        <thead class="table-light">
                                             <tr>
                                                 <th>ID</th>
                                                 <th>Test Name</th>
@@ -253,10 +259,10 @@ $tests = $tests_stmt->fetchAll(PDO::FETCH_ASSOC);
                                                     <td><?php echo htmlspecialchars($test['reference_range']); ?></td>
                                                     <td><?php echo htmlspecialchars($test['price']); ?></td>
                                                     <td>
-                                                        <button class="btn btn-sm btn-primary edit-test" data-id="<?php echo $test['test_id']; ?>">
+                                                        <button class="btn btn-sm btn-warning me-2" data-bs-toggle="modal" data-bs-target="#editTestModal" data-id="<?php echo $test['test_id']; ?>">
                                                             <i class="fas fa-edit"></i> Edit
                                                         </button>
-                                                        <button class="btn btn-sm btn-danger delete-test" data-id="<?php echo $test['test_id']; ?>">
+                                                        <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteTestModal" data-id="<?php echo $test['test_id']; ?>">
                                                             <i class="fas fa-trash"></i> Delete
                                                         </button>
                                                     </td>
@@ -1059,6 +1065,13 @@ $tests = $tests_stmt->fetchAll(PDO::FETCH_ASSOC);
                     },
                 });
             }
+        });
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+                new bootstrap.Tooltip(tooltipTriggerEl);
+            });
         });
     </script>
 </body>
