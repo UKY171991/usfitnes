@@ -47,123 +47,130 @@ foreach ($categories as $category) {
                         </div>
                         <div class="col-sm-6 text-end">
                             <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newCategoryModal">
-                                <i class="fas fa-plus"></i> New Category
+                                <i class="fas fa-plus"></i> Add New Category
                             </button>
                         </div>
                     </div>
                 </div>
             </section>
-            <div class="app-content">
-                <div class="container-fluid">
-                    <div class="row">
-                        <div class="col-md-12">
-                            <div class="card mb-4">
-                                <div class="card-header"><h3 class="card-title">Test Category List</h3></div>
-                                <div class="card-body">
-                                    <?php
-                                    if (isset($_SESSION['success'])) {
-                                        echo "<div class='alert alert-success alert-dismissible fade show' role='alert'>"
-                                            . $_SESSION['success'] .
-                                            "<button type='button' class='btn-close' data-bs-dismiss='alert'></button>
-                                        </div>";
-                                        unset($_SESSION['success']);
-                                    }
+            <div class="container-fluid">
+                <div class="row mb-2 mt-2">
+                    <div class="col-sm-6">
+                        <h3>Test Category Management</h3>
+                    </div>
+                    <div class="col-sm-6 text-end">
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newCategoryModal">
+                            <i class="fas fa-plus"></i> Add New Category
+                        </button>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="card mb-4">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0">Test Category List</h5>
+                            </div>
+                            <div class="card-body">
+                                <!-- Alerts -->
+                                <?php if (isset($_SESSION['success'])): ?>
+                                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                                        <?php echo $_SESSION['success']; ?>
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    </div>
+                                    <?php unset($_SESSION['success']); ?>
+                                <?php endif; ?>
+                                <?php if (isset($_SESSION['error'])): ?>
+                                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                        <?php echo $_SESSION['error']; ?>
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    </div>
+                                    <?php unset($_SESSION['error']); ?>
+                                <?php endif; ?>
 
-                                    if (isset($_SESSION['error'])) {
-                                        echo "<div class='alert alert-danger alert-dismissible fade show' role='alert'>"
-                                            . $_SESSION['error'] .
-                                            "<button type='button' class='btn-close' data-bs-dismiss='alert'></button>
-                                        </div>";
-                                        unset($_SESSION['error']);
-                                    }
-                                    ?>
-
-                                    <table class="table table-bordered table-striped">
-                                        <thead>
+                                <!-- Table -->
+                                <table class="table table-bordered table-striped table-hover">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Category Name</th>
+                                            <th>Created At</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php if (empty($categories)): ?>
                                             <tr>
-                                                <th>ID</th>
-                                                <th>Category Name</th>
-                                                <th>Created At</th>
-                                                <th>Actions</th>
+                                                <td colspan="4" class="text-center">No categories found</td>
                                             </tr>
-                                        </thead>
-                                        <tbody>
-                                            <?php if (empty($categories)): ?>
+                                        <?php else: ?>
+                                            <?php foreach ($categories as $category): ?>
                                                 <tr>
-                                                    <td colspan="4" class="text-center">No categories found</td>
-                                                </tr>
-                                            <?php else: ?>
-                                                <?php foreach ($categories as $category): ?>
-                                                    <tr>
-                                                        <td><?php echo htmlspecialchars($category['category_id']); ?></td>
-                                                        <td><?php echo htmlspecialchars($category['category_name']); ?></td>
-                                                        <td><?php echo htmlspecialchars($category['created_at']); ?></td>
-                                                        <td>
-                                                            <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#editCategoryModal<?php echo $category['category_id']; ?>">
-                                                                <i class="fas fa-edit"></i> Edit
+                                                    <td><?php echo htmlspecialchars($category['category_id']); ?></td>
+                                                    <td><?php echo htmlspecialchars($category['category_name']); ?></td>
+                                                    <td><?php echo htmlspecialchars($category['created_at']); ?></td>
+                                                    <td>
+                                                        <button class="btn btn-sm btn-warning me-2" data-bs-toggle="modal" data-bs-target="#editCategoryModal<?php echo $category['category_id']; ?>" data-bs-toggle="tooltip" title="Edit Category">
+                                                            <i class="fas fa-edit"></i> Edit
+                                                        </button>
+                                                        <?php if ($category_usage[$category['category_id']] == 0): ?>
+                                                            <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteCategoryModal<?php echo $category['category_id']; ?>" data-bs-toggle="tooltip" title="Delete Category">
+                                                                <i class="fas fa-trash"></i> Delete
                                                             </button>
-                                                            <?php if ($category_usage[$category['category_id']] == 0): ?>
-                                                                <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteCategoryModal<?php echo $category['category_id']; ?>">
-                                                                    <i class="fas fa-trash"></i> Delete
-                                                                </button>
-                                                            <?php else: ?>
-                                                                <button class="btn btn-sm btn-danger" disabled title="Cannot delete: Category is in use">
-                                                                    <i class="fas fa-trash"></i> Delete
-                                                                </button>
-                                                            <?php endif; ?>
-                                                        </td>
-                                                    </tr>
-
-                                                    <!-- Edit Category Modal -->
-                                                    <div class="modal fade" id="editCategoryModal<?php echo $category['category_id']; ?>" tabindex="-1" aria-labelledby="editCategoryModalLabel" aria-hidden="true">
-                                                        <div class="modal-dialog">
-                                                            <div class="modal-content">
-                                                                <div class="modal-header">
-                                                                    <h5 class="modal-title" id="editCategoryModalLabel">Edit Category</h5>
-                                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                                </div>
-                                                                <form action="includes/update-category.php" method="POST">
-                                                                    <div class="modal-body">
-                                                                        <input type="hidden" name="category_id" value="<?php echo $category['category_id']; ?>">
-                                                                        <div class="mb-3">
-                                                                            <label>Category Name</label>
-                                                                            <input type="text" class="form-control" name="category_name" value="<?php echo htmlspecialchars($category['category_name']); ?>" required>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div class="modal-footer">
-                                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                                                        <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Changes</button>
-                                                                    </div>
-                                                                </form>
+                                                        <?php else: ?>
+                                                            <button class="btn btn-sm btn-danger" disabled title="Cannot delete: Category is in use">
+                                                                <i class="fas fa-trash"></i> Delete
+                                                            </button>
+                                                        <?php endif; ?>
+                                                    </td>
+                                                </tr>
+                                                <!-- Edit Category Modal -->
+                                                <div class="modal fade" id="editCategoryModal<?php echo $category['category_id']; ?>" tabindex="-1" aria-labelledby="editCategoryModalLabel" aria-hidden="true">
+                                                    <div class="modal-dialog">
+                                                        <div class="modal-content">
+                                                            <div class="modal-header">
+                                                                <h5 class="modal-title" id="editCategoryModalLabel">Edit Category</h5>
+                                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                                             </div>
-                                                        </div>
-                                                    </div>
-
-                                                    <!-- Delete Category Modal -->
-                                                    <div class="modal fade" id="deleteCategoryModal<?php echo $category['category_id']; ?>" tabindex="-1" aria-labelledby="deleteCategoryModalLabel" aria-hidden="true">
-                                                        <div class="modal-dialog">
-                                                            <div class="modal-content">
-                                                                <div class="modal-header">
-                                                                    <h5 class="modal-title" id="deleteCategoryModalLabel">Confirm Deletion</h5>
-                                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                                </div>
+                                                            <form action="includes/update-category.php" method="POST">
                                                                 <div class="modal-body">
-                                                                    Are you sure you want to delete the category "<strong><?php echo htmlspecialchars($category['category_name']); ?></strong>"? This action cannot be undone.
+                                                                    <input type="hidden" name="category_id" value="<?php echo $category['category_id']; ?>">
+                                                                    <div class="mb-3">
+                                                                        <label for="category_name" class="form-label">Category Name</label>
+                                                                        <input type="text" class="form-control" id="category_name" name="category_name" value="<?php echo htmlspecialchars($category['category_name']); ?>" required>
+                                                                    </div>
                                                                 </div>
                                                                 <div class="modal-footer">
-                                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                                                    <a href="includes/delete-category.php?category_id=<?php echo $category['category_id']; ?>" class="btn btn-danger">
-                                                                        <i class="fas fa-trash"></i> Delete
-                                                                    </a>
+                                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                                                    <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Changes</button>
                                                                 </div>
+                                                            </form>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <!-- Delete Category Modal -->
+                                                <div class="modal fade" id="deleteCategoryModal<?php echo $category['category_id']; ?>" tabindex="-1" aria-labelledby="deleteCategoryModalLabel" aria-hidden="true">
+                                                    <div class="modal-dialog">
+                                                        <div class="modal-content">
+                                                            <div class="modal-header">
+                                                                <h5 class="modal-title" id="deleteCategoryModalLabel">Confirm Deletion</h5>
+                                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                            </div>
+                                                            <div class="modal-body">
+                                                                Are you sure you want to delete the category "<strong><?php echo htmlspecialchars($category['category_name']); ?></strong>"? This action cannot be undone.
+                                                            </div>
+                                                            <div class="modal-footer">
+                                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                                <a href="includes/delete-category.php?category_id=<?php echo $category['category_id']; ?>" class="btn btn-danger">
+                                                                    <i class="fas fa-trash"></i> Delete
+                                                                </a>
                                                             </div>
                                                         </div>
                                                     </div>
-                                                <?php endforeach; ?>
-                                            <?php endif; ?>
-                                        </tbody>
-                                    </table>
-                                </div>
+                                                </div>
+                                            <?php endforeach; ?>
+                                        <?php endif; ?>
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
                     </div>
@@ -219,6 +226,12 @@ foreach ($categories as $category) {
                     },
                 });
             }
+        });
+        document.addEventListener('DOMContentLoaded', function () {
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+                new bootstrap.Tooltip(tooltipTriggerEl);
+            });
         });
     </script>
 </body>
