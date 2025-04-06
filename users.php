@@ -59,20 +59,27 @@ if (isset($_GET['delete'])) {
             <div class="app-content">
                 <div class="container-fluid">
                     <div class="row mb-3">
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <div class="input-group">
                                 <input type="text" id="searchInput" class="form-control" placeholder="Search by username, name, or email">
-                                <button class="btn btn-primary" onclick="loadUsers(1)">Search</button>
+                                <button class="btn btn-primary" onclick="loadUsers(1)">
+                                    <i class="bi bi-search"></i> Search
+                                </button>
+                                <button class="btn btn-secondary" onclick="document.getElementById('searchInput').value=''; loadUsers(1);">
+                                    <i class="bi bi-x-circle"></i> Clear
+                                </button>
                             </div>
                         </div>
                     </div>
                     <div class="row">
                         <div class="col-md-12">
                             <div class="card mb-4">
-                                <div class="card-header"><h3 class="card-title">User List</h3></div>
+                                <div class="card-header bg-primary text-white">
+                                    <h5 class="mb-0">User List</h5>
+                                </div>
                                 <div class="card-body">
-                                    <table id="userTable" class="table table-bordered table-striped">
-                                        <thead>
+                                    <table id="userTable" class="table table-bordered table-striped table-hover">
+                                        <thead class="table-light">
                                             <tr>
                                                 <th>ID</th>
                                                 <th>Username</th>
@@ -83,7 +90,11 @@ if (isset($_GET['delete'])) {
                                                 <th>Actions</th>
                                             </tr>
                                         </thead>
-                                        <tbody id="userTableBody"></tbody>
+                                        <tbody id="userTableBody">
+                                            <tr>
+                                                <td colspan="7" class="text-center">Loading...</td>
+                                            </tr>
+                                        </tbody>
                                     </table>
                                 </div>
                                 <div class="card-footer clearfix">
@@ -115,27 +126,32 @@ if (isset($_GET['delete'])) {
                     const tbody = document.getElementById('userTableBody');
                     tbody.innerHTML = ''; // Clear existing rows
 
-                    // Populate table
-                    data.users.forEach(user => {
-                        const row = `
-                            <tr>
-                                <td>${user.user_id}</td>
-                                <td>${user.username}</td>
-                                <td>${user.first_name} ${user.last_name}</td>
-                                <td>${user.email}</td>
-                                <td>${user.role}</td>
-                                <td>${user.created_at}</td>
-                                <td>
-                                    <?php if ($_SESSION['role'] === 'Admin'): ?>
-                                        <a href="add_user.php?edit=${user.user_id}" class="btn btn-sm btn-warning"><i class="bi bi-pencil"></i> Edit</a>
+                    if (data.users.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="7" class="text-center">No users found</td></tr>';
+                    } else {
+                        data.users.forEach(user => {
+                            const row = `
+                                <tr>
+                                    <td>${user.user_id}</td>
+                                    <td>${user.username}</td>
+                                    <td>${user.first_name} ${user.last_name}</td>
+                                    <td>${user.email}</td>
+                                    <td>${user.role}</td>
+                                    <td>${user.created_at}</td>
+                                    <td>
+                                        <a href="add_user.php?edit=${user.user_id}" class="btn btn-sm btn-warning me-2" data-bs-toggle="tooltip" title="Edit User">
+                                            <i class="bi bi-pencil"></i> Edit
+                                        </a>
                                         ${user.user_id != <?php echo $_SESSION['user_id']; ?> ? 
-                                            `<a href="users.php?delete=${user.user_id}" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?');"><i class="bi bi-trash"></i> Delete</a>` 
+                                            `<a href="users.php?delete=${user.user_id}" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?');" data-bs-toggle="tooltip" title="Delete User">
+                                                <i class="bi bi-trash"></i> Delete
+                                            </a>` 
                                             : ''}
-                                    <?php endif; ?>
-                                </td>
-                            </tr>`;
-                        tbody.innerHTML += row;
-                    });
+                                    </td>
+                                </tr>`;
+                            tbody.innerHTML += row;
+                        });
+                    }
 
                     // Generate pagination
                     const pagination = document.getElementById('pagination');
@@ -184,6 +200,13 @@ if (isset($_GET['delete'])) {
                     },
                 });
             }
+        });
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+                new bootstrap.Tooltip(tooltipTriggerEl);
+            });
         });
     </script>
 </body>
