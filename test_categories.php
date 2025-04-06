@@ -39,20 +39,7 @@ foreach ($categories as $category) {
         <?php include('inc/top.php'); ?>
         <?php include('inc/sidebar.php'); ?>
         <main class="app-main">
-            <section class="content-header">
-                <div class="container-fluid">
-                    <div class="row mb-2 mt-2">
-                        <div class="col-sm-6">
-                            <h3>Test Category Management</h3>
-                        </div>
-                        <div class="col-sm-6 text-end">
-                            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newCategoryModal">
-                                <i class="fas fa-plus"></i> Add New Category
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </section>
+            
             <div class="container-fluid">
                 <div class="row mb-2 mt-2">
                     <div class="col-sm-6">
