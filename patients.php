@@ -140,9 +140,13 @@ if (isset($_GET['delete']) && $_SESSION['role'] === 'Admin') {
                                     <td>${patient.email || '-'}</td>
                                     <td>${patient.created_by_name || 'Unknown'}</td>
                                     <td>
-                                        <a href="add_patient.php?edit=${patient.patient_id}" class="btn btn-sm btn-warning"><i class="bi bi-pencil"></i> Edit</a>
+                                        <a href="add_patient.php?edit=${patient.patient_id}" class="btn btn-sm btn-warning me-2" data-bs-toggle="tooltip" title="Edit Patient">
+                                            <i class="bi bi-pencil"></i> Edit
+                                        </a>
                                         <?php if ($_SESSION['role'] === 'Admin'): ?>
-                                            <a href="patients.php?delete=${patient.patient_id}" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?');"><i class="bi bi-trash"></i> Delete</a>
+                                            <a href="patients.php?delete=${patient.patient_id}" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this patient?');" data-bs-toggle="tooltip" title="Delete Patient">
+                                                <i class="bi bi-trash"></i> Delete
+                                            </a>
                                         <?php endif; ?>
                                     </td>
                                 </tr>`;
@@ -197,6 +201,13 @@ if (isset($_GET['delete']) && $_SESSION['role'] === 'Admin') {
                     },
                 });
             }
+        });
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+                new bootstrap.Tooltip(tooltipTriggerEl);
+            });
         });
     </script>
 </body>
