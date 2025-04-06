@@ -53,6 +53,16 @@ $tests_stmt = $pdo->query("
     ORDER BY t.test_name
 ");
 $tests = $tests_stmt->fetchAll(PDO::FETCH_ASSOC);
+
+if ($_POST['action'] === 'edit') {
+    $category_id = $_POST['category_id'];
+    $category_name = $_POST['category_name'];
+
+    $stmt = $pdo->prepare("UPDATE Test_Categories SET category_name = :category_name WHERE category_id = :category_id");
+    $stmt->execute(['category_name' => $category_name, 'category_id' => $category_id]);
+
+    echo json_encode(['success' => true, 'message' => 'Category updated successfully']);
+}
 ?>
 
 <!doctype html>
@@ -152,7 +162,7 @@ $tests = $tests_stmt->fetchAll(PDO::FETCH_ASSOC);
                                                         <td><?php echo htmlspecialchars($category['category_name']); ?></td>
                                                         <td><?php echo htmlspecialchars($category['created_at']); ?></td>
                                                         <td>
-                                                            <button class="btn btn-sm btn-warning me-2" data-bs-toggle="modal" data-bs-target="#editCategoryModal" data-id="<?php echo $category['category_id']; ?>" data-name="<?php echo htmlspecialchars($category['category_name']); ?>">
+                                                            <button class="btn btn-sm btn-warning edit-category" data-id="<?php echo $category['category_id']; ?>" data-name="<?php echo htmlspecialchars($category['category_name']); ?>">
                                                                 <i class="fas fa-edit"></i> Edit
                                                             </button>
                                                             <?php if ($category_usage[$category['category_id']] == 0): ?>
@@ -727,6 +737,7 @@ $tests = $tests_stmt->fetchAll(PDO::FETCH_ASSOC);
         $(document).on('click', '.edit-category', function() {
             const id = $(this).data('id');
             const name = $(this).data('name');
+            console.log('Editing category:', id, name); // Debugging
             $('#editCategoryModal').modal('show');
             $('#edit-category-form [name="category_id"]').val(id);
             $('#edit-category-form [name="category_name"]').val(name);
@@ -747,7 +758,6 @@ $tests = $tests_stmt->fetchAll(PDO::FETCH_ASSOC);
                             const id = $('#edit-category-form [name="category_id"]').val();
                             const name = $('#edit-category-form [name="category_name"]').val();
                             $(`#category-table tr[data-id="${id}"] td:nth-child(2)`).text(name);
-                            updateCategoryDropdowns();
                         }
                     } catch (e) {
                         console.error('Error editing category:', e);
