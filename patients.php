@@ -107,20 +107,27 @@ if (isset($_GET['delete']) && $_SESSION['role'] === 'Admin') {
             <div class="app-content">
                 <div class="container-fluid">
                     <div class="row mb-3">
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <div class="input-group">
                                 <input type="text" id="searchInput" class="form-control" placeholder="Search by name or email">
-                                <button class="btn btn-primary" onclick="loadPatients(1)">Search</button>
+                                <button class="btn btn-primary" onclick="loadPatients(1)">
+                                    <i class="bi bi-search"></i> Search
+                                </button>
+                                <button class="btn btn-secondary" onclick="document.getElementById('searchInput').value=''; loadPatients(1);">
+                                    <i class="bi bi-x-circle"></i> Clear
+                                </button>
                             </div>
                         </div>
                     </div>
                     <div class="row">
                         <div class="col-md-12">
                             <div class="card mb-4">
-                                <div class="card-header"><h3 class="card-title">Patient List</h3></div>
+                                <div class="card-header bg-primary text-white">
+                                    <h3 class="card-title mb-0">Patient List</h3>
+                                </div>
                                 <div class="card-body">
-                                    <table id="patientTable" class="table table-bordered table-striped">
-                                        <thead>
+                                    <table id="patientTable" class="table table-bordered table-striped table-hover">
+                                        <thead class="table-light">
                                             <tr>
                                                 <th>ID</th>
                                                 <th>Name</th>
@@ -132,7 +139,11 @@ if (isset($_GET['delete']) && $_SESSION['role'] === 'Admin') {
                                                 <th>Actions</th>
                                             </tr>
                                         </thead>
-                                        <tbody id="patientTableBody"></tbody>
+                                        <tbody id="patientTableBody">
+                                            <tr>
+                                                <td colspan="8" class="text-center">Loading...</td>
+                                            </tr>
+                                        </tbody>
                                     </table>
                                 </div>
                                 <div class="card-footer clearfix">
