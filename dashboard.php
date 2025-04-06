@@ -15,6 +15,12 @@ if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in']) {
     <title>Shiva Pathology Centre | Dashboard</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <?php include('inc/head.php'); ?>
+    <style>
+        .card:hover {
+            transform: translateY(-5px);
+            transition: all 0.3s ease;
+        }
+    </style>
 </head>
 <body class="layout-fixed sidebar-expand-lg bg-body-tertiary">
     <div class="app-wrapper">
@@ -23,9 +29,10 @@ if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in']) {
         <main class="app-main">
             <section class="content-header">
                 <div class="container-fluid">
-                    <div class="row mb-2 mt-2">
+                    <div class="row mb-4">
                         <div class="col-sm-6">
                             <h3>Dashboard</h3>
+                            <p class="text-muted">Welcome to the Shiva Pathology Centre dashboard. Manage your operations efficiently.</p>
                         </div>
                     </div>
                 </div>
@@ -34,29 +41,44 @@ if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in']) {
                 <div class="container-fluid">
                     <div class="row">
                         <div class="col-md-4">
-                            <div class="card mb-4">
-                                <div class="card-header"><h3 class="card-title">Manage Tests</h3></div>
+                            <div class="card shadow-sm mb-4">
+                                <div class="card-header bg-primary text-white d-flex align-items-center">
+                                    <i class="bi bi-clipboard-data me-2"></i>
+                                    <h5 class="mb-0">Manage Tests</h5>
+                                </div>
                                 <div class="card-body">
                                     <p>Add or edit pathology tests like CBC.</p>
-                                    <a href="test.php" class="btn btn-primary">Go to Tests</a>
+                                    <a href="test.php" class="btn btn-primary">
+                                        <i class="bi bi-arrow-right-circle"></i> Go to Tests
+                                    </a>
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-4">
-                            <div class="card mb-4">
-                                <div class="card-header"><h3 class="card-title">Manage Patients</h3></div>
+                            <div class="card shadow-sm mb-4">
+                                <div class="card-header bg-success text-white d-flex align-items-center">
+                                    <i class="bi bi-person-lines-fill me-2"></i>
+                                    <h5 class="mb-0">Manage Patients</h5>
+                                </div>
                                 <div class="card-body">
                                     <p>View and manage patient records.</p>
-                                    <a href="patients.php" class="btn btn-primary">Go to Patients</a>
+                                    <a href="patients.php" class="btn btn-success">
+                                        <i class="bi bi-arrow-right-circle"></i> Go to Patients
+                                    </a>
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-4">
-                            <div class="card mb-4">
-                                <div class="card-header"><h3 class="card-title">Generate Reports</h3></div>
+                            <div class="card shadow-sm mb-4">
+                                <div class="card-header bg-warning text-white d-flex align-items-center">
+                                    <i class="bi bi-file-earmark-bar-graph me-2"></i>
+                                    <h5 class="mb-0">Generate Reports</h5>
+                                </div>
                                 <div class="card-body">
                                     <p>Generate pathology reports for patients.</p>
-                                    <a href="reports.php" class="btn btn-primary">Go to Reports</a>
+                                    <a href="reports.php" class="btn btn-warning text-white">
+                                        <i class="bi bi-arrow-right-circle"></i> Go to Reports
+                                    </a>
                                 </div>
                             </div>
                         </div>
