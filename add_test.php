@@ -77,6 +77,15 @@ if (isset($_GET['edit'])) {
     <title>Pathology | <?php echo $edit_test ? 'Edit Test' : 'Add Test'; ?></title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <?php include('inc/head.php'); ?>
+    <style>
+        .card:hover {
+            transform: translateY(-5px);
+            transition: all 0.3s ease;
+        }
+        .btn-secondary {
+            margin-left: 5px;
+        }
+    </style>
 </head>
 <body class="layout-fixed sidebar-expand-lg bg-body-tertiary">
     <div class="app-wrapper">
@@ -97,37 +106,69 @@ if (isset($_GET['edit'])) {
                     <div class="row">
                         <div class="col-md-12">
                             <div class="card mb-4">
+                                <div class="card-header bg-primary text-white">
+                                    <h5 class="mb-0"><?php echo $edit_test ? 'Edit Test' : 'Add New Test'; ?></h5>
+                                </div>
                                 <div class="card-body">
                                     <form method="post">
                                         <?php if ($edit_test): ?>
                                             <input type="hidden" name="test_id" value="<?php echo $edit_test['test_id']; ?>">
                                         <?php endif; ?>
-                                        <div class="mb-3">
-                                            <label for="test_name" class="form-label">Test Name</label>
-                                            <input type="text" class="form-control" id="test_name" name="test_name" value="<?php echo $edit_test ? htmlspecialchars($edit_test['test_name']) : ''; ?>" required>
+                                        <fieldset class="border p-3 mb-4">
+                                            <legend class="w-auto px-2">Test Details</legend>
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <div class="mb-3">
+                                                        <label for="test_name" class="form-label">Test Name</label>
+                                                        <input type="text" class="form-control" id="test_name" name="test_name" value="<?php echo $edit_test ? htmlspecialchars($edit_test['test_name']) : ''; ?>" required>
+                                                        <div class="invalid-feedback">Please enter the test name.</div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="mb-3">
+                                                        <label for="test_code" class="form-label">Test Code</label>
+                                                        <input type="text" class="form-control" id="test_code" name="test_code" value="<?php echo $edit_test ? htmlspecialchars($edit_test['test_code']) : ''; ?>" required>
+                                                        <div class="invalid-feedback">Please enter the test code.</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="description" class="form-label">Description</label>
+                                                <textarea class="form-control" id="description" name="description"><?php echo $edit_test ? htmlspecialchars($edit_test['description']) : ''; ?></textarea>
+                                            </div>
+                                        </fieldset>
+                                        <fieldset class="border p-3 mb-4">
+                                            <legend class="w-auto px-2">Test Specifications</legend>
+                                            <div class="row">
+                                                <div class="col-md-4">
+                                                    <div class="mb-3">
+                                                        <label for="normal_range" class="form-label">Normal Range</label>
+                                                        <input type="text" class="form-control" id="normal_range" name="normal_range" value="<?php echo $edit_test ? htmlspecialchars($edit_test['normal_range']) : ''; ?>">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <div class="mb-3">
+                                                        <label for="unit" class="form-label">Unit</label>
+                                                        <input type="text" class="form-control" id="unit" name="unit" value="<?php echo $edit_test ? htmlspecialchars($edit_test['unit']) : ''; ?>">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <div class="mb-3">
+                                                        <label for="price" class="form-label">Price ($)</label>
+                                                        <input type="number" step="0.01" class="form-control" id="price" name="price" value="<?php echo $edit_test ? htmlspecialchars($edit_test['price']) : ''; ?>" required>
+                                                        <div class="invalid-feedback">Please enter the price.</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </fieldset>
+                                        <div class="d-flex justify-content-end">
+                                            <button type="submit" class="btn btn-primary me-2">
+                                                <i class="bi bi-save"></i> Save
+                                            </button>
+                                            <a href="tests.php" class="btn btn-secondary">
+                                                <i class="bi bi-x-circle"></i> Cancel
+                                            </a>
                                         </div>
-                                        <div class="mb-3">
-                                            <label for="test_code" class="form-label">Test Code</label>
-                                            <input type="text" class="form-control" id="test_code" name="test_code" value="<?php echo $edit_test ? htmlspecialchars($edit_test['test_code']) : ''; ?>" required>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label for="description" class="form-label">Description</label>
-                                            <textarea class="form-control" id="description" name="description"><?php echo $edit_test ? htmlspecialchars($edit_test['description']) : ''; ?></textarea>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label for="normal_range" class="form-label">Normal Range</label>
-                                            <input type="text" class="form-control" id="normal_range" name="normal_range" value="<?php echo $edit_test ? htmlspecialchars($edit_test['normal_range']) : ''; ?>">
-                                        </div>
-                                        <div class="mb-3">
-                                            <label for="unit" class="form-label">Unit</label>
-                                            <input type="text" class="form-control" id="unit" name="unit" value="<?php echo $edit_test ? htmlspecialchars($edit_test['unit']) : ''; ?>">
-                                        </div>
-                                        <div class="mb-3">
-                                            <label for="price" class="form-label">Price ($)</label>
-                                            <input type="number" step="0.01" class="form-control" id="price" name="price" value="<?php echo $edit_test ? htmlspecialchars($edit_test['price']) : ''; ?>" required>
-                                        </div>
-                                        <button type="submit" class="btn btn-primary">Save</button>
-                                        <a href="tests.php" class="btn btn-secondary">Cancel</a>
                                     </form>
                                 </div>
                             </div>
