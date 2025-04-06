@@ -63,6 +63,19 @@ if ($_POST['action'] === 'edit') {
 
     echo json_encode(['success' => true, 'message' => 'Category updated successfully']);
 }
+
+if ($_POST['action'] === 'edit') {
+    $parameter_id = $_POST['parameter_id'];
+    $parameter_name = $_POST['parameter_name'];
+
+    $stmt = $pdo->prepare("UPDATE Test_Parameters SET parameter_name = :parameter_name WHERE parameter_id = :parameter_id");
+    $stmt->execute(['parameter_name' => $parameter_name, 'parameter_id' => $parameter_id]);
+
+    echo json_encode(['success' => true, 'message' => 'Parameter updated successfully']);
+    const id = $('#edit-parameter-form [name="parameter_id"]').val();
+    const name = $('#edit-parameter-form [name="parameter_name"]').val();
+    $(`#parameter-table tr[data-id="${id}"] td:nth-child(2)`).text(name);
+}
 ?>
 
 <!doctype html>
@@ -214,7 +227,9 @@ if ($_POST['action'] === 'edit') {
                                                         <td><?php echo htmlspecialchars($param['parameter_name']); ?></td>
                                                         <td><?php echo htmlspecialchars($param['created_at']); ?></td>
                                                         <td>
-                                                            <button class="btn btn-sm btn-warning me-2" data-bs-toggle="modal" data-bs-target="#editParameterModal" data-id="<?php echo $param['parameter_id']; ?>" data-name="<?php echo htmlspecialchars($param['parameter_name']); ?>">
+                                                            <button class="btn btn-sm btn-warning edit-parameter" 
+                                                                    data-id="<?php echo $param['parameter_id']; ?>" 
+                                                                    data-name="<?php echo htmlspecialchars($param['parameter_name']); ?>">
                                                                 <i class="fas fa-edit"></i> Edit
                                                             </button>
                                                             <?php if (!$parameter_usage[$param['parameter_id']]): ?>
@@ -853,6 +868,7 @@ if ($_POST['action'] === 'edit') {
         $(document).on('click', '.edit-parameter', function() {
             const id = $(this).data('id');
             const name = $(this).data('name');
+            console.log('Editing parameter:', id, name); // Debugging
             $('#editParameterModal').modal('show');
             $('#edit-parameter-form [name="parameter_id"]').val(id);
             $('#edit-parameter-form [name="parameter_name"]').val(name);
@@ -873,7 +889,6 @@ if ($_POST['action'] === 'edit') {
                             const id = $('#edit-parameter-form [name="parameter_id"]').val();
                             const name = $('#edit-parameter-form [name="parameter_name"]').val();
                             $(`#parameter-table tr[data-id="${id}"] td:nth-child(2)`).text(name);
-                            updateParameterDropdowns();
                         }
                     } catch (e) {
                         console.error('Error editing parameter:', e);
