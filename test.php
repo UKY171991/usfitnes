@@ -53,29 +53,6 @@ $tests_stmt = $pdo->query("
     ORDER BY t.test_name
 ");
 $tests = $tests_stmt->fetchAll(PDO::FETCH_ASSOC);
-
-if ($_POST['action'] === 'edit') {
-    $category_id = $_POST['category_id'];
-    $category_name = $_POST['category_name'];
-
-    $stmt = $pdo->prepare("UPDATE Test_Categories SET category_name = :category_name WHERE category_id = :category_id");
-    $stmt->execute(['category_name' => $category_name, 'category_id' => $category_id]);
-
-    echo json_encode(['success' => true, 'message' => 'Category updated successfully']);
-}
-
-if ($_POST['action'] === 'edit') {
-    $parameter_id = $_POST['parameter_id'];
-    $parameter_name = $_POST['parameter_name'];
-
-    $stmt = $pdo->prepare("UPDATE Test_Parameters SET parameter_name = :parameter_name WHERE parameter_id = :parameter_id");
-    $stmt->execute(['parameter_name' => $parameter_name, 'parameter_id' => $parameter_id]);
-
-    echo json_encode(['success' => true, 'message' => 'Parameter updated successfully']);
-    const id = $('#edit-parameter-form [name="parameter_id"]').val();
-    const name = $('#edit-parameter-form [name="parameter_name"]').val();
-    $(`#parameter-table tr[data-id="${id}"] td:nth-child(2)`).text(name);
-}
 ?>
 
 <!doctype html>
@@ -150,12 +127,10 @@ if ($_POST['action'] === 'edit') {
                     <div class="row">
                         <div class="col-md-12">
                             <div class="card mb-4">
-                                <div class="card-header bg-primary text-white">
-                                    <h5 class="mb-0">Test Category List</h5>
-                                </div>
+                                <div class="card-header"><h3 class="card-title">Test Category List</h3></div>
                                 <div class="card-body">
-                                    <table class="table table-bordered table-striped table-hover">
-                                        <thead class="table-light">
+                                    <table class="table table-bordered table-striped" id="category-table">
+                                        <thead>
                                             <tr>
                                                 <th>ID</th>
                                                 <th>Category Name</th>
@@ -175,11 +150,11 @@ if ($_POST['action'] === 'edit') {
                                                         <td><?php echo htmlspecialchars($category['category_name']); ?></td>
                                                         <td><?php echo htmlspecialchars($category['created_at']); ?></td>
                                                         <td>
-                                                            <button class="btn btn-sm btn-warning edit-category" data-id="<?php echo $category['category_id']; ?>" data-name="<?php echo htmlspecialchars($category['category_name']); ?>">
+                                                            <button class="btn btn-sm btn-primary edit-category" data-id="<?php echo $category['category_id']; ?>" data-name="<?php echo htmlspecialchars($category['category_name']); ?>">
                                                                 <i class="fas fa-edit"></i> Edit
                                                             </button>
                                                             <?php if ($category_usage[$category['category_id']] == 0): ?>
-                                                                <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteCategoryModal" data-id="<?php echo $category['category_id']; ?>">
+                                                                <button class="btn btn-sm btn-danger delete-category" data-id="<?php echo $category['category_id']; ?>">
                                                                     <i class="fas fa-trash"></i> Delete
                                                                 </button>
                                                             <?php else: ?>
@@ -202,12 +177,10 @@ if ($_POST['action'] === 'edit') {
                     <div class="row">
                         <div class="col-md-12">
                             <div class="card mb-4">
-                                <div class="card-header bg-info text-white">
-                                    <h5 class="mb-0">Test Parameter List</h5>
-                                </div>
+                                <div class="card-header"><h3 class="card-title">Test Parameter List</h3></div>
                                 <div class="card-body">
-                                    <table class="table table-bordered table-striped table-hover">
-                                        <thead class="table-light">
+                                    <table class="table table-bordered table-striped" id="parameter-table">
+                                        <thead>
                                             <tr>
                                                 <th>ID</th>
                                                 <th>Parameter Name</th>
@@ -227,13 +200,11 @@ if ($_POST['action'] === 'edit') {
                                                         <td><?php echo htmlspecialchars($param['parameter_name']); ?></td>
                                                         <td><?php echo htmlspecialchars($param['created_at']); ?></td>
                                                         <td>
-                                                            <button class="btn btn-sm btn-warning edit-parameter" 
-                                                                    data-id="<?php echo $param['parameter_id']; ?>" 
-                                                                    data-name="<?php echo htmlspecialchars($param['parameter_name']); ?>">
+                                                            <button class="btn btn-sm btn-primary edit-parameter" data-id="<?php echo $param['parameter_id']; ?>" data-name="<?php echo htmlspecialchars($param['parameter_name']); ?>">
                                                                 <i class="fas fa-edit"></i> Edit
                                                             </button>
                                                             <?php if (!$parameter_usage[$param['parameter_id']]): ?>
-                                                                <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteParameterModal" data-id="<?php echo $param['parameter_id']; ?>">
+                                                                <button class="btn btn-sm btn-danger delete-parameter" data-id="<?php echo $param['parameter_id']; ?>">
                                                                     <i class="fas fa-trash"></i> Delete
                                                                 </button>
                                                             <?php else: ?>
@@ -256,12 +227,10 @@ if ($_POST['action'] === 'edit') {
                     <div class="row">
                         <div class="col-md-12">
                             <div class="card mb-4">
-                                <div class="card-header bg-success text-white">
-                                    <h5 class="mb-0">Test List</h5>
-                                </div>
+                                <div class="card-header"><h3 class="card-title">Test List</h3></div>
                                 <div class="card-body">
-                                    <table class="table table-bordered table-striped table-hover">
-                                        <thead class="table-light">
+                                    <table class="table table-bordered table-striped" id="test-table">
+                                        <thead>
                                             <tr>
                                                 <th>ID</th>
                                                 <th>Test Name</th>
@@ -284,10 +253,10 @@ if ($_POST['action'] === 'edit') {
                                                     <td><?php echo htmlspecialchars($test['reference_range']); ?></td>
                                                     <td><?php echo htmlspecialchars($test['price']); ?></td>
                                                     <td>
-                                                        <button class="btn btn-sm btn-warning me-2" data-bs-toggle="modal" data-bs-target="#editTestModal" data-id="<?php echo $test['test_id']; ?>">
+                                                        <button class="btn btn-sm btn-primary edit-test" data-id="<?php echo $test['test_id']; ?>">
                                                             <i class="fas fa-edit"></i> Edit
                                                         </button>
-                                                        <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteTestModal" data-id="<?php echo $test['test_id']; ?>">
+                                                        <button class="btn btn-sm btn-danger delete-test" data-id="<?php echo $test['test_id']; ?>">
                                                             <i class="fas fa-trash"></i> Delete
                                                         </button>
                                                     </td>
@@ -752,7 +721,6 @@ if ($_POST['action'] === 'edit') {
         $(document).on('click', '.edit-category', function() {
             const id = $(this).data('id');
             const name = $(this).data('name');
-            console.log('Editing category:', id, name); // Debugging
             $('#editCategoryModal').modal('show');
             $('#edit-category-form [name="category_id"]').val(id);
             $('#edit-category-form [name="category_name"]').val(name);
@@ -773,6 +741,7 @@ if ($_POST['action'] === 'edit') {
                             const id = $('#edit-category-form [name="category_id"]').val();
                             const name = $('#edit-category-form [name="category_name"]').val();
                             $(`#category-table tr[data-id="${id}"] td:nth-child(2)`).text(name);
+                            updateCategoryDropdowns();
                         }
                     } catch (e) {
                         console.error('Error editing category:', e);
@@ -868,7 +837,6 @@ if ($_POST['action'] === 'edit') {
         $(document).on('click', '.edit-parameter', function() {
             const id = $(this).data('id');
             const name = $(this).data('name');
-            console.log('Editing parameter:', id, name); // Debugging
             $('#editParameterModal').modal('show');
             $('#edit-parameter-form [name="parameter_id"]').val(id);
             $('#edit-parameter-form [name="parameter_name"]').val(name);
@@ -889,6 +857,7 @@ if ($_POST['action'] === 'edit') {
                             const id = $('#edit-parameter-form [name="parameter_id"]').val();
                             const name = $('#edit-parameter-form [name="parameter_name"]').val();
                             $(`#parameter-table tr[data-id="${id}"] td:nth-child(2)`).text(name);
+                            updateParameterDropdowns();
                         }
                     } catch (e) {
                         console.error('Error editing parameter:', e);
@@ -1090,13 +1059,6 @@ if ($_POST['action'] === 'edit') {
                     },
                 });
             }
-        });
-
-        document.addEventListener('DOMContentLoaded', function () {
-            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-            tooltipTriggerList.forEach(function (tooltipTriggerEl) {
-                new bootstrap.Tooltip(tooltipTriggerEl);
-            });
         });
     </script>
 </body>
