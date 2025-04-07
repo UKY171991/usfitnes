@@ -42,7 +42,7 @@ if (isset($_GET['generate_pdf']) && !empty($_GET['result_id'])) {
             JOIN Patients p ON tr.patient_id = p.patient_id
             JOIN Tests_Catalog t ON tr.test_id = t.test_id
             JOIN Staff s ON trs.recorded_by = s.staff_id
-            WHERE trs.result_id = :result_id
+            WHERE trs.result_id = 1
         ");
         $stmt->execute(['result_id' => $result_id]);
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
