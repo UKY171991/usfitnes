@@ -1,7 +1,7 @@
 <?php
-// ini_set('display_errors', 1);
-// ini_set('display_startup_errors', 1);
-// error_reporting(E_ALL);
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 
 require_once 'db_connect.php';
 
@@ -48,7 +48,8 @@ if (isset($_GET['generate_pdf']) && !empty($_GET['result_id'])) {
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$result) {
-            die("No result found for result_id: $result_id");
+            echo "<script>alert('No result found for result_id: $result_id');</script>";
+            exit();
         }
 
         // Fetch sub-test details for CBC
@@ -201,7 +202,9 @@ if (isset($_GET['generate_pdf']) && !empty($_GET['result_id'])) {
         $pdf->Cell(0, 5, 'Lab Incharge', 0, 1, 'R');
 
         // Output PDF
+        ob_start();
         $pdf->Output('pathology_report_' . $result_id . '.pdf', 'D');
+        ob_end_clean();
         exit();
     } catch (Exception $e) {
         die("PDF Generation Error: " . $e->getMessage());
