@@ -3,7 +3,7 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-require_once 'db_connect.php';
+require_once 'db_connect.php'; 
 
 // Check if TCPDF is available
 if (!file_exists('vendor/tcpdf/tcpdf.php')) {
