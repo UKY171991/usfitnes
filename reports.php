@@ -3,7 +3,12 @@
 // ini_set('display_startup_errors', 1);
 // error_reporting(E_ALL);
 
-require_once 'db_connect.php';
+try {
+    $pdo = new PDO('mysql:host=localhost;dbname=your_database_name', 'username', 'password');
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch (PDOException $e) {
+    die("Database connection failed: " . $e->getMessage());
+}
 
 // Check if TCPDF is available
 if (!file_exists('vendor/tcpdf/tcpdf.php')) {
@@ -24,9 +29,16 @@ if (!in_array($_SESSION['role'], ['Admin', 'Doctor', 'Technician'])) {
 }
 
 // Generate PDF if requested
-// Generate PDF if requested
+if (!isset($_GET['result_id']) || !is_numeric($_GET['result_id'])) {
+    die("Invalid or missing result_id.");
+}
+
 if (isset($_GET['generate_pdf']) && !empty($_GET['result_id'])) {
     $result_id = $_GET['result_id'];
+
+    if (!is_numeric($result_id)) {
+        die("Invalid result_id.");
+    }
 
     try {
         // Fetch result details
@@ -48,7 +60,8 @@ if (isset($_GET['generate_pdf']) && !empty($_GET['result_id'])) {
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$result) {
-            die("No result found for result_id: $result_id");
+            echo "<script>alert('No result found for result_id: $result_id');</script>";
+            exit();
         }
 
         // Fetch sub-test details for CBC
@@ -60,7 +73,8 @@ if (isset($_GET['generate_pdf']) && !empty($_GET['result_id'])) {
         $sub_stmt->execute(['result_id' => $result_id]);
         $sub_tests = $sub_stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // Create new PDF document
+        // Generate PDF
+        ob_start();
         $pdf = new TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
         $pdf->SetCreator(PDF_CREATOR);
         $pdf->SetAuthor('Shiva Pathology Centre');
@@ -69,12 +83,8 @@ if (isset($_GET['generate_pdf']) && !empty($_GET['result_id'])) {
         $pdf->SetMargins(15, 15, 15);
         $pdf->SetAutoPageBreak(TRUE, 15);
         $pdf->setFont('helvetica', '', 10);
-
-        // Disable default header/footer
         $pdf->setPrintHeader(false);
         $pdf->setPrintFooter(false);
-
-        // Add a page
         $pdf->AddPage();
 
         // Header
@@ -202,9 +212,11 @@ if (isset($_GET['generate_pdf']) && !empty($_GET['result_id'])) {
 
         // Output PDF
         $pdf->Output('pathology_report_' . $result_id . '.pdf', 'D');
+        ob_end_clean();
         exit();
     } catch (Exception $e) {
-        die("PDF Generation Error: " . $e->getMessage());
+        echo "<script>alert('PDF Generation Error: " . $e->getMessage() . "');</script>";
+        exit();
     }
 }
 ?>
