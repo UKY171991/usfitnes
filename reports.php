@@ -1,7 +1,7 @@
 <?php
-// ini_set('display_errors', 1);
-// ini_set('display_startup_errors', 1);
-// error_reporting(E_ALL);
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 
 try {
     $pdo = new PDO('mysql:host=localhost;dbname=your_database_name', 'username', 'password');
@@ -41,6 +41,7 @@ if (isset($_GET['generate_pdf']) && !empty($_GET['result_id'])) {
     }
 
     try {
+        echo "PDF generation started...";
         // Fetch result details
         $stmt = $pdo->prepare("
             SELECT 
@@ -54,7 +55,7 @@ if (isset($_GET['generate_pdf']) && !empty($_GET['result_id'])) {
             JOIN Patients p ON tr.patient_id = p.patient_id
             JOIN Tests_Catalog t ON tr.test_id = t.test_id
             JOIN Staff s ON trs.recorded_by = s.staff_id
-            WHERE trs.result_id = :result_id
+            WHERE trs.result_id = 1
         ");
         $stmt->execute(['result_id' => $result_id]);
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -211,6 +212,7 @@ if (isset($_GET['generate_pdf']) && !empty($_GET['result_id'])) {
         $pdf->Cell(0, 5, 'Lab Incharge', 0, 1, 'R');
 
         // Output PDF
+        ob_start();
         $pdf->Output('pathology_report_' . $result_id . '.pdf', 'D');
         ob_end_clean();
         exit();
