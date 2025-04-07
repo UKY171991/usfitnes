@@ -1,9 +1,9 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+// ini_set('display_errors', 1);
+// ini_set('display_startup_errors', 1);
+// error_reporting(E_ALL);
 
-require_once 'db_connect.php'; 
+require_once 'db_connect.php';
 
 // Check if TCPDF is available
 if (!file_exists('vendor/tcpdf/tcpdf.php')) {
@@ -24,19 +24,11 @@ if (!in_array($_SESSION['role'], ['Admin', 'Doctor', 'Technician'])) {
 }
 
 // Generate PDF if requested
-if (!isset($_GET['result_id']) || !is_numeric($_GET['result_id'])) {
-    die("Invalid or missing result_id.");
-}
-
+// Generate PDF if requested
 if (isset($_GET['generate_pdf']) && !empty($_GET['result_id'])) {
     $result_id = $_GET['result_id'];
 
-    if (!is_numeric($result_id)) {
-        die("Invalid result_id.");
-    }
-
     try {
-        echo "PDF generation started...";
         // Fetch result details
         $stmt = $pdo->prepare("
             SELECT 
@@ -50,14 +42,13 @@ if (isset($_GET['generate_pdf']) && !empty($_GET['result_id'])) {
             JOIN Patients p ON tr.patient_id = p.patient_id
             JOIN Tests_Catalog t ON tr.test_id = t.test_id
             JOIN Staff s ON trs.recorded_by = s.staff_id
-            WHERE trs.result_id = 1
+            WHERE trs.result_id = :result_id
         ");
         $stmt->execute(['result_id' => $result_id]);
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$result) {
-            echo "<script>alert('No result found for result_id: $result_id');</script>";
-            exit();
+            die("No result found for result_id: $result_id");
         }
 
         // Fetch sub-test details for CBC
@@ -69,8 +60,7 @@ if (isset($_GET['generate_pdf']) && !empty($_GET['result_id'])) {
         $sub_stmt->execute(['result_id' => $result_id]);
         $sub_tests = $sub_stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // Generate PDF
-        ob_start();
+        // Create new PDF document
         $pdf = new TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
         $pdf->SetCreator(PDF_CREATOR);
         $pdf->SetAuthor('Shiva Pathology Centre');
@@ -79,8 +69,12 @@ if (isset($_GET['generate_pdf']) && !empty($_GET['result_id'])) {
         $pdf->SetMargins(15, 15, 15);
         $pdf->SetAutoPageBreak(TRUE, 15);
         $pdf->setFont('helvetica', '', 10);
+
+        // Disable default header/footer
         $pdf->setPrintHeader(false);
         $pdf->setPrintFooter(false);
+
+        // Add a page
         $pdf->AddPage();
 
         // Header
@@ -207,13 +201,10 @@ if (isset($_GET['generate_pdf']) && !empty($_GET['result_id'])) {
         $pdf->Cell(0, 5, 'Lab Incharge', 0, 1, 'R');
 
         // Output PDF
-        ob_start();
         $pdf->Output('pathology_report_' . $result_id . '.pdf', 'D');
-        ob_end_clean();
         exit();
     } catch (Exception $e) {
-        echo "<script>alert('PDF Generation Error: " . $e->getMessage() . "');</script>";
-        exit();
+        die("PDF Generation Error: " . $e->getMessage());
     }
 }
 ?>
