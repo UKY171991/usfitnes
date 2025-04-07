@@ -29,6 +29,7 @@ if (isset($_GET['generate_pdf']) && !empty($_GET['result_id'])) {
     $result_id = $_GET['result_id'];
 
     try {
+        echo "PDF generation started...";
         // Fetch result details
         $stmt = $pdo->prepare("
             SELECT 
