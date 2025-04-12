@@ -1,5 +1,5 @@
 <?php
-// Database Configuration
+// Database Configuration for Local Development
 define('DB_HOST', 'localhost');
 define('DB_NAME', 'usfitness');
 define('DB_USER', 'root');
@@ -7,7 +7,7 @@ define('DB_PASS', '');
 
 // Application Configuration
 define('APP_NAME', 'Shiva Pathology Centre');
-define('APP_URL', 'http://localhost/usfitnes'); // Update this with your actual URL
+define('APP_URL', 'http://localhost/usfitnes'); // Local URL
 define('APP_TIMEZONE', 'Asia/Kolkata');
 
 // Session Configuration
@@ -18,7 +18,7 @@ define('SESSION_NAME', 'USFITNESS_SESSION');
 define('PASSWORD_HASH_ALGO', PASSWORD_BCRYPT);
 define('PASSWORD_COST', 12);
 
-// Error Reporting
+// Error Reporting for Development
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 ini_set('log_errors', 1);

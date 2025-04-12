@@ -22,20 +22,22 @@ try {
         reset_token varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
         reset_token_expiry datetime DEFAULT NULL,
         created_at datetime DEFAULT current_timestamp(),
-        PRIMARY KEY (user_id)
+        PRIMARY KEY (user_id),
+        UNIQUE KEY username (username),
+        UNIQUE KEY email (email)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
     
     $pdo->exec($sql);
     echo "Users table created successfully with the exact structure!<br>";
     
-    // Create demo users
+    // Create demo users including the specific user from the screenshot
     $users = [
         [
-            'username' => 'admin',
-            'password' => password_hash('admin123', PASSWORD_DEFAULT),
-            'first_name' => 'Admin',
-            'last_name' => 'User',
-            'email' => 'admin@admin.com',
+            'username' => 'uky171991',
+            'password' => password_hash('123456', PASSWORD_DEFAULT),
+            'first_name' => 'Yogesh',
+            'last_name' => 'Kumar',
+            'email' => 'uky171991@gmail.com',
             'role' => 'Admin'
         ],
         [
@@ -69,15 +71,26 @@ try {
                           VALUES (:username, :password, :first_name, :last_name, :email, :role)");
     
     foreach ($users as $user) {
-        $stmt->execute($user);
-        echo "Created user: {$user['username']} ({$user['role']})<br>";
-        echo "Email: {$user['email']}<br>";
-        echo "Password: " . str_replace('123', '123', substr($user['username'], 0, 5) . '123') . "<br><br>";
+        try {
+            $stmt->execute($user);
+            echo "Created user: {$user['username']} ({$user['role']})<br>";
+            echo "Email: {$user['email']}<br>";
+            if ($user['username'] === 'uky171991') {
+                echo "Password: 123456<br><br>";
+            } else {
+                echo "Password: " . str_replace('123', '123', substr($user['username'], 0, 5) . '123') . "<br><br>";
+            }
+        } catch (PDOException $e) {
+            echo "Error creating user {$user['username']}: " . $e->getMessage() . "<br>";
+        }
     }
     
     echo "<br>Demo users created successfully! You can now log in with any of these accounts.<br>";
-    echo "For example:<br>";
-    echo "Admin - admin@admin.com / admin123<br>";
+    echo "Main user account:<br>";
+    echo "Email: uky171991@gmail.com<br>";
+    echo "Password: 123456<br><br>";
+    
+    echo "Other test accounts:<br>";
     echo "Doctor - doctor@example.com / doctor123<br>";
     echo "Technician - tech@example.com / tech123<br>";
     echo "Receptionist - reception@example.com / reception123<br>";
