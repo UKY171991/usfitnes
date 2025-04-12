@@ -1,9 +1,56 @@
+<?php
+require_once 'config.php';
+require_once 'db_connect.php';
+
+session_start();
+
+$error = '';
+$success = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $email = filter_input(INPUT_POST, 'email', FILTER_SANITIZE_EMAIL);
+    
+    if (empty($email)) {
+        $error = 'Please enter your email address';
+    } else {
+        try {
+            $db = Database::getInstance();
+            $pdo = $db->getConnection();
+            
+            // Check if email exists
+            $stmt = $pdo->prepare("SELECT id FROM users WHERE email = ? AND status = 'active' LIMIT 1");
+            $stmt->execute([$email]);
+            
+            if ($stmt->fetch()) {
+                // Generate reset token
+                $token = bin2hex(random_bytes(32));
+                $expiry = date('Y-m-d H:i:s', strtotime('+1 hour'));
+                
+                // Store reset token
+                $stmt = $pdo->prepare("UPDATE users SET reset_token = ?, reset_token_expiry = ? WHERE email = ?");
+                $stmt->execute([$token, $expiry, $email]);
+                
+                // Send reset email (you'll need to implement proper email sending)
+                $resetLink = APP_URL . "/reset-password.php?token=" . $token;
+                // TODO: Implement proper email sending
+                
+                $success = 'Password reset instructions have been sent to your email';
+            } else {
+                $error = 'No account found with that email address';
+            }
+        } catch (Exception $e) {
+            error_log("Password Reset Error: " . $e->getMessage());
+            $error = 'An error occurred. Please try again later.';
+        }
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
   <!--begin::Head-->
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>AdminLTE 4 | Forgot Password</title>
+    <title><?php echo APP_NAME; ?> - Forgot Password</title>
     <!--begin::Primary Meta Tags-->
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="title" content="AdminLTE 4 | Forgot Password" />
@@ -44,43 +91,201 @@
     <!--begin::Required Plugin(AdminLTE)-->
     <link rel="stylesheet" href="css/adminlte.css" />
     <!--end::Required Plugin(AdminLTE)-->
+    <style>
+        :root {
+            --primary-color: #4e73df;
+            --secondary-color: #858796;
+            --success-color: #1cc88a;
+            --background-color: #f8f9fc;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--background-color) 0%, #e3e6f0 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Nunito', sans-serif;
+        }
+
+        .forgot-password-container {
+            max-width: 450px;
+            width: 100%;
+            padding: 20px;
+        }
+
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+            overflow: hidden;
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #224abe 100%);
+            border-bottom: none;
+            padding: 2rem;
+            text-align: center;
+            color: white;
+        }
+
+        .card-header h3 {
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .card-header p {
+            opacity: 0.9;
+            margin-bottom: 0;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .card-body {
+            padding: 2rem;
+            background-color: white;
+        }
+
+        .form-control {
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            border: 1px solid #d1d3e2;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+        }
+
+        .form-label {
+            font-weight: 600;
+            color: var(--secondary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #224abe 100%);
+            border: none;
+            border-radius: 8px;
+            padding: 0.75rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0.5rem 1rem rgba(78, 115, 223, 0.25);
+        }
+
+        .back-to-login {
+            color: var(--secondary-color);
+            text-decoration: none;
+            transition: color 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .back-to-login:hover {
+            color: var(--primary-color);
+        }
+
+        .alert {
+            border-radius: 8px;
+            border: none;
+            margin-bottom: 1.5rem;
+        }
+
+        .input-group-text {
+            background-color: #f8f9fc;
+            border: 1px solid #d1d3e2;
+            border-right: none;
+        }
+
+        .form-control {
+            border-left: none;
+        }
+
+        .form-control:focus {
+            border-left: none;
+        }
+
+        .input-group:focus-within .input-group-text {
+            border-color: var(--primary-color);
+        }
+
+        .success-icon {
+            font-size: 3rem;
+            color: var(--success-color);
+            margin-bottom: 1rem;
+        }
+
+        @media (max-width: 576px) {
+            .forgot-password-container {
+                padding: 10px;
+            }
+            
+            .card-header, .card-body {
+                padding: 1.5rem;
+            }
+        }
+    </style>
   </head>
   <!--end::Head-->
   <!--begin::Body-->
   <body class="login-page bg-body-secondary">
-    <div class="login-box">
-      <div class="login-logo">
-        <a href="index.php"><b>Admin</b>LTE</a>
-      </div>
-      <!-- /.login-logo -->
-      <div class="card">
-        <div class="card-body login-card-body">
-          <p class="login-box-msg">Reset your password</p>
-          <form action="reset-password.php" method="post">
-            <div class="input-group mb-3">
-              <input type="email" class="form-control" placeholder="Email" required />
-              <div class="input-group-text"><span class="bi bi-envelope"></span></div>
+    <div class="forgot-password-container">
+        <div class="card">
+            <div class="card-header">
+                <h3>Forgot Password</h3>
+                <p>Enter your email address and we'll send you instructions to reset your password</p>
             </div>
-            <!--begin::Row-->
-            <div class="row">
-              <div class="col-12">
-                <div class="d-grid gap-2">
-                  <button type="submit" class="btn btn-primary">Send Reset Link</button>
-                </div>
-              </div>
-              <!-- /.col -->
+            <div class="card-body">
+                <?php if ($error): ?>
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <?php echo htmlspecialchars($error); ?>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                <?php endif; ?>
+
+                <?php if ($success): ?>
+                    <div class="text-center mb-4">
+                        <i class="bi bi-check-circle success-icon"></i>
+                        <div class="alert alert-success mb-4">
+                            <?php echo htmlspecialchars($success); ?>
+                        </div>
+                        <a href="login.php" class="btn btn-primary">
+                            <i class="bi bi-arrow-left me-2"></i>Return to Login
+                        </a>
+                    </div>
+                <?php else: ?>
+                    <form method="POST" action="">
+                        <div class="mb-4">
+                            <label for="email" class="form-label">Email Address</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="bi bi-envelope"></i>
+                                </span>
+                                <input type="email" class="form-control" id="email" name="email" 
+                                       placeholder="Enter your registered email" required>
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary w-100 mb-4">
+                            <i class="bi bi-send me-2"></i>Send Reset Instructions
+                        </button>
+                        
+                        <div class="text-center">
+                            <a href="login.php" class="back-to-login">
+                                <i class="bi bi-arrow-left"></i>
+                                Back to Login
+                            </a>
+                        </div>
+                    </form>
+                <?php endif; ?>
             </div>
-            <!--end::Row-->
-          </form>
-          <p class="mt-3 mb-1">
-            <a href="login.php">Back to Login</a>
-          </p>
-          <p class="mb-0">
-            <a href="register.php" class="text-center">Register a new membership</a>
-          </p>
         </div>
-        <!-- /.login-card-body -->
-      </div>
     </div>
     <!-- /.login-box -->
     <!--begin::Third Party Plugin(OverlayScrollbars)-->
@@ -129,6 +334,19 @@
       });
     </script>
     <!--end::OverlayScrollbars Configure-->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Auto-dismiss alerts after 5 seconds
+        document.addEventListener('DOMContentLoaded', function() {
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(function(alert) {
+                setTimeout(function() {
+                    const bsAlert = new bootstrap.Alert(alert);
+                    bsAlert.close();
+                }, 5000);
+            });
+        });
+    </script>
   </body>
   <!--end::Body-->
 </html>
