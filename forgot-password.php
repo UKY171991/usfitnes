@@ -29,7 +29,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             // Check if email exists
             $stmt = $pdo->prepare("SELECT id FROM users WHERE email = ? LIMIT 1");
-            $stmt->execute([$email]);
+            if (!$stmt) {
+                throw new Exception("Database query preparation failed");
+            }
+            
+            if (!$stmt->execute([$email])) {
+                throw new Exception("Database query execution failed");
+            }
             
             if ($stmt->fetch()) {
                 // Generate reset token
@@ -37,10 +43,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $expiry = date('Y-m-d H:i:s', strtotime('+1 hour'));
                 
                 // Store reset token
-                $stmt = $pdo->prepare("UPDATE users SET reset_token = ?, reset_token_expiry = ? WHERE email = ?");
-                if ($stmt->execute([$token, $expiry, $email])) {
+                $updateStmt = $pdo->prepare("UPDATE users SET reset_token = ?, reset_token_expiry = ? WHERE email = ?");
+                if (!$updateStmt) {
+                    throw new Exception("Failed to prepare update statement");
+                }
+                
+                if ($updateStmt->execute([$token, $expiry, $email])) {
                     // For testing purposes, display the reset link
-                    // In production, this should be sent via email
                     $resetLink = APP_URL . "/reset-password.php?token=" . $token;
                     $success = 'Password reset instructions have been sent to your email.<br>
                               <small class="text-muted">(For testing: <a href="'.$resetLink.'">'.$resetLink.'</a>)</small>';
@@ -61,48 +70,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="en">
   <!--begin::Head-->
   <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo APP_NAME; ?> - Forgot Password</title>
-    <!--begin::Primary Meta Tags-->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="title" content="AdminLTE 4 | Forgot Password" />
-    <meta name="author" content="ColorlibHQ" />
-    <meta
-      name="description"
-      content="AdminLTE is a Free Bootstrap 5 Admin Dashboard, 30 example pages using Vanilla JS."
-    />
-    <meta
-      name="keywords"
-      content="bootstrap 5, bootstrap, bootstrap 5 admin dashboard, bootstrap 5 dashboard, bootstrap 5 charts, bootstrap 5 calendar, bootstrap 5 datepicker, bootstrap 5 tables, bootstrap 5 datatable, vanilla js datatable, colorlibhq, colorlibhq dashboard, colorlibhq admin dashboard"
-    />
-    <!--end::Primary Meta Tags-->
-    <!--begin::Fonts-->
-    <link
-      rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/@fontsource/source-sans-3@5.0.12/index.css"
-      integrity="sha256-tXJfXfp6Ewt1ilPzLDtQnJV4hclT9XuaZUKyUvmyr+Q="
-      crossorigin="anonymous"
-    />
-    <!--end::Fonts-->
-    <!--begin::Third Party Plugin(OverlayScrollbars)-->
-    <link
-      rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/overlayscrollbars@2.10.1/styles/overlayscrollbars.min.css"
-      integrity="sha256-tZHrRjVqNSRyWg2wbppGnT833E/Ys0DHWGwT04GiqQg="
-      crossorigin="anonymous"
-    />
-    <!--end::Third Party Plugin(OverlayScrollbars)-->
-    <!--begin::Third Party Plugin(Bootstrap Icons)-->
-    <link
-      rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
-      integrity="sha256-9kPW/n5nn53j4WMRYAxe9c1rCY96Oogo/MKSVdKzPmI="
-      crossorigin="anonymous"
-    />
-    <!--end::Third Party Plugin(Bootstrap Icons)-->
-    <!--begin::Required Plugin(AdminLTE)-->
-    <link rel="stylesheet" href="css/adminlte.css" />
-    <!--end::Required Plugin(AdminLTE)-->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
     <style>
         :root {
             --primary-color: #4e73df;
@@ -117,13 +89,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             display: flex;
             align-items: center;
             justify-content: center;
-            font-family: 'Nunito', sans-serif;
+            font-family: 'Source Sans Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
         }
 
         .forgot-password-container {
             max-width: 450px;
             width: 100%;
             padding: 20px;
+            margin: auto;
         }
 
         .card {
@@ -131,6 +106,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             border-radius: 15px;
             box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
             overflow: hidden;
+            background: white;
         }
 
         .card-header {
@@ -144,6 +120,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .card-header h3 {
             font-weight: 700;
             margin-bottom: 0.5rem;
+            font-size: 1.5rem;
+            color: white;
         }
 
         .card-header p {
@@ -151,6 +129,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             margin-bottom: 0;
             font-size: 0.95rem;
             line-height: 1.5;
+            color: rgba(255, 255, 255, 0.9);
         }
 
         .card-body {
@@ -159,30 +138,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         .form-control {
-            border-radius: 8px;
+            height: auto;
             padding: 0.75rem 1rem;
+            font-size: 1rem;
             border: 1px solid #d1d3e2;
+            border-radius: 8px;
             transition: all 0.3s ease;
         }
 
         .form-control:focus {
             border-color: var(--primary-color);
             box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+            outline: none;
         }
 
-        .form-label {
-            font-weight: 600;
-            color: var(--secondary-color);
-            margin-bottom: 0.5rem;
+        .input-group-text {
+            background-color: #f8f9fc;
+            border: 1px solid #d1d3e2;
+            border-right: none;
+            padding: 0.75rem 1rem;
+        }
+
+        .input-group .form-control {
+            border-left: none;
+        }
+
+        .input-group:focus-within .input-group-text {
+            border-color: var(--primary-color);
         }
 
         .btn-primary {
             background: linear-gradient(135deg, var(--primary-color) 0%, #224abe 100%);
             border: none;
-            border-radius: 8px;
-            padding: 0.75rem;
+            padding: 0.75rem 1.5rem;
             font-weight: 600;
+            border-radius: 8px;
             transition: all 0.3s ease;
+            color: white;
         }
 
         .btn-primary:hover {
@@ -190,41 +182,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             box-shadow: 0 0.5rem 1rem rgba(78, 115, 223, 0.25);
         }
 
-        .back-to-login {
-            color: var(--secondary-color);
-            text-decoration: none;
-            transition: color 0.3s ease;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .back-to-login:hover {
-            color: var(--primary-color);
+        .btn-primary:disabled {
+            background: #6c757d;
+            transform: none;
         }
 
         .alert {
             border-radius: 8px;
             border: none;
             margin-bottom: 1.5rem;
+            padding: 1rem;
         }
 
-        .input-group-text {
-            background-color: #f8f9fc;
-            border: 1px solid #d1d3e2;
-            border-right: none;
+        .alert-danger {
+            background-color: #fee2e2;
+            color: #991b1b;
         }
 
-        .input-group .form-control {
-            border-left: none;
+        .alert-success {
+            background-color: #ecfdf5;
+            color: #065f46;
         }
 
-        .input-group .form-control:focus {
-            border-left: none;
+        .back-to-login {
+            color: var(--secondary-color);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+            font-weight: 500;
         }
 
-        .input-group:focus-within .input-group-text {
-            border-color: var(--primary-color);
+        .back-to-login:hover {
+            color: var(--primary-color);
+            text-decoration: none;
         }
 
         .success-icon {
@@ -256,6 +248,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="card-body">
                 <?php if ($error): ?>
                     <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <i class="bi bi-exclamation-circle me-2"></i>
                         <?php echo htmlspecialchars($error); ?>
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
@@ -349,9 +342,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <!--end::OverlayScrollbars Configure-->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Auto-dismiss alerts after 5 seconds
         document.addEventListener('DOMContentLoaded', function() {
-            // Handle alerts
+            // Handle alerts auto-dismiss
             const alerts = document.querySelectorAll('.alert');
             alerts.forEach(function(alert) {
                 setTimeout(function() {
@@ -363,9 +355,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Handle form submission
             const form = document.getElementById('forgotPasswordForm');
             const submitBtn = document.getElementById('submitBtn');
+            const email = document.getElementById('email');
             
             if (form) {
-                form.addEventListener('submit', function() {
+                form.addEventListener('submit', function(e) {
+                    if (!email.value.trim()) {
+                        e.preventDefault();
+                        return;
+                    }
                     submitBtn.disabled = true;
                     submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Sending...';
                 });
