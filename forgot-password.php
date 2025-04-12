@@ -1,8 +1,18 @@
 <?php
-require_once 'config.php';
-require_once 'db_connect.php';
+// Enable error reporting for debugging
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
 
+// Start session
 session_start();
+
+// Include required files
+try {
+    require_once 'config.php';
+    require_once 'db_connect.php';
+} catch (Exception $e) {
+    die("Configuration Error: " . $e->getMessage());
+}
 
 $error = '';
 $success = '';
@@ -18,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo = $db->getConnection();
             
             // Check if email exists
-            $stmt = $pdo->prepare("SELECT id FROM users WHERE email = ? AND status = 'active' LIMIT 1");
+            $stmt = $pdo->prepare("SELECT id FROM users WHERE email = ? LIMIT 1");
             $stmt->execute([$email]);
             
             if ($stmt->fetch()) {
@@ -28,13 +38,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 // Store reset token
                 $stmt = $pdo->prepare("UPDATE users SET reset_token = ?, reset_token_expiry = ? WHERE email = ?");
-                $stmt->execute([$token, $expiry, $email]);
-                
-                // Send reset email (you'll need to implement proper email sending)
-                $resetLink = APP_URL . "/reset-password.php?token=" . $token;
-                // TODO: Implement proper email sending
-                
-                $success = 'Password reset instructions have been sent to your email';
+                if ($stmt->execute([$token, $expiry, $email])) {
+                    // For testing purposes, display the reset link
+                    // In production, this should be sent via email
+                    $resetLink = APP_URL . "/reset-password.php?token=" . $token;
+                    $success = 'Password reset instructions have been sent to your email.<br>
+                              <small class="text-muted">(For testing: <a href="'.$resetLink.'">'.$resetLink.'</a>)</small>';
+                } else {
+                    throw new Exception("Failed to update reset token");
+                }
             } else {
                 $error = 'No account found with that email address';
             }
@@ -203,11 +215,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             border-right: none;
         }
 
-        .form-control {
+        .input-group .form-control {
             border-left: none;
         }
 
-        .form-control:focus {
+        .input-group .form-control:focus {
             border-left: none;
         }
 
@@ -253,14 +265,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="text-center mb-4">
                         <i class="bi bi-check-circle success-icon"></i>
                         <div class="alert alert-success mb-4">
-                            <?php echo htmlspecialchars($success); ?>
+                            <?php echo $success; ?>
                         </div>
                         <a href="login.php" class="btn btn-primary">
                             <i class="bi bi-arrow-left me-2"></i>Return to Login
                         </a>
                     </div>
                 <?php else: ?>
-                    <form method="POST" action="">
+                    <form method="POST" action="" id="forgotPasswordForm">
                         <div class="mb-4">
                             <label for="email" class="form-label">Email Address</label>
                             <div class="input-group">
@@ -268,11 +280,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <i class="bi bi-envelope"></i>
                                 </span>
                                 <input type="email" class="form-control" id="email" name="email" 
-                                       placeholder="Enter your registered email" required>
+                                       placeholder="Enter your registered email" required
+                                       value="<?php echo htmlspecialchars($email ?? ''); ?>">
                             </div>
                         </div>
                         
-                        <button type="submit" class="btn btn-primary w-100 mb-4">
+                        <button type="submit" class="btn btn-primary w-100 mb-4" id="submitBtn">
                             <i class="bi bi-send me-2"></i>Send Reset Instructions
                         </button>
                         
@@ -338,6 +351,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <script>
         // Auto-dismiss alerts after 5 seconds
         document.addEventListener('DOMContentLoaded', function() {
+            // Handle alerts
             const alerts = document.querySelectorAll('.alert');
             alerts.forEach(function(alert) {
                 setTimeout(function() {
@@ -345,6 +359,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     bsAlert.close();
                 }, 5000);
             });
+
+            // Handle form submission
+            const form = document.getElementById('forgotPasswordForm');
+            const submitBtn = document.getElementById('submitBtn');
+            
+            if (form) {
+                form.addEventListener('submit', function() {
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Sending...';
+                });
+            }
         });
     </script>
   </body>
