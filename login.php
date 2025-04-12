@@ -1,13 +1,28 @@
 <?php
+// Enable error reporting for debugging
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
+
 // Start session at the very beginning
 session_start();
 
 // Include required files
-require_once 'config.php';
-require_once 'db_connect.php';
-require_once 'includes/Auth.php';
+try {
+    require_once 'config.php';
+    require_once 'db_connect.php';
+    require_once 'includes/Auth.php';
+} catch (Exception $e) {
+    error_log("Include Error: " . $e->getMessage());
+    die("Failed to load required files. Please check the error logs.");
+}
 
-$auth = Auth::getInstance();
+// Initialize authentication
+try {
+    $auth = Auth::getInstance();
+} catch (Exception $e) {
+    error_log("Auth Error: " . $e->getMessage());
+    die("Authentication system error. Please check the error logs.");
+}
 
 // If already logged in, redirect to dashboard
 if ($auth->isLoggedIn()) {

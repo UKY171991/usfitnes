@@ -1,12 +1,18 @@
 <?php
 require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/../db_connect.php';
 
 class Auth {
     private static $instance = null;
     private $db;
 
     private function __construct() {
-        $this->db = Database::getInstance()->getConnection();
+        try {
+            $this->db = Database::getInstance()->getConnection();
+        } catch (Exception $e) {
+            error_log("Auth Database Error: " . $e->getMessage());
+            throw new Exception("Failed to initialize authentication system.");
+        }
     }
 
     public static function getInstance() {
@@ -18,7 +24,7 @@ class Auth {
 
     public function login($email, $password) {
         try {
-            $stmt = $this->db->prepare("SELECT id, password, role FROM users WHERE email = ?");
+            $stmt = $this->db->prepare("SELECT id, password, role FROM users WHERE email = ? AND status = 'active' LIMIT 1");
             $stmt->execute([$email]);
             $user = $stmt->fetch();
 
@@ -29,13 +35,16 @@ class Auth {
             return false;
         } catch (PDOException $e) {
             error_log("Login Error: " . $e->getMessage());
-            return false;
+            throw new Exception("Login failed due to system error.");
         }
     }
 
     private function startSession($user) {
-        session_name(SESSION_NAME);
-        session_start();
+        // Only start session if it's not already started
+        if (session_status() === PHP_SESSION_NONE) {
+            session_name(SESSION_NAME);
+            session_start();
+        }
         
         // Regenerate session ID to prevent session fixation
         session_regenerate_id(true);
@@ -47,6 +56,12 @@ class Auth {
     }
 
     public function isLoggedIn() {
+        // Start session if not already started
+        if (session_status() === PHP_SESSION_NONE) {
+            session_name(SESSION_NAME);
+            session_start();
+        }
+
         if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in']) {
             return false;
         }
@@ -62,10 +77,22 @@ class Auth {
     }
 
     public function logout() {
-        session_start();
-        session_unset();
+        // Only start session if it's not already started
+        if (session_status() === PHP_SESSION_NONE) {
+            session_name(SESSION_NAME);
+            session_start();
+        }
+        
+        // Unset all session variables
+        $_SESSION = array();
+        
+        // Destroy the session cookie
+        if (isset($_COOKIE[session_name()])) {
+            setcookie(session_name(), '', time() - 3600, '/');
+        }
+        
+        // Destroy the session
         session_destroy();
-        session_write_close();
     }
 
     public function requireLogin() {
