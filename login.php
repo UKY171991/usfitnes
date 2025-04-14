@@ -16,7 +16,6 @@ try {
     die("Failed to load required files. Please check the error logs.");
 }
 
-
 // Initialize authentication
 try {
     $auth = Auth::getInstance();
@@ -50,6 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     } catch (Exception $e) {
         error_log("Login Error: " . $e->getMessage());
+        error_log("Login Error Details: " . $e->getMessage());
         $error = 'An error occurred. Please try again later.';
     }
 }
