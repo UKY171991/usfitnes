@@ -16,27 +16,6 @@ try {
     die("Failed to load required files. Please check the error logs.");
 }
 
-// Insert demo user if the "demo" query parameter is present
-
-        $demoEmail = 'demo@example.com';
-        $demoPassword = password_hash('password123', PASSWORD_DEFAULT); // Hash the password
-        $db = new PDO(DSN, DB_USER, DB_PASS); // Assuming DSN, DB_USER, and DB_PASS are defined in config.php
-
-        // Check if the demo user already exists
-        $stmt = $db->prepare("SELECT COUNT(*) FROM users WHERE email = :email");
-        $stmt->execute(['email' => $demoEmail]);
-        if ($stmt->fetchColumn() == 0) {
-            // Insert the demo user
-            $stmt = $db->prepare("INSERT INTO users (email, password, created_at) VALUES (:email, :password, NOW())");
-            $stmt->execute([
-                'email' => $demoEmail,
-                'password' => $demoPassword
-            ]);
-            echo "Demo user created successfully. You can log in with email: demo@example.com and password: password123";
-        } else {
-            echo "Demo user already exists.";
-        }
-    
 
 // Initialize authentication
 try {
