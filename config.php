@@ -1,9 +1,15 @@
 <?php
 // Database Configuration
-define('DB_HOST', 'localhost');  // Using IP instead of localhost
-define('DB_NAME', 'u902379465_fitness');
-define('DB_USER', 'u902379465_fitness');
-define('DB_PASS', 'n@2Vb3*D');
+// define('DB_HOST', 'localhost');  // Using IP instead of localhost
+// define('DB_NAME', 'u902379465_fitness');
+// define('DB_USER', 'u902379465_fitness');
+// define('DB_PASS', 'n@2Vb3*D');
+
+
+define('DB_HOST', 'localhost');
+define('DB_NAME', 'usfitness');
+define('DB_USER', 'root');
+define('DB_PASS', '');
 
 // Define DSN for database connection
 // Format: mysql:host=DB_HOST;dbname=DB_NAME

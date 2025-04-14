@@ -24,7 +24,7 @@ class Auth {
 
     public function login($email, $password) {
         try {
-            $stmt = $this->db->prepare("SELECT id, password, role FROM Users WHERE email = ? AND status = 'active' LIMIT 1");
+            $stmt = $this->db->prepare("SELECT user_id AS id, password, role FROM Users WHERE email = ? AND status = 'active' LIMIT 1");
             $stmt->execute([$email]);
             $user = $stmt->fetch();
 
