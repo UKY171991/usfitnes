@@ -17,11 +17,11 @@ try {
 }
 
 // Insert demo user if the "demo" query parameter is present
-//if (isset($_GET['demo']) && $_GET['demo'] == '1') {
-//    try {
+if (isset($_GET['demo']) && $_GET['demo'] == '1') {
+    try {
         $demoEmail = 'demo@example.com';
         $demoPassword = password_hash('password123', PASSWORD_DEFAULT); // Hash the password
-        //$db = new PDO(DSN, DB_USER, DB_PASS); // Assuming DSN, DB_USER, and DB_PASS are defined in config.php
+        $db = new PDO(DSN, DB_USER, DB_PASS); // Assuming DSN, DB_USER, and DB_PASS are defined in config.php
 
         // Check if the demo user already exists
         $stmt = $db->prepare("SELECT COUNT(*) FROM users WHERE email = :email");
@@ -37,11 +37,11 @@ try {
         } else {
             echo "Demo user already exists.";
         }
-    //} catch (Exception $e) {
-      //  error_log("Demo User Error: " . $e->getMessage());
-      //  echo "Failed to create demo user. Please check the error logs.";
-   // }
-//}
+    } catch (Exception $e) {
+        error_log("Demo User Error: " . $e->getMessage());
+        echo "Failed to create demo user. Please check the error logs.";
+    }
+}
 
 // Initialize authentication
 try {
