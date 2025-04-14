@@ -3,7 +3,7 @@
 define('DB_HOST', 'localhost');  // Using IP instead of localhost
 define('DB_NAME', 'u902379465_fitness');
 define('DB_USER', 'u902379465_fitness');
-define('DB_PASS', 'yI5$I$zdC>R');
+define('DB_PASS', 'n@2Vb3*D');
 
 // Application Configuration
 define('APP_NAME', 'Shiva Pathology Centre');
