@@ -88,7 +88,7 @@ try {
     echo "<br>Demo users created successfully! You can now log in with any of these accounts.<br>";
     echo "Main user account:<br>";
     echo "Email: uky171991@gmail.com<br>";
-    echo "Password: 123456<br><br>";
+    echo "Password: Uma@171991<br><br>";
     
     echo "Other test accounts:<br>";
     echo "Doctor - doctor@example.com / doctor123<br>";
