@@ -8,7 +8,6 @@ class Database {
 
     private function __construct() {
         try {
-            $dsn = "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4";
             $options = [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
@@ -16,14 +15,14 @@ class Database {
                 PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci"
             ];
             
-            $this->connection = new PDO($dsn, DB_USER, DB_PASS, $options);
+            $this->connection = new PDO(DSN, DB_USER, DB_PASS, $options);
             
         } catch (PDOException $e) {
             // Log the error with detailed information
             error_log(sprintf(
                 "Database Connection Error: %s\nDSN: %s\nUser: %s\n",
                 $e->getMessage(),
-                "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME,
+                DSN,
                 DB_USER
             ));
             throw new Exception("Database connection failed. Please check your database settings.");
@@ -59,10 +58,10 @@ class Database {
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
-// Create logs directory if it doesn't exist
+// Create logs directory if it doesn't exist with secure permissions
 $logDir = __DIR__ . '/logs';
 if (!file_exists($logDir)) {
-    mkdir($logDir, 0777, true);
+    mkdir($logDir, 0755, true);
 }
 
 // Test the connection and provide detailed error information

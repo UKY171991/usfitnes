@@ -1,25 +1,57 @@
 <?php
 require_once 'db_connect.php';
 
-session_start();
+// Start session with secure settings
+session_start([
+    'cookie_httponly' => true,
+    'cookie_secure' => true,
+    'cookie_samesite' => 'Strict',
+    'use_strict_mode' => true
+]);
+
+// Check if user is logged in
 if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in']) {
     header("Location: login.php");
     exit();
 }
 
-// Restrict to Admin, Doctor, Technician
-if (!in_array($_SESSION['role'], ['Admin', 'Doctor', 'Technician'])) {
+// Restrict to Admin, Doctor, Technician with proper role check
+$allowed_roles = ['Admin', 'Doctor', 'Technician'];
+if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], $allowed_roles)) {
     header("Location: index3.php");
     exit();
 }
 
-// Delete result (Admin-only)
+// Generate CSRF token if not exists
+if (!isset($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
+// Delete result (Admin-only) with CSRF protection
 if (isset($_GET['delete']) && $_SESSION['role'] === 'Admin') {
-    $result_id = $_GET['delete'];
-    $stmt = $pdo->prepare("DELETE FROM Test_Results WHERE result_id = :result_id");
-    $stmt->execute(['result_id' => $result_id]);
-    header("Location: test_results.php");
-    exit();
+    // Verify CSRF token
+    if (!isset($_GET['csrf_token']) || $_GET['csrf_token'] !== $_SESSION['csrf_token']) {
+        die('Invalid request');
+    }
+
+    try {
+        $result_id = filter_input(INPUT_GET, 'delete', FILTER_VALIDATE_INT);
+        if ($result_id === false) {
+            throw new Exception('Invalid result ID');
+        }
+
+        $stmt = $pdo->prepare("DELETE FROM Test_Results WHERE result_id = :result_id");
+        $stmt->execute(['result_id' => $result_id]);
+        
+        // Log the deletion
+        error_log("Test result deleted by user {$_SESSION['user_id']}: Result ID {$result_id}");
+        
+        header("Location: test_results.php");
+        exit();
+    } catch (Exception $e) {
+        error_log("Delete result error: " . $e->getMessage());
+        die('Error deleting result');
+    }
 }
 ?>
 
@@ -116,17 +148,17 @@ if (isset($_GET['delete']) && $_SESSION['role'] === 'Admin') {
                         data.results.forEach(result => {
                             const row = `
                                 <tr>
-                                    <td>${result.result_id}</td>
-                                    <td>${result.patient_name}</td>
-                                    <td>${result.test_name}</td>
-                                    <td>${result.result_value}</td>
-                                    <td>${result.comments || '-'}</td>
-                                    <td>${result.recorded_by_name}</td>
-                                    <td>${result.recorded_at}</td>
+                                    <td>${escapeHtml(result.result_id)}</td>
+                                    <td>${escapeHtml(result.patient_name)}</td>
+                                    <td>${escapeHtml(result.test_name)}</td>
+                                    <td>${escapeHtml(result.result_value)}</td>
+                                    <td>${escapeHtml(result.comments || '-')}</td>
+                                    <td>${escapeHtml(result.recorded_by_name)}</td>
+                                    <td>${escapeHtml(result.recorded_at)}</td>
                                     <td>
-                                        <a href="add_test_result.php?edit=${result.result_id}" class="btn btn-sm btn-warning"><i class="bi bi-pencil"></i> Edit</a>
+                                        <a href="add_test_result.php?edit=${escapeHtml(result.result_id)}" class="btn btn-sm btn-warning"><i class="bi bi-pencil"></i> Edit</a>
                                         <?php if ($_SESSION['role'] === 'Admin'): ?>
-                                            <a href="test_results.php?delete=${result.result_id}" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?');"><i class="bi bi-trash"></i> Delete</a>
+                                            <a href="test_results.php?delete=${escapeHtml(result.result_id)}&csrf_token=<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?');"><i class="bi bi-trash"></i> Delete</a>
                                         <?php endif; ?>
                                     </td>
                                 </tr>`;
@@ -182,6 +214,13 @@ if (isset($_GET['delete']) && $_SESSION['role'] === 'Admin') {
                 });
             }
         });
+
+        // Helper function to escape HTML
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
     </script>
 </body>
 </html>

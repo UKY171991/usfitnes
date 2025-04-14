@@ -23,11 +23,28 @@ try {
     error_log("Top Navigation Error: " . $e->getMessage());
 }
 
-$profile_image = !empty($user['profile_image']) ? $user['profile_image'] : 'assets/img/default-avatar.png';
+$profile_image = !empty($user['profile_image']) ? $user['profile_image'] : 'assets/img/AdminLTELogo.png';
 ?>
+
+<!-- Add hover effect and logo -->
+<style>
+    .user-menu .dropdown-menu {
+        transition: all 0.3s ease-in-out;
+    }
+    .user-menu .dropdown-menu:hover {
+        transform: scale(1.02);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+</style>
 
 <nav class="app-header navbar navbar-expand bg-body">
     <div class="container-fluid">
+        <!-- Add logo to the topbar -->
+        <a href="dashboard.php" class="navbar-brand d-flex align-items-center">
+            <img src="assets/img/AdminLTELogo.png" alt="Logo" style="width: 30px; height: 30px; margin-right: 10px;">
+            <span class="fw-bold">US Fitness</span>
+        </a>
+
         <!-- Left navbar links -->
         <ul class="navbar-nav">
             <li class="nav-item">
@@ -90,8 +107,8 @@ $profile_image = !empty($user['profile_image']) ? $user['profile_image'] : 'asse
                     </li>
                     <!-- Menu Footer -->
                     <li class="user-footer d-flex">
-                        <a href="profile.php" class="btn btn-default btn-flat">Profile</a>
-                        <a href="logout.php" class="btn btn-danger btn-flat ms-auto">Sign out</a>
+                        <a href="profile.php" class="btn btn-outline-primary btn-sm">Profile</a>
+                        <a href="logout.php" class="btn btn-danger btn-sm ms-auto">Logout</a>
                     </li>
                 </ul>
             </li>

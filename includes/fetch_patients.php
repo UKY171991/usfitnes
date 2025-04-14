@@ -41,7 +41,8 @@ if (!empty($search)) {
 $query .= " ORDER BY p.patient_id DESC LIMIT :limit OFFSET :offset";
 
 // Check database connection
-if (!$pdo) {
+if (!isset($pdo) || !$pdo) {
+    error_log('Database connection failed in fetch_patients.php');
     header('HTTP/1.1 500 Internal Server Error');
     echo json_encode(['error' => 'Database connection failed']);
     exit();
@@ -78,6 +79,7 @@ try {
     header('Content-Type: application/json');
     echo json_encode($response);
 } catch (PDOException $e) {
+    error_log('Database error in fetch_patients.php: ' . $e->getMessage());
     header('HTTP/1.1 500 Internal Server Error');
     echo json_encode(['error' => 'Database error: ' . $e->getMessage()]);
     exit();

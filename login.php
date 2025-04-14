@@ -3,8 +3,13 @@
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
-// Start session at the very beginning
-session_start();
+// Start session with secure settings
+session_start([
+    'cookie_httponly' => true,
+    'cookie_secure' => true,
+    'cookie_samesite' => 'Strict',
+    'use_strict_mode' => true
+]);
 
 // Include required files
 try {
@@ -32,8 +37,18 @@ if ($auth->isLoggedIn()) {
 
 $error = '';
 
+// Generate CSRF token if not exists
+if (!isset($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
+        // Verify CSRF token
+        if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+            throw new Exception('Invalid request');
+        }
+
         $email = filter_input(INPUT_POST, 'email', FILTER_SANITIZE_EMAIL);
         $password = $_POST['password'] ?? '';
 
@@ -41,6 +56,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = 'Please enter both email and password';
         } else {
             if ($auth->login($email, $password)) {
+                // Regenerate session ID after successful login
+                session_regenerate_id(true);
                 header("Location: dashboard.php");
                 exit();
             } else {
@@ -49,7 +66,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     } catch (Exception $e) {
         error_log("Login Error: " . $e->getMessage());
-        error_log("Login Error Details: " . $e->getMessage());
         $error = 'An error occurred. Please try again later.';
     }
 }
@@ -213,6 +229,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <?php endif; ?>
                 
                 <form method="POST" action="">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                     <div class="mb-4">
                         <label for="email" class="form-label">Email Address</label>
                         <div class="input-group">

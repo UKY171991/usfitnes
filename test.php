@@ -1,58 +1,76 @@
 <?php
 require_once 'db_connect.php';
 
-session_start();
+// Start session with secure settings
+session_start([
+    'cookie_httponly' => true,
+    'cookie_secure' => true,
+    'cookie_samesite' => 'Strict',
+    'use_strict_mode' => true
+]);
+
+// Check if user is logged in
 if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in']) {
     header("Location: login.php");
     exit();
 }
 
-// Restrict to Admin
-if ($_SESSION['role'] !== 'Admin') {
+// Restrict to Admin with proper role check
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'Admin') {
     header("Location: index.php");
     exit();
 }
 
-// Fetch categories for the dropdown and category list
-$stmt = $pdo->query("SELECT * FROM Test_Categories ORDER BY category_name");
-$categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-// Check if each category is in use (has associated tests)
-$category_usage = [];
-foreach ($categories as $category) {
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM Tests_Catalog WHERE category_id = :category_id");
-    $stmt->execute(['category_id' => $category['category_id']]);
-    $category_usage[$category['category_id']] = $stmt->fetchColumn();
+// Generate CSRF token if not exists
+if (!isset($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
-// Fetch all parameters for the dropdown and parameter list
-$parameters_stmt = $pdo->query("SELECT * FROM Test_Parameters ORDER BY parameter_name");
-$parameters = $parameters_stmt->fetchAll(PDO::FETCH_ASSOC);
+try {
+    // Fetch categories for the dropdown and category list
+    $stmt = $pdo->query("SELECT * FROM Test_Categories ORDER BY category_name");
+    $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Check if each parameter is in use (used in tests)
-$parameter_usage = [];
-foreach ($parameters as $param) {
-    $in_use = false;
-    $stmt = $pdo->query("SELECT parameters FROM Tests_Catalog");
-    $tests = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    foreach ($tests as $test) {
-        $test_params = explode(',', $test['parameters']);
-        if (in_array($param['parameter_name'], $test_params)) {
-            $in_use = true;
-            break;
-        }
+    // Check if each category is in use (has associated tests)
+    $category_usage = [];
+    foreach ($categories as $category) {
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM Tests_Catalog WHERE category_id = :category_id");
+        $stmt->execute(['category_id' => $category['category_id']]);
+        $category_usage[$category['category_id']] = $stmt->fetchColumn();
     }
-    $parameter_usage[$param['parameter_id']] = $in_use;
-}
 
-// Fetch all tests for display
-$tests_stmt = $pdo->query("
-    SELECT t.*, c.category_name 
-    FROM Tests_Catalog t 
-    JOIN Test_Categories c ON t.category_id = c.category_id 
-    ORDER BY t.test_name
-");
-$tests = $tests_stmt->fetchAll(PDO::FETCH_ASSOC);
+    // Fetch all parameters for the dropdown and parameter list
+    $parameters_stmt = $pdo->query("SELECT * FROM Test_Parameters ORDER BY parameter_name");
+    $parameters = $parameters_stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Check if each parameter is in use (used in tests)
+    $parameter_usage = [];
+    foreach ($parameters as $param) {
+        $in_use = false;
+        $stmt = $pdo->query("SELECT parameters FROM Tests_Catalog");
+        $tests = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($tests as $test) {
+            $test_params = explode(',', $test['parameters']);
+            if (in_array($param['parameter_name'], $test_params)) {
+                $in_use = true;
+                break;
+            }
+        }
+        $parameter_usage[$param['parameter_id']] = $in_use;
+    }
+
+    // Fetch all tests for display
+    $tests_stmt = $pdo->query("
+        SELECT t.*, c.category_name 
+        FROM Tests_Catalog t 
+        JOIN Test_Categories c ON t.category_id = c.category_id 
+        ORDER BY t.test_name
+    ");
+    $tests = $tests_stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (Exception $e) {
+    error_log("Test management error: " . $e->getMessage());
+    $error = "Failed to load test data. Please try again later.";
+}
 ?>
 
 <!doctype html>
@@ -549,14 +567,49 @@ $tests = $tests_stmt->fetchAll(PDO::FETCH_ASSOC);
 
     <?php include('inc/js.php'); ?>
     <script>
-        // Function to show alerts
-        function showAlert(message, type) {
+        // Add CSRF token to all AJAX requests
+        $.ajaxSetup({
+            headers: {
+                'X-CSRF-TOKEN': '<?php echo $_SESSION['csrf_token']; ?>'
+            }
+        });
+
+        // Function to show alert
+        function showAlert(message, type = 'danger') {
             const alertHtml = `
                 <div class="alert alert-${type} alert-dismissible fade show" role="alert">
                     ${message}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>`;
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            `;
             $('#alert-container').html(alertHtml);
+        }
+
+        // Function to handle errors
+        function handleError(error) {
+            console.error('Error:', error);
+            showAlert('An error occurred. Please try again later.');
+        }
+
+        // Function to validate input
+        function validateInput(input, type) {
+            switch (type) {
+                case 'category':
+                    return input.trim().length > 0;
+                case 'parameter':
+                    return input.trim().length > 0;
+                case 'test':
+                    return input.trim().length > 0;
+                default:
+                    return false;
+            }
+        }
+
+        // Function to escape HTML
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
         }
 
         // Function to initialize Select2 on a specific element

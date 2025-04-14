@@ -28,9 +28,9 @@ define('SESSION_NAME', 'USFITNESS_SESSION');
 define('PASSWORD_HASH_ALGO', PASSWORD_BCRYPT);
 define('PASSWORD_COST', 12);
 
-// Error Reporting
+// Error Reporting - Disable in production
 error_reporting(E_ALL);
-ini_set('display_errors', 1);
+ini_set('display_errors', 0); // Disable error display in production
 ini_set('log_errors', 1);
 ini_set('error_log', __DIR__ . '/logs/error.log');
 

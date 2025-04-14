@@ -1,28 +1,46 @@
 <?php
 require_once 'db_connect.php';
 
-session_start();
+// Start session with secure settings
+session_start([
+    'cookie_httponly' => true,
+    'cookie_secure' => true,
+    'cookie_samesite' => 'Strict',
+    'use_strict_mode' => true
+]);
+
+// Check if user is logged in
 if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in']) {
     header("Location: login.php");
     exit();
 }
 
-// Restrict to Admin
-if ($_SESSION['role'] !== 'Admin') {
+// Restrict to Admin with proper role check
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'Admin') {
     header("Location: index.php");
     exit();
 }
 
-// Fetch all test categories for display
-$stmt = $pdo->query("SELECT * FROM Test_Categories ORDER BY category_name");
-$categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
+// Generate CSRF token if not exists
+if (!isset($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
 
-// Check if each category is in use (has associated tests)
-$category_usage = [];
-foreach ($categories as $category) {
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM Tests_Catalog WHERE category_id = :category_id");
-    $stmt->execute(['category_id' => $category['category_id']]);
-    $category_usage[$category['category_id']] = $stmt->fetchColumn();
+try {
+    // Fetch all test categories for display
+    $stmt = $pdo->query("SELECT * FROM Test_Categories ORDER BY category_name");
+    $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Check if each category is in use (has associated tests)
+    $category_usage = [];
+    foreach ($categories as $category) {
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM Tests_Catalog WHERE category_id = :category_id");
+        $stmt->execute(['category_id' => $category['category_id']]);
+        $category_usage[$category['category_id']] = $stmt->fetchColumn();
+    }
+} catch (Exception $e) {
+    error_log("Test categories error: " . $e->getMessage());
+    $error = "Failed to load categories. Please try again later.";
 }
 ?>
 
@@ -119,8 +137,9 @@ foreach ($categories as $category) {
                                                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                                             </div>
                                                             <form action="includes/update-category.php" method="POST">
+                                                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                                                                 <div class="modal-body">
-                                                                    <input type="hidden" name="category_id" value="<?php echo $category['category_id']; ?>">
+                                                                    <input type="hidden" name="category_id" value="<?php echo htmlspecialchars($category['category_id']); ?>">
                                                                     <div class="mb-3">
                                                                         <label for="category_name" class="form-label">Category Name</label>
                                                                         <input type="text" class="form-control" id="category_name" name="category_name" value="<?php echo htmlspecialchars($category['category_name']); ?>" required>
@@ -147,7 +166,7 @@ foreach ($categories as $category) {
                                                             </div>
                                                             <div class="modal-footer">
                                                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                                                <a href="includes/delete-category.php?category_id=<?php echo $category['category_id']; ?>" class="btn btn-danger">
+                                                                <a href="includes/delete-category.php?category_id=<?php echo htmlspecialchars($category['category_id']); ?>&csrf_token=<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>" class="btn btn-danger">
                                                                     <i class="fas fa-trash"></i> Delete
                                                                 </a>
                                                             </div>
@@ -179,6 +198,7 @@ foreach ($categories as $category) {
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <form action="includes/insert-category.php" method="POST">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                     <div class="modal-body">
                         <div class="mb-3">
                             <label>Category Name</label>

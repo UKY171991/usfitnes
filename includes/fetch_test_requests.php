@@ -36,8 +36,7 @@ if (!empty($search)) {
     $params[':search'] = "%$search%";
 }
 
-$query .= " ORDER BY tr.request_date DESC LIMIT :limit OFFSET :offset";
-
+// Prepare and execute total count query
 $total_stmt = $pdo->prepare($count_query);
 if (!empty($search)) {
     $total_stmt->bindValue(':search', "%$search%", PDO::PARAM_STR);
@@ -46,6 +45,8 @@ $total_stmt->execute();
 $total_requests = $total_stmt->fetchColumn();
 $total_pages = ceil($total_requests / $limit);
 
+// Prepare and execute main query
+$query .= " ORDER BY tr.request_date DESC LIMIT :limit OFFSET :offset";
 $stmt = $pdo->prepare($query);
 if (!empty($search)) {
     $stmt->bindValue(':search', "%$search%", PDO::PARAM_STR);

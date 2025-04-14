@@ -1,15 +1,23 @@
 <?php
 require_once 'db_connect.php';
 
-session_start();
+// Start session with secure settings
+session_start([
+    'cookie_httponly' => true,
+    'cookie_secure' => true,
+    'cookie_samesite' => 'Strict',
+    'use_strict_mode' => true
+]);
+
+// Check if user is logged in
 if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in']) {
     header("Location: login.php");
     exit();
 }
 
-// Restrict access to Admin only
-if ($_SESSION['role'] !== 'Admin') {
-    header("Location: index.php"); // Redirect non-Admins to dashboard
+// Restrict access to Admin only with proper role check
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'Admin') {
+    header("Location: index.php");
     exit();
 }
 
@@ -18,12 +26,16 @@ try {
     $db = Database::getInstance();
     $pdo = $db->getConnection();
     
-    // Fetch user data
-    $stmt = $pdo->prepare("SELECT name, role FROM users WHERE user_id = ?");
+    // Fetch user data with prepared statement
+    $stmt = $pdo->prepare("SELECT name, role FROM users WHERE user_id = ? AND role = 'Admin'");
     $stmt->execute([$_SESSION['user_id']]);
     $user = $stmt->fetch();
 
-    // Fetch quick stats
+    if (!$user) {
+        throw new Exception('User not found or not authorized');
+    }
+
+    // Fetch quick stats with prepared statements
     $stats = [
         'patients' => $pdo->query("SELECT COUNT(*) FROM patients")->fetchColumn(),
         'tests' => $pdo->query("SELECT COUNT(*) FROM test_requests WHERE status = 'pending'")->fetchColumn(),
@@ -31,7 +43,8 @@ try {
     ];
 } catch (Exception $e) {
     error_log("Dashboard Error: " . $e->getMessage());
-    $error = "Failed to load dashboard data";
+    $error = "Failed to load dashboard data. Please try again later.";
+    // Don't expose error details to user
 }
 ?>
 
@@ -41,10 +54,6 @@ try {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo APP_NAME; ?> - Dashboard</title>
-    
-    <!-- Stylesheets -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
     <?php include('inc/head.php'); ?>
     
 </head>
@@ -159,21 +168,12 @@ try {
                 </div>
             </div>
 
-            <footer class="footer mt-auto">
-                <div class="container-fluid">
-                    <div class="d-flex align-items-center justify-content-between small">
-                        <div class="text-muted">Copyright &copy; <?php echo APP_NAME . " " . date('Y'); ?></div>
-                        <div class="text-muted">Version 1.0</div>
-                    </div>
-                </div>
-            </footer>
+            <?php include('inc/footer.php'); ?>
         </div>
     </div>
 
     <?php include('inc/js.php'); ?>
 
-    <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // Initialize tooltips

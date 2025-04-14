@@ -15,11 +15,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = $_POST['email'];
     $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
     $role = $_POST['role'];
+    $profile_image = null;
+
+    // Handle image upload
+    if (isset($_FILES['profile_image']) && $_FILES['profile_image']['error'] === UPLOAD_ERR_OK) {
+        $upload_dir = 'assets/img/';
+        $file_name = basename($_FILES['profile_image']['name']);
+        $target_file = $upload_dir . $file_name;
+        if (move_uploaded_file($_FILES['profile_image']['tmp_name'], $target_file)) {
+            $profile_image = $target_file;
+        }
+    }
 
     if (isset($_POST['user_id']) && !empty($_POST['user_id'])) {
         // Update user
         $user_id = $_POST['user_id'];
-        $stmt = $pdo->prepare("UPDATE Users SET username = :username, first_name = :first_name, last_name = :last_name, email = :email, password = :password, role = :role WHERE user_id = :user_id");
+        $stmt = $pdo->prepare("UPDATE Users SET username = :username, first_name = :first_name, last_name = :last_name, email = :email, password = :password, role = :role, profile_image = :profile_image WHERE user_id = :user_id");
         $stmt->execute([
             'username' => $username,
             'first_name' => $first_name,
@@ -27,18 +38,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'email' => $email,
             'password' => $password,
             'role' => $role,
+            'profile_image' => $profile_image,
             'user_id' => $user_id
         ]);
     } else {
         // Insert new user
-        $stmt = $pdo->prepare("INSERT INTO Users (username, password, first_name, last_name, email, role) VALUES (:username, :password, :first_name, :last_name, :email, :role)");
+        $stmt = $pdo->prepare("INSERT INTO Users (username, password, first_name, last_name, email, role, profile_image) VALUES (:username, :password, :first_name, :last_name, :email, :role, :profile_image)");
         $stmt->execute([
             'username' => $username,
             'password' => $password,
             'first_name' => $first_name,
             'last_name' => $last_name,
             'email' => $email,
-            'role' => $role
+            'role' => $role,
+            'profile_image' => $profile_image
         ]);
     }
     header("Location: users.php");
@@ -82,7 +95,7 @@ if (isset($_GET['edit'])) {
                         <div class="col-md-12">
                             <div class="card mb-4">
                                 <div class="card-body">
-                                    <form method="post">
+                                    <form method="post" enctype="multipart/form-data">
                                         <?php if ($edit_user): ?>
                                             <input type="hidden" name="user_id" value="<?php echo $edit_user['user_id']; ?>">
                                         <?php endif; ?>
@@ -117,6 +130,13 @@ if (isset($_GET['edit'])) {
                                                 <option value="Technician" <?php echo $edit_user && $edit_user['role'] === 'Technician' ? 'selected' : ''; ?>>Technician</option>
                                                 <option value="Receptionist" <?php echo $edit_user && $edit_user['role'] === 'Receptionist' ? 'selected' : ''; ?>>Receptionist</option>
                                             </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="profile_image" class="form-label">Profile Image</label>
+                                            <input type="file" class="form-control" id="profile_image" name="profile_image" accept="image/*">
+                                            <?php if ($edit_user && !empty($edit_user['profile_image'])): ?>
+                                                <img src="<?php echo htmlspecialchars($edit_user['profile_image']); ?>" alt="Profile Image" class="img-thumbnail mt-2" style="width: 100px; height: 100px; object-fit: cover;">
+                                            <?php endif; ?>
                                         </div>
                                         <button type="submit" class="btn btn-primary">Save</button>
                                         <a href="users.php" class="btn btn-secondary">Cancel</a>

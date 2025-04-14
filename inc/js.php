@@ -12,3 +12,29 @@
       src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js" integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r"  crossorigin="anonymous"></script>
             <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js" integrity="sha384-0pUGZvbkm6XF6gxjEnlmuGrJXVbNuzT9qBBavbLwCsOGabYfZo0T0to5eqruptLy"  crossorigin="anonymous"></script>
     <script src="js/adminlte.js"></script> <!--end::Required Plugin(AdminLTE)--><!--begin::OverlayScrollbars Configure-->
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Ensure all dropdowns are initialized
+        const dropdownElements = [].slice.call(document.querySelectorAll('.dropdown-toggle'));
+        dropdownElements.forEach(function (dropdownToggleEl) {
+            new bootstrap.Dropdown(dropdownToggleEl);
+        });
+
+        // Debugging: Log dropdown elements
+        console.log('Dropdown elements initialized:', dropdownElements);
+
+        // Add hover effect for dropdown menus
+        const dropdownMenus = document.querySelectorAll('.dropdown-menu');
+        dropdownMenus.forEach(function (menu) {
+            menu.addEventListener('mouseover', function () {
+                menu.style.transform = 'scale(1.02)';
+                menu.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.2)';
+            });
+            menu.addEventListener('mouseout', function () {
+                menu.style.transform = 'scale(1)';
+                menu.style.boxShadow = 'none';
+            });
+        });
+    });
+</script>

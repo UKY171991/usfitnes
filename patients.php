@@ -1,25 +1,57 @@
 <?php
 require_once 'db_connect.php';
 
-session_start();
+// Start session with secure settings
+session_start([
+    'cookie_httponly' => true,
+    'cookie_secure' => true,
+    'cookie_samesite' => 'Strict',
+    'use_strict_mode' => true
+]);
+
+// Check if user is logged in
 if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in']) {
     header("Location: login.php");
     exit();
 }
 
-// Restrict to Admin, Doctor, Technician
-if (!in_array($_SESSION['role'], ['Admin', 'Doctor', 'Technician'])) {
+// Restrict to Admin, Doctor, Technician with proper role check
+$allowed_roles = ['Admin', 'Doctor', 'Technician'];
+if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], $allowed_roles)) {
     header("Location: index3.php");
     exit();
 }
 
-// Delete patient (Admin-only)
+// Delete patient (Admin-only) with CSRF protection
 if (isset($_GET['delete']) && $_SESSION['role'] === 'Admin') {
-    $patient_id = $_GET['delete'];
-    $stmt = $pdo->prepare("DELETE FROM Patients WHERE patient_id = :patient_id");
-    $stmt->execute(['patient_id' => $patient_id]);
-    header("Location: patients.php");
-    exit();
+    // Verify CSRF token
+    if (!isset($_GET['csrf_token']) || $_GET['csrf_token'] !== $_SESSION['csrf_token']) {
+        die('Invalid request');
+    }
+
+    try {
+        $patient_id = filter_input(INPUT_GET, 'delete', FILTER_VALIDATE_INT);
+        if ($patient_id === false) {
+            throw new Exception('Invalid patient ID');
+        }
+
+        $stmt = $pdo->prepare("DELETE FROM Patients WHERE patient_id = :patient_id");
+        $stmt->execute(['patient_id' => $patient_id]);
+        
+        // Log the deletion
+        error_log("Patient deleted by user {$_SESSION['user_id']}: Patient ID {$patient_id}");
+        
+        header("Location: patients.php");
+        exit();
+    } catch (Exception $e) {
+        error_log("Delete patient error: " . $e->getMessage());
+        die('Error deleting patient');
+    }
+}
+
+// Generate CSRF token if not exists
+if (!isset($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 ?>
 
@@ -115,7 +147,7 @@ if (isset($_GET['delete']) && $_SESSION['role'] === 'Admin') {
     <script>
         function loadPatients(page = 1) {
             const searchQuery = document.getElementById('searchInput').value.trim();
-            const url = `includes/fetch_patients.php?page=${page}${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''}`; // Adjusted path
+            const url = `includes/fetch_patients.php?page=${page}${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''}`;
             
             fetch(url)
                 .then(response => {
@@ -132,19 +164,19 @@ if (isset($_GET['delete']) && $_SESSION['role'] === 'Admin') {
                         data.patients.forEach(patient => {
                             const row = `
                                 <tr>
-                                    <td>${patient.patient_id}</td>
-                                    <td>${patient.first_name} ${patient.last_name}</td>
-                                    <td>${patient.date_of_birth}</td>
-                                    <td>${patient.gender}</td>
-                                    <td>${patient.phone || '-'}</td>
-                                    <td>${patient.email || '-'}</td>
-                                    <td>${patient.created_by_name || 'Unknown'}</td>
+                                    <td>${escapeHtml(patient.patient_id)}</td>
+                                    <td>${escapeHtml(patient.first_name)} ${escapeHtml(patient.last_name)}</td>
+                                    <td>${escapeHtml(patient.date_of_birth)}</td>
+                                    <td>${escapeHtml(patient.gender)}</td>
+                                    <td>${escapeHtml(patient.phone || '-')}</td>
+                                    <td>${escapeHtml(patient.email || '-')}</td>
+                                    <td>${escapeHtml(patient.created_by_name || 'Unknown')}</td>
                                     <td>
-                                        <a href="add_patient.php?edit=${patient.patient_id}" class="btn btn-sm btn-warning me-2" data-bs-toggle="tooltip" title="Edit Patient">
+                                        <a href="add_patient.php?edit=${escapeHtml(patient.patient_id)}" class="btn btn-sm btn-warning me-2" data-bs-toggle="tooltip" title="Edit Patient">
                                             <i class="bi bi-pencil"></i> Edit
                                         </a>
                                         <?php if ($_SESSION['role'] === 'Admin'): ?>
-                                            <a href="patients.php?delete=${patient.patient_id}" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this patient?');" data-bs-toggle="tooltip" title="Delete Patient">
+                                            <a href="patients.php?delete=${escapeHtml(patient.patient_id)}&csrf_token=<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this patient?');" data-bs-toggle="tooltip" title="Delete Patient">
                                                 <i class="bi bi-trash"></i> Delete
                                             </a>
                                         <?php endif; ?>
@@ -209,6 +241,13 @@ if (isset($_GET['delete']) && $_SESSION['role'] === 'Admin') {
                 new bootstrap.Tooltip(tooltipTriggerEl);
             });
         });
+
+        // Helper function to escape HTML
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
     </script>
 </body>
 </html>

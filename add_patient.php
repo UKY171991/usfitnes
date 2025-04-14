@@ -1,33 +1,72 @@
 <?php
 require_once 'db_connect.php';
 
-session_start();
+// Start session with secure settings
+session_start([
+    'cookie_httponly' => true,
+    'cookie_secure' => true,
+    'cookie_samesite' => 'Strict',
+    'use_strict_mode' => true
+]);
+
+// Check if user is logged in
 if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in']) {
     header("Location: login.php");
     exit();
 }
 
-// Restrict to Admin, Doctor, Technician
-if (!in_array($_SESSION['role'], ['Admin', 'Doctor', 'Technician'])) {
+// Restrict to Admin, Doctor, Technician with proper role check
+$allowed_roles = ['Admin', 'Doctor', 'Technician'];
+if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], $allowed_roles)) {
     header("Location: index3.php");
     exit();
 }
 
+// Generate CSRF token if not exists
+if (!isset($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $first_name = $_POST['first_name'];
-    $last_name = $_POST['last_name'];
-    $date_of_birth = $_POST['date_of_birth'];
-    $gender = $_POST['gender'];
-    $phone = $_POST['phone'];
-    $email = $_POST['email'];
-    $address = $_POST['address'];
-    $user_id = $_SESSION['user_id'];
+    // Verify CSRF token
+    if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+        die('Invalid request');
+    }
 
     try {
+        // Validate and sanitize input
+        $first_name = filter_input(INPUT_POST, 'first_name', FILTER_SANITIZE_STRING);
+        $last_name = filter_input(INPUT_POST, 'last_name', FILTER_SANITIZE_STRING);
+        $date_of_birth = filter_input(INPUT_POST, 'date_of_birth', FILTER_SANITIZE_STRING);
+        $gender = filter_input(INPUT_POST, 'gender', FILTER_SANITIZE_STRING);
+        $phone = filter_input(INPUT_POST, 'phone', FILTER_SANITIZE_STRING);
+        $email = filter_input(INPUT_POST, 'email', FILTER_VALIDATE_EMAIL);
+        $address = filter_input(INPUT_POST, 'address', FILTER_SANITIZE_STRING);
+        $user_id = $_SESSION['user_id'];
+
+        // Validate required fields
+        if (empty($first_name) || empty($last_name) || empty($date_of_birth) || empty($gender)) {
+            throw new Exception('Required fields are missing');
+        }
+
+        // Validate date format
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date_of_birth)) {
+            throw new Exception('Invalid date format');
+        }
+
+        // Validate gender
+        if (!in_array($gender, ['Male', 'Female', 'Other'])) {
+            throw new Exception('Invalid gender');
+        }
+
         if (isset($_POST['patient_id']) && !empty($_POST['patient_id'])) {
             // Update patient
-            $patient_id = $_POST['patient_id'];
+            $patient_id = filter_input(INPUT_POST, 'patient_id', FILTER_VALIDATE_INT);
+            if ($patient_id === false) {
+                throw new Exception('Invalid patient ID');
+            }
+
             $stmt = $pdo->prepare("UPDATE Patients SET first_name = :first_name, last_name = :last_name, date_of_birth = :date_of_birth, gender = :gender, phone = :phone, email = :email, address = :address WHERE patient_id = :patient_id");
             $stmt->execute([
                 'first_name' => $first_name,
@@ -39,6 +78,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'address' => $address,
                 'patient_id' => $patient_id
             ]);
+            
+            // Log the update
+            error_log("Patient updated by user {$_SESSION['user_id']}: Patient ID {$patient_id}");
         } else {
             // Insert new patient
             $stmt = $pdo->prepare("INSERT INTO Patients (first_name, last_name, date_of_birth, gender, phone, email, address, user_id) VALUES (:first_name, :last_name, :date_of_birth, :gender, :phone, :email, :address, :user_id)");
@@ -52,12 +94,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'address' => $address,
                 'user_id' => $user_id
             ]);
+            
+            // Log the creation
+            error_log("New patient created by user {$_SESSION['user_id']}");
         }
+        
         header("Location: patients.php");
         exit();
-    } catch (PDOException $e) {
-        echo "Error: " . $e->getMessage(); // Debugging output
-        exit();
+    } catch (Exception $e) {
+        error_log("Patient form error: " . $e->getMessage());
+        $error = $e->getMessage();
     }
 }
 
@@ -65,12 +111,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $edit_patient = null;
 if (isset($_GET['edit'])) {
     try {
+        $patient_id = filter_input(INPUT_GET, 'edit', FILTER_VALIDATE_INT);
+        if ($patient_id === false) {
+            throw new Exception('Invalid patient ID');
+        }
+
         $stmt = $pdo->prepare("SELECT * FROM Patients WHERE patient_id = :patient_id");
-        $stmt->execute(['patient_id' => $_GET['edit']]);
+        $stmt->execute(['patient_id' => $patient_id]);
         $edit_patient = $stmt->fetch(PDO::FETCH_ASSOC);
-    } catch (PDOException $e) {
-        echo "Error fetching patient: " . $e->getMessage(); // Debugging output
-        exit();
+        
+        if (!$edit_patient) {
+            throw new Exception('Patient not found');
+        }
+    } catch (Exception $e) {
+        error_log("Error fetching patient: " . $e->getMessage());
+        $error = $e->getMessage();
     }
 }
 ?>
@@ -107,8 +162,9 @@ if (isset($_GET['edit'])) {
                                 </div>
                                 <div class="card-body">
                                     <form method="post" novalidate>
+                                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                                         <?php if ($edit_patient): ?>
-                                            <input type="hidden" name="patient_id" value="<?php echo $edit_patient['patient_id']; ?>">
+                                            <input type="hidden" name="patient_id" value="<?php echo htmlspecialchars($edit_patient['patient_id']); ?>">
                                         <?php endif; ?>
                                         <fieldset class="border p-3 mb-4">
                                             <legend class="w-auto px-2">Personal Information</legend>
