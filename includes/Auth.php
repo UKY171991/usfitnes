@@ -24,18 +24,25 @@ class Auth {
 
     public function login($email, $password) {
         try {
-            $stmt = $this->db->prepare("SELECT id, password, role FROM users WHERE email = ? AND status = 'active' LIMIT 1");
+            $stmt = $this->db->prepare("SELECT id, password, role FROM Users WHERE email = ? AND status = 'active' LIMIT 1");
             $stmt->execute([$email]);
             $user = $stmt->fetch();
 
-            if ($user && password_verify($password, $user['password'])) {
-                $this->startSession($user);
-                return true;
+            if ($user) {
+                if (password_verify($password, $user['password'])) {
+                    $this->startSession($user);
+                    return true;
+                } else {
+                    error_log("Login failed: Incorrect password for email $email");
+                }
+            } else {
+                error_log("Login failed: No active user found with email $email");
             }
+
             return false;
         } catch (PDOException $e) {
-            error_log("Login Error: " . $e->getMessage());
-            throw new Exception("Login failed due to system error.");
+            error_log("Database Error during login: " . $e->getMessage());
+            throw new Exception("Login failed due to a database error.");
         }
     }
 
@@ -110,4 +117,4 @@ class Auth {
             exit();
         }
     }
-} 
+}
