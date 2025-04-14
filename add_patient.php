@@ -15,10 +15,10 @@ if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in']) {
     exit();
 }
 
-// Restrict to Admin, Doctor, Technician with proper role check
-$allowed_roles = ['Admin', 'Doctor', 'Technician'];
+// Restrict access based on roles
+$allowed_roles = ['Admin', 'Doctor'];
 if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], $allowed_roles)) {
-    header("Location: index3.php");
+    header("Location: index.php");
     exit();
 }
 

@@ -1,15 +1,24 @@
 <?php
 require_once 'db_connect.php';
 
-session_start();
+// Start session with secure settings
+session_start([
+    'cookie_httponly' => true,
+    'cookie_secure' => true,
+    'cookie_samesite' => 'Strict',
+    'use_strict_mode' => true
+]);
+
+// Check if user is logged in
 if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in']) {
     header("Location: login.php");
     exit();
 }
 
-// Restrict to Admin only
-if ($_SESSION['role'] !== 'Admin') {
-    header("Location: index3.php");
+// Restrict access based on roles
+$allowed_roles = ['Admin', 'Doctor'];
+if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], $allowed_roles)) {
+    header("Location: index.php");
     exit();
 }
 
