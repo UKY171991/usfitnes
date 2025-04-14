@@ -21,7 +21,7 @@ try {
 //    try {
         $demoEmail = 'demo@example.com';
         $demoPassword = password_hash('password123', PASSWORD_DEFAULT); // Hash the password
-        $db = new PDO(DSN, DB_USER, DB_PASS); // Assuming DSN, DB_USER, and DB_PASS are defined in config.php
+        //$db = new PDO(DSN, DB_USER, DB_PASS); // Assuming DSN, DB_USER, and DB_PASS are defined in config.php
 
         // Check if the demo user already exists
         $stmt = $db->prepare("SELECT COUNT(*) FROM users WHERE email = :email");
