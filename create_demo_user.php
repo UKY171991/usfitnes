@@ -9,9 +9,7 @@ try {
     
     // Drop existing users table to match the exact structure from screenshot
  
-    $pdo->exec($sql);
-    echo "Users table created successfully with the exact structure!<br>";
-    
+ 
     // Create demo users including the specific user from the screenshot
     $users = [
         [
