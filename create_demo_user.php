@@ -11,7 +11,7 @@ try {
     $pdo->exec("DROP TABLE IF EXISTS users");
     
     // Create users table with exact structure from screenshot
-    $sql = "CREATE TABLE users (
+    $sql = "CREATE TABLE Users (
         user_id int(11) NOT NULL AUTO_INCREMENT,
         username varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
         password varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
@@ -67,7 +67,7 @@ try {
     ];
     
     // Insert demo users
-    $stmt = $pdo->prepare("INSERT INTO users (username, password, first_name, last_name, email, role) 
+    $stmt = $pdo->prepare("INSERT INTO Users (username, password, first_name, last_name, email, role) 
                           VALUES (:username, :password, :first_name, :last_name, :email, :role)");
     
     foreach ($users as $user) {
@@ -96,14 +96,14 @@ try {
     echo "Receptionist - reception@example.com / reception123<br>";
     
     // Check if the demo user already exists
-    $stmt = $pdo->prepare("SELECT * FROM users WHERE email = :email");
+    $stmt = $pdo->prepare("SELECT * FROM Users WHERE email = :email");
     $stmt->execute(['email' => 'demo@example.com']);
 
     if ($stmt->rowCount() === 0) {
         // Insert demo user
         $hashedPassword = password_hash('password123', PASSWORD_BCRYPT);
         $stmt = $pdo->prepare(
-            "INSERT INTO users (username, password, first_name, last_name, email, role, created_at) 
+            "INSERT INTO Users (username, password, first_name, last_name, email, role, created_at) 
             VALUES (:username, :password, :first_name, :last_name, :email, :role, NOW())"
         );
         $stmt->execute([
@@ -119,7 +119,7 @@ try {
     } else {
         // Update password for existing demo user
         $hashedPassword = password_hash('password123', PASSWORD_BCRYPT);
-        $stmt = $pdo->prepare("UPDATE users SET password = :password WHERE email = :email");
+        $stmt = $pdo->prepare("UPDATE Users SET password = :password WHERE email = :email");
         $stmt->execute([
             'password' => $hashedPassword,
             'email' => 'demo@example.com'
