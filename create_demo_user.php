@@ -117,7 +117,15 @@ try {
 
         echo "Demo user created successfully.";
     } else {
-        echo "Demo user already exists.";
+        // Update password for existing demo user
+        $hashedPassword = password_hash('password123', PASSWORD_BCRYPT);
+        $stmt = $pdo->prepare("UPDATE users SET password = :password WHERE email = :email");
+        $stmt->execute([
+            'password' => $hashedPassword,
+            'email' => 'demo@example.com'
+        ]);
+
+        echo "Demo user already exists. Password updated successfully.";
     }
     
 } catch (Exception $e) {
