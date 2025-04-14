@@ -1,7 +1,7 @@
 <?php
 // Database Configuration for Local Development
 define('DB_HOST', 'localhost');
-define('DB_NAME', 'usfitness');
+define('DB_NAME', 'usfitnes');
 define('DB_USER', 'root');
 define('DB_PASS', '');
 
