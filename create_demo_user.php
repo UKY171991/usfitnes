@@ -46,26 +46,51 @@ try {
         ]
     ];
     
-    // Insert demo users
-    $stmt = $pdo->prepare("INSERT INTO Users (username, password, first_name, last_name, email, role) 
-                          VALUES (:username, :password, :first_name, :last_name, :email, :role)");
-    
+    // Insert or update demo users
     foreach ($users as $user) {
         try {
-            $stmt->execute($user);
-            echo "Created user: {$user['username']} ({$user['role']})<br>";
-            echo "Email: {$user['email']}<br>";
-            if ($user['username'] === 'uky171991') {
-                echo "Password: 123456<br><br>";
+            // Check if the user already exists
+            $stmt = $pdo->prepare("SELECT * FROM users WHERE email = :email");
+            $stmt->execute(['email' => $user['email']]);
+
+            if ($stmt->rowCount() > 0) {
+                // Update existing user details
+                $stmt = $pdo->prepare(
+                    "UPDATE users SET username = :username, password = :password, first_name = :first_name, last_name = :last_name, role = :role WHERE email = :email"
+                );
+                $stmt->execute([
+                    'username' => $user['username'],
+                    'password' => $user['password'],
+                    'first_name' => $user['first_name'],
+                    'last_name' => $user['last_name'],
+                    'role' => $user['role'],
+                    'email' => $user['email']
+                ]);
+
+                echo "User with email {$user['email']} updated successfully.<br>";
             } else {
-                echo "Password: " . str_replace('123', '123', substr($user['username'], 0, 5) . '123') . "<br><br>";
+                // Insert new user
+                $stmt = $pdo->prepare(
+                    "INSERT INTO users (username, password, first_name, last_name, email, role, created_at) 
+                    VALUES (:username, :password, :first_name, :last_name, :email, :role, NOW())"
+                );
+                $stmt->execute([
+                    'username' => $user['username'],
+                    'password' => $user['password'],
+                    'first_name' => $user['first_name'],
+                    'last_name' => $user['last_name'],
+                    'email' => $user['email'],
+                    'role' => $user['role']
+                ]);
+
+                echo "User with email {$user['email']} inserted successfully.<br>";
             }
         } catch (PDOException $e) {
-            echo "Error creating user {$user['username']}: " . $e->getMessage() . "<br>";
+            echo "Error processing user {$user['username']}: " . $e->getMessage() . "<br>";
         }
     }
     
-    echo "<br>Demo users created successfully! You can now log in with any of these accounts.<br>";
+    echo "<br>Demo users processed successfully! You can now log in with any of these accounts.<br>";
     echo "Main user account:<br>";
     echo "Email: uky171991@gmail.com<br>";
     echo "Password: Uma@171991<br><br>";
