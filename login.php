@@ -49,20 +49,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             throw new Exception('Invalid request');
         }
 
-        $email = filter_input(INPUT_POST, 'email', FILTER_SANITIZE_EMAIL);
-        $password = $_POST['password'] ?? '';
+        $email = $_POST['email'];
+        $password = $_POST['password'];
 
-        if (empty($email) || empty($password)) {
-            $error = 'Please enter both email and password';
-        } else {
-            if ($auth->login($email, $password)) {
-                // Regenerate session ID after successful login
-                session_regenerate_id(true);
-                header("Location: dashboard.php");
-                exit();
-            } else {
-                $error = 'Invalid email or password';
+        if ($auth->login($email, $password)) {
+            // Fetch branch_id automatically from the user's account
+            $stmt = $pdo->prepare("SELECT branch_id FROM Users WHERE email = ?");
+            $stmt->execute([$email]);
+            $branch = $stmt->fetch();
+
+            if ($branch) {
+                $_SESSION['branch_id'] = $branch['branch_id'];
             }
+
+            // Regenerate session ID after successful login
+            session_regenerate_id(true);
+            header("Location: dashboard.php");
+            exit();
+        } else {
+            $error = "Invalid login credentials.";
         }
     } catch (Exception $e) {
         error_log("Login Error: " . $e->getMessage());

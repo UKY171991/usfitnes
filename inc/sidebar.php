@@ -278,6 +278,13 @@
                   </li>
                 </ul>
               </li>
+
+              <li class="nav-item">
+                <a href="branches.php" class="nav-link">
+                    <i class="nav-icon bi bi-geo-alt"></i>
+                    <p>Branches</p>
+                </a>
+              </li>
               
             </ul>
             <!--end::Sidebar Menu-->

@@ -35,16 +35,24 @@ try {
         throw new Exception('User not found or not authorized');
     }
 
-    // Fetch quick stats with prepared statements
-    $stats = [
-        'patients' => $pdo->query("SELECT COUNT(*) FROM patients")->fetchColumn(),
-        'tests' => $pdo->query("SELECT COUNT(*) FROM test_requests WHERE status = 'pending'")->fetchColumn(),
-        'reports' => $pdo->query("SELECT COUNT(*) FROM test_results WHERE DATE(created_at) = CURDATE()")->fetchColumn()
-    ];
+    // Filter data by branch
+    $branch_id = $_SESSION['branch_id'];
+
+    // Fetch branch-specific stats
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM patients WHERE branch_id = ?");
+    $stmt->execute([$branch_id]);
+    $stats['patients'] = $stmt->fetchColumn();
+
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM test_requests WHERE branch_id = ? AND status = 'pending'");
+    $stmt->execute([$branch_id]);
+    $stats['tests'] = $stmt->fetchColumn();
+
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM test_results WHERE branch_id = ? AND DATE(created_at) = CURDATE()");
+    $stmt->execute([$branch_id]);
+    $stats['reports'] = $stmt->fetchColumn();
 } catch (Exception $e) {
     error_log("Dashboard Error: " . $e->getMessage());
-    $error = "Failed to load dashboard data. Please try again later.";
-    // Don't expose error details to user
+    $error = "Failed to load dashboard data.";
 }
 ?>
 

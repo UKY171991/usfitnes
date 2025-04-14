@@ -24,7 +24,7 @@ class Auth {
 
     public function login($email, $password) {
         try {
-            $stmt = $this->db->prepare("SELECT user_id AS id, password, role FROM Users WHERE email = ? AND status = 'active' LIMIT 1");
+            $stmt = $this->db->prepare("SELECT user_id AS id, password, role, branch_id FROM Users WHERE email = ? AND status = 'active' LIMIT 1");
             $stmt->execute([$email]);
             $user = $stmt->fetch();
 
@@ -58,6 +58,7 @@ class Auth {
         
         $_SESSION['user_id'] = $user['id'];
         $_SESSION['role'] = $user['role'];
+        $_SESSION['branch_id'] = $user['branch_id'];
         $_SESSION['logged_in'] = true;
         $_SESSION['last_activity'] = time();
     }
@@ -70,6 +71,11 @@ class Auth {
         }
 
         if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in']) {
+            return false;
+        }
+
+        // Check branch context
+        if (!isset($_SESSION['branch_id']) || empty($_SESSION['branch_id'])) {
             return false;
         }
 
