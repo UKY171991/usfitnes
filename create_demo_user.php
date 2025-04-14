@@ -8,25 +8,7 @@ try {
     $pdo = $db->getConnection();
     
     // Drop existing users table to match the exact structure from screenshot
-    $pdo->exec("DROP TABLE IF EXISTS users");
-    
-    // Create users table with exact structure from screenshot
-    $sql = "CREATE TABLE Users (
-        user_id int(11) NOT NULL AUTO_INCREMENT,
-        username varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
-        password varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-        first_name varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
-        last_name varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
-        email varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
-        role enum('Admin','Doctor','Technician','Receptionist') COLLATE utf8mb4_unicode_ci NOT NULL,
-        reset_token varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-        reset_token_expiry datetime DEFAULT NULL,
-        created_at datetime DEFAULT current_timestamp(),
-        PRIMARY KEY (user_id),
-        UNIQUE KEY username (username),
-        UNIQUE KEY email (email)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
-    
+ 
     $pdo->exec($sql);
     echo "Users table created successfully with the exact structure!<br>";
     
