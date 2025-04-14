@@ -95,7 +95,33 @@ try {
     echo "Technician - tech@example.com / tech123<br>";
     echo "Receptionist - reception@example.com / reception123<br>";
     
+    // Check if the demo user already exists
+    $stmt = $pdo->prepare("SELECT * FROM users WHERE email = :email");
+    $stmt->execute(['email' => 'demo@example.com']);
+
+    if ($stmt->rowCount() === 0) {
+        // Insert demo user
+        $hashedPassword = password_hash('password123', PASSWORD_BCRYPT);
+        $stmt = $pdo->prepare(
+            "INSERT INTO users (username, password, first_name, last_name, email, role, created_at) 
+            VALUES (:username, :password, :first_name, :last_name, :email, :role, NOW())"
+        );
+        $stmt->execute([
+            'username' => 'demo_user',
+            'password' => $hashedPassword,
+            'first_name' => 'Demo',
+            'last_name' => 'User',
+            'email' => 'demo@example.com',
+            'role' => 'Receptionist'
+        ]);
+
+        echo "Demo user created successfully.";
+    } else {
+        echo "Demo user already exists.";
+    }
+    
 } catch (Exception $e) {
     echo "Error: " . $e->getMessage();
     error_log("Create Demo Users Error: " . $e->getMessage());
-} 
+}
+?>
