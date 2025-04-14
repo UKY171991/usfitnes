@@ -34,7 +34,7 @@ try {
     $users = [
         [
             'username' => 'uky171991',
-            'password' => password_hash('123456', PASSWORD_DEFAULT),
+            'password' => password_hash('Uma@171991', PASSWORD_DEFAULT),
             'first_name' => 'Yogesh',
             'last_name' => 'Kumar',
             'email' => 'uky171991@gmail.com',
