@@ -50,13 +50,13 @@ try {
     foreach ($users as $user) {
         try {
             // Check if the user already exists
-            $stmt = $pdo->prepare("SELECT * FROM users WHERE email = :email");
+            $stmt = $pdo->prepare("SELECT * FROM Users WHERE email = :email");
             $stmt->execute(['email' => $user['email']]);
 
             if ($stmt->rowCount() > 0) {
                 // Update existing user details
                 $stmt = $pdo->prepare(
-                    "UPDATE users SET username = :username, password = :password, first_name = :first_name, last_name = :last_name, role = :role WHERE email = :email"
+                    "UPDATE Users SET username = :username, password = :password, first_name = :first_name, last_name = :last_name, role = :role WHERE email = :email"
                 );
                 $stmt->execute([
                     'username' => $user['username'],
@@ -71,7 +71,7 @@ try {
             } else {
                 // Insert new user
                 $stmt = $pdo->prepare(
-                    "INSERT INTO users (username, password, first_name, last_name, email, role, created_at) 
+                    "INSERT INTO Users (username, password, first_name, last_name, email, role, created_at) 
                     VALUES (:username, :password, :first_name, :last_name, :email, :role, NOW())"
                 );
                 $stmt->execute([
