@@ -4,11 +4,34 @@ ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
 require_once 'config.local.php';
+require_once 'config.php';
+require_once 'db_connect.php';
 
 echo "Database settings:\n";
 echo "Host: " . DB_HOST . "\n";
 echo "Database: " . DB_NAME . "\n";
 echo "User: " . DB_USER . "\n";
+
+try {
+    $db = Database::getInstance();
+    $connection = $db->getConnection();
+    
+    // Try a simple query
+    $stmt = $connection->query("SELECT 1");
+    if ($stmt) {
+        echo "Database connection successful!\n";
+        
+        // Test the users table structure
+        $stmt = $connection->query("DESCRIBE users");
+        echo "\nUsers table structure:\n";
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            echo "{$row['Field']} - {$row['Type']}\n";
+        }
+    }
+} catch (PDOException $e) {
+    echo "Connection failed: " . $e->getMessage() . "\n";
+    echo "Error code: " . $e->getCode() . "\n";
+}
 
 try {
     // First try to connect without database to create it
