@@ -7,9 +7,9 @@
 
 
 define('DB_HOST', 'localhost');
-define('DB_NAME', 'usfitness');
-define('DB_USER', 'root');
-define('DB_PASS', '');
+define('DB_NAME', 'u902379465_fitness');
+define('DB_USER', 'u902379465_fitness');
+define('DB_PASS', 'c55]lGVc6P#r');
 
 // Define DSN for database connection
 // Format: mysql:host=DB_HOST;dbname=DB_NAME
