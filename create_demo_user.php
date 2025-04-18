@@ -133,6 +133,29 @@ try {
         echo "Demo user already exists. Password updated successfully.";
     }
     
+    // Check if demo user already exists
+    $stmt = $pdo->prepare("SELECT * FROM Users WHERE email = :email");
+    $stmt->execute(['email' => 'demo@usfitnes.com']);
+    $existingUser = $stmt->fetch();
+
+    if ($existingUser) {
+        echo "Demo user already exists.";
+    } else {
+        // Insert demo user
+        $stmt = $pdo->prepare("INSERT INTO Users (username, password, first_name, last_name, email, role, profile_image) VALUES (:username, :password, :first_name, :last_name, :email, :role, :profile_image)");
+        $stmt->execute([
+            'username' => 'demo',
+            'password' => password_hash('demo123', PASSWORD_DEFAULT),
+            'first_name' => 'Demo',
+            'last_name' => 'User',
+            'email' => 'demo@usfitnes.com',
+            'role' => 'Admin',
+            'profile_image' => 'assets/img/avatar.png'
+        ]);
+
+        echo "Demo user created successfully.";
+    }
+    
 } catch (Exception $e) {
     echo "Error: " . $e->getMessage();
     error_log("Create Demo Users Error: " . $e->getMessage());
