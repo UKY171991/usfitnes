@@ -91,11 +91,11 @@ if (!isset($_SESSION['csrf_token'])) {
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <div class="input-group">
-                                <input type="text" id="searchPatientInput" class="form-control" placeholder="Search by name or email">
-                                <button id="searchPatientBtn" class="btn btn-primary">
+                                <input type="text" id="searchInput" class="form-control" placeholder="Search by name or email">
+                                <button class="btn btn-primary" onclick="loadPatients(1)">
                                     <i class="bi bi-search"></i> Search
                                 </button>
-                                <button id="clearSearchPatientBtn" class="btn btn-secondary">
+                                <button class="btn btn-secondary" onclick="document.getElementById('searchInput').value=''; loadPatients(1);">
                                     <i class="bi bi-x-circle"></i> Clear
                                 </button>
                             </div>
@@ -121,7 +121,7 @@ if (!isset($_SESSION['csrf_token'])) {
                                                 <th>Actions</th>
                                             </tr>
                                         </thead>
-                                        <tbody id="patientsTableBody">
+                                        <tbody id="patientTableBody">
                                             <tr>
                                                 <td colspan="8" class="text-center">Loading...</td>
                                             </tr>
@@ -145,60 +145,75 @@ if (!isset($_SESSION['csrf_token'])) {
     </div>
     <?php include('inc/js.php'); ?>
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            loadPatients();
+        function loadPatients(page = 1) {
+            const searchQuery = document.getElementById('searchInput').value.trim();
+            const url = `includes/fetch_patients.php?page=${page}${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''}`;
+            
+            fetch(url)
+                .then(response => {
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    return response.json();
+                })
+                .then(data => {
+                    const tbody = document.getElementById('patientTableBody');
+                    tbody.innerHTML = '';
 
-            // Function to load patients via AJAX
-            function loadPatients(searchQuery = '', page = 1) {
-                const url = `includes/fetch_patients.php?search=${encodeURIComponent(searchQuery)}&page=${page}`;
+                    if (data.patients.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="8" class="text-center">No patients found</td></tr>';
+                    } else {
+                        data.patients.forEach(patient => {
+                            const row = `
+                                <tr>
+                                    <td>${escapeHtml(patient.patient_id)}</td>
+                                    <td>${escapeHtml(patient.first_name)} ${escapeHtml(patient.last_name)}</td>
+                                    <td>${escapeHtml(patient.date_of_birth)}</td>
+                                    <td>${escapeHtml(patient.gender)}</td>
+                                    <td>${escapeHtml(patient.phone || '-')}</td>
+                                    <td>${escapeHtml(patient.email || '-')}</td>
+                                    <td>${escapeHtml(patient.created_by_name || 'Unknown')}</td>
+                                    <td>
+                                        <a href="add_patient.php?edit=${escapeHtml(patient.patient_id)}" class="btn btn-sm btn-warning me-2" data-bs-toggle="tooltip" title="Edit Patient">
+                                            <i class="bi bi-pencil"></i> Edit
+                                        </a>
+                                        <?php if ($_SESSION['role'] === 'Admin'): ?>
+                                            <a href="patients.php?delete=${escapeHtml(patient.patient_id)}&csrf_token=<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this patient?');" data-bs-toggle="tooltip" title="Delete Patient">
+                                                <i class="bi bi-trash"></i> Delete
+                                            </a>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>`;
+                            tbody.innerHTML += row;
+                        });
+                    }
 
-                fetch(url)
-                    .then(response => response.json())
-                    .then(data => {
-                        const tbody = document.getElementById('patientsTableBody');
-                        tbody.innerHTML = '';
-
-                        if (data.patients.length === 0) {
-                            tbody.innerHTML = '<tr><td colspan="6" class="text-center">No patients found</td></tr>';
-                        } else {
-                            data.patients.forEach(patient => {
-                                const row = `
-                                    <tr>
-                                        <td>${escapeHtml(patient.patient_id)}</td>
-                                        <td>${escapeHtml(patient.first_name)} ${escapeHtml(patient.last_name)}</td>
-                                        <td>${escapeHtml(patient.date_of_birth)}</td>
-                                        <td>${escapeHtml(patient.gender)}</td>
-                                        <td>${escapeHtml(patient.phone)}</td>
-                                        <td>${escapeHtml(patient.email)}</td>
-                                    </tr>`;
-                                tbody.innerHTML += row;
-                            });
+                    const pagination = document.getElementById('pagination');
+                    pagination.innerHTML = '';
+                    if (data.total_pages > 1) {
+                        pagination.innerHTML += `<li class="page-item ${data.current_page === 1 ? 'disabled' : ''}">
+                            <a class="page-link" href="#" onclick="loadPatients(${data.current_page - 1}); return false;">«</a>
+                        </li>`;
+                        for (let i = 1; i <= data.total_pages; i++) {
+                            pagination.innerHTML += `<li class="page-item ${i === data.current_page ? 'active' : ''}">
+                                <a class="page-link" href="#" onclick="loadPatients(${i}); return false;">${i}</a>
+                            </li>`;
                         }
-                    })
-                    .catch(error => {
-                        console.error('Error fetching patients:', error);
-                        document.getElementById('patientsTableBody').innerHTML = '<tr><td colspan="6" class="text-center">Error loading patients</td></tr>';
-                    });
+                        pagination.innerHTML += `<li class="page-item ${data.current_page === data.total_pages ? 'disabled' : ''}">
+                            <a class="page-link" href="#" onclick="loadPatients(${data.current_page + 1}); return false;">»</a>
+                        </li>`;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching patients:', error);
+                    document.getElementById('patientTableBody').innerHTML = '<tr><td colspan="8" class="text-center">Error loading patients</td></tr>';
+                });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => loadPatients(1));
+
+        document.getElementById('searchInput').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                loadPatients(1);
             }
-
-            // Escape HTML to prevent XSS
-            function escapeHtml(str) {
-                const div = document.createElement('div');
-                div.textContent = str;
-                return div.innerHTML;
-            }
-
-            // Search functionality
-            document.getElementById('searchPatientBtn').addEventListener('click', function () {
-                const searchQuery = document.getElementById('searchPatientInput').value.trim();
-                loadPatients(searchQuery);
-            });
-
-            // Clear search
-            document.getElementById('clearSearchPatientBtn').addEventListener('click', function () {
-                document.getElementById('searchPatientInput').value = '';
-                loadPatients();
-            });
         });
 
         const SELECTOR_SIDEBAR_WRAPPER = '.sidebar-wrapper';
@@ -226,6 +241,13 @@ if (!isset($_SESSION['csrf_token'])) {
                 new bootstrap.Tooltip(tooltipTriggerEl);
             });
         });
+
+        // Helper function to escape HTML
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
     </script>
 </body>
 </html>
