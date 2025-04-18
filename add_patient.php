@@ -36,13 +36,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     try {
         // Validate and sanitize input
-        $first_name = filter_input(INPUT_POST, 'first_name', FILTER_SANITIZE_STRING);
-        $last_name = filter_input(INPUT_POST, 'last_name', FILTER_SANITIZE_STRING);
-        $date_of_birth = filter_input(INPUT_POST, 'date_of_birth', FILTER_SANITIZE_STRING);
-        $gender = filter_input(INPUT_POST, 'gender', FILTER_SANITIZE_STRING);
-        $phone = filter_input(INPUT_POST, 'phone', FILTER_SANITIZE_STRING);
+        $first_name = filter_input(INPUT_POST, 'first_name', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+        $last_name = filter_input(INPUT_POST, 'last_name', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+        $date_of_birth = filter_input(INPUT_POST, 'date_of_birth', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+        $gender = filter_input(INPUT_POST, 'gender', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+        $phone = filter_input(INPUT_POST, 'phone', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
         $email = filter_input(INPUT_POST, 'email', FILTER_VALIDATE_EMAIL);
-        $address = filter_input(INPUT_POST, 'address', FILTER_SANITIZE_STRING);
+        $address = filter_input(INPUT_POST, 'address', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
         $user_id = $_SESSION['user_id'];
 
         // Validate required fields
