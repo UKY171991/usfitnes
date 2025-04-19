@@ -111,6 +111,28 @@ try {
             font-size: 0.875rem;
             border-radius: 0.2rem;
         }
+        .alert-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            max-width: 400px;
+        }
+        .alert-container .alert {
+            margin-bottom: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            animation: slideIn 0.5s ease-in-out;
+        }
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
         .alert {
             margin-bottom: 1rem;
         }
@@ -286,13 +308,20 @@ try {
         }
 
         function showAlert(message, type) {
+            const alertContainer = document.querySelector('.alert-container');
+            if (!alertContainer) {
+                const container = document.createElement('div');
+                container.className = 'alert-container';
+                document.querySelector('.container-fluid').insertBefore(container, document.querySelector('.card'));
+            }
+            
             const alertDiv = document.createElement('div');
             alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
             alertDiv.innerHTML = `
                 ${message}
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             `;
-            document.querySelector('.container-fluid').insertBefore(alertDiv, document.querySelector('.card'));
+            document.querySelector('.alert-container').appendChild(alertDiv);
             setTimeout(() => alertDiv.remove(), 5000);
         }
 
@@ -307,8 +336,8 @@ try {
             
             // Validate search input
             if (searchQuery && !/^[A-Za-z0-9\s@.-]+$/.test(searchQuery)) {
-                showAlert('Invalid search query', 'error');
                 hideLoading();
+                showAlert('Invalid search query', 'danger');
                 return;
             }
             
@@ -324,10 +353,14 @@ try {
                     return response.json();
                 })
                 .then(data => {
+                    if (!data.success) {
+                        throw new Error(data.error || 'Failed to load patients');
+                    }
+
                     const tbody = document.getElementById('patientTableBody');
                     tbody.innerHTML = '';
 
-                    if (data.patients.length === 0) {
+                    if (!data.patients || data.patients.length === 0) {
                         tbody.innerHTML = '<tr><td colspan="9" class="text-center">No patients found</td></tr>';
                         return;
                     }
@@ -339,7 +372,7 @@ try {
                                 <td>${escapeHtml(patient.first_name + ' ' + patient.last_name)}</td>
                                 <td>${escapeHtml(patient.date_of_birth)}</td>
                                 <td>${escapeHtml(patient.gender)}</td>
-                                <td>${escapeHtml(patient.phone)}</td>
+                                <td>${escapeHtml(patient.phone || '-')}</td>
                                 <td>${escapeHtml(patient.email || '-')}</td>
                                 <td>
                                     <span class="status-badge status-${patient.status === 'active' ? 'active' : 'inactive'}">
@@ -348,17 +381,17 @@ try {
                                 </td>
                                 <td>${escapeHtml(patient.created_by_name)}</td>
                                 <td class="patient-actions">
-                                    <a href="view_patient.php?id=${encodeURIComponent(patient.patient_id)}" 
+                                    <a href="view_patient.php?id=${encodeURIComponent(patient.patient_id)}&csrf_token=${encodeURIComponent(csrfToken)}" 
                                        class="btn btn-sm btn-info" title="View Details">
                                         <i class="bi bi-eye"></i>
                                     </a>
-                                    <a href="edit_patient.php?id=${encodeURIComponent(patient.patient_id)}" 
+                                    <a href="edit_patient.php?id=${encodeURIComponent(patient.patient_id)}&csrf_token=${encodeURIComponent(csrfToken)}" 
                                        class="btn btn-sm btn-warning" title="Edit">
                                         <i class="bi bi-pencil"></i>
                                     </a>
                                     <?php if ($_SESSION['role'] === 'Admin'): ?>
                                     <a href="javascript:void(0)" 
-                                       onclick="deletePatient(${escapeHtml(patient.patient_id)})" 
+                                       onclick="deletePatient(${patient.patient_id})" 
                                        class="btn btn-sm btn-danger" title="Delete">
                                         <i class="bi bi-trash"></i>
                                     </a>
@@ -372,9 +405,9 @@ try {
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    showAlert('Error loading patients: ' + error.message, 'error');
+                    showAlert(error.message || 'Error loading patients', 'danger');
                     document.getElementById('patientTableBody').innerHTML = 
-                        '<tr><td colspan="9" class="text-center">Error loading patients</td></tr>';
+                        '<tr><td colspan="9" class="text-center text-danger">Error loading patients</td></tr>';
                 })
                 .finally(() => {
                     hideLoading();
