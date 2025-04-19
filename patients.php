@@ -98,372 +98,349 @@ if (isset($_GET['delete']) && $_SESSION['role'] === 'Admin') {
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pathology | Patient Management</title>
-    <?php include('inc/head.php'); ?>
+    <?php include 'inc/head.php'; ?>
+    <title>Patient Management | Pathology Lab</title>
     <style>
-        .table-hover tbody tr:hover {
-            background-color: #f8f9fa;
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.08);
         }
-        .btn-group-sm > .btn, .btn-sm {
-            padding: 0.25rem 0.5rem;
-            font-size: 0.875rem;
-            border-radius: 0.2rem;
-        }
-        .alert-container {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 9999;
-            max-width: 400px;
-        }
-        .alert-container .alert {
-            margin-bottom: 10px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            animation: slideIn 0.5s ease-in-out;
-        }
-        @keyframes slideIn {
-            from {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-        .alert {
-            margin-bottom: 1rem;
+        .card-header {
+            background-color: #fff;
+            border-bottom: 1px solid #eee;
+            padding: 1.5rem;
         }
         .search-box {
             position: relative;
+            max-width: 300px;
         }
-        .search-box .clear-search {
+        .search-box .form-control {
+            padding-left: 40px;
+            border-radius: 20px;
+        }
+        .search-box i {
             position: absolute;
-            right: 10px;
+            left: 15px;
             top: 50%;
             transform: translateY(-50%);
-            cursor: pointer;
             color: #6c757d;
         }
-        .search-box .clear-search:hover {
-            color: #343a40;
+        .btn-add-patient {
+            border-radius: 20px;
+            padding: 8px 20px;
+            font-weight: 500;
         }
-        .loading-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(255, 255, 255, 0.7);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
+        .table th {
+            font-weight: 600;
+            color: #495057;
+            border-top: none;
         }
-        .card {
-            position: relative;
+        .table td {
+            vertical-align: middle;
+            color: #6c757d;
         }
-        .patient-actions {
-            white-space: nowrap;
-        }
-        .patient-actions .btn {
-            margin: 0 2px;
+        .patient-name {
+            font-weight: 500;
+            color: #2c3e50;
         }
         .status-badge {
-            font-size: 0.75rem;
-            padding: 0.25rem 0.5rem;
-            border-radius: 0.25rem;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 500;
         }
         .status-active {
-            background-color: #d1e7dd;
-            color: #0f5132;
+            background-color: #e8f5e9;
+            color: #2e7d32;
         }
         .status-inactive {
-            background-color: #f8d7da;
-            color: #842029;
+            background-color: #fbe9e7;
+            color: #c62828;
+        }
+        .pagination {
+            margin-bottom: 0;
+        }
+        .pagination .page-link {
+            border-radius: 5px;
+            margin: 0 3px;
+            color: #3498db;
+        }
+        .pagination .page-item.active .page-link {
+            background-color: #3498db;
+            border-color: #3498db;
+        }
+        .loading-spinner {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        .action-buttons .btn {
+            padding: 5px 10px;
+            font-size: 14px;
+            margin: 0 2px;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #6c757d;
+        }
+        .empty-state i {
+            font-size: 48px;
+            margin-bottom: 15px;
+            color: #dee2e6;
+        }
+        @media (max-width: 768px) {
+            .card-header {
+                flex-direction: column;
+                align-items: stretch !important;
+            }
+            .search-box {
+                margin-bottom: 15px;
+                max-width: 100%;
+            }
+            .table-responsive {
+                border: none;
+            }
         }
     </style>
 </head>
-<body class="layout-fixed sidebar-expand-lg bg-body-tertiary">
-    <div class="app-wrapper">
-        <?php include('inc/top.php'); ?>
-        <?php include('inc/sidebar.php'); ?>
-        
-        <main class="app-main">
-            <div class="app-content">
+<body class="layout-fixed">
+    <div class="wrapper">
+        <?php include 'inc/sidebar.php'; ?>
+        <div class="content-wrapper">
+            <div class="content-header">
                 <div class="container-fluid">
                     <div class="row mb-2">
                         <div class="col-sm-6">
                             <h1 class="m-0">Patient Management</h1>
                         </div>
-                        <div class="col-sm-6 text-end">
-                            <a href="add_patient.php" class="btn btn-primary">
-                                <i class="bi bi-person-plus"></i> Add New Patient
-                            </a>
-                        </div>
                     </div>
+                </div>
+            </div>
 
-                    <?php if (isset($_SESSION['success_message'])): ?>
-                        <div class="alert alert-success alert-dismissible fade show" role="alert">
-                            <?php 
-                                echo htmlspecialchars($_SESSION['success_message']);
-                                unset($_SESSION['success_message']);
-                            ?>
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>
-                    <?php endif; ?>
-
-                    <?php if (isset($_SESSION['error_message'])): ?>
-                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                            <?php 
-                                echo htmlspecialchars($_SESSION['error_message']);
-                                unset($_SESSION['error_message']);
-                            ?>
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>
-                    <?php endif; ?>
-
+            <section class="content">
+                <div class="container-fluid">
                     <div class="card">
-                        <div class="card-header">
-                            <div class="row align-items-center">
-                                <div class="col-md-6">
-                                    <h3 class="card-title">Patient List</h3>
-                                </div>
-                        <div class="col-md-6">
-                                    <div class="search-box">
-                                        <input type="text" id="searchInput" class="form-control" 
-                                               placeholder="Search by name, email, or phone"
-                                               maxlength="50" pattern="[A-Za-z0-9\s@.-]+"
-                                               title="Only letters, numbers, spaces, @, ., and - allowed">
-                                        <span class="clear-search" onclick="clearSearch()"><i class="bi bi-x-circle"></i></span>
-                                    </div>
-                                </div>
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <div class="search-box">
+                                <i class="bi bi-search"></i>
+                                <input type="text" class="form-control" id="searchInput" placeholder="Search by name, email, or phone">
                             </div>
+                            <button type="button" class="btn btn-primary btn-add-patient" onclick="location.href='add_patient.php'">
+                                <i class="bi bi-plus-lg me-1"></i>Add New Patient
+                            </button>
                         </div>
-                        <div class="card-body">
-                            <div class="loading-overlay">
-                                <div class="spinner-border text-primary" role="status">
-                                    <span class="visually-hidden">Loading...</span>
-                                </div>
-                            </div>
+                        <div class="card-body p-0">
                             <div class="table-responsive">
-                                <table class="table table-bordered table-hover">
+                                <table class="table table-hover">
                                     <thead>
-                                            <tr>
-                                                <th>ID</th>
-                                                <th>Name</th>
-                                                <th>DOB</th>
-                                                <th>Gender</th>
-                                                <th>Contact</th>
-                                                <th>Email</th>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Name</th>
+                                            <th>DOB</th>
+                                            <th>Gender</th>
+                                            <th>Contact</th>
+                                            <th>Email</th>
                                             <th>Status</th>
-                                                <th>Created By</th>
-                                                <th>Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="patientTableBody">
-                                            <tr>
-                                            <td colspan="9" class="text-center">Loading patients...</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
+                                            <th>Created By</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="patientsTableBody">
+                                        <tr>
+                                            <td colspan="9">
+                                                <div class="loading-spinner">
+                                                    <div class="spinner-border text-primary" role="status">
+                                                        <span class="visually-hidden">Loading...</span>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
-                        <div class="card-footer">
-                            <nav aria-label="Patient navigation">
-                                <ul class="pagination justify-content-end mb-0" id="pagination"></ul>
+                        <div class="card-footer d-flex justify-content-between align-items-center">
+                            <div class="text-muted" id="totalRecords">Total: 0 patients</div>
+                            <nav aria-label="Page navigation">
+                                <ul class="pagination mb-0" id="pagination"></ul>
                             </nav>
                         </div>
                     </div>
                 </div>
-            </div>
-        </main>
+            </section>
+        </div>
     </div>
 
-    <?php include('inc/js.php'); ?>
     <script>
         let currentPage = 1;
-        let isLoading = false;
-        let searchTimeout = null;
+        let searchTimer = null;
 
-        function showLoading() {
-            document.querySelector('.loading-overlay').style.display = 'flex';
-            isLoading = true;
-        }
-
-        function hideLoading() {
-            document.querySelector('.loading-overlay').style.display = 'none';
-            isLoading = false;
-        }
-
-        function escapeHtml(unsafe) {
-            return unsafe
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/"/g, "&quot;")
-                .replace(/'/g, "&#039;");
-        }
-
-        function showAlert(message, type) {
-            const alertContainer = document.querySelector('.alert-container');
-            if (!alertContainer) {
-                const container = document.createElement('div');
-                container.className = 'alert-container';
-                document.querySelector('.container-fluid').insertBefore(container, document.querySelector('.card'));
-            }
+        function loadPatients(page = 1, search = '') {
+            const tbody = document.getElementById('patientsTableBody');
+            const spinner = document.querySelector('.loading-spinner');
+            spinner.style.display = 'block';
             
-            const alertDiv = document.createElement('div');
-            alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
-            alertDiv.innerHTML = `
-                ${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            `;
-            document.querySelector('.alert-container').appendChild(alertDiv);
-            setTimeout(() => alertDiv.remove(), 5000);
-        }
-
-        function loadPatients(page = 1) {
-            if (isLoading) return;
+            const csrf_token = '<?php echo $_SESSION["csrf_token"]; ?>';
             
-            showLoading();
-            currentPage = page;
-            
-            const searchQuery = document.getElementById('searchInput').value.trim();
-            const csrfToken = '<?php echo $_SESSION['csrf_token']; ?>';
-            
-            // Validate search input
-            if (searchQuery && !/^[A-Za-z0-9\s@.-]+$/.test(searchQuery)) {
-                hideLoading();
-                showAlert('Invalid search query', 'danger');
-                return;
-            }
-            
-            const url = `includes/fetch_patients.php?page=${page}&csrf_token=${encodeURIComponent(csrfToken)}${
-                searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''
-            }`;
-            
-            fetch(url)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(response.statusText);
-                    }
-                    return response.json();
-                })
+            fetch(`includes/fetch_patients.php?page=${page}&search=${encodeURIComponent(search)}&csrf_token=${csrf_token}`)
+                .then(response => response.json())
                 .then(data => {
-                    if (!data.success) {
-                        throw new Error(data.error || 'Failed to load patients');
+                    if (data.success) {
+                        updateTable(data);
+                        updatePagination(data);
+                        updateTotalRecords(data.total_records);
+                    } else {
+                        showError(data.error);
                     }
-
-                    const tbody = document.getElementById('patientTableBody');
-                    tbody.innerHTML = '';
-
-                    if (!data.patients || data.patients.length === 0) {
-                        tbody.innerHTML = '<tr><td colspan="9" class="text-center">No patients found</td></tr>';
-                        return;
-                    }
-
-                        data.patients.forEach(patient => {
-                            const row = `
-                                <tr>
-                                <td>${escapeHtml(patient.patient_id)}</td>
-                                <td>${escapeHtml(patient.first_name + ' ' + patient.last_name)}</td>
-                                <td>${escapeHtml(patient.date_of_birth)}</td>
-                                <td>${escapeHtml(patient.gender)}</td>
-                                <td>${escapeHtml(patient.phone || '-')}</td>
-                                <td>${escapeHtml(patient.email || '-')}</td>
-                                <td>
-                                    <span class="status-badge status-${patient.status === 'active' ? 'active' : 'inactive'}">
-                                        ${escapeHtml(patient.status)}
-                                    </span>
-                                </td>
-                                <td>${escapeHtml(patient.created_by_name)}</td>
-                                <td class="patient-actions">
-                                    <a href="view_patient.php?id=${encodeURIComponent(patient.patient_id)}&csrf_token=${encodeURIComponent(csrfToken)}" 
-                                       class="btn btn-sm btn-info" title="View Details">
-                                        <i class="bi bi-eye"></i>
-                                    </a>
-                                    <a href="edit_patient.php?id=${encodeURIComponent(patient.patient_id)}&csrf_token=${encodeURIComponent(csrfToken)}" 
-                                       class="btn btn-sm btn-warning" title="Edit">
-                                        <i class="bi bi-pencil"></i>
-                                        </a>
-                                        <?php if ($_SESSION['role'] === 'Admin'): ?>
-                                    <a href="javascript:void(0)" 
-                                       onclick="deletePatient(${patient.patient_id})" 
-                                       class="btn btn-sm btn-danger" title="Delete">
-                                        <i class="bi bi-trash"></i>
-                                            </a>
-                                        <?php endif; ?>
-                                    </td>
-                                </tr>`;
-                            tbody.innerHTML += row;
-                        });
-
-                    updatePagination(data.current_page, data.total_pages);
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    showAlert(error.message || 'Error loading patients', 'danger');
-                    document.getElementById('patientTableBody').innerHTML = 
-                        '<tr><td colspan="9" class="text-center text-danger">Error loading patients</td></tr>';
+                    showError('Failed to load patients');
                 })
                 .finally(() => {
-                    hideLoading();
+                    spinner.style.display = 'none';
                 });
         }
 
-        function updatePagination(currentPage, totalPages) {
-            const pagination = document.getElementById('pagination');
-            pagination.innerHTML = '';
-            
-            if (totalPages > 1) {
-                pagination.innerHTML = `
-                    <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
-                        <a class="page-link" href="#" onclick="return loadPatients(${currentPage - 1});">«</a>
-                    </li>`;
-                    
-                for (let i = 1; i <= totalPages; i++) {
-                    pagination.innerHTML += `
-                        <li class="page-item ${i === currentPage ? 'active' : ''}">
-                            <a class="page-link" href="#" onclick="return loadPatients(${i});">${i}</a>
-                        </li>`;
-                }
-                
-                pagination.innerHTML += `
-                    <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
-                        <a class="page-link" href="#" onclick="return loadPatients(${currentPage + 1});">»</a>
-                    </li>`;
-            }
-        }
-
-        function clearSearch() {
-            document.getElementById('searchInput').value = '';
-            loadPatients(1);
-        }
-
-        function deletePatient(patientId) {
-            if (!confirm('Are you sure you want to delete this patient? This action cannot be undone.')) {
+        function updateTable(data) {
+            const tbody = document.getElementById('patientsTableBody');
+            if (data.patients.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="9">
+                            <div class="empty-state">
+                                <i class="bi bi-person-x"></i>
+                                <p>No patients found</p>
+                            </div>
+                        </td>
+                    </tr>`;
                 return;
             }
 
-            const csrfToken = '<?php echo $_SESSION['csrf_token']; ?>';
-            window.location.href = `patients.php?delete=${patientId}&csrf_token=${encodeURIComponent(csrfToken)}`;
+            tbody.innerHTML = data.patients.map(patient => `
+                <tr>
+                    <td>${patient.patient_id}</td>
+                    <td class="patient-name">${patient.first_name} ${patient.last_name}</td>
+                    <td>${patient.date_of_birth}</td>
+                    <td>${patient.gender}</td>
+                    <td>${patient.phone}</td>
+                    <td>${patient.email}</td>
+                    <td>
+                        <span class="status-badge ${patient.status === 'active' ? 'status-active' : 'status-inactive'}">
+                            ${patient.status}
+                        </span>
+                    </td>
+                    <td>${patient.created_by_name}</td>
+                    <td class="action-buttons">
+                        <button class="btn btn-sm btn-outline-primary" onclick="viewPatient(${patient.patient_id})">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-success" onclick="editPatient(${patient.patient_id})">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deletePatient(${patient.patient_id})">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
         }
 
-        // Initialize search with debounce
-        document.getElementById('searchInput').addEventListener('input', function() {
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => {
-                loadPatients(1);
-            }, 500);
+        function updatePagination(data) {
+            const pagination = document.getElementById('pagination');
+            const totalPages = data.total_pages;
+            const currentPage = data.current_page;
+
+            let paginationHTML = '';
+
+            // Previous button
+            paginationHTML += `
+                <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="changePage(${currentPage - 1})" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>`;
+
+            // Page numbers
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === 1 || i === totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
+                    paginationHTML += `
+                        <li class="page-item ${i === currentPage ? 'active' : ''}">
+                            <a class="page-link" href="#" onclick="changePage(${i})">${i}</a>
+                        </li>`;
+                } else if (i === currentPage - 2 || i === currentPage + 2) {
+                    paginationHTML += `
+                        <li class="page-item disabled">
+                            <a class="page-link" href="#">...</a>
+                        </li>`;
+                }
+            }
+
+            // Next button
+            paginationHTML += `
+                <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="changePage(${currentPage + 1})" aria-label="Next">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>`;
+
+            pagination.innerHTML = paginationHTML;
+        }
+
+        function updateTotalRecords(total) {
+            document.getElementById('totalRecords').textContent = `Total: ${total} patient${total !== 1 ? 's' : ''}`;
+        }
+
+        function changePage(page) {
+            if (page < 1) return;
+            currentPage = page;
+            const searchInput = document.getElementById('searchInput');
+            loadPatients(page, searchInput.value);
+        }
+
+        function showError(message) {
+            const tbody = document.getElementById('patientsTableBody');
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="9">
+                        <div class="alert alert-danger m-3" role="alert">
+                            ${message}
+                        </div>
+                    </td>
+                </tr>`;
+        }
+
+        // Initialize search functionality
+        document.getElementById('searchInput').addEventListener('input', function(e) {
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(() => {
+                currentPage = 1;
+                loadPatients(1, e.target.value);
+            }, 300);
         });
 
-        // Load patients on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            loadPatients(1);
+        // Initial load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadPatients();
         });
+
+        // Patient actions
+        function viewPatient(id) {
+            window.location.href = `view_patient.php?id=${id}`;
+        }
+
+        function editPatient(id) {
+            window.location.href = `edit_patient.php?id=${id}`;
+        }
+
+        function deletePatient(id) {
+            if (confirm('Are you sure you want to delete this patient?')) {
+                // Implement delete functionality
+                console.log('Delete patient:', id);
+            }
+        }
     </script>
 </body>
 </html>
