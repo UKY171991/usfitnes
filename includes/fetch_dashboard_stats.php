@@ -1,4 +1,5 @@
 <?php
+require_once '../config.php';
 require_once '../db_connect.php';
 
 // Start session with secure settings
@@ -10,10 +11,16 @@ session_start([
     'gc_maxlifetime' => SESSION_LIFETIME
 ]);
 
-// Check if user is logged in
-if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in']) {
+// Check if user is logged in and has valid session
+if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in'] || !isset($_SESSION['user_id'])) {
     http_response_code(401);
     exit(json_encode(['error' => 'Unauthorized']));
+}
+
+// Check if branch_id exists
+if (!isset($_SESSION['branch_id'])) {
+    http_response_code(400);
+    exit(json_encode(['error' => 'Branch not selected']));
 }
 
 // Set proper headers
@@ -24,29 +31,46 @@ try {
     $db = Database::getInstance();
     $branch_id = $_SESSION['branch_id'];
 
-    // Fetch current stats
-    $stats = [];
+    // Validate branch_id
+    $stmt = $db->query(
+        "SELECT branch_id FROM branches WHERE branch_id = :branch_id",
+        ['branch_id' => $branch_id]
+    );
+    if (!$stmt->fetch()) {
+        throw new Exception('Invalid branch');
+    }
+
+    // Initialize stats array
+    $stats = [
+        'patients' => 0,
+        'pending_tests' => 0,
+        'today_reports' => 0,
+        'monthly_revenue' => 0,
+        'monthly_stats' => array_fill(0, 6, 0),
+        'category_stats' => [],
+        'category_labels' => []
+    ];
 
     // Total Patients
     $stmt = $db->query(
         "SELECT COUNT(*) FROM patients WHERE branch_id = :branch_id",
         ['branch_id' => $branch_id]
     );
-    $stats['patients'] = $stmt->fetchColumn();
+    $stats['patients'] = (int)$stmt->fetchColumn();
 
     // Pending Tests
     $stmt = $db->query(
         "SELECT COUNT(*) FROM test_requests WHERE branch_id = :branch_id AND status = 'pending'",
         ['branch_id' => $branch_id]
     );
-    $stats['pending_tests'] = $stmt->fetchColumn();
+    $stats['pending_tests'] = (int)$stmt->fetchColumn();
 
     // Today's Reports
     $stmt = $db->query(
         "SELECT COUNT(*) FROM test_results WHERE branch_id = :branch_id AND DATE(created_at) = CURDATE()",
         ['branch_id' => $branch_id]
     );
-    $stats['today_reports'] = $stmt->fetchColumn();
+    $stats['today_reports'] = (int)$stmt->fetchColumn();
 
     // Monthly Revenue
     $stmt = $db->query(
@@ -54,7 +78,7 @@ try {
         WHERE branch_id = :branch_id AND MONTH(payment_date) = MONTH(CURRENT_DATE())",
         ['branch_id' => $branch_id]
     );
-    $stats['monthly_revenue'] = $stmt->fetchColumn();
+    $stats['monthly_revenue'] = (float)$stmt->fetchColumn();
 
     // Monthly Test Statistics
     $stmt = $db->query(
@@ -68,11 +92,10 @@ try {
         ORDER BY month",
         ['branch_id' => $branch_id]
     );
-    $monthly_stats = array_fill(0, 6, 0);
     while ($row = $stmt->fetch()) {
-        $monthly_stats[$row['month'] - 1] = (int)$row['count'];
+        $month_index = ((int)$row['month'] - 1) % 6;
+        $stats['monthly_stats'][$month_index] = (int)$row['count'];
     }
-    $stats['monthly_stats'] = $monthly_stats;
 
     // Test Categories Distribution
     $stmt = $db->query(
@@ -87,17 +110,19 @@ try {
         LIMIT 5",
         ['branch_id' => $branch_id]
     );
-    $category_stats = [];
     while ($row = $stmt->fetch()) {
-        $category_stats[] = (int)$row['count'];
+        $stats['category_labels'][] = $row['name'];
+        $stats['category_stats'][] = (int)$row['count'];
     }
-    $stats['category_stats'] = $category_stats;
 
-    // Return the stats
-    echo json_encode($stats);
+    // Return the stats with proper JSON encoding
+    echo json_encode($stats, JSON_NUMERIC_CHECK);
 
 } catch (Exception $e) {
     error_log("Dashboard Stats Error: " . $e->getMessage());
     http_response_code(500);
-    echo json_encode(['error' => 'Failed to fetch dashboard stats']);
+    echo json_encode([
+        'error' => 'Failed to fetch dashboard stats',
+        'message' => ENVIRONMENT === 'development' ? $e->getMessage() : null
+    ]);
 } 

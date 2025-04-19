@@ -1,4 +1,5 @@
 <?php
+require_once 'config.php';
 require_once 'db_connect.php';
 
 // Start session with secure settings
@@ -22,23 +23,29 @@ if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'Admin') {
     exit();
 }
 
+// Initialize error variable
+$error = '';
+
 // Get user data
 try {
     $db = Database::getInstance();
     
     // Fetch user data with prepared statement
     $stmt = $db->query(
-        "SELECT name, role, last_login FROM users WHERE user_id = :user_id AND role = 'Admin'",
+        "SELECT u.name, u.role, u.last_login FROM users u WHERE u.user_id = :user_id",
         ['user_id' => $_SESSION['user_id']]
     );
     $user = $stmt->fetch();
 
     if (!$user) {
-        throw new Exception('User not found or not authorized');
+        throw new Exception('User not found');
     }
 
-    // Filter data by branch
-    $branch_id = $_SESSION['branch_id'];
+    // Get branch_id from session
+    $branch_id = isset($_SESSION['branch_id']) ? $_SESSION['branch_id'] : null;
+    if (!$branch_id) {
+        throw new Exception('Branch not selected');
+    }
 
     // Fetch branch-specific stats
     $stats = [];
@@ -86,9 +93,46 @@ try {
     );
     $recent_activities = $stmt->fetchAll();
 
+    // Monthly Test Statistics for Chart
+    $stmt = $db->query(
+        "SELECT 
+            MONTH(created_at) as month,
+            COUNT(*) as count
+        FROM test_requests 
+        WHERE branch_id = :branch_id 
+        AND created_at >= DATE_SUB(CURRENT_DATE(), INTERVAL 6 MONTH)
+        GROUP BY MONTH(created_at)
+        ORDER BY month",
+        ['branch_id' => $branch_id]
+    );
+    $monthly_stats = array_fill(0, 6, 0);
+    while ($row = $stmt->fetch()) {
+        $monthly_stats[$row['month'] - 1] = (int)$row['count'];
+    }
+
+    // Test Categories Distribution for Chart
+    $stmt = $db->query(
+        "SELECT 
+            tc.name,
+            COUNT(*) as count
+        FROM test_requests tr
+        JOIN test_categories tc ON tr.category_id = tc.category_id
+        WHERE tr.branch_id = :branch_id
+        GROUP BY tc.name
+        ORDER BY count DESC
+        LIMIT 5",
+        ['branch_id' => $branch_id]
+    );
+    $category_stats = [];
+    $category_labels = [];
+    while ($row = $stmt->fetch()) {
+        $category_labels[] = $row['name'];
+        $category_stats[] = (int)$row['count'];
+    }
+
 } catch (Exception $e) {
     error_log("Dashboard Error: " . $e->getMessage());
-    $error = "Failed to load dashboard data.";
+    $error = "Failed to load dashboard data. Please try again later.";
 }
 ?>
 
@@ -342,7 +386,7 @@ try {
                 labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
                 datasets: [{
                     label: 'Tests Conducted',
-                    data: [12, 19, 3, 5, 2, 3],
+                    data: <?php echo json_encode($monthly_stats ?? []); ?>,
                     borderColor: '#4e73df',
                     backgroundColor: 'rgba(78, 115, 223, 0.05)',
                     tension: 0.4,
@@ -370,9 +414,9 @@ try {
         const categoryChart = new Chart(categoryCtx, {
             type: 'doughnut',
             data: {
-                labels: ['Blood Tests', 'Urine Tests', 'X-Ray', 'MRI', 'CT Scan'],
+                labels: <?php echo json_encode($category_labels ?? []); ?>,
                 datasets: [{
-                    data: [30, 25, 20, 15, 10],
+                    data: <?php echo json_encode($category_stats ?? []); ?>,
                     backgroundColor: [
                         '#4e73df',
                         '#1cc88a',
