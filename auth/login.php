@@ -23,49 +23,61 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
             $stmt->execute([$username]);
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
             
-            if($user && password_verify($password, $user['password'])) {
-                // Set session variables
-                $_SESSION['user_id'] = $user['id'];
-                $_SESSION['username'] = $user['username'];
-                $_SESSION['name'] = $user['name'];
-                $_SESSION['role'] = $user['role'];
+            if($user) {
+                // For debugging
+                error_log("Login attempt for user: " . $username);
+                error_log("Stored password hash: " . $user['password']);
+                error_log("Input password: " . $password);
                 
-                // If user has a branch_id, get branch details
-                if(!empty($user['branch_id'])) {
-                    $stmt = $conn->prepare("SELECT * FROM branches WHERE id = ?");
-                    $stmt->execute([$user['branch_id']]);
-                    $branch = $stmt->fetch(PDO::FETCH_ASSOC);
-                    if($branch) {
-                        $_SESSION['branch_id'] = $branch['id'];
-                        $_SESSION['branch_name'] = $branch['name'];
+                if(password_verify($password, $user['password'])) {
+                    // Set session variables
+                    $_SESSION['user_id'] = $user['id'];
+                    $_SESSION['username'] = $user['username'];
+                    $_SESSION['name'] = $user['name'];
+                    $_SESSION['role'] = $user['role'];
+                    
+                    // If user has a branch_id, get branch details
+                    if(!empty($user['branch_id'])) {
+                        $stmt = $conn->prepare("SELECT * FROM branches WHERE id = ?");
+                        $stmt->execute([$user['branch_id']]);
+                        $branch = $stmt->fetch(PDO::FETCH_ASSOC);
+                        if($branch) {
+                            $_SESSION['branch_id'] = $branch['id'];
+                            $_SESSION['branch_name'] = $branch['name'];
+                        }
                     }
+                    
+                    // Log activity
+                    $activity = "User logged in: {$user['username']}";
+                    $stmt = $conn->prepare("INSERT INTO activities (user_id, description) VALUES (?, ?)");
+                    $stmt->execute([$user['id'], $activity]);
+                    
+                    // Redirect based on role
+                    switch($user['role']) {
+                        case 'admin':
+                            header("Location: ../admin/dashboard.php");
+                            break;
+                        case 'branch_admin':
+                            header("Location: ../branch-admin/dashboard.php");
+                            break;
+                        case 'technician':
+                        case 'receptionist':
+                            header("Location: ../users/view-patients.php");
+                            break;
+                        default:
+                            header("Location: ../index.php");
+                    }
+                    exit();
+                } else {
+                    error_log("Password verification failed for user: " . $username);
+                    $error = "Invalid username or password";
                 }
-                
-                // Log activity
-                $activity = "User logged in: {$user['username']}";
-                $stmt = $conn->prepare("INSERT INTO activities (user_id, description) VALUES (?, ?)");
-                $stmt->execute([$user['id'], $activity]);
-                
-                // Redirect based on role
-                switch($user['role']) {
-                    case 'admin':
-                        header("Location: ../admin/dashboard.php");
-                        break;
-                    case 'branch_admin':
-                        header("Location: ../branch-admin/dashboard.php");
-                        break;
-                    case 'technician':
-                    case 'receptionist':
-                        header("Location: ../users/view-patients.php");
-                        break;
-                    default:
-                        header("Location: ../index.php");
-                }
-                exit();
             } else {
+                error_log("User not found: " . $username);
                 $error = "Invalid username or password";
             }
         } catch(PDOException $e) {
+            error_log("Database error: " . $e->getMessage());
             $error = "Error: " . $e->getMessage();
         }
     } else {

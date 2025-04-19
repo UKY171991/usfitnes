@@ -1,18 +1,21 @@
 <?php
-require_once __DIR__ . '/../inc/config.php';
+if(!isset($config_loaded)) {
+    require_once __DIR__ . '/../inc/config.php';
+    require_once __DIR__ . '/../inc/db.php';
+}
 
 // session_start() is now handled in config.php
 
 function checkUserAccess() {
     if(!isset($_SESSION['user_id']) || !isset($_SESSION['role'])) {
-        header("Location: login.php");
+        header("Location: ../auth/login.php");
         exit();
     }
 }
 
 function checkAdminAccess() {
     checkUserAccess();
-    if($_SESSION['role'] != 'admin') {
+    if($_SESSION['role'] !== 'admin') {
         header("Location: ../index.php");
         exit();
     }
@@ -20,7 +23,7 @@ function checkAdminAccess() {
 
 function checkBranchAdminAccess() {
     checkUserAccess();
-    if($_SESSION['role'] != 'branch_admin') {
+    if($_SESSION['role'] !== 'branch_admin') {
         header("Location: ../index.php");
         exit();
     }
@@ -28,7 +31,7 @@ function checkBranchAdminAccess() {
 
 function checkTechnicianAccess() {
     checkUserAccess();
-    if($_SESSION['role'] != 'technician') {
+    if($_SESSION['role'] !== 'technician') {
         header("Location: ../index.php");
         exit();
     }
@@ -36,7 +39,7 @@ function checkTechnicianAccess() {
 
 function checkReceptionistAccess() {
     checkUserAccess();
-    if($_SESSION['role'] != 'receptionist') {
+    if($_SESSION['role'] !== 'receptionist') {
         header("Location: ../index.php");
         exit();
     }
