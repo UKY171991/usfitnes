@@ -10,204 +10,160 @@ if (!file_exists('vendor/tcpdf/tcpdf.php')) {
 }
 require_once 'vendor/tcpdf/tcpdf.php';
 
-session_start();
-if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in']) {
-    header("Location: login.php");
-    exit();
+// Start session with secure settings
+session_start([
+    'cookie_httponly' => true,
+    'cookie_secure' => true,
+    'cookie_samesite' => 'Lax',
+    'use_strict_mode' => true
+]);
+
+// Check if user is logged in and has appropriate role
+if (!isset($_SESSION['user_id']) || !isset($_SESSION['role'])) {
+    header('Location: login.php');
+    exit;
 }
 
-// Restrict to Admin, Doctor, Technician
-if (!in_array($_SESSION['role'], ['Admin', 'Doctor', 'Technician'])) {
-    header("Location: index3.php");
-    exit();
+// Only allow Admin, Doctor, and Technician roles
+$allowed_roles = ['Admin', 'Doctor', 'Technician'];
+if (!in_array($_SESSION['role'], $allowed_roles)) {
+    header('HTTP/1.1 403 Forbidden');
+    exit('Access Denied');
+}
+
+// Generate CSRF token if not exists
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
 // Generate PDF if requested
-// Generate PDF if requested
-if (isset($_GET['generate_pdf']) && !empty($_GET['result_id'])) {
-    $result_id = $_GET['result_id'];
-
+if (isset($_GET['generate_pdf']) && isset($_GET['result_id'])) {
     try {
-        echo "PDF generation started...";
-        // Fetch result details
-        $stmt = $pdo->prepare("
-            SELECT 
-                trs.result_id, trs.result_value, trs.comments, trs.recorded_at,
-                CONCAT(p.first_name, ' ', p.last_name) AS patient_name, p.date_of_birth, p.gender,
-                t.test_name, t.test_code, t.normal_range, t.unit,
-                CONCAT(s.first_name, ' ', s.last_name) AS recorded_by_name, s.role AS recorded_by_role,
-                tr.request_date, tr.ordered_by
-            FROM Test_Results trs
-            JOIN Test_Requests tr ON trs.request_id = tr.request_id
-            JOIN Patients p ON tr.patient_id = p.patient_id
-            JOIN Tests_Catalog t ON tr.test_id = t.test_id
-            JOIN Staff s ON trs.recorded_by = s.staff_id
-            WHERE trs.result_id = 1
-        ");
-        $stmt->execute(['result_id' => $result_id]);
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        if (!$result) {
-            echo "<script>alert('No result found for result_id: $result_id');</script>";
-            exit();
+        // Validate CSRF token
+        if (!isset($_GET['csrf_token']) || $_GET['csrf_token'] !== $_SESSION['csrf_token']) {
+            throw new Exception('Invalid CSRF token');
         }
 
-        // Fetch sub-test details for CBC
-        $sub_stmt = $pdo->prepare("
-            SELECT sub_test_name, result_value, unit, normal_range
-            FROM Test_Result_Details
-            WHERE result_id = :result_id
+        // Validate result_id
+        $result_id = filter_var($_GET['result_id'], FILTER_VALIDATE_INT);
+        if ($result_id === false) {
+            throw new Exception('Invalid result ID');
+        }
+
+        // Rate limiting check
+        $rate_key = "pdf_gen_" . $_SESSION['user_id'];
+        if (apcu_exists($rate_key)) {
+            $count = apcu_fetch($rate_key);
+            if ($count > 10) { // Max 10 PDFs per minute
+                throw new Exception('Rate limit exceeded. Please try again later.');
+            }
+            apcu_inc($rate_key);
+        } else {
+            apcu_store($rate_key, 1, 60); // 1 minute expiry
+        }
+
+        // Fetch test result with prepared statement
+        $stmt = $conn->prepare("
+            SELECT r.*, t.test_name, t.normal_range, t.unit, 
+                   p.patient_name, p.age, p.gender, p.contact,
+                   u.name as recorded_by_name
+            FROM test_results r
+            JOIN tests t ON r.test_id = t.test_id
+            JOIN patients p ON r.patient_id = p.patient_id
+            JOIN users u ON r.recorded_by = u.user_id
+            WHERE r.result_id = ?
         ");
-        $sub_stmt->execute(['result_id' => $result_id]);
-        $sub_tests = $sub_stmt->fetchAll(PDO::FETCH_ASSOC);
+        $stmt->bind_param("i", $result_id);
+        $stmt->execute();
+        $result = $stmt->get_result()->fetch_assoc();
 
-        // Create new PDF document
+        if (!$result) {
+            throw new Exception('Test result not found');
+        }
+
+        // Create PDF
         $pdf = new TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
-        $pdf->SetCreator(PDF_CREATOR);
-        $pdf->SetAuthor('Shiva Pathology Centre');
-        $pdf->SetTitle('Pathological Report');
-        $pdf->SetSubject('Test Result');
-        $pdf->SetMargins(15, 15, 15);
-        $pdf->SetAutoPageBreak(TRUE, 15);
-        $pdf->setFont('helvetica', '', 10);
+        
+        // Set document information and security
+        $pdf->SetCreator('Pathology System');
+        $pdf->SetAuthor('Pathology Lab');
+        $pdf->SetTitle('Test Report - ' . $result['patient_name']);
+        $pdf->SetProtection(['print', 'copy'], '', 'userpass', 128);
 
-        // Disable default header/footer
+        // Set header and footer
         $pdf->setPrintHeader(false);
-        $pdf->setPrintFooter(false);
+        $pdf->setPrintFooter(true);
+        $pdf->setFooterData(array(0,64,0), array(0,64,128));
 
         // Add a page
         $pdf->AddPage();
 
-        // Header
-        $pdf->SetFont('helvetica', 'B', 14);
-        $pdf->Cell(0, 10, 'SHIVA PATHOLOGY CENTRE', 0, 1, 'C');
-        $pdf->SetFont('helvetica', '', 10);
-        $pdf->Cell(0, 5, 'Sambhugan Jaipur', 0, 1, 'C');
-        $pdf->SetFont('helvetica', 'B', 12);
-        $pdf->Cell(0, 10, 'Pathological Report', 0, 1, 'C');
-        $pdf->Ln(2);
+        // Set content security headers
+        header('Content-Security-Policy: default-src \'self\'');
+        header('X-Content-Type-Options: nosniff');
 
-        // Patient Details (Left and Right Columns)
-        $pdf->SetFont('helvetica', '', 10);
+        // Generate PDF content
         $html = '
-        <table cellpadding="2">
+        <h1 style="text-align: center;">Pathology Test Report</h1>
+        <hr>
+        <h3>Patient Information</h3>
+        <table border="1" cellpadding="5">
             <tr>
-                <td width="50%">
-                    <strong>Patient Name:</strong> ' . htmlspecialchars($result['patient_name']) . '<br>
-                    <strong>Age:</strong> ' . (date('Y') - date('Y', strtotime($result['date_of_birth']))) . '<br>
-                    <strong>Sex:</strong> ' . htmlspecialchars($result['gender']) . '<br>
-                    <strong>Ref. By:</strong> ' . htmlspecialchars($result['ordered_by']) . '<br>
-                    <strong>Address:</strong> -<br>
-                </td>
-                <td width="50%">
-                    <strong>First Name:</strong> -<br>
-                    <strong>Last Name:</strong> -<br>
-                    <strong>Patient ID:</strong> -<br>
-                    <strong>Sample ID:</strong> -<br>
-                    <strong>Mode:</strong> -<br>
-                    <strong>Time of Analysis:</strong> ' . htmlspecialchars($result['recorded_at']) . '<br>
-                </td>
+                <th>Name</th>
+                <td>' . htmlspecialchars($result['patient_name']) . '</td>
+                <th>Age</th>
+                <td>' . htmlspecialchars($result['age']) . '</td>
+            </tr>
+            <tr>
+                <th>Gender</th>
+                <td>' . htmlspecialchars($result['gender']) . '</td>
+                <th>Contact</th>
+                <td>' . htmlspecialchars($result['contact']) . '</td>
+            </tr>
+        </table>
+        
+        <h3>Test Details</h3>
+        <table border="1" cellpadding="5">
+            <tr>
+                <th>Test Name</th>
+                <td>' . htmlspecialchars($result['test_name']) . '</td>
+            </tr>
+            <tr>
+                <th>Result Value</th>
+                <td>' . htmlspecialchars($result['result_value']) . ' ' . htmlspecialchars($result['unit']) . '</td>
+            </tr>
+            <tr>
+                <th>Normal Range</th>
+                <td>' . htmlspecialchars($result['normal_range']) . '</td>
+            </tr>
+            <tr>
+                <th>Comments</th>
+                <td>' . htmlspecialchars($result['comments']) . '</td>
+            </tr>
+            <tr>
+                <th>Recorded By</th>
+                <td>' . htmlspecialchars($result['recorded_by_name']) . '</td>
+            </tr>
+            <tr>
+                <th>Recorded At</th>
+                <td>' . htmlspecialchars($result['recorded_at']) . '</td>
             </tr>
         </table>';
+
         $pdf->writeHTML($html, true, false, true, false, '');
-
-        // Test Results Section
-        $pdf->SetFont('helvetica', 'B', 10);
-        $pdf->Cell(0, 5, 'TEST', 0, 1, 'C');
-        $pdf->Cell(0, 5, 'COMPLETE BLOOD COUNT', 0, 1, 'C', false, '', 0, false, 'T', 'T');
-        $pdf->Ln(2);
-
-        // CBC Table (Dynamic)
-        $pdf->SetFont('helvetica', '', 9);
-        $html = '
-        <table border="1" cellpadding="3">
-            <tr>
-                <th width="40%"><strong>TEST</strong></th>
-                <th width="20%"><strong>RESULT</strong></th>
-                <th width="20%"><strong>UNIT</strong></th>
-                <th width="20%"><strong>NORMAL VALUE</strong></th>
-            </tr>';
-
-        foreach ($sub_tests as $sub_test) {
-            $html .= '
-            <tr>
-                <td>' . htmlspecialchars($sub_test['sub_test_name']) . '</td>
-                <td>' . htmlspecialchars($sub_test['result_value']) . '</td>
-                <td>' . htmlspecialchars($sub_test['unit']) . '</td>
-                <td>' . htmlspecialchars($sub_test['normal_range']) . '</td>
-            </tr>';
-        }
-
-        $html .= '</table>';
-        $pdf->writeHTML($html, true, false, true, false, '');
-
-        // Widal Test Section (Hardcoded for now)
-        $pdf->Ln(5);
-        $pdf->SetFont('helvetica', 'B', 10);
-        $pdf->Cell(0, 5, 'WIDAL TEST', 0, 1, 'C', false, '', 0, false, 'T', 'T');
-        $pdf->SetFont('helvetica', '', 9);
-        $pdf->Cell(0, 5, 'Finding POSITIVE', 0, 1, 'L');
-        $pdf->Ln(2);
-
-        // Widal Test Table
-        $html = '
-        <table border="1" cellpadding="3">
-            <tr>
-                <th width="20%"><strong>Dilution</strong></th>
-                <th width="16%"><strong>1:40</strong></th>
-                <th width="16%"><strong>1:80</strong></th>
-                <th width="16%"><strong>1:160</strong></th>
-                <th width="16%"><strong>1:320</strong></th>
-                <th width="16%"><strong>1:640</strong></th>
-            </tr>
-            <tr>
-                <td>S. Typhi "O"</td>
-                <td>+</td>
-                <td>-</td>
-                <td>-</td>
-                <td>-</td>
-                <td>-</td>
-            </tr>
-            <tr>
-                <td>S. Typhi "H"</td>
-                <td>+</td>
-                <td>+</td>
-                <td>-</td>
-                <td>-</td>
-                <td>-</td>
-            </tr>
-            <tr>
-                <td>S. Paratyphi "AH"</td>
-                <td>-</td>
-                <td>-</td>
-                <td>-</td>
-                <td>-</td>
-                <td>-</td>
-            </tr>
-            <tr>
-                <td>S. Paratyphi "BH"</td>
-                <td>-</td>
-                <td>-</td>
-                <td>-</td>
-                <td>-</td>
-                <td>-</td>
-            </tr>
-        </table>';
-        $pdf->writeHTML($html, true, false, true, false, '');
-
-        // Footer
-        $pdf->Ln(10);
-        $pdf->SetFont('helvetica', '', 9);
-        $pdf->Cell(0, 5, '2024/08/11 11:05', 0, 1, 'L');
-        $pdf->Cell(0, 5, 'Lab Incharge', 0, 1, 'R');
-
+        
         // Output PDF
-        ob_start();
-        $pdf->Output('pathology_report_' . $result_id . '.pdf', 'D');
-        ob_end_clean();
-        exit();
+        $pdf->Output('test_report_' . $result_id . '.pdf', 'D');
+        exit;
+
     } catch (Exception $e) {
-        die("PDF Generation Error: " . $e->getMessage());
+        // Log error
+        error_log("PDF Generation Error: " . $e->getMessage());
+        
+        // Return user-friendly error
+        header('HTTP/1.1 500 Internal Server Error');
+        echo "An error occurred while generating the report. Please try again later.";
+        exit;
     }
 }
 ?>
@@ -239,7 +195,10 @@ if (isset($_GET['generate_pdf']) && !empty($_GET['result_id'])) {
                     <div class="row mb-3">
                         <div class="col-md-4">
                             <div class="input-group">
-                                <input type="text" id="searchInput" class="form-control" placeholder="Search by patient or test">
+                                <input type="text" class="form-control" id="searchInput" placeholder="Search reports..." 
+                                       maxlength="50" pattern="[A-Za-z0-9\s-]+" 
+                                       title="Only letters, numbers, spaces and hyphens allowed">
+                                <input type="hidden" id="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                                 <button class="btn btn-primary" onclick="loadReports(1)">Search</button>
                             </div>
                         </div>
@@ -283,11 +242,23 @@ if (isset($_GET['generate_pdf']) && !empty($_GET['result_id'])) {
     <script>
         function loadReports(page = 1) {
             const searchQuery = document.getElementById('searchInput').value.trim();
-            const url = `includes/fetch_reports.php?page=${page}${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''}`;
+            const csrfToken = document.getElementById('csrf_token').value;
+            
+            // Validate search input
+            if (searchQuery && !/^[A-Za-z0-9\s-]+$/.test(searchQuery)) {
+                showAlert('Invalid search query', 'error');
+                return;
+            }
+            
+            const url = `includes/fetch_reports.php?page=${page}&csrf_token=${encodeURIComponent(csrfToken)}${
+                searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''
+            }`;
             
             fetch(url)
                 .then(response => {
-                    if (!response.ok) throw new Error('Network response was not ok');
+                    if (!response.ok) {
+                        throw new Error(response.statusText);
+                    }
                     return response.json();
                 })
                 .then(data => {
@@ -296,6 +267,57 @@ if (isset($_GET['generate_pdf']) && !empty($_GET['result_id'])) {
 
                     if (data.reports.length === 0) {
                         tbody.innerHTML = '<tr><td colspan="8" class="text-center">No reports found</td></tr>';
+                        return;
+                    }
+
+                    data.reports.forEach(report => {
+                        const row = `
+                            <tr>
+                                <td>${escapeHtml(report.result_id)}</td>
+                                <td>${escapeHtml(report.patient_name)}</td>
+                                <td>${escapeHtml(report.test_name)}</td>
+                                <td>${escapeHtml(report.result_value)}</td>
+                                <td>${escapeHtml(report.comments || '-')}</td>
+                                <td>${escapeHtml(report.recorded_by_name)}</td>
+                                <td>${escapeHtml(report.recorded_at)}</td>
+                                <td>
+                                    <a href="reports.php?generate_pdf=true&result_id=${encodeURIComponent(report.result_id)}&csrf_token=${encodeURIComponent(csrfToken)}" 
+                                       class="btn btn-sm btn-success">
+                                        <i class="bi bi-file-pdf"></i> Download PDF
+                                    </a>
+                                </td>
+                            </tr>`;
+                        tbody.innerHTML += row;
+                    });
+
+                    updatePagination(data.current_page, data.total_pages);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showAlert('Error loading reports: ' + error.message, 'error');
+                    document.getElementById('reportTableBody').innerHTML = 
+                        '<tr><td colspan="8" class="text-center">Error loading reports</td></tr>';
+                });
+        }
+
+        // Helper function to escape HTML
+        function escapeHtml(unsafe) {
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // Helper function to show alerts
+        function showAlert(message, type) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
                     } else {
                         data.reports.forEach(report => {
                             const row = `
