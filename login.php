@@ -9,7 +9,8 @@ session_start([
     'cookie_secure' => true,
     'cookie_samesite' => 'Strict',
     'use_strict_mode' => true,
-    'gc_maxlifetime' => SESSION_LIFETIME
+    'gc_maxlifetime' => 3600, // 1 hour
+    'cookie_lifetime' => 3600 // 1 hour
 ]);
 
 // Include required files
@@ -89,6 +90,7 @@ if (!isset($_SESSION['csrf_token'])) {
     $_SESSION['csrf_time'] = time();
 }
 
+// Handle login form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         // Verify CSRF token
