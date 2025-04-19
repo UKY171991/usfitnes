@@ -37,10 +37,10 @@ try {
     // Base query with JOIN to get creator's name
     $query = "SELECT p.*, CONCAT(u.first_name, ' ', u.last_name) AS created_by_name 
               FROM patients p 
-              LEFT JOIN users u ON p.created_by = u.user_id";
+              LEFT JOIN users u ON p.user_id = u.user_id";
     $count_query = "SELECT COUNT(*) 
                     FROM patients p 
-                    LEFT JOIN users u ON p.created_by = u.user_id";
+                    LEFT JOIN users u ON p.user_id = u.user_id";
     $params = [];
 
     // Add branch condition

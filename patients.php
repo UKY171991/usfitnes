@@ -48,6 +48,17 @@ try {
             throw new Exception('Patient not found or access denied');
         }
 
+        // Delete related records first (if any)
+        $db->query(
+            "DELETE FROM test_requests WHERE patient_id = :patient_id",
+            ['patient_id' => $patient_id]
+        );
+        
+        $db->query(
+            "DELETE FROM test_results WHERE patient_id = :patient_id",
+            ['patient_id' => $patient_id]
+        );
+
         // Delete the patient
         $db->query(
             "DELETE FROM patients WHERE patient_id = :patient_id AND branch_id = :branch_id",
