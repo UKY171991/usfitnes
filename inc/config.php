@@ -1,9 +1,9 @@
 <?php
 // Database Configuration
 define('DB_HOST', 'localhost');
-define('DB_USER', 'root');
-define('DB_PASS', '');
-define('DB_NAME', 'pathology_crm');
+define('DB_USER', 'u902379465_fitness');
+define('DB_PASS', '&m0DCQT!Jn0');
+define('DB_NAME', 'u902379465_fitness');
 
 // System Configuration
 define('SITE_NAME', 'Pathology CRM');
