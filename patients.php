@@ -33,7 +33,7 @@ try {
     $db = Database::getInstance();
 
     // Delete patient (Admin-only) with CSRF protection
-if (isset($_GET['delete']) && $_SESSION['role'] === 'Admin') {
+    if (isset($_GET['delete']) && $_SESSION['role'] === 'Admin') {
         // Verify CSRF token
         if (!isset($_GET['csrf_token']) || $_GET['csrf_token'] !== $_SESSION['csrf_token']) {
             throw new Exception('Invalid CSRF token');

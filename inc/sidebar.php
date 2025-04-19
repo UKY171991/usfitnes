@@ -2,7 +2,7 @@
     <div class="sidebar-brand d-flex align-items-center">
         <img src="assets/img/logo.png" alt="Logo" class="me-2" style="height: 30px;">
         <span>Lab Management</span>
-    </div>
+        </div>
     
     <div class="nav-sidebar">
         <?php
@@ -116,7 +116,7 @@
             </a>
         </div>
     </div>
-</aside>
+      </aside>
 
 <style>
 /* Additional sidebar styles */
