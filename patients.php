@@ -11,17 +11,22 @@ session_start([
     'gc_maxlifetime' => SESSION_LIFETIME
 ]);
 
-// Check if user is logged in
-if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in']) {
-    header("Location: login.php");
-    exit();
+// Check if user is logged in and has appropriate role
+if (!isset($_SESSION['user_id']) || !isset($_SESSION['role'])) {
+    header('Location: login.php');
+    exit;
 }
 
-// Restrict to Admin, Doctor, Technician with proper role check
+// Only allow Admin, Doctor, and Technician roles
 $allowed_roles = ['Admin', 'Doctor', 'Technician'];
-if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], $allowed_roles)) {
-    header("Location: index.php");
-    exit();
+if (!in_array($_SESSION['role'], $allowed_roles)) {
+    header('HTTP/1.1 403 Forbidden');
+    exit('Access Denied');
+}
+
+// Generate CSRF token if not exists
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
 try {
@@ -48,40 +53,45 @@ try {
             throw new Exception('Patient not found or access denied');
         }
 
-        // Delete related records first (if any)
-        $db->query(
-            "DELETE FROM test_requests WHERE patient_id = :patient_id",
-            ['patient_id' => $patient_id]
-        );
-        
-        $db->query(
-            "DELETE FROM test_results WHERE patient_id = :patient_id",
-            ['patient_id' => $patient_id]
-        );
+        // Start transaction
+        $db->beginTransaction();
 
-        // Delete the patient
-        $db->query(
-            "DELETE FROM patients WHERE patient_id = :patient_id AND branch_id = :branch_id",
-            ['patient_id' => $patient_id, 'branch_id' => $_SESSION['branch_id']]
-        );
-        
-        // Log the deletion
-        error_log("Patient {$patient_id} deleted by user {$_SESSION['user_id']} in branch {$_SESSION['branch_id']}");
-        
-        $_SESSION['success_message'] = "Patient deleted successfully";
+        try {
+            // Delete related records first (if any)
+            $db->query(
+                "DELETE FROM test_requests WHERE patient_id = :patient_id",
+                ['patient_id' => $patient_id]
+            );
+            
+            $db->query(
+                "DELETE FROM test_results WHERE patient_id = :patient_id",
+                ['patient_id' => $patient_id]
+            );
+
+            // Delete the patient
+            $db->query(
+                "DELETE FROM patients WHERE patient_id = :patient_id AND branch_id = :branch_id",
+                ['patient_id' => $patient_id, 'branch_id' => $_SESSION['branch_id']]
+            );
+            
+            // Log the deletion
+            error_log("Patient {$patient_id} deleted by user {$_SESSION['user_id']} in branch {$_SESSION['branch_id']}");
+            
+            $db->commit();
+            $_SESSION['success_message'] = "Patient deleted successfully";
+        } catch (Exception $e) {
+            $db->rollBack();
+            throw $e;
+        }
+
         header("Location: patients.php");
-        exit();
+        exit;
     }
 } catch (Exception $e) {
     error_log("Patient management error: " . $e->getMessage());
-    $_SESSION['error_message'] = "Operation failed. Please try again.";
+    $_SESSION['error_message'] = "Operation failed: " . $e->getMessage();
     header("Location: patients.php");
-    exit();
-}
-
-// Generate CSRF token if not exists
-if (!isset($_SESSION['csrf_token'])) {
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    exit;
 }
 ?>
 
@@ -133,6 +143,25 @@ if (!isset($_SESSION['csrf_token'])) {
         .card {
             position: relative;
         }
+        .patient-actions {
+            white-space: nowrap;
+        }
+        .patient-actions .btn {
+            margin: 0 2px;
+        }
+        .status-badge {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+        }
+        .status-active {
+            background-color: #d1e7dd;
+            color: #0f5132;
+        }
+        .status-inactive {
+            background-color: #f8d7da;
+            color: #842029;
+        }
     </style>
 </head>
 <body class="layout-fixed sidebar-expand-lg bg-body-tertiary">
@@ -182,7 +211,10 @@ if (!isset($_SESSION['csrf_token'])) {
                                 </div>
                                 <div class="col-md-6">
                                     <div class="search-box">
-                                        <input type="text" id="searchInput" class="form-control" placeholder="Search by name or email">
+                                        <input type="text" id="searchInput" class="form-control" 
+                                               placeholder="Search by name, email, or phone"
+                                               maxlength="50" pattern="[A-Za-z0-9\s@.-]+"
+                                               title="Only letters, numbers, spaces, @, ., and - allowed">
                                         <span class="clear-search" onclick="clearSearch()"><i class="bi bi-x-circle"></i></span>
                                     </div>
                                 </div>
@@ -204,13 +236,14 @@ if (!isset($_SESSION['csrf_token'])) {
                                             <th>Gender</th>
                                             <th>Contact</th>
                                             <th>Email</th>
+                                            <th>Status</th>
                                             <th>Created By</th>
                                             <th>Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody id="patientTableBody">
                                         <tr>
-                                            <td colspan="8" class="text-center">Loading patients...</td>
+                                            <td colspan="9" class="text-center">Loading patients...</td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -231,6 +264,7 @@ if (!isset($_SESSION['csrf_token'])) {
     <script>
         let currentPage = 1;
         let isLoading = false;
+        let searchTimeout = null;
 
         function showLoading() {
             document.querySelector('.loading-overlay').style.display = 'flex';
@@ -242,6 +276,26 @@ if (!isset($_SESSION['csrf_token'])) {
             isLoading = false;
         }
 
+        function escapeHtml(unsafe) {
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        function showAlert(message, type) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+            document.querySelector('.container-fluid').insertBefore(alertDiv, document.querySelector('.card'));
+            setTimeout(() => alertDiv.remove(), 5000);
+        }
+
         function loadPatients(page = 1) {
             if (isLoading) return;
             
@@ -249,12 +303,23 @@ if (!isset($_SESSION['csrf_token'])) {
             currentPage = page;
             
             const searchQuery = document.getElementById('searchInput').value.trim();
-            const url = `includes/fetch_patients.php?page=${page}${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''}`;
+            const csrfToken = '<?php echo $_SESSION['csrf_token']; ?>';
+            
+            // Validate search input
+            if (searchQuery && !/^[A-Za-z0-9\s@.-]+$/.test(searchQuery)) {
+                showAlert('Invalid search query', 'error');
+                hideLoading();
+                return;
+            }
+            
+            const url = `includes/fetch_patients.php?page=${page}&csrf_token=${encodeURIComponent(csrfToken)}${
+                searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''
+            }`;
             
             fetch(url)
                 .then(response => {
                     if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
+                        throw new Error(response.statusText);
                     }
                     return response.json();
                 })
@@ -263,7 +328,7 @@ if (!isset($_SESSION['csrf_token'])) {
                     tbody.innerHTML = '';
 
                     if (data.patients.length === 0) {
-                        tbody.innerHTML = '<tr><td colspan="8" class="text-center">No patients found</td></tr>';
+                        tbody.innerHTML = '<tr><td colspan="9" class="text-center">No patients found</td></tr>';
                         return;
                     }
 
@@ -271,33 +336,33 @@ if (!isset($_SESSION['csrf_token'])) {
                         const row = `
                             <tr>
                                 <td>${escapeHtml(patient.patient_id)}</td>
-                                <td>${escapeHtml(patient.first_name)} ${escapeHtml(patient.last_name)}</td>
+                                <td>${escapeHtml(patient.first_name + ' ' + patient.last_name)}</td>
                                 <td>${escapeHtml(patient.date_of_birth)}</td>
                                 <td>${escapeHtml(patient.gender)}</td>
-                                <td>${escapeHtml(patient.phone || '-')}</td>
+                                <td>${escapeHtml(patient.phone)}</td>
                                 <td>${escapeHtml(patient.email || '-')}</td>
-                                <td>${escapeHtml(patient.created_by_name)}</td>
                                 <td>
-                                    <div class="btn-group btn-group-sm">
-                                        <a href="view_patient.php?id=${escapeHtml(patient.patient_id)}" 
-                                           class="btn btn-info" 
-                                           title="View Patient">
-                                            <i class="bi bi-eye"></i>
-                                        </a>
-                                        <a href="add_patient.php?edit=${escapeHtml(patient.patient_id)}" 
-                                           class="btn btn-warning" 
-                                           title="Edit Patient">
-                                            <i class="bi bi-pencil"></i>
-                                        </a>
-                                        <?php if ($_SESSION['role'] === 'Admin'): ?>
-                                        <a href="patients.php?delete=${escapeHtml(patient.patient_id)}&csrf_token=<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>" 
-                                           class="btn btn-danger" 
-                                           onclick="return confirm('Are you sure you want to delete this patient? This action cannot be undone.')"
-                                           title="Delete Patient">
-                                            <i class="bi bi-trash"></i>
-                                        </a>
-                                        <?php endif; ?>
-                                    </div>
+                                    <span class="status-badge status-${patient.status === 'active' ? 'active' : 'inactive'}">
+                                        ${escapeHtml(patient.status)}
+                                    </span>
+                                </td>
+                                <td>${escapeHtml(patient.created_by_name)}</td>
+                                <td class="patient-actions">
+                                    <a href="view_patient.php?id=${encodeURIComponent(patient.patient_id)}" 
+                                       class="btn btn-sm btn-info" title="View Details">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a href="edit_patient.php?id=${encodeURIComponent(patient.patient_id)}" 
+                                       class="btn btn-sm btn-warning" title="Edit">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <?php if ($_SESSION['role'] === 'Admin'): ?>
+                                    <a href="javascript:void(0)" 
+                                       onclick="deletePatient(${escapeHtml(patient.patient_id)})" 
+                                       class="btn btn-sm btn-danger" title="Delete">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                    <?php endif; ?>
                                 </td>
                             </tr>`;
                         tbody.innerHTML += row;
@@ -307,9 +372,9 @@ if (!isset($_SESSION['csrf_token'])) {
                 })
                 .catch(error => {
                     console.error('Error:', error);
+                    showAlert('Error loading patients: ' + error.message, 'error');
                     document.getElementById('patientTableBody').innerHTML = 
-                        '<tr><td colspan="8" class="text-center text-danger">' +
-                        'Error loading patients. Please try again.</td></tr>';
+                        '<tr><td colspan="9" class="text-center">Error loading patients</td></tr>';
                 })
                 .finally(() => {
                     hideLoading();
@@ -319,43 +384,25 @@ if (!isset($_SESSION['csrf_token'])) {
         function updatePagination(currentPage, totalPages) {
             const pagination = document.getElementById('pagination');
             pagination.innerHTML = '';
-
-            if (totalPages <= 1) return;
-
-            // Previous button
-            pagination.innerHTML += `
-                <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
-                    <a class="page-link" href="#" onclick="loadPatients(${currentPage - 1}); return false;">
-                        <i class="bi bi-chevron-left"></i>
-                    </a>
-                </li>`;
-
-            // Page numbers
-            for (let i = 1; i <= totalPages; i++) {
-                if (
-                    i === 1 || // First page
-                    i === totalPages || // Last page
-                    (i >= currentPage - 1 && i <= currentPage + 1) // Pages around current page
-                ) {
+            
+            if (totalPages > 1) {
+                pagination.innerHTML = `
+                    <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                        <a class="page-link" href="#" onclick="return loadPatients(${currentPage - 1});">«</a>
+                    </li>`;
+                    
+                for (let i = 1; i <= totalPages; i++) {
                     pagination.innerHTML += `
                         <li class="page-item ${i === currentPage ? 'active' : ''}">
-                            <a class="page-link" href="#" onclick="loadPatients(${i}); return false;">${i}</a>
-                        </li>`;
-                } else if (i === currentPage - 2 || i === currentPage + 2) {
-                    pagination.innerHTML += `
-                        <li class="page-item disabled">
-                            <span class="page-link">...</span>
+                            <a class="page-link" href="#" onclick="return loadPatients(${i});">${i}</a>
                         </li>`;
                 }
+                
+                pagination.innerHTML += `
+                    <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                        <a class="page-link" href="#" onclick="return loadPatients(${currentPage + 1});">»</a>
+                    </li>`;
             }
-
-            // Next button
-            pagination.innerHTML += `
-                <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
-                    <a class="page-link" href="#" onclick="loadPatients(${currentPage + 1}); return false;">
-                        <i class="bi bi-chevron-right"></i>
-                    </a>
-                </li>`;
         }
 
         function clearSearch() {
@@ -363,35 +410,26 @@ if (!isset($_SESSION['csrf_token'])) {
             loadPatients(1);
         }
 
-        function escapeHtml(str) {
-            if (str === null || str === undefined) return '';
-            const div = document.createElement('div');
-            div.textContent = str;
-            return div.innerHTML;
+        function deletePatient(patientId) {
+            if (!confirm('Are you sure you want to delete this patient? This action cannot be undone.')) {
+                return;
+            }
+
+            const csrfToken = '<?php echo $_SESSION['csrf_token']; ?>';
+            window.location.href = `patients.php?delete=${patientId}&csrf_token=${encodeURIComponent(csrfToken)}`;
         }
 
-        // Event Listeners
-        document.addEventListener('DOMContentLoaded', () => {
+        // Initialize search with debounce
+        document.getElementById('searchInput').addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                loadPatients(1);
+            }, 500);
+        });
+
+        // Load patients on page load
+        document.addEventListener('DOMContentLoaded', function() {
             loadPatients(1);
-
-            const searchInput = document.getElementById('searchInput');
-            let searchTimeout;
-
-            searchInput.addEventListener('input', () => {
-                clearTimeout(searchTimeout);
-                searchTimeout = setTimeout(() => loadPatients(1), 500);
-            });
-
-            searchInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    clearTimeout(searchTimeout);
-                    loadPatients(1);
-                }
-            });
-
-            // Initialize tooltips
-            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'));
-            tooltipTriggerList.forEach(el => new bootstrap.Tooltip(el));
         });
     </script>
 </body>
