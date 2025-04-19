@@ -18,13 +18,8 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
     
     if(!empty($username) && !empty($password)) {
         try {
-            // Get user from database
-            $stmt = $conn->prepare("
-                SELECT u.*, b.id as branch_id, b.name as branch_name 
-                FROM users u 
-                LEFT JOIN branches b ON u.branch_id = b.id 
-                WHERE u.username = ?
-            ");
+            // Get user from database - simplified query without branch join
+            $stmt = $conn->prepare("SELECT * FROM users WHERE username = ?");
             $stmt->execute([$username]);
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
             
@@ -35,9 +30,15 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $_SESSION['name'] = $user['name'];
                 $_SESSION['role'] = $user['role'];
                 
-                if($user['branch_id']) {
-                    $_SESSION['branch_id'] = $user['branch_id'];
-                    $_SESSION['branch_name'] = $user['branch_name'];
+                // If user has a branch_id, get branch details
+                if(!empty($user['branch_id'])) {
+                    $stmt = $conn->prepare("SELECT * FROM branches WHERE id = ?");
+                    $stmt->execute([$user['branch_id']]);
+                    $branch = $stmt->fetch(PDO::FETCH_ASSOC);
+                    if($branch) {
+                        $_SESSION['branch_id'] = $branch['id'];
+                        $_SESSION['branch_name'] = $branch['name'];
+                    }
                 }
                 
                 // Log activity
