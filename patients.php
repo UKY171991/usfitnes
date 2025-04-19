@@ -32,6 +32,10 @@ if (empty($_SESSION['csrf_token'])) {
 try {
     $db = Database::getInstance();
 
+    // Fetch all branches for dropdown
+    $stmt = $db->query("SELECT branch_id, branch_name FROM branches ORDER BY branch_name");
+    $branches = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
     // Delete patient (Admin-only) with CSRF protection
     if (isset($_GET['delete']) && $_SESSION['role'] === 'Admin') {
         // Verify CSRF token
@@ -215,6 +219,11 @@ try {
                         <div class="col-sm-6">
                             <h1 class="m-0">Patient Management</h1>
                         </div>
+                        <div class="col-sm-6 text-right">
+                            <button type="button" class="btn btn-primary btn-add-patient float-end" data-bs-toggle="modal" data-bs-target="#addPatientModal">
+                                <i class="fas fa-plus me-2"></i>Add New Patient
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -227,9 +236,6 @@ try {
                                 <i class="bi bi-search"></i>
                                 <input type="text" class="form-control" id="searchInput" placeholder="Search by name, email, or phone">
                             </div>
-                            <button type="button" class="btn btn-primary btn-add-patient" onclick="location.href='add_patient.php'">
-                                <i class="bi bi-plus-lg me-1"></i>Add New Patient
-                            </button>
                         </div>
                         <div class="card-body p-0">
                             <div class="table-responsive">
@@ -270,6 +276,100 @@ try {
                     </div>
                 </div>
             </section>
+        </div>
+    </div>
+
+    <!-- Add Patient Modal -->
+    <div class="modal fade" id="addPatientModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add New Patient</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="addPatientForm">
+                    <div class="modal-body">
+                        <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label required">First Name</label>
+                                    <input type="text" class="form-control" name="first_name" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label required">Last Name</label>
+                                    <input type="text" class="form-control" name="last_name" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label required">Date of Birth</label>
+                                    <input type="date" class="form-control" name="date_of_birth" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label required">Gender</label>
+                                    <select class="form-select" name="gender" required>
+                                        <option value="">Select Gender</option>
+                                        <option value="Male">Male</option>
+                                        <option value="Female">Female</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label required">Phone</label>
+                                    <input type="tel" class="form-control" name="phone" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Email</label>
+                                    <input type="email" class="form-control" name="email">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Branch</label>
+                                    <select class="form-select" name="branch_id">
+                                        <option value="">Select Branch</option>
+                                        <?php foreach ($branches as $branch): ?>
+                                            <option value="<?php echo htmlspecialchars($branch['branch_id']); ?>">
+                                                <?php echo htmlspecialchars($branch['branch_name']); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Address</label>
+                            <textarea class="form-control" name="address" rows="3"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Save Patient
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 
