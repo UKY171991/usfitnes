@@ -5,6 +5,9 @@ require_once 'config.php';
 class Database {
     private static $instance = null;
     private $connection;
+    private $connectionPool = [];
+    private $maxPoolSize = 10;
+    private $activeConnections = 0;
 
     private function __construct() {
         try {
@@ -12,7 +15,8 @@ class Database {
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                 PDO::ATTR_EMULATE_PREPARES => false,
-                PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci"
+                PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci",
+                PDO::ATTR_PERSISTENT => true
             ];
             
             $this->connection = new PDO(DSN, DB_USER, DB_PASS, $options);
@@ -37,7 +41,55 @@ class Database {
     }
 
     public function getConnection() {
+        if ($this->activeConnections < $this->maxPoolSize) {
+            $this->activeConnections++;
+            return $this->connection;
+        }
+        
+        // If pool is full, wait for a connection to become available
+        while ($this->activeConnections >= $this->maxPoolSize) {
+            usleep(100000); // Wait 100ms
+        }
+        
+        $this->activeConnections++;
         return $this->connection;
+    }
+
+    public function releaseConnection() {
+        if ($this->activeConnections > 0) {
+            $this->activeConnections--;
+        }
+    }
+
+    public function beginTransaction() {
+        return $this->connection->beginTransaction();
+    }
+
+    public function commit() {
+        return $this->connection->commit();
+    }
+
+    public function rollBack() {
+        return $this->connection->rollBack();
+    }
+
+    public function query($sql, $params = []) {
+        try {
+            $stmt = $this->getConnection()->prepare($sql);
+            $stmt->execute($params);
+            
+            // Log query for debugging
+            if (ENVIRONMENT !== 'production') {
+                error_log("SQL Query: $sql\nParams: " . print_r($params, true));
+            }
+            
+            return $stmt;
+        } catch (PDOException $e) {
+            error_log("Query Error: " . $e->getMessage() . "\nSQL: $sql");
+            throw $e;
+        } finally {
+            $this->releaseConnection();
+        }
     }
 
     // Test the connection
@@ -73,6 +125,10 @@ try {
     $pdo = $db->getConnection();
 } catch (Exception $e) {
     error_log("Database Error: " . $e->getMessage());
-    die("A system error occurred. Please check the error logs for more information.");
+    if (ENVIRONMENT === 'production') {
+        die("A system error occurred. Please check the error logs for more information.");
+    } else {
+        die("Database Error: " . $e->getMessage());
+    }
 }
 ?>

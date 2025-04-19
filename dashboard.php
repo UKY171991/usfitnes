@@ -6,7 +6,8 @@ session_start([
     'cookie_httponly' => true,
     'cookie_secure' => true,
     'cookie_samesite' => 'Strict',
-    'use_strict_mode' => true
+    'use_strict_mode' => true,
+    'gc_maxlifetime' => SESSION_LIFETIME
 ]);
 
 // Check if user is logged in
@@ -24,11 +25,12 @@ if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'Admin') {
 // Get user data
 try {
     $db = Database::getInstance();
-    $pdo = $db->getConnection();
     
     // Fetch user data with prepared statement
-    $stmt = $pdo->prepare("SELECT name, role FROM users WHERE user_id = ? AND role = 'Admin'");
-    $stmt->execute([$_SESSION['user_id']]);
+    $stmt = $db->query(
+        "SELECT name, role, last_login FROM users WHERE user_id = :user_id AND role = 'Admin'",
+        ['user_id' => $_SESSION['user_id']]
+    );
     $user = $stmt->fetch();
 
     if (!$user) {
@@ -39,17 +41,51 @@ try {
     $branch_id = $_SESSION['branch_id'];
 
     // Fetch branch-specific stats
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM patients WHERE branch_id = ?");
-    $stmt->execute([$branch_id]);
+    $stats = [];
+    
+    // Total Patients
+    $stmt = $db->query(
+        "SELECT COUNT(*) FROM patients WHERE branch_id = :branch_id",
+        ['branch_id' => $branch_id]
+    );
     $stats['patients'] = $stmt->fetchColumn();
 
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM test_requests WHERE branch_id = ? AND status = 'pending'");
-    $stmt->execute([$branch_id]);
-    $stats['tests'] = $stmt->fetchColumn();
+    // Pending Tests
+    $stmt = $db->query(
+        "SELECT COUNT(*) FROM test_requests WHERE branch_id = :branch_id AND status = 'pending'",
+        ['branch_id' => $branch_id]
+    );
+    $stats['pending_tests'] = $stmt->fetchColumn();
 
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM test_results WHERE branch_id = ? AND DATE(created_at) = CURDATE()");
-    $stmt->execute([$branch_id]);
-    $stats['reports'] = $stmt->fetchColumn();
+    // Today's Reports
+    $stmt = $db->query(
+        "SELECT COUNT(*) FROM test_results WHERE branch_id = :branch_id AND DATE(created_at) = CURDATE()",
+        ['branch_id' => $branch_id]
+    );
+    $stats['today_reports'] = $stmt->fetchColumn();
+
+    // Monthly Revenue
+    $stmt = $db->query(
+        "SELECT COALESCE(SUM(amount), 0) FROM payments 
+        WHERE branch_id = :branch_id AND MONTH(payment_date) = MONTH(CURRENT_DATE())",
+        ['branch_id' => $branch_id]
+    );
+    $stats['monthly_revenue'] = $stmt->fetchColumn();
+
+    // Recent Activities
+    $stmt = $db->query(
+        "SELECT * FROM (
+            SELECT 'test_request' as type, request_id as id, patient_name, created_at 
+            FROM test_requests WHERE branch_id = :branch_id
+            UNION ALL
+            SELECT 'test_result' as type, result_id as id, patient_name, created_at 
+            FROM test_results WHERE branch_id = :branch_id
+        ) activities 
+        ORDER BY created_at DESC LIMIT 5",
+        ['branch_id' => $branch_id]
+    );
+    $recent_activities = $stmt->fetchAll();
+
 } catch (Exception $e) {
     error_log("Dashboard Error: " . $e->getMessage());
     $error = "Failed to load dashboard data.";
@@ -63,7 +99,97 @@ try {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo APP_NAME; ?> - Dashboard</title>
     <?php include('inc/head.php'); ?>
-    
+    <link href="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.css" rel="stylesheet">
+    <style>
+        .stats-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border: none;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .stats-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        }
+
+        .stats-card .card-body {
+            padding: 1.5rem;
+        }
+
+        .stats-icon {
+            font-size: 2rem;
+            opacity: 0.8;
+        }
+
+        .stats-number {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin: 0.5rem 0;
+        }
+
+        .stats-label {
+            color: #6c757d;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .activity-card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        }
+
+        .activity-item {
+            padding: 1rem;
+            border-bottom: 1px solid #e9ecef;
+            transition: background-color 0.3s ease;
+        }
+
+        .activity-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+
+        .activity-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 1rem;
+        }
+
+        .activity-icon.test-request {
+            background-color: rgba(78, 115, 223, 0.1);
+            color: #4e73df;
+        }
+
+        .activity-icon.test-result {
+            background-color: rgba(28, 200, 138, 0.1);
+            color: #1cc88a;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+    </style>
 </head>
 <body class="layout-fixed sidebar-expand-lg bg-body-tertiary">
     <div class="app-wrapper">
@@ -71,24 +197,22 @@ try {
         <?php include('inc/sidebar.php'); ?>
         
         <div class="main-content">
-            
-            <div class="welcome-section">
-                <div class="container-fluid">
-                    <h1 class="h3 mb-0 text-gray-800">Welcome back, <?php echo htmlspecialchars($user['name'] ?? 'User'); ?>!</h1>
-                    <p class="text-muted">Here's what's happening at <?php echo APP_NAME; ?> today.</p>
-                </div>
-            </div>
-
             <div class="container-fluid">
+                <!-- Welcome Section -->
+                <div class="welcome-section mb-4 fade-in">
+                    <h1 class="h3 mb-0 text-gray-800">Welcome back, <?php echo htmlspecialchars($user['name']); ?>!</h1>
+                    <p class="text-muted">Last login: <?php echo date('M d, Y H:i', strtotime($user['last_login'])); ?></p>
+                </div>
+
                 <!-- Stats Row -->
                 <div class="row mb-4">
-                    <div class="col-xl-4 col-md-6 mb-4">
+                    <div class="col-xl-3 col-md-6 mb-4 fade-in" style="animation-delay: 0.1s">
                         <div class="card stats-card primary h-100">
                             <div class="card-body">
                                 <div class="row align-items-center">
                                     <div class="col">
                                         <p class="stats-label">Total Patients</p>
-                                        <div class="stats-number"><?php echo number_format($stats['patients'] ?? 0); ?></div>
+                                        <div class="stats-number"><?php echo number_format($stats['patients']); ?></div>
                                     </div>
                                     <div class="col-auto">
                                         <i class="bi bi-people stats-icon text-primary"></i>
@@ -97,13 +221,13 @@ try {
                             </div>
                         </div>
                     </div>
-                    <div class="col-xl-4 col-md-6 mb-4">
+                    <div class="col-xl-3 col-md-6 mb-4 fade-in" style="animation-delay: 0.2s">
                         <div class="card stats-card success h-100">
                             <div class="card-body">
                                 <div class="row align-items-center">
                                     <div class="col">
                                         <p class="stats-label">Pending Tests</p>
-                                        <div class="stats-number"><?php echo number_format($stats['tests'] ?? 0); ?></div>
+                                        <div class="stats-number"><?php echo number_format($stats['pending_tests']); ?></div>
                                     </div>
                                     <div class="col-auto">
                                         <i class="bi bi-clipboard2-pulse stats-icon text-success"></i>
@@ -112,13 +236,13 @@ try {
                             </div>
                         </div>
                     </div>
-                    <div class="col-xl-4 col-md-6 mb-4">
+                    <div class="col-xl-3 col-md-6 mb-4 fade-in" style="animation-delay: 0.3s">
                         <div class="card stats-card warning h-100">
                             <div class="card-body">
                                 <div class="row align-items-center">
                                     <div class="col">
                                         <p class="stats-label">Today's Reports</p>
-                                        <div class="stats-number"><?php echo number_format($stats['reports'] ?? 0); ?></div>
+                                        <div class="stats-number"><?php echo number_format($stats['today_reports']); ?></div>
                                     </div>
                                     <div class="col-auto">
                                         <i class="bi bi-file-earmark-text stats-icon text-warning"></i>
@@ -127,49 +251,76 @@ try {
                             </div>
                         </div>
                     </div>
+                    <div class="col-xl-3 col-md-6 mb-4 fade-in" style="animation-delay: 0.4s">
+                        <div class="card stats-card info h-100">
+                            <div class="card-body">
+                                <div class="row align-items-center">
+                                    <div class="col">
+                                        <p class="stats-label">Monthly Revenue</p>
+                                        <div class="stats-number">₹<?php echo number_format($stats['monthly_revenue'], 2); ?></div>
+                                    </div>
+                                    <div class="col-auto">
+                                        <i class="bi bi-currency-rupee stats-icon text-info"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Action Cards -->
+                <!-- Charts Row -->
+                <div class="row mb-4">
+                    <div class="col-xl-8 mb-4 fade-in" style="animation-delay: 0.5s">
+                        <div class="card h-100">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">Monthly Test Statistics</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container">
+                                    <canvas id="monthlyChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-xl-4 mb-4 fade-in" style="animation-delay: 0.6s">
+                        <div class="card h-100">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">Test Categories Distribution</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container">
+                                    <canvas id="categoryChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activities -->
                 <div class="row">
-                    <div class="col-lg-4 mb-4">
-                        <div class="card action-card">
-                            <div class="card-header bg-primary">
-                                <i class="bi bi-clipboard-data"></i>
-                                <h5 class="mb-0">Manage Tests</h5>
+                    <div class="col-12 fade-in" style="animation-delay: 0.7s">
+                        <div class="card activity-card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">Recent Activities</h5>
                             </div>
-                            <div class="card-body">
-                                <p>Add or edit pathology tests like CBC, Blood Sugar, and more.</p>
-                                <a href="test.php" class="btn btn-primary w-100">
-                                    <i class="bi bi-arrow-right-circle"></i>Go to Tests
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-lg-4 mb-4">
-                        <div class="card action-card">
-                            <div class="card-header bg-success">
-                                <i class="bi bi-person-lines-fill"></i>
-                                <h5 class="mb-0">Manage Patients</h5>
-                            </div>
-                            <div class="card-body">
-                                <p>View and manage patient records, history, and test results.</p>
-                                <a href="patients.php" class="btn btn-success w-100">
-                                    <i class="bi bi-arrow-right-circle"></i>Go to Patients
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-lg-4 mb-4">
-                        <div class="card action-card">
-                            <div class="card-header bg-warning">
-                                <i class="bi bi-file-earmark-bar-graph"></i>
-                                <h5 class="mb-0">Generate Reports</h5>
-                            </div>
-                            <div class="card-body">
-                                <p>Generate and manage pathology reports for patients.</p>
-                                <a href="reports.php" class="btn btn-warning w-100 text-white">
-                                    <i class="bi bi-arrow-right-circle"></i>Go to Reports
-                                </a>
+                            <div class="card-body p-0">
+                                <?php foreach ($recent_activities as $activity): ?>
+                                    <div class="activity-item d-flex align-items-center">
+                                        <div class="activity-icon <?php echo $activity['type'] === 'test_request' ? 'test-request' : 'test-result'; ?>">
+                                            <i class="bi bi-<?php echo $activity['type'] === 'test_request' ? 'clipboard2-pulse' : 'file-earmark-text'; ?>"></i>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <h6 class="mb-0"><?php echo htmlspecialchars($activity['patient_name']); ?></h6>
+                                            <small class="text-muted">
+                                                <?php echo ucfirst(str_replace('_', ' ', $activity['type'])); ?> - 
+                                                <?php echo date('M d, Y H:i', strtotime($activity['created_at'])); ?>
+                                            </small>
+                                        </div>
+                                        <a href="<?php echo $activity['type'] === 'test_request' ? 'test_requests.php' : 'test_results.php'; ?>" class="btn btn-sm btn-link">
+                                            View Details
+                                        </a>
+                                    </div>
+                                <?php endforeach; ?>
                             </div>
                         </div>
                     </div>
@@ -181,23 +332,98 @@ try {
     </div>
 
     <?php include('inc/js.php'); ?>
-
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script>
     <script>
+        // Monthly Test Statistics Chart
+        const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
+        const monthlyChart = new Chart(monthlyCtx, {
+            type: 'line',
+            data: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                datasets: [{
+                    label: 'Tests Conducted',
+                    data: [12, 19, 3, 5, 2, 3],
+                    borderColor: '#4e73df',
+                    backgroundColor: 'rgba(78, 115, 223, 0.05)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // Test Categories Distribution Chart
+        const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+        const categoryChart = new Chart(categoryCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Blood Tests', 'Urine Tests', 'X-Ray', 'MRI', 'CT Scan'],
+                datasets: [{
+                    data: [30, 25, 20, 15, 10],
+                    backgroundColor: [
+                        '#4e73df',
+                        '#1cc88a',
+                        '#36b9cc',
+                        '#f6c23e',
+                        '#e74a3b'
+                    ],
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+
+        // Real-time updates
+        function updateDashboard() {
+            fetch('includes/fetch_dashboard_stats.php')
+                .then(response => response.json())
+                .then(data => {
+                    // Update stats cards
+                    document.querySelector('.stats-number:nth-child(2)').textContent = data.patients;
+                    document.querySelector('.stats-number:nth-child(3)').textContent = data.pending_tests;
+                    document.querySelector('.stats-number:nth-child(4)').textContent = data.today_reports;
+                    document.querySelector('.stats-number:nth-child(5)').textContent = '₹' + data.monthly_revenue;
+
+                    // Update charts
+                    monthlyChart.data.datasets[0].data = data.monthly_stats;
+                    monthlyChart.update();
+
+                    categoryChart.data.datasets[0].data = data.category_stats;
+                    categoryChart.update();
+                })
+                .catch(error => console.error('Error fetching dashboard stats:', error));
+        }
+
+        // Update dashboard every 30 seconds
+        setInterval(updateDashboard, 30000);
+
+        // Initialize tooltips
         document.addEventListener('DOMContentLoaded', function() {
-            // Initialize tooltips
             const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
             tooltipTriggerList.map(function(tooltipTriggerEl) {
                 return new bootstrap.Tooltip(tooltipTriggerEl);
             });
-
-            // Handle sidebar toggle
-            const sidebarToggle = document.querySelector('.sidebar-toggle');
-            if (sidebarToggle) {
-                sidebarToggle.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    document.querySelector('.app-wrapper').classList.toggle('sidebar-collapsed');
-                });
-            }
         });
     </script>
 </body>

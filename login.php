@@ -8,7 +8,8 @@ session_start([
     'cookie_httponly' => true,
     'cookie_secure' => true,
     'cookie_samesite' => 'Strict',
-    'use_strict_mode' => true
+    'use_strict_mode' => true,
+    'gc_maxlifetime' => SESSION_LIFETIME
 ]);
 
 // Include required files
@@ -29,6 +30,51 @@ try {
     die("Authentication system error. Please check the error logs.");
 }
 
+// Check for brute force attempts
+function checkBruteForce($email) {
+    $db = Database::getInstance();
+    $ip = $_SERVER['REMOTE_ADDR'];
+    $time = time() - LOGIN_TIMEOUT;
+    
+    try {
+        $stmt = $db->query(
+            "SELECT COUNT(*) FROM login_attempts 
+            WHERE ip_address = :ip AND attempt_time > :time",
+            ['ip' => $ip, 'time' => $time]
+        );
+        $attempts = $stmt->fetchColumn();
+        
+        if ($attempts >= MAX_LOGIN_ATTEMPTS) {
+            return true;
+        }
+        return false;
+    } catch (Exception $e) {
+        error_log("Brute force check error: " . $e->getMessage());
+        return false;
+    }
+}
+
+// Record login attempt
+function recordLoginAttempt($email, $success) {
+    $db = Database::getInstance();
+    $ip = $_SERVER['REMOTE_ADDR'];
+    
+    try {
+        $db->query(
+            "INSERT INTO login_attempts (email, ip_address, attempt_time, success) 
+            VALUES (:email, :ip, :time, :success)",
+            [
+                'email' => $email,
+                'ip' => $ip,
+                'time' => time(),
+                'success' => $success
+            ]
+        );
+    } catch (Exception $e) {
+        error_log("Login attempt recording error: " . $e->getMessage());
+    }
+}
+
 // If already logged in, redirect to dashboard
 if ($auth->isLoggedIn()) {
     header("Location: dashboard.php");
@@ -40,6 +86,7 @@ $error = '';
 // Generate CSRF token if not exists
 if (!isset($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    $_SESSION['csrf_time'] = time();
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -48,9 +95,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
             throw new Exception('Invalid request');
         }
+        
+        // Check CSRF token lifetime
+        if (time() - $_SESSION['csrf_time'] > CSRF_TOKEN_LIFETIME) {
+            throw new Exception('Session expired. Please refresh the page.');
+        }
 
         $email = $_POST['email'];
         $password = $_POST['password'];
+
+        if (!$email) {
+            throw new Exception('Invalid email format');
+        }
+
+        // Check for brute force
+        if (checkBruteForce($email)) {
+            throw new Exception('Too many login attempts. Please try again later.');
+        }
 
         if ($auth->login($email, $password)) {
             // Fetch branch_id automatically from the user's account
@@ -64,14 +125,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             // Regenerate session ID after successful login
             session_regenerate_id(true);
+
+            // Record successful login
+            recordLoginAttempt($email, true);
+
+            // Redirect based on role
             header("Location: dashboard.php");
             exit();
         } else {
+            // Record failed login
+            recordLoginAttempt($email, false);
             $error = "Invalid login credentials.";
         }
     } catch (Exception $e) {
         error_log("Login Error: " . $e->getMessage());
-        $error = 'An error occurred. Please try again later.';
+        $error = $e->getMessage();
     }
 }
 ?>
@@ -112,6 +180,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             border-radius: 15px;
             box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
             overflow: hidden;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .card-header {
@@ -187,6 +261,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .alert {
             border-radius: 8px;
             border: none;
+            animation: slideIn 0.3s ease-in-out;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(-20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
         }
 
         .input-group-text {
@@ -205,6 +285,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         .input-group:focus-within .input-group-text {
             border-color: var(--primary-color);
+        }
+
+        .password-toggle {
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+
+        .password-toggle:hover {
+            color: var(--primary-color);
         }
 
         @media (max-width: 576px) {
@@ -233,7 +322,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                 <?php endif; ?>
                 
-                <form method="POST" action="">
+                <form method="POST" action="" id="loginForm" novalidate>
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                     <div class="mb-4">
                         <label for="email" class="form-label">Email Address</label>
@@ -243,6 +332,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             </span>
                             <input type="email" class="form-control" id="email" name="email" placeholder="Enter your email" required>
                         </div>
+                        <div class="invalid-feedback">Please enter a valid email address.</div>
                     </div>
                     
                     <div class="mb-4">
@@ -252,7 +342,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <i class="bi bi-lock"></i>
                             </span>
                             <input type="password" class="form-control" id="password" name="password" placeholder="Enter your password" required>
+                            <span class="input-group-text password-toggle" onclick="togglePassword()">
+                                <i class="bi bi-eye"></i>
+                            </span>
                         </div>
+                        <div class="invalid-feedback">Please enter your password.</div>
                     </div>
                     
                     <div class="mb-4 form-check">
@@ -276,6 +370,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Form validation
+        const form = document.getElementById('loginForm');
+        form.addEventListener('submit', function(event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            form.classList.add('was-validated');
+        });
+
+        // Password toggle
+        function togglePassword() {
+            const passwordInput = document.getElementById('password');
+            const icon = document.querySelector('.password-toggle i');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                icon.classList.remove('bi-eye');
+                icon.classList.add('bi-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                icon.classList.remove('bi-eye-slash');
+                icon.classList.add('bi-eye');
+            }
+        }
+
         // Auto-dismiss alerts after 5 seconds
         document.addEventListener('DOMContentLoaded', function() {
             const alerts = document.querySelectorAll('.alert');
