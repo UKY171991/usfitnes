@@ -1,4 +1,5 @@
 <?php
+require_once 'config.php';
 require_once 'db_connect.php';
 
 // Start session with secure settings
@@ -6,7 +7,8 @@ session_start([
     'cookie_httponly' => true,
     'cookie_secure' => true,
     'cookie_samesite' => 'Strict',
-    'use_strict_mode' => true
+    'use_strict_mode' => true,
+    'gc_maxlifetime' => SESSION_LIFETIME
 ]);
 
 // Check if user is logged in
@@ -18,35 +20,52 @@ if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in']) {
 // Restrict to Admin, Doctor, Technician with proper role check
 $allowed_roles = ['Admin', 'Doctor', 'Technician'];
 if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], $allowed_roles)) {
-    header("Location: index3.php");
+    header("Location: index.php");
     exit();
 }
 
-// Delete patient (Admin-only) with CSRF protection
-if (isset($_GET['delete']) && $_SESSION['role'] === 'Admin') {
-    // Verify CSRF token
-    if (!isset($_GET['csrf_token']) || $_GET['csrf_token'] !== $_SESSION['csrf_token']) {
-        die('Invalid request');
-    }
+try {
+    $db = Database::getInstance();
 
-    try {
+    // Delete patient (Admin-only) with CSRF protection
+    if (isset($_GET['delete']) && $_SESSION['role'] === 'Admin') {
+        // Verify CSRF token
+        if (!isset($_GET['csrf_token']) || $_GET['csrf_token'] !== $_SESSION['csrf_token']) {
+            throw new Exception('Invalid CSRF token');
+        }
+
         $patient_id = filter_input(INPUT_GET, 'delete', FILTER_VALIDATE_INT);
         if ($patient_id === false) {
             throw new Exception('Invalid patient ID');
         }
 
-        $stmt = $pdo->prepare("DELETE FROM Patients WHERE patient_id = :patient_id");
-        $stmt->execute(['patient_id' => $patient_id]);
+        // Check if patient belongs to the current branch
+        $stmt = $db->query(
+            "SELECT patient_id FROM patients WHERE patient_id = :patient_id AND branch_id = :branch_id",
+            ['patient_id' => $patient_id, 'branch_id' => $_SESSION['branch_id']]
+        );
+        if (!$stmt->fetch()) {
+            throw new Exception('Patient not found or access denied');
+        }
+
+        // Delete the patient
+        $db->query(
+            "DELETE FROM patients WHERE patient_id = :patient_id AND branch_id = :branch_id",
+            ['patient_id' => $patient_id, 'branch_id' => $_SESSION['branch_id']]
+        );
         
         // Log the deletion
-        error_log("Patient deleted by user {$_SESSION['user_id']}: Patient ID {$patient_id}");
+        error_log("Patient {$patient_id} deleted by user {$_SESSION['user_id']} in branch {$_SESSION['branch_id']}");
         
+        $_SESSION['success_message'] = "Patient deleted successfully";
         header("Location: patients.php");
         exit();
-    } catch (Exception $e) {
-        error_log("Delete patient error: " . $e->getMessage());
-        die('Error deleting patient');
     }
+} catch (Exception $e) {
+    error_log("Patient management error: " . $e->getMessage());
+    $_SESSION['error_message'] = "Operation failed. Please try again.";
+    header("Location: patients.php");
+    exit();
 }
 
 // Generate CSRF token if not exists
@@ -55,19 +74,53 @@ if (!isset($_SESSION['csrf_token'])) {
 }
 ?>
 
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pathology | Patient Management</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <?php include('inc/head.php'); ?>
     <style>
         .table-hover tbody tr:hover {
             background-color: #f8f9fa;
         }
-        .btn-secondary {
-            margin-left: 5px;
+        .btn-group-sm > .btn, .btn-sm {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+            border-radius: 0.2rem;
+        }
+        .alert {
+            margin-bottom: 1rem;
+        }
+        .search-box {
+            position: relative;
+        }
+        .search-box .clear-search {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: #6c757d;
+        }
+        .search-box .clear-search:hover {
+            color: #343a40;
+        }
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .card {
+            position: relative;
         }
     </style>
 </head>
@@ -75,12 +128,13 @@ if (!isset($_SESSION['csrf_token'])) {
     <div class="app-wrapper">
         <?php include('inc/top.php'); ?>
         <?php include('inc/sidebar.php'); ?>
+        
         <main class="app-main">
-            <section class="content-header">
+            <div class="app-content">
                 <div class="container-fluid">
-                    <div class="row mb-2 mt-2">
+                    <div class="row mb-2">
                         <div class="col-sm-6">
-                            <h3>Patient Management</h3>
+                            <h1 class="m-0">Patient Management</h1>
                         </div>
                         <div class="col-sm-6 text-end">
                             <a href="add_patient.php" class="btn btn-primary">
@@ -88,70 +142,109 @@ if (!isset($_SESSION['csrf_token'])) {
                             </a>
                         </div>
                     </div>
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <div class="input-group">
-                                <input type="text" id="searchInput" class="form-control" placeholder="Search by name or email">
-                                <button class="btn btn-primary" onclick="loadPatients(1)">
-                                    <i class="bi bi-search"></i> Search
-                                </button>
-                                <button class="btn btn-secondary" onclick="document.getElementById('searchInput').value=''; loadPatients(1);">
-                                    <i class="bi bi-x-circle"></i> Clear
-                                </button>
+
+                    <?php if (isset($_SESSION['success_message'])): ?>
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <?php 
+                                echo htmlspecialchars($_SESSION['success_message']);
+                                unset($_SESSION['success_message']);
+                            ?>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    <?php endif; ?>
+
+                    <?php if (isset($_SESSION['error_message'])): ?>
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <?php 
+                                echo htmlspecialchars($_SESSION['error_message']);
+                                unset($_SESSION['error_message']);
+                            ?>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    <?php endif; ?>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="row align-items-center">
+                                <div class="col-md-6">
+                                    <h3 class="card-title">Patient List</h3>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="search-box">
+                                        <input type="text" id="searchInput" class="form-control" placeholder="Search by name or email">
+                                        <span class="clear-search" onclick="clearSearch()"><i class="bi bi-x-circle"></i></span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-12">
-                            <div class="card mb-4">
-                                <div class="card-header bg-primary text-white">
-                                    <h3 class="card-title mb-0">Patient List</h3>
-                                </div>
-                                <div class="card-body">
-                                    <table id="patientTable" class="table table-bordered table-striped table-hover">
-                                        <thead class="table-light">
-                                            <tr>
-                                                <th>ID</th>
-                                                <th>Name</th>
-                                                <th>DOB</th>
-                                                <th>Gender</th>
-                                                <th>Contact</th>
-                                                <th>Email</th>
-                                                <th>Created By</th>
-                                                <th>Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="patientTableBody">
-                                            <tr>
-                                                <td colspan="8" class="text-center">Loading...</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                                <div class="card-footer clearfix">
-                                    <ul class="pagination pagination-sm m-0 float-end" id="pagination"></ul>
+                        <div class="card-body">
+                            <div class="loading-overlay">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
                                 </div>
                             </div>
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Name</th>
+                                            <th>DOB</th>
+                                            <th>Gender</th>
+                                            <th>Contact</th>
+                                            <th>Email</th>
+                                            <th>Created By</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="patientTableBody">
+                                        <tr>
+                                            <td colspan="8" class="text-center">Loading patients...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <nav aria-label="Patient navigation">
+                                <ul class="pagination justify-content-end mb-0" id="pagination"></ul>
+                            </nav>
                         </div>
                     </div>
                 </div>
-            </section> 
-            
+            </div>
         </main>
-        <footer class="app-footer">
-            <div class="float-end d-none d-sm-inline">Anything you want</div>
-            <strong>Copyright © 2025 <a href="#" class="text-decoration-none">Pathology System</a>.</strong> All rights reserved.
-        </footer>
     </div>
+
     <?php include('inc/js.php'); ?>
     <script>
+        let currentPage = 1;
+        let isLoading = false;
+
+        function showLoading() {
+            document.querySelector('.loading-overlay').style.display = 'flex';
+            isLoading = true;
+        }
+
+        function hideLoading() {
+            document.querySelector('.loading-overlay').style.display = 'none';
+            isLoading = false;
+        }
+
         function loadPatients(page = 1) {
+            if (isLoading) return;
+            
+            showLoading();
+            currentPage = page;
+            
             const searchQuery = document.getElementById('searchInput').value.trim();
             const url = `includes/fetch_patients.php?page=${page}${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''}`;
             
             fetch(url)
                 .then(response => {
-                    if (!response.ok) throw new Error('Network response was not ok');
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
                     return response.json();
                 })
                 .then(data => {
@@ -160,94 +253,135 @@ if (!isset($_SESSION['csrf_token'])) {
 
                     if (data.patients.length === 0) {
                         tbody.innerHTML = '<tr><td colspan="8" class="text-center">No patients found</td></tr>';
-                    } else {
-                        data.patients.forEach(patient => {
-                            const row = `
-                                <tr>
-                                    <td>${escapeHtml(patient.patient_id)}</td>
-                                    <td>${escapeHtml(patient.first_name)} ${escapeHtml(patient.last_name)}</td>
-                                    <td>${escapeHtml(patient.date_of_birth)}</td>
-                                    <td>${escapeHtml(patient.gender)}</td>
-                                    <td>${escapeHtml(patient.phone || '-')}</td>
-                                    <td>${escapeHtml(patient.email || '-')}</td>
-                                    <td>${escapeHtml(patient.created_by_name || 'Unknown')}</td>
-                                    <td>
-                                        <a href="add_patient.php?edit=${escapeHtml(patient.patient_id)}" class="btn btn-sm btn-warning me-2" data-bs-toggle="tooltip" title="Edit Patient">
-                                            <i class="bi bi-pencil"></i> Edit
-                                        </a>
-                                        <?php if ($_SESSION['role'] === 'Admin'): ?>
-                                            <a href="patients.php?delete=${escapeHtml(patient.patient_id)}&csrf_token=<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this patient?');" data-bs-toggle="tooltip" title="Delete Patient">
-                                                <i class="bi bi-trash"></i> Delete
-                                            </a>
-                                        <?php endif; ?>
-                                    </td>
-                                </tr>`;
-                            tbody.innerHTML += row;
-                        });
+                        return;
                     }
 
-                    const pagination = document.getElementById('pagination');
-                    pagination.innerHTML = '';
-                    if (data.total_pages > 1) {
-                        pagination.innerHTML += `<li class="page-item ${data.current_page === 1 ? 'disabled' : ''}">
-                            <a class="page-link" href="#" onclick="loadPatients(${data.current_page - 1}); return false;">«</a>
-                        </li>`;
-                        for (let i = 1; i <= data.total_pages; i++) {
-                            pagination.innerHTML += `<li class="page-item ${i === data.current_page ? 'active' : ''}">
-                                <a class="page-link" href="#" onclick="loadPatients(${i}); return false;">${i}</a>
-                            </li>`;
-                        }
-                        pagination.innerHTML += `<li class="page-item ${data.current_page === data.total_pages ? 'disabled' : ''}">
-                            <a class="page-link" href="#" onclick="loadPatients(${data.current_page + 1}); return false;">»</a>
-                        </li>`;
-                    }
+                    data.patients.forEach(patient => {
+                        const row = `
+                            <tr>
+                                <td>${escapeHtml(patient.patient_id)}</td>
+                                <td>${escapeHtml(patient.first_name)} ${escapeHtml(patient.last_name)}</td>
+                                <td>${escapeHtml(patient.date_of_birth)}</td>
+                                <td>${escapeHtml(patient.gender)}</td>
+                                <td>${escapeHtml(patient.phone || '-')}</td>
+                                <td>${escapeHtml(patient.email || '-')}</td>
+                                <td>${escapeHtml(patient.created_by_name)}</td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="view_patient.php?id=${escapeHtml(patient.patient_id)}" 
+                                           class="btn btn-info" 
+                                           title="View Patient">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a href="add_patient.php?edit=${escapeHtml(patient.patient_id)}" 
+                                           class="btn btn-warning" 
+                                           title="Edit Patient">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <?php if ($_SESSION['role'] === 'Admin'): ?>
+                                        <a href="patients.php?delete=${escapeHtml(patient.patient_id)}&csrf_token=<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>" 
+                                           class="btn btn-danger" 
+                                           onclick="return confirm('Are you sure you want to delete this patient? This action cannot be undone.')"
+                                           title="Delete Patient">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                        <?php endif; ?>
+                                    </div>
+                                </td>
+                            </tr>`;
+                        tbody.innerHTML += row;
+                    });
+
+                    updatePagination(data.current_page, data.total_pages);
                 })
                 .catch(error => {
-                    console.error('Error fetching patients:', error);
-                    document.getElementById('patientTableBody').innerHTML = '<tr><td colspan="8" class="text-center">Error loading patients</td></tr>';
+                    console.error('Error:', error);
+                    document.getElementById('patientTableBody').innerHTML = 
+                        '<tr><td colspan="8" class="text-center text-danger">' +
+                        'Error loading patients. Please try again.</td></tr>';
+                })
+                .finally(() => {
+                    hideLoading();
                 });
         }
 
-        document.addEventListener('DOMContentLoaded', () => loadPatients(1));
+        function updatePagination(currentPage, totalPages) {
+            const pagination = document.getElementById('pagination');
+            pagination.innerHTML = '';
 
-        document.getElementById('searchInput').addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') {
-                loadPatients(1);
+            if (totalPages <= 1) return;
+
+            // Previous button
+            pagination.innerHTML += `
+                <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="loadPatients(${currentPage - 1}); return false;">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                </li>`;
+
+            // Page numbers
+            for (let i = 1; i <= totalPages; i++) {
+                if (
+                    i === 1 || // First page
+                    i === totalPages || // Last page
+                    (i >= currentPage - 1 && i <= currentPage + 1) // Pages around current page
+                ) {
+                    pagination.innerHTML += `
+                        <li class="page-item ${i === currentPage ? 'active' : ''}">
+                            <a class="page-link" href="#" onclick="loadPatients(${i}); return false;">${i}</a>
+                        </li>`;
+                } else if (i === currentPage - 2 || i === currentPage + 2) {
+                    pagination.innerHTML += `
+                        <li class="page-item disabled">
+                            <span class="page-link">...</span>
+                        </li>`;
+                }
             }
-        });
 
-        const SELECTOR_SIDEBAR_WRAPPER = '.sidebar-wrapper';
-        const Default = {
-            scrollbarTheme: 'os-theme-light',
-            scrollbarAutoHide: 'leave',
-            scrollbarClickScroll: true,
-        };
-        document.addEventListener('DOMContentLoaded', function () {
-            const sidebarWrapper = document.querySelector(SELECTOR_SIDEBAR_WRAPPER);
-            if (sidebarWrapper && typeof OverlayScrollbarsGlobal?.OverlayScrollbars !== 'undefined') {
-                OverlayScrollbarsGlobal.OverlayScrollbars(sidebarWrapper, {
-                    scrollbars: {
-                        theme: Default.scrollbarTheme,
-                        autoHide: Default.scrollbarAutoHide,
-                        clickScroll: Default.scrollbarClickScroll,
-                    },
-                });
-            }
-        });
+            // Next button
+            pagination.innerHTML += `
+                <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="loadPatients(${currentPage + 1}); return false;">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>`;
+        }
 
-        document.addEventListener('DOMContentLoaded', function () {
-            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-            tooltipTriggerList.forEach(function (tooltipTriggerEl) {
-                new bootstrap.Tooltip(tooltipTriggerEl);
-            });
-        });
+        function clearSearch() {
+            document.getElementById('searchInput').value = '';
+            loadPatients(1);
+        }
 
-        // Helper function to escape HTML
         function escapeHtml(str) {
+            if (str === null || str === undefined) return '';
             const div = document.createElement('div');
             div.textContent = str;
             return div.innerHTML;
         }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            loadPatients(1);
+
+            const searchInput = document.getElementById('searchInput');
+            let searchTimeout;
+
+            searchInput.addEventListener('input', () => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => loadPatients(1), 500);
+            });
+
+            searchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    clearTimeout(searchTimeout);
+                    loadPatients(1);
+                }
+            });
+
+            // Initialize tooltips
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'));
+            tooltipTriggerList.forEach(el => new bootstrap.Tooltip(el));
+        });
     </script>
 </body>
 </html>
