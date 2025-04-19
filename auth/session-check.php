@@ -1,5 +1,7 @@
 <?php
-session_start();
+require_once __DIR__ . '/../inc/config.php';
+
+// session_start() is now handled in config.php
 
 function checkUserAccess() {
     if(!isset($_SESSION['user_id']) || !isset($_SESSION['role'])) {

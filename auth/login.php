@@ -2,7 +2,8 @@
 require_once '../inc/config.php';
 require_once '../inc/db.php';
 
-session_start();
+// Remove session_start() since it's already called in config.php
+// session_start();
 
 // Check if user is already logged in
 if(isset($_SESSION['user_id'])) {

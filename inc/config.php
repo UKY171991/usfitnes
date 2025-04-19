@@ -27,8 +27,10 @@ define('UPLOAD_PATH', __DIR__ . '/../assets/uploads/');
 error_reporting(E_ALL);
 ini_set('display_errors', $is_local ? 1 : 0);
 
-// Session Configuration
-session_start();
+// Session Configuration - Only start if not already started
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 // Timezone
 date_default_timezone_set('Asia/Kolkata');

@@ -2,7 +2,8 @@
 require_once '../inc/config.php';
 require_once '../inc/db.php';
 
-session_start();
+// Remove redundant session_start since it's in config.php
+// session_start();
 
 // Log activity if user is logged in
 if(isset($_SESSION['user_id'])) {
