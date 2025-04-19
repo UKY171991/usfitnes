@@ -1,3 +1,79 @@
+<?php
+// Generate CSRF token if not exists
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+?>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Pathology Lab Management System">
+<meta name="theme-color" content="#4361ee">
+<meta name="csrf-token" content="<?php echo $_SESSION['csrf_token']; ?>">
+
+<!-- Favicon -->
+<link rel="icon" type="image/png" href="assets/img/favicon.png">
+
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<!-- Icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+<!-- Styles -->
+<link rel="stylesheet" href="assets/css/bootstrap.min.css">
+<link rel="stylesheet" href="assets/css/custom.css">
+
+<!-- Scripts -->
+<script src="assets/js/bootstrap.bundle.min.js" defer></script>
+<script src="assets/js/main.js" defer></script>
+<script src="assets/js/init.js" defer></script>
+
+<!-- Alert Container -->
+<div id="alert-container" class="position-fixed top-0 end-0 p-3" style="z-index: 1050;"></div>
+
+<!-- Mobile Menu Toggle -->
+<button id="sidebar-toggle" class="btn btn-link d-md-none position-fixed top-0 start-0 mt-2 ms-2 z-3" style="z-index: 1040;">
+    <i class="bi bi-list fs-4"></i>
+</button>
+
+<script>
+// Initialize mobile menu toggle
+document.getElementById('sidebar-toggle')?.addEventListener('click', () => {
+    const sidebar = document.querySelector('.sidebar');
+    sidebar?.classList.toggle('show');
+});
+
+// Close sidebar when clicking outside on mobile
+document.addEventListener('click', (e) => {
+    const sidebar = document.querySelector('.sidebar');
+    const toggle = document.getElementById('sidebar-toggle');
+    
+    if (window.innerWidth <= 768 && 
+        sidebar?.classList.contains('show') && 
+        !sidebar.contains(e.target) && 
+        !toggle.contains(e.target)) {
+        sidebar.classList.remove('show');
+    }
+});
+
+// Handle alerts
+window.showAlert = (message, type = 'info') => {
+    const alertContainer = document.getElementById('alert-container');
+    const alert = document.createElement('div');
+    alert.className = `alert alert-${type} fade-in`;
+    alert.innerHTML = message;
+    
+    alertContainer.appendChild(alert);
+    
+    setTimeout(() => {
+        alert.style.opacity = '0';
+        setTimeout(() => alert.remove(), 300);
+    }, 5000);
+};
+</script>
+
 <!--begin::Fonts-->
     <link
       rel="stylesheet"
@@ -42,18 +118,6 @@
 
     <!-- Inside inc/head.php -->
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-
-<!-- Meta tags -->
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Pathology Management System">
-
-<!-- Favicon -->
-<link rel="icon" type="image/x-icon" href="assets/img/favicon.ico">
-<link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32x32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="assets/img/favicon-16x16.png">
-<link rel="manifest" href="assets/site.webmanifest">
 
 <!-- Bootstrap CSS -->
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">

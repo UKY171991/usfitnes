@@ -1,294 +1,175 @@
-<aside class="app-sidebar bg-body-secondary shadow" data-bs-theme="dark">
-        <!--begin::Sidebar Brand-->
-        <div class="sidebar-brand">
-          <!--begin::Brand Link-->
-          <a href="dashboard.php" class="brand-link">
-            <!--begin::Brand Image-->
-            <img
-              src="assets/img/AdminLTELogo.png"
-              alt="AdminLTE Logo"
-              class="brand-image opacity-75 shadow"
-            />
-            <!--end::Brand Image-->
-            <!--begin::Brand Text-->
-            <span class="brand-text fw-light">AdminLTE 4</span>
-            <!--end::Brand Text-->
-          </a>
-          <!--end::Brand Link-->
+<aside class="sidebar">
+    <div class="sidebar-brand d-flex align-items-center">
+        <img src="assets/img/logo.png" alt="Logo" class="me-2" style="height: 30px;">
+        <span>Lab Management</span>
+    </div>
+    
+    <div class="nav-sidebar">
+        <?php
+        $current_page = basename($_SERVER['PHP_SELF']);
+        
+        // Define navigation items with icons and access roles
+        $nav_items = [
+            [
+                'title' => 'Dashboard',
+                'icon' => 'bi-speedometer2',
+                'link' => 'dashboard.php',
+                'roles' => ['Admin', 'Doctor', 'Technician', 'Receptionist']
+            ],
+            [
+                'title' => 'Patients',
+                'icon' => 'bi-people',
+                'link' => 'patients.php',
+                'roles' => ['Admin', 'Doctor', 'Technician', 'Receptionist']
+            ],
+            [
+                'title' => 'Test Categories',
+                'icon' => 'bi-folder',
+                'link' => 'test_categories.php',
+                'roles' => ['Admin']
+            ],
+            [
+                'title' => 'Test Management',
+                'icon' => 'bi-clipboard-data',
+                'link' => 'test.php',
+                'roles' => ['Admin', 'Doctor', 'Technician']
+            ],
+            [
+                'title' => 'Test Requests',
+                'icon' => 'bi-file-earmark-text',
+                'link' => 'test_requests.php',
+                'roles' => ['Admin', 'Doctor', 'Technician']
+            ],
+            [
+                'title' => 'Test Results',
+                'icon' => 'bi-clipboard2-check',
+                'link' => 'test_results.php',
+                'roles' => ['Admin', 'Doctor', 'Technician']
+            ],
+            [
+                'title' => 'Reports',
+                'icon' => 'bi-file-earmark-bar-graph',
+                'link' => 'reports.php',
+                'roles' => ['Admin', 'Doctor']
+            ],
+            [
+                'title' => 'Inventory',
+                'icon' => 'bi-box-seam',
+                'link' => 'inventory.php',
+                'roles' => ['Admin', 'Technician']
+            ],
+            [
+                'title' => 'Doctor & Referrals',
+                'icon' => 'bi-person-vcard',
+                'link' => 'doctors.php',
+                'roles' => ['Admin']
+            ],
+            [
+                'title' => 'Analytics',
+                'icon' => 'bi-graph-up',
+                'link' => 'analytics.php',
+                'roles' => ['Admin']
+            ],
+            [
+                'title' => 'Users',
+                'icon' => 'bi-people-fill',
+                'link' => 'users.php',
+                'roles' => ['Admin']
+            ],
+            [
+                'title' => 'Settings',
+                'icon' => 'bi-gear',
+                'link' => 'settings.php',
+                'roles' => ['Admin']
+            ]
+        ];
+        
+        // Output navigation items
+        foreach ($nav_items as $item) {
+            // Check if user has access to this item
+            if (in_array($_SESSION['role'], $item['roles'])) {
+                $is_active = $current_page === $item['link'];
+                ?>
+                <div class="nav-item">
+                    <a href="<?php echo $item['link']; ?>" 
+                       class="nav-link <?php echo $is_active ? 'active' : ''; ?>">
+                        <i class="bi <?php echo $item['icon']; ?>"></i>
+                        <span><?php echo $item['title']; ?></span>
+                    </a>
+                </div>
+                <?php
+            }
+        }
+        ?>
+        
+        <div class="nav-item mt-auto">
+            <a href="profile.php" class="nav-link">
+                <i class="bi bi-person-circle"></i>
+                <span>Profile</span>
+            </a>
         </div>
-        <!--end::Sidebar Brand-->
-        <!--begin::Sidebar Wrapper-->
-        <div class="sidebar-wrapper">
-          <nav class="mt-2">
-            <!--begin::Sidebar Menu-->
-            <ul
-              class="nav sidebar-menu flex-column"
-              data-lte-toggle="treeview"
-              role="menu"
-              data-accordion="false"
-            >
-              <li class="nav-item menu-open">
-                <a href="dashboard.php" class="nav-link active">
-                  <i class="nav-icon bi bi-speedometer"></i>
-                  <p>Dashboard</p>
-                </a>
-              </li>
-              <li class="nav-item">
-                <a href="#" class="nav-link">
-                  <i class="nav-icon bi bi-box-seam-fill"></i>
-                  <p>
-                     Patient Management
-                    <i class="nav-arrow bi bi-chevron-right"></i>
-                  </p>
-                </a>
-                <ul class="nav nav-treeview">
-                  <li class="nav-item">
-                    <a href="add_patient.php" class="nav-link">
-                      <i class="nav-icon bi bi-circle"></i>
-                      <p>Add Patient</p>
-                    </a>
-                  </li>
-                  <li class="nav-item">
-                    <a href="patients.php" class="nav-link">
-                      <i class="nav-icon bi bi-circle"></i>
-                      <p>All Patient</p>
-                    </a>
-                  </li>
-                </ul>
-              </li>
-              <li class="nav-item">
-                <a href="#" class="nav-link">
-                  <i class="nav-icon bi bi-box-seam-fill"></i>
-                  <p>
-                    Test categories
-                    <i class="nav-arrow bi bi-chevron-right"></i>
-                  </p>
-                </a>
-                <ul class="nav nav-treeview">
-                  <li class="nav-item">
-                    <a href="add_test.php" class="nav-link">
-                      <i class="nav-icon bi bi-circle"></i>
-                      <p>Add Test categories</p>
-                    </a>
-                  </li>
-                  <li class="nav-item">
-                    <a href="test_categories.php" class="nav-link">
-                      <i class="nav-icon bi bi-circle"></i>
-                      <p>All Test categories</p>
-                    </a>
-                  </li>
-                </ul>
-              </li>
-
-              <li class="nav-item">
-                <a href="#" class="nav-link">
-                  <i class="nav-icon bi bi-box-seam-fill"></i>
-                  <p>
-                    Test Management
-                    <i class="nav-arrow bi bi-chevron-right"></i>
-                  </p>
-                </a>
-                <ul class="nav nav-treeview">
-                  <li class="nav-item">
-                    <a href="add_test.php" class="nav-link">
-                      <i class="nav-icon bi bi-circle"></i>
-                      <p>Add Test</p>
-                    </a>
-                  </li>
-                  <li class="nav-item">
-                    <a href="test.php" class="nav-link">
-                      <i class="nav-icon bi bi-circle"></i>
-                      <p>All Test</p>
-                    </a>
-                  </li>
-                </ul>
-              </li>
-
-              <li class="nav-item">
-                <a href="#" class="nav-link">
-                  <i class="nav-icon bi bi-box-seam-fill"></i>
-                  <p>
-                    Test Requests
-                    <i class="nav-arrow bi bi-chevron-right"></i>
-                  </p>
-                </a>
-                <ul class="nav nav-treeview">
-                  <li class="nav-item">
-                    <a href="add_test_request.php" class="nav-link">
-                      <i class="nav-icon bi bi-circle"></i>
-                      <p>Add Test Request</p>
-                    </a>
-                  </li>
-                  <li class="nav-item">
-                    <a href="test_requests.php" class="nav-link">
-                      <i class="nav-icon bi bi-circle"></i>
-                      <p>Test Requests</p>
-                    </a>
-                  </li>
-                </ul>
-              </li>
-
-              <li class="nav-item">
-                <a href="#" class="nav-link">
-                  <i class="nav-icon bi bi-box-seam-fill"></i>
-                  <p>
-                    Test Results
-                    <i class="nav-arrow bi bi-chevron-right"></i>
-                  </p>
-                </a>
-                <ul class="nav nav-treeview">
-                  <li class="nav-item">
-                    <a href="add_test_result.php" class="nav-link">
-                      <i class="nav-icon bi bi-circle"></i>
-                      <p>Add Test Result</p>
-                    </a>
-                  </li>
-                  <li class="nav-item">
-                    <a href="test_results.php" class="nav-link">
-                      <i class="nav-icon bi bi-circle"></i>
-                      <p>All Test Result</p>
-                    </a>
-                  </li>
-                </ul>
-              </li>
-              <li class="nav-item">
-                <a href="reports.php" class="nav-link">
-                  <i class="nav-icon bi bi-box-seam-fill"></i>
-                  <p>
-                    Reports
-                  </p>
-                </a>
-              </li>
-              <li class="nav-item">
-                <a href="#" class="nav-link">
-                  <i class="nav-icon bi bi-box-seam-fill"></i>
-                  <p>
-                    Inventory Management
-                    <i class="nav-arrow bi bi-chevron-right"></i>
-                  </p>
-                </a>
-                <ul class="nav nav-treeview">
-                  <li class="nav-item">
-                    <a href="./widgets/small-box.html" class="nav-link">
-                      <i class="nav-icon bi bi-circle"></i>
-                      <p>Add Inventory</p>
-                    </a>
-                  </li>
-                  <li class="nav-item">
-                    <a href="./widgets/info-box.html" class="nav-link">
-                      <i class="nav-icon bi bi-circle"></i>
-                      <p>All Inventory</p>
-                    </a>
-                  </li>
-                </ul>
-              </li>
-
-              <li class="nav-item">
-                <a href="#" class="nav-link">
-                  <i class="nav-icon bi bi-box-seam-fill"></i>
-                  <p>
-                    Doctor & Referral Management
-                    <i class="nav-arrow bi bi-chevron-right"></i>
-                  </p>
-                </a>
-                <ul class="nav nav-treeview">
-                  <li class="nav-item">
-                    <a href="./widgets/small-box.html" class="nav-link">
-                      <i class="nav-icon bi bi-circle"></i>
-                      <p>Add Referral</p>
-                    </a>
-                  </li>
-                  <li class="nav-item">
-                    <a href="./widgets/info-box.html" class="nav-link">
-                      <i class="nav-icon bi bi-circle"></i>
-                      <p>All Referral</p>
-                    </a>
-                  </li>
-                </ul>
-              </li>
-
-              <!-- <li class="nav-item">
-                <a href="#" class="nav-link">
-                  <i class="nav-icon bi bi-box-seam-fill"></i>
-                  <p>
-                    User Management & Access Control
-                    <i class="nav-arrow bi bi-chevron-right"></i>
-                  </p>
-                </a>
-                <ul class="nav nav-treeview">
-                  <li class="nav-item">
-                    <a href="./widgets/small-box.html" class="nav-link">
-                      <i class="nav-icon bi bi-circle"></i>
-                      <p>Add User</p>
-                    </a>
-                  </li>
-                  <li class="nav-item">
-                    <a href="./widgets/info-box.html" class="nav-link">
-                      <i class="nav-icon bi bi-circle"></i>
-                      <p>All User</p>
-                    </a>
-                  </li>
-                </ul>
-              </li> -->
-
-              <li class="nav-item">
-                <a href="#" class="nav-link">
-                  <i class="nav-icon bi bi-box-seam-fill"></i>
-                  <p>
-                    Reports & Analytics
-                    <i class="nav-arrow bi bi-chevron-right"></i>
-                  </p>
-                </a>
-                <ul class="nav nav-treeview">
-                  <li class="nav-item">
-                    <a href="./widgets/small-box.html" class="nav-link">
-                      <i class="nav-icon bi bi-circle"></i>
-                      <p>Add Reports</p>
-                    </a>
-                  </li>
-                  <li class="nav-item">
-                    <a href="./widgets/info-box.html" class="nav-link">
-                      <i class="nav-icon bi bi-circle"></i>
-                      <p>All Reports</p>
-                    </a>
-                  </li>
-                </ul>
-              </li>
-
-              <li class="nav-item">
-                <a href="#" class="nav-link">
-                  <i class="nav-icon bi bi-box-seam-fill"></i>
-                  <p>
-                    Users
-                    <i class="nav-arrow bi bi-chevron-right"></i>
-                  </p>
-                </a>
-                <ul class="nav nav-treeview">
-                  <li class="nav-item">
-                    <a href="add_user.php" class="nav-link">
-                      <i class="nav-icon bi bi-circle"></i>
-                      <p>Add User</p>
-                    </a>
-                  </li>
-                  <li class="nav-item">
-                    <a href="users.php" class="nav-link">
-                      <i class="nav-icon bi bi-circle"></i>
-                      <p>All User</p>
-                    </a>
-                  </li>
-                </ul>
-              </li>
-
-              <li class="nav-item">
-                <a href="branches.php" class="nav-link">
-                    <i class="nav-icon bi bi-geo-alt"></i>
-                    <p>Branches</p>
-                </a>
-              </li>
-              
-            </ul>
-            <!--end::Sidebar Menu-->
-          </nav>
+        
+        <div class="nav-item">
+            <a href="logout.php" class="nav-link text-danger">
+                <i class="bi bi-box-arrow-right"></i>
+                <span>Logout</span>
+            </a>
         </div>
-        <!--end::Sidebar Wrapper-->
-      </aside>
+    </div>
+</aside>
+
+<style>
+/* Additional sidebar styles */
+.sidebar {
+    display: flex;
+    flex-direction: column;
+    background: var(--sidebar-bg);
+}
+
+.nav-sidebar {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 1rem 0;
+    overflow-y: auto;
+}
+
+.nav-item {
+    padding: 0.25rem 1rem;
+}
+
+.nav-link {
+    text-decoration: none;
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    transition: all 0.3s ease;
+    color: rgba(255,255,255,0.7);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.nav-link:hover,
+.nav-link.active {
+    color: white;
+    background: rgba(255,255,255,0.1);
+}
+
+.nav-link i {
+    font-size: 1.25rem;
+    width: 1.5rem;
+    text-align: center;
+}
+
+/* Responsive sidebar */
+@media (max-width: 768px) {
+    .sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+    }
+    
+    .sidebar.show {
+        transform: translateX(0);
+    }
+}
+</style>

@@ -235,18 +235,18 @@ if (isset($_GET['delete']) && $_SESSION['role'] === 'Admin') {
                             <div class="table-responsive">
                                 <table class="table table-hover">
                                     <thead>
-                                        <tr>
-                                            <th>ID</th>
-                                            <th>Name</th>
-                                            <th>DOB</th>
-                                            <th>Gender</th>
-                                            <th>Contact</th>
-                                            <th>Email</th>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Name</th>
+                                                <th>DOB</th>
+                                                <th>Gender</th>
+                                                <th>Contact</th>
+                                                <th>Email</th>
                                             <th>Status</th>
-                                            <th>Created By</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                    </thead>
+                                                <th>Created By</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
                                     <tbody id="patientsTableBody">
                                         <tr>
                                             <td colspan="9">
@@ -256,9 +256,9 @@ if (isset($_GET['delete']) && $_SESSION['role'] === 'Admin') {
                                                     </div>
                                                 </div>
                                             </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
+                                            </tr>
+                                        </tbody>
+                                    </table>
                             </div>
                         </div>
                         <div class="card-footer d-flex justify-content-between align-items-center">
