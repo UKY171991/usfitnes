@@ -10,8 +10,8 @@ session_start([
     'use_strict_mode' => true
 ]);
 
-// Check if user is logged in and has Admin role
-if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || $_SESSION['role'] !== 'Admin') {
+// Check if user is logged in
+if (!isset($_SESSION['user_id']) || !isset($_SESSION['role'])) {
     header('Location: login.php');
     exit;
 }
@@ -20,56 +20,6 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || $_SESSION['role
 if (!isset($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
-
-$successMsg = $errorMsg = '';
-
-try {
-    $db = Database::getInstance();
-    
-    // Handle category deletion if requested
-    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_category'])) {
-        if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
-            throw new Exception('Invalid CSRF token');
-        }
-        
-        $categoryId = filter_input(INPUT_POST, 'category_id', FILTER_VALIDATE_INT);
-        if ($categoryId === false || $categoryId === null) {
-            throw new Exception('Invalid category ID');
-        }
-        
-        // Check if category is in use
-        $stmt = $db->query(
-            "SELECT COUNT(*) as count FROM Tests_Catalog WHERE category_id = :category_id",
-            ['category_id' => $categoryId]
-        );
-        $inUse = $stmt->fetch(PDO::FETCH_ASSOC)['count'] > 0;
-        
-        if ($inUse) {
-            $errorMsg = "Cannot delete category as it is being used by existing tests.";
-        } else {
-            $db->query(
-                "DELETE FROM Test_Categories WHERE category_id = :category_id",
-                ['category_id' => $categoryId]
-            );
-            $successMsg = "Category deleted successfully.";
-        }
-    }
-    
-    // Fetch all categories
-    $stmt = $db->query(
-        "SELECT tc.category_id, tc.category_name, tc.created_at, 
-                COUNT(t.test_id) as test_count
-         FROM Test_Categories tc
-         LEFT JOIN Tests_Catalog t ON tc.category_id = t.category_id
-         GROUP BY tc.category_id
-         ORDER BY tc.category_name ASC"
-    );
-    $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-} catch (Exception $e) {
-    error_log("Test Categories error: " . $e->getMessage());
-    $errorMsg = "An error occurred while processing your request.";
-}
 ?>
 
 <!DOCTYPE html>
@@ -77,6 +27,76 @@ try {
 <head>
     <?php include 'inc/head.php'; ?>
     <title>Test Categories | Lab Management System</title>
+    <style>
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.08);
+        }
+        .card-header {
+            background-color: #fff;
+            border-bottom: 1px solid #eee;
+            padding: 1.5rem;
+        }
+        .table th {
+            font-weight: 600;
+            color: #495057;
+            border-top: none;
+        }
+        .table td {
+            vertical-align: middle;
+            color: #6c757d;
+        }
+        .btn-add-category {
+            border-radius: 20px;
+            padding: 8px 20px;
+            font-weight: 500;
+        }
+        .action-buttons .btn {
+            padding: 5px 10px;
+            font-size: 14px;
+            margin: 0 2px;
+        }
+        .modal-header {
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .modal-footer {
+            background-color: #f8f9fa;
+            border-top: 1px solid #dee2e6;
+        }
+        .required::after {
+            content: "*";
+            color: red;
+            margin-left: 4px;
+        }
+        .badge-count {
+            background-color: #e9ecef;
+            color: #495057;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .edit-btn {
+            background-color: #ffc107;
+            border-color: #ffc107;
+            color: #000;
+        }
+        .delete-btn {
+            background-color: #dc3545;
+            border-color: #dc3545;
+            color: #fff;
+        }
+        .edit-btn:hover {
+            background-color: #ffb300;
+            border-color: #ffb300;
+        }
+        .delete-btn:hover {
+            background-color: #c82333;
+            border-color: #c82333;
+        }
+    </style>
 </head>
 <body class="layout-fixed">
     <div class="wrapper">
@@ -90,8 +110,8 @@ try {
                             <h1>Test Category Management</h1>
                         </div>
                         <div class="col-sm-6 text-right">
-                            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCategoryModal">
-                                Add New Category
+                            <button type="button" class="btn btn-primary btn-add-category float-end" data-bs-toggle="modal" data-bs-target="#addCategoryModal">
+                                <i class="fas fa-plus me-2"></i>Add New Category
                             </button>
                         </div>
                     </div>
@@ -100,24 +120,10 @@ try {
 
             <section class="content">
                 <div class="container-fluid">
-                    <?php if ($successMsg): ?>
-                        <div class="alert alert-success alert-dismissible fade show">
-                            <?php echo htmlspecialchars($successMsg); ?>
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                        </div>
-                    <?php endif; ?>
-                    
-                    <?php if ($errorMsg): ?>
-                        <div class="alert alert-danger alert-dismissible fade show">
-                            <?php echo htmlspecialchars($errorMsg); ?>
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                        </div>
-                    <?php endif; ?>
-
                     <div class="card">
-                        <div class="card-body">
+                        <div class="card-body p-0">
                             <div class="table-responsive">
-                                <table class="table table-striped table-hover">
+                                <table class="table table-hover">
                                     <thead>
                                         <tr>
                                             <th>ID</th>
@@ -127,33 +133,8 @@ try {
                                             <th>Actions</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
-                                        <?php foreach ($categories as $category): ?>
-                                            <tr>
-                                                <td><?php echo htmlspecialchars($category['category_id']); ?></td>
-                                                <td><?php echo htmlspecialchars($category['category_name']); ?></td>
-                                                <td><?php echo htmlspecialchars($category['test_count']); ?></td>
-                                                <td><?php echo date('M d, Y', strtotime($category['created_at'])); ?></td>
-                                                <td>
-                                                    <button type="button" class="btn btn-sm btn-warning edit-category" 
-                                                            data-id="<?php echo htmlspecialchars($category['category_id']); ?>"
-                                                            data-name="<?php echo htmlspecialchars($category['category_name']); ?>">
-                                                        <i class="fas fa-edit"></i> Edit
-                                                    </button>
-                                                    
-                                                    <?php if ($category['test_count'] == 0): ?>
-                                                        <form method="post" class="d-inline delete-form">
-                                                            <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
-                                                            <input type="hidden" name="category_id" value="<?php echo htmlspecialchars($category['category_id']); ?>">
-                                                            <input type="hidden" name="delete_category" value="1">
-                                                            <button type="submit" class="btn btn-sm btn-danger delete-btn">
-                                                                <i class="fas fa-trash"></i> Delete
-                                                            </button>
-                                                        </form>
-                                                    <?php endif; ?>
-                                                </td>
-                                            </tr>
-                                        <?php endforeach; ?>
+                                    <tbody id="categoriesTableBody">
+                                        <!-- Table content will be loaded dynamically -->
                                     </tbody>
                                 </table>
                             </div>
@@ -172,17 +153,19 @@ try {
                     <h5 class="modal-title">Add New Category</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <form id="addCategoryForm" method="post" action="includes/process_category.php">
+                <form id="addCategoryForm">
                     <div class="modal-body">
                         <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
                         <div class="mb-3">
-                            <label for="categoryName" class="form-label">Category Name</label>
-                            <input type="text" class="form-control" id="categoryName" name="category_name" required>
+                            <label class="form-label required">Category Name</label>
+                            <input type="text" class="form-control" name="category_name" required>
                         </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                        <button type="submit" class="btn btn-primary">Add Category</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Save Category
+                        </button>
                     </div>
                 </form>
             </div>
@@ -197,77 +180,165 @@ try {
                     <h5 class="modal-title">Edit Category</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <form id="editCategoryForm" method="post" action="includes/process_category.php">
+                <form id="editCategoryForm">
                     <div class="modal-body">
                         <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
                         <input type="hidden" name="category_id" id="editCategoryId">
                         <div class="mb-3">
-                            <label for="editCategoryName" class="form-label">Category Name</label>
-                            <input type="text" class="form-control" id="editCategoryName" name="category_name" required>
+                            <label class="form-label required">Category Name</label>
+                            <input type="text" class="form-control" name="category_name" id="editCategoryName" required>
                         </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Update Category
+                        </button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 
-    <?php include 'inc/footer.php'; ?>
-    
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Initialize edit buttons
-        document.querySelectorAll('.edit-category').forEach(button => {
-            button.addEventListener('click', function() {
-                const id = this.dataset.id;
-                const name = this.dataset.name;
-                
-                document.getElementById('editCategoryId').value = id;
-                document.getElementById('editCategoryName').value = name;
-                
-                new bootstrap.Modal(document.getElementById('editCategoryModal')).show();
-            });
+        // Initialize form submission
+        const addCategoryForm = document.getElementById('addCategoryForm');
+        const editCategoryForm = document.getElementById('editCategoryForm');
+
+        addCategoryForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            await submitForm(this, 'add');
         });
-        
-        // Initialize delete confirmations
-        document.querySelectorAll('.delete-form').forEach(form => {
-            form.addEventListener('submit', function(e) {
-                if (!confirm('Are you sure you want to delete this category?')) {
-                    e.preventDefault();
-                }
-            });
+
+        editCategoryForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            await submitForm(this, 'edit');
         });
-        
-        // Form validation and submission
-        const forms = document.querySelectorAll('#addCategoryForm, #editCategoryForm');
-        forms.forEach(form => {
-            form.addEventListener('submit', async function(e) {
-                e.preventDefault();
-                
-                try {
-                    const formData = new FormData(this);
-                    const response = await fetch(this.action, {
-                        method: 'POST',
-                        body: formData
-                    });
-                    
-                    const result = await response.json();
-                    
-                    if (result.success) {
-                        window.location.reload();
-                    } else {
-                        alert(result.message || 'An error occurred');
-                    }
-                } catch (error) {
-                    console.error('Error:', error);
-                    alert('An error occurred while processing your request');
-                }
-            });
-        });
+
+        // Load categories on page load
+        loadCategories();
     });
+
+    async function submitForm(form, action) {
+        try {
+            const formData = new FormData(form);
+            formData.append('action', action);
+
+            const response = await fetch('includes/process_category.php', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                alert(action === 'add' ? 'Category added successfully' : 'Category updated successfully');
+                location.reload();
+            } else {
+                alert(result.message || `Failed to ${action} category`);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('An error occurred while processing your request');
+        }
+    }
+
+    function loadCategories() {
+        fetch('includes/fetch_categories.php')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    updateCategoriesTable(data.categories);
+                } else {
+                    showError(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showError('Failed to load categories');
+            });
+    }
+
+    function updateCategoriesTable(categories) {
+        const tbody = document.getElementById('categoriesTableBody');
+        tbody.innerHTML = categories.map(category => `
+            <tr>
+                <td>${category.category_id}</td>
+                <td>${category.category_name}</td>
+                <td><span class="badge-count">${category.tests_count}</span></td>
+                <td>${formatDate(category.created_at)}</td>
+                <td>
+                    <div class="action-buttons">
+                        <button class="btn btn-sm edit-btn" onclick="editCategory(${category.category_id}, '${category.category_name}')">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        ${category.tests_count === 0 ? `
+                            <button class="btn btn-sm delete-btn" onclick="deleteCategory(${category.category_id})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        ` : ''}
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function editCategory(id, name) {
+        document.getElementById('editCategoryId').value = id;
+        document.getElementById('editCategoryName').value = name;
+        new bootstrap.Modal(document.getElementById('editCategoryModal')).show();
+    }
+
+    async function deleteCategory(id) {
+        if (!confirm('Are you sure you want to delete this category?')) {
+            return;
+        }
+
+        try {
+            const formData = new FormData();
+            formData.append('action', 'delete');
+            formData.append('category_id', id);
+            formData.append('csrf_token', '<?php echo $_SESSION["csrf_token"]; ?>');
+
+            const response = await fetch('includes/process_category.php', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                alert('Category deleted successfully');
+                location.reload();
+            } else {
+                alert(result.message || 'Failed to delete category');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('An error occurred while deleting the category');
+        }
+    }
+
+    function formatDate(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        });
+    }
+
+    function showError(message) {
+        const tbody = document.getElementById('categoriesTableBody');
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5" class="text-center text-danger">
+                    ${message}
+                </td>
+            </tr>
+        `;
+    }
     </script>
 </body>
 </html>
