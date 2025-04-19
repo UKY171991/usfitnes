@@ -7,7 +7,7 @@ define('DB_NAME', 'u902379465_fitness');
 
 // System Configuration
 define('SITE_NAME', 'Pathology CRM');
-define('SITE_URL', 'https://usfitnes.com/');
+define('SITE_URL', 'https://usfitnes.com');
 define('UPLOAD_PATH', __DIR__ . '/../assets/uploads/');
 
 // Error Reporting
