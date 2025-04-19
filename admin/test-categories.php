@@ -5,14 +5,76 @@ require_once '../auth/session-check.php';
 
 checkAdminAccess();
 
-// Handle form submission
-if($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $name = $_POST['name'] ?? '';
+// Handle delete request
+if(isset($_POST['delete_category'])) {
+    $category_id = $_POST['category_id'] ?? 0;
+    try {
+        // Begin transaction
+        $conn->beginTransaction();
+        
+        // Delete associated tests first
+        $stmt = $conn->prepare("DELETE FROM tests WHERE category_id = ?");
+        $stmt->execute([$category_id]);
+        
+        // Then delete the category
+        $stmt = $conn->prepare("DELETE FROM test_categories WHERE id = ?");
+        $stmt->execute([$category_id]);
+        
+        // Log activity
+        $activity = "Test category deleted: ID $category_id";
+        $stmt = $conn->prepare("INSERT INTO activities (user_id, description) VALUES (?, ?)");
+        $stmt->execute([$_SESSION['user_id'], $activity]);
+        
+        // Commit transaction
+        $conn->commit();
+        
+        header("Location: test-categories.php?success=2");
+        exit();
+    } catch(PDOException $e) {
+        // Rollback transaction on error
+        $conn->rollBack();
+        $error = "Error deleting category: " . $e->getMessage();
+    }
+}
+
+// Handle edit request
+if(isset($_POST['edit_category'])) {
+    $category_id = $_POST['category_id'] ?? 0;
+    $name = $_POST['category_name'] ?? '';
     $description = $_POST['description'] ?? '';
     
     if(!empty($name)) {
         try {
-            $stmt = $conn->prepare("INSERT INTO test_categories (name, description) VALUES (?, ?)");
+            $stmt = $conn->prepare("
+                UPDATE test_categories 
+                SET category_name = ?, description = ?
+                WHERE id = ?
+            ");
+            $stmt->execute([$name, $description, $category_id]);
+            
+            // Log activity
+            $activity = "Test category updated: $name";
+            $stmt = $conn->prepare("INSERT INTO activities (user_id, description) VALUES (?, ?)");
+            $stmt->execute([$_SESSION['user_id'], $activity]);
+            
+            header("Location: test-categories.php?success=3");
+            exit();
+        } catch(PDOException $e) {
+            $error = "Error updating category: " . $e->getMessage();
+        }
+    } else {
+        $error = "Please enter a category name";
+    }
+}
+
+// Handle form submission
+if($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $name = $_POST['category_name'] ?? '';
+    $description = $_POST['description'] ?? '';
+    
+    if(!empty($name)) {
+        try {
+            $stmt = $conn->prepare("INSERT INTO test_categories (category_name, description) VALUES (?, ?)");
             $stmt->execute([$name, $description]);
             
             // Log activity
@@ -31,7 +93,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
 }
 
 // Get all categories
-$categories = $conn->query("SELECT * FROM test_categories ORDER BY name")->fetchAll(PDO::FETCH_ASSOC);
+$categories = $conn->query("SELECT * FROM test_categories ORDER BY category_name")->fetchAll(PDO::FETCH_ASSOC);
 
 include '../inc/header.php';
 ?>
@@ -71,16 +133,26 @@ include '../inc/header.php';
             ?>
                 <tr>
                     <td><?php echo $category['id']; ?></td>
-                    <td><?php echo htmlspecialchars($category['name']); ?></td>
+                    <td><?php echo htmlspecialchars($category['category_name']); ?></td>
                     <td><?php echo htmlspecialchars($category['description']); ?></td>
                     <td><?php echo $count; ?></td>
                     <td>
-                        <button class="btn btn-sm btn-info" onclick="editCategory(<?php echo $category['id']; ?>)">
+                        <button class="btn btn-sm btn-info" onclick="editCategory(<?php 
+                            echo htmlspecialchars(json_encode([
+                                'id' => $category['id'],
+                                'category_name' => $category['category_name'],
+                                'description' => $category['description']
+                            ])); 
+                        ?>)">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button class="btn btn-sm btn-danger" onclick="deleteCategory(<?php echo $category['id']; ?>)">
-                            <i class="fas fa-trash"></i>
-                        </button>
+                        <form method="POST" style="display: inline;">
+                            <input type="hidden" name="category_id" value="<?php echo $category['id']; ?>">
+                            <input type="hidden" name="delete_category" value="1">
+                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this category? All tests in this category will also be deleted.')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </form>
                     </td>
                 </tr>
             <?php endforeach; ?>
@@ -99,8 +171,8 @@ include '../inc/header.php';
             <form method="POST" action="">
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label for="name" class="form-label">Category Name *</label>
-                        <input type="text" class="form-control" id="name" name="name" required>
+                        <label for="category_name" class="form-label">Category Name *</label>
+                        <input type="text" class="form-control" id="category_name" name="category_name" required>
                     </div>
                     <div class="mb-3">
                         <label for="description" class="form-label">Description</label>
@@ -116,17 +188,45 @@ include '../inc/header.php';
     </div>
 </div>
 
-<script>
-function editCategory(id) {
-    // Implement edit functionality
-    alert('Edit functionality will be implemented');
-}
+<!-- Edit Category Modal -->
+<div class="modal fade" id="editCategoryModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Category</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="">
+                <input type="hidden" name="edit_category" value="1">
+                <input type="hidden" name="category_id" id="edit_category_id">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="edit_category_name" class="form-label">Category Name *</label>
+                        <input type="text" class="form-control" id="edit_category_name" name="category_name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_description" class="form-label">Description</label>
+                        <textarea class="form-control" id="edit_description" name="description"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
-function deleteCategory(id) {
-    if(confirm('Are you sure you want to delete this category? All tests in this category will also be deleted.')) {
-        // Implement delete functionality
-        alert('Delete functionality will be implemented');
-    }
+<script>
+function editCategory(categoryData) {
+    // Populate the edit modal with category data
+    document.getElementById('edit_category_id').value = categoryData.id;
+    document.getElementById('edit_category_name').value = categoryData.category_name;
+    document.getElementById('edit_description').value = categoryData.description || '';
+    
+    // Show the modal
+    new bootstrap.Modal(document.getElementById('editCategoryModal')).show();
 }
 </script>
 

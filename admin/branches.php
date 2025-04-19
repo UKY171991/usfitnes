@@ -13,7 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $branch_id = $_POST['branch_id'] ?? '';
     $name = trim($_POST['name'] ?? '');
     $address = trim($_POST['address'] ?? '');
-    $contact_number = trim($_POST['contact_number'] ?? '');
+    $phone = trim($_POST['phone'] ?? '');
 
     if (empty($name)) {
         $error_msg = "Branch name is required";
@@ -21,13 +21,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         try {
             if (empty($branch_id)) {
                 // Add new branch
-                $stmt = $conn->prepare("INSERT INTO branches (name, address, contact_number) VALUES (?, ?, ?)");
-                $stmt->execute([$name, $address, $contact_number]);
+                $stmt = $conn->prepare("INSERT INTO branches (branch_name, address, phone) VALUES (?, ?, ?)");
+                $stmt->execute([$name, $address, $phone]);
                 $success_msg = "Branch added successfully";
             } else {
                 // Update existing branch
-                $stmt = $conn->prepare("UPDATE branches SET name = ?, address = ?, contact_number = ? WHERE id = ?");
-                $stmt->execute([$name, $address, $contact_number, $branch_id]);
+                $stmt = $conn->prepare("UPDATE branches SET branch_name = ?, address = ?, phone = ? WHERE id = ?");
+                $stmt->execute([$name, $address, $phone, $branch_id]);
                 $success_msg = "Branch updated successfully";
             }
 
@@ -56,7 +56,7 @@ if (isset($_GET['delete'])) {
             $error_msg = "Cannot delete branch: There are users associated with this branch";
         } else {
             // Get branch name for activity log
-            $stmt = $conn->prepare("SELECT name FROM branches WHERE id = ?");
+            $stmt = $conn->prepare("SELECT branch_name FROM branches WHERE id = ?");
             $stmt->execute([$branch_id]);
             $branch_name = $stmt->fetchColumn();
 
@@ -78,7 +78,7 @@ if (isset($_GET['delete'])) {
 
 // Fetch all branches
 try {
-    $branches = $conn->query("SELECT * FROM branches ORDER BY name")->fetchAll(PDO::FETCH_ASSOC);
+    $branches = $conn->query("SELECT * FROM branches ORDER BY branch_name")->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     $error_msg = "Error fetching branches: " . $e->getMessage();
     $branches = [];
@@ -129,17 +129,17 @@ include '../inc/header.php';
                     <?php else: ?>
                         <?php foreach ($branches as $branch): ?>
                             <tr>
-                                <td><?php echo htmlspecialchars($branch['name']); ?></td>
+                                <td><?php echo htmlspecialchars($branch['branch_name']); ?></td>
                                 <td><?php echo htmlspecialchars($branch['address']); ?></td>
-                                <td><?php echo htmlspecialchars($branch['contact_number']); ?></td>
+                                <td><?php echo htmlspecialchars($branch['phone']); ?></td>
                                 <td>
                                     <button type="button" class="btn btn-sm btn-primary edit-branch" 
                                             data-bs-toggle="modal" 
                                             data-bs-target="#branchModal"
                                             data-id="<?php echo $branch['id']; ?>"
-                                            data-name="<?php echo htmlspecialchars($branch['name']); ?>"
+                                            data-name="<?php echo htmlspecialchars($branch['branch_name']); ?>"
                                             data-address="<?php echo htmlspecialchars($branch['address']); ?>"
-                                            data-contact="<?php echo htmlspecialchars($branch['contact_number']); ?>">
+                                            data-contact="<?php echo htmlspecialchars($branch['phone']); ?>">
                                         <i class="fas fa-edit"></i>
                                     </button>
                                     <a href="?delete=<?php echo $branch['id']; ?>" 
@@ -177,8 +177,8 @@ include '../inc/header.php';
                         <textarea class="form-control" id="address" name="address" rows="3"></textarea>
                     </div>
                     <div class="mb-3">
-                        <label for="contact_number" class="form-label">Contact Number</label>
-                        <input type="text" class="form-control" id="contact_number" name="contact_number">
+                        <label for="phone" class="form-label">Contact Number</label>
+                        <input type="text" class="form-control" id="phone" name="phone">
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -200,7 +200,7 @@ document.addEventListener('DOMContentLoaded', function() {
             modal.querySelector('#branch_id').value = this.dataset.id;
             modal.querySelector('#name').value = this.dataset.name;
             modal.querySelector('#address').value = this.dataset.address;
-            modal.querySelector('#contact_number').value = this.dataset.contact;
+            modal.querySelector('#phone').value = this.dataset.contact;
         });
     });
 

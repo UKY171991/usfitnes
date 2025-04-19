@@ -14,17 +14,16 @@ $branch_id = $_GET['branch_id'] ?? '';
 
 // Build query
 $query = "
-    SELECT r.*, p.name as patient_name, b.name as branch_name, u.name as created_by
+    SELECT r.*, p.name as patient_name, b.branch_name as branch_name
     FROM reports r
     LEFT JOIN patients p ON r.patient_id = p.id
-    LEFT JOIN branches b ON r.branch_id = b.id
-    LEFT JOIN users u ON r.created_by = u.id
+    LEFT JOIN branches b ON p.branch_id = b.id
     WHERE r.created_at BETWEEN ? AND ?
 ";
 $params = [$start_date, $end_date];
 
 if(!empty($branch_id)) {
-    $query .= " AND r.branch_id = ?";
+    $query .= " AND p.branch_id = ?";
     $params[] = $branch_id;
 }
 
@@ -35,7 +34,7 @@ $stmt->execute($params);
 $reports = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Get all branches for filter
-$branches = $conn->query("SELECT id, name FROM branches ORDER BY name")->fetchAll(PDO::FETCH_ASSOC);
+$branches = $conn->query("SELECT id, branch_name FROM branches ORDER BY branch_name")->fetchAll(PDO::FETCH_ASSOC);
 
 // Calculate statistics
 $total_reports = count($reports);
@@ -72,7 +71,7 @@ include '../inc/header.php';
                     <option value="">All Branches</option>
                     <?php foreach($branches as $branch): ?>
                         <option value="<?php echo $branch['id']; ?>" <?php echo $branch_id == $branch['id'] ? 'selected' : ''; ?>>
-                            <?php echo htmlspecialchars($branch['name']); ?>
+                            <?php echo htmlspecialchars($branch['branch_name']); ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
@@ -131,7 +130,6 @@ include '../inc/header.php';
                 <th>Date</th>
                 <th>Amount</th>
                 <th>Status</th>
-                <th>Created By</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -148,7 +146,6 @@ include '../inc/header.php';
                             <?php echo ucfirst($report['status']); ?>
                         </span>
                     </td>
-                    <td><?php echo htmlspecialchars($report['created_by']); ?></td>
                     <td>
                         <a href="../reports/report-template.php?id=<?php echo $report['id']; ?>" 
                            class="btn btn-sm btn-info" target="_blank">

@@ -5,6 +5,58 @@ require_once '../auth/session-check.php';
 
 checkAdminAccess();
 
+// Handle delete request
+if(isset($_POST['delete_user'])) {
+    $user_id = $_POST['user_id'] ?? 0;
+    try {
+        $stmt = $conn->prepare("DELETE FROM users WHERE id = ?");
+        $stmt->execute([$user_id]);
+        
+        // Log activity
+        $activity = "User deleted: ID $user_id";
+        $stmt = $conn->prepare("INSERT INTO activities (user_id, description) VALUES (?, ?)");
+        $stmt->execute([$_SESSION['user_id'], $activity]);
+        
+        header("Location: users.php?success=2");
+        exit();
+    } catch(PDOException $e) {
+        $error = "Error deleting user: " . $e->getMessage();
+    }
+}
+
+// Handle edit request
+if(isset($_POST['edit_user'])) {
+    $user_id = $_POST['user_id'] ?? 0;
+    $name = $_POST['name'] ?? '';
+    $email = $_POST['email'] ?? '';
+    $phone = $_POST['phone'] ?? '';
+    $role = $_POST['role'] ?? '';
+    $branch_id = $_POST['branch_id'] ?? null;
+    
+    if(!empty($name) && !empty($role)) {
+        try {
+            $stmt = $conn->prepare("
+                UPDATE users 
+                SET name = ?, email = ?, phone = ?, role = ?, branch_id = ?
+                WHERE id = ?
+            ");
+            $stmt->execute([$name, $email, $phone, $role, $branch_id, $user_id]);
+            
+            // Log activity
+            $activity = "User updated: ID $user_id";
+            $stmt = $conn->prepare("INSERT INTO activities (user_id, description) VALUES (?, ?)");
+            $stmt->execute([$_SESSION['user_id'], $activity]);
+            
+            header("Location: users.php?success=3");
+            exit();
+        } catch(PDOException $e) {
+            $error = "Error updating user: " . $e->getMessage();
+        }
+    } else {
+        $error = "Please fill in all required fields";
+    }
+}
+
 // Handle form submission
 if($_SERVER['REQUEST_METHOD'] == 'POST') {
     $username = $_POST['username'] ?? '';
@@ -42,14 +94,14 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
 
 // Get all users with branch names
 $users = $conn->query("
-    SELECT u.*, b.name as branch_name 
+    SELECT u.*, b.branch_name as branch_name 
     FROM users u 
     LEFT JOIN branches b ON u.branch_id = b.id 
     ORDER BY u.name
 ")->fetchAll(PDO::FETCH_ASSOC);
 
 // Get all branches for dropdown
-$branches = $conn->query("SELECT id, name FROM branches ORDER BY name")->fetchAll(PDO::FETCH_ASSOC);
+$branches = $conn->query("SELECT id, branch_name as name FROM branches ORDER BY branch_name")->fetchAll(PDO::FETCH_ASSOC);
 
 include '../inc/header.php';
 ?>
@@ -62,7 +114,21 @@ include '../inc/header.php';
 </div>
 
 <?php if(isset($_GET['success'])): ?>
-    <div class="alert alert-success">User added successfully!</div>
+    <div class="alert alert-success">
+        <?php 
+            switch($_GET['success']) {
+                case 1:
+                    echo "User added successfully!";
+                    break;
+                case 2:
+                    echo "User deleted successfully!";
+                    break;
+                case 3:
+                    echo "User updated successfully!";
+                    break;
+            }
+        ?>
+    </div>
 <?php endif; ?>
 
 <?php if(isset($error)): ?>
@@ -94,12 +160,25 @@ include '../inc/header.php';
                     <td><?php echo ucfirst(htmlspecialchars($user['role'])); ?></td>
                     <td><?php echo htmlspecialchars($user['branch_name'] ?? 'N/A'); ?></td>
                     <td>
-                        <button class="btn btn-sm btn-info" onclick="editUser(<?php echo $user['id']; ?>)">
+                        <button class="btn btn-sm btn-info" onclick="editUser(<?php 
+                            echo htmlspecialchars(json_encode([
+                                'id' => $user['id'],
+                                'name' => $user['name'],
+                                'email' => $user['email'],
+                                'phone' => $user['phone'],
+                                'role' => $user['role'],
+                                'branch_id' => $user['branch_id']
+                            ])); 
+                        ?>)">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button class="btn btn-sm btn-danger" onclick="deleteUser(<?php echo $user['id']; ?>)">
-                            <i class="fas fa-trash"></i>
-                        </button>
+                        <form method="POST" style="display: inline;">
+                            <input type="hidden" name="user_id" value="<?php echo $user['id']; ?>">
+                            <input type="hidden" name="delete_user" value="1">
+                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this user?')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </form>
                     </td>
                 </tr>
             <?php endforeach; ?>
@@ -167,17 +246,72 @@ include '../inc/header.php';
     </div>
 </div>
 
-<script>
-function editUser(id) {
-    // Implement edit functionality
-    alert('Edit functionality will be implemented');
-}
+<!-- Edit User Modal -->
+<div class="modal fade" id="editUserModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit User</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="">
+                <input type="hidden" name="edit_user" value="1">
+                <input type="hidden" name="user_id" id="edit_user_id">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="edit_name" class="form-label">Full Name *</label>
+                        <input type="text" class="form-control" id="edit_name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="edit_email" name="email">
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_phone" class="form-label">Phone</label>
+                        <input type="tel" class="form-control" id="edit_phone" name="phone">
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_role" class="form-label">Role *</label>
+                        <select class="form-control" id="edit_role" name="role" required>
+                            <option value="admin">Admin</option>
+                            <option value="branch_admin">Branch Admin</option>
+                            <option value="receptionist">Receptionist</option>
+                            <option value="technician">Technician</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_branch_id" class="form-label">Branch</label>
+                        <select class="form-control" id="edit_branch_id" name="branch_id">
+                            <option value="">Select Branch</option>
+                            <?php foreach($branches as $branch): ?>
+                                <option value="<?php echo $branch['id']; ?>">
+                                    <?php echo htmlspecialchars($branch['name']); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
-function deleteUser(id) {
-    if(confirm('Are you sure you want to delete this user?')) {
-        // Implement delete functionality
-        alert('Delete functionality will be implemented');
-    }
+<script>
+function editUser(userData) {
+    // Populate the edit modal with user data
+    document.getElementById('edit_user_id').value = userData.id;
+    document.getElementById('edit_name').value = userData.name;
+    document.getElementById('edit_email').value = userData.email || '';
+    document.getElementById('edit_phone').value = userData.phone || '';
+    document.getElementById('edit_role').value = userData.role;
+    document.getElementById('edit_branch_id').value = userData.branch_id || '';
+    
+    // Show the modal
+    new bootstrap.Modal(document.getElementById('editUserModal')).show();
 }
 </script>
 
