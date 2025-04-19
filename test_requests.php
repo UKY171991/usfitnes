@@ -1,6 +1,6 @@
 <?php
-require_once 'config.php';
-require_once 'db_connect.php';
+require_once 'includes/config.php';
+require_once 'includes/db_connect.php';
 
 // Start session with secure settings
 session_start([
@@ -20,34 +20,43 @@ if (!isset($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
-$db = Database::getInstance();
+try {
+    $db = new PDO("mysql:host=".DB_HOST.";dbname=".DB_NAME, DB_USER, DB_PASS);
+    $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-// Fetch all tests for dropdown
-$tests_stmt = $db->query("
-    SELECT test_id, test_name, category_name 
-    FROM Tests_Catalog tc
-    JOIN Test_Categories tcat ON tc.category_id = tcat.category_id
-    ORDER BY category_name, test_name
-");
-$tests = $tests_stmt->fetchAll();
+    // Fetch all tests for dropdown
+    $tests_stmt = $db->query("
+        SELECT test_id, test_name, category_name 
+        FROM Tests_Catalog tc
+        JOIN Test_Categories tcat ON tc.category_id = tcat.category_id
+        ORDER BY category_name, test_name
+    ");
+    $tests = $tests_stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Fetch all patients for dropdown
-$patients_stmt = $db->query("
-    SELECT patient_id, CONCAT(first_name, ' ', last_name) as patient_name 
-    FROM Patients 
-    ORDER BY first_name, last_name
-");
-$patients = $patients_stmt->fetchAll();
+    // Fetch all patients for dropdown
+    $patients_stmt = $db->query("
+        SELECT patient_id, CONCAT(first_name, ' ', last_name) as patient_name 
+        FROM Patients 
+        ORDER BY first_name, last_name
+    ");
+    $patients = $patients_stmt->fetchAll(PDO::FETCH_ASSOC);
 
-include 'includes/head.php';
+} catch(PDOException $e) {
+    error_log("Database Error: " . $e->getMessage());
+    die("A database error occurred. Please try again later.");
+}
+
+include 'includes/header.php';
 ?>
 
 <div class="container-fluid px-4">
+    <div id="alertContainer"></div>
+    
     <div class="card mt-4">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0">Test Requests</h5>
             <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addRequestModal">
-                <i class="fas fa-plus me-2"></i>Add New Request
+                <i class="bi bi-plus"></i> Add New Request
             </button>
         </div>
         <div class="card-body">
@@ -93,7 +102,6 @@ include 'includes/head.php';
             <div class="modal-body">
                 <form id="addRequestForm">
                     <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
-                    <input type="hidden" name="action" value="add">
                     
                     <div class="mb-3">
                         <label class="form-label">Patient <span class="text-danger">*</span></label>
@@ -146,39 +154,56 @@ include 'includes/head.php';
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="submitRequest">Submit</button>
+                <button type="submit" form="addRequestForm" class="btn btn-primary">Submit</button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Edit Status Modal -->
-<div class="modal fade" id="editStatusModal" tabindex="-1">
+<!-- Update Request Modal -->
+<div class="modal fade" id="updateRequestModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Update Request Status</h5>
+                <h5 class="modal-title">Update Test Request</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <form id="updateStatusForm">
+                <form id="updateRequestForm">
                     <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
-                    <input type="hidden" name="action" value="update">
-                    <input type="hidden" name="request_id" id="editRequestId">
+                    <input type="hidden" name="request_id" id="updateRequestId">
                     
                     <div class="mb-3">
-                        <label class="form-label">Status</label>
-                        <select class="form-select" name="status">
+                        <label class="form-label">Patient</label>
+                        <p class="form-control-static" id="updatePatientName"></p>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Test</label>
+                        <p class="form-control-static" id="updateTestName"></p>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Status <span class="text-danger">*</span></label>
+                        <select class="form-select" name="status" id="updateStatus" required>
                             <option value="Pending">Pending</option>
                             <option value="In Progress">In Progress</option>
                             <option value="Completed">Completed</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Priority <span class="text-danger">*</span></label>
+                        <select class="form-select" name="priority" id="updatePriority" required>
+                            <option value="Normal">Normal</option>
+                            <option value="Urgent">Urgent</option>
                         </select>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="updateStatus">Update</button>
+                <button type="submit" form="updateRequestForm" class="btn btn-primary">Update</button>
             </div>
         </div>
     </div>
@@ -186,176 +211,9 @@ include 'includes/head.php';
 
 <?php include 'includes/footer.php'; ?>
 
+<!-- Initialize DataTable and handle form submissions -->
+<script src="assets/js/test_requests.js"></script>
 <script>
-$(document).ready(function() {
-    // Initialize DataTable
-    const table = $('#requestsTable').DataTable({
-        ajax: {
-            url: 'includes/fetch_requests.php',
-            dataSrc: ''
-        },
-        columns: [
-            { data: 'request_id' },
-            { data: 'patient_name' },
-            { data: 'test_name' },
-            { data: 'ordered_by' },
-            { 
-                data: 'request_date',
-                render: function(data) {
-                    return moment(data).format('MMM D, YYYY h:mm A');
-                }
-            },
-            { 
-                data: 'status',
-                render: function(data) {
-                    const badges = {
-                        'Pending': 'bg-warning',
-                        'In Progress': 'bg-info',
-                        'Completed': 'bg-success'
-                    };
-                    return `<span class="badge ${badges[data]}">${data}</span>`;
-                }
-            },
-            {
-                data: 'priority',
-                render: function(data) {
-                    const badges = {
-                        'Normal': 'bg-secondary',
-                        'Urgent': 'bg-danger'
-                    };
-                    return `<span class="badge ${badges[data]}">${data}</span>`;
-                }
-            },
-            {
-                data: null,
-                render: function(data, type, row) {
-                    let buttons = `
-                        <button class="btn btn-sm btn-info me-1 edit-status" data-id="${row.request_id}">
-                            <i class="fas fa-edit"></i>
-                        </button>`;
-                    
-                    if (data.can_delete) {
-                        buttons += `
-                            <button class="btn btn-sm btn-danger delete-request" data-id="${row.request_id}">
-                                <i class="fas fa-trash"></i>
-                            </button>`;
-                    }
-                    
-                    return buttons;
-                }
-            }
-        ],
-        order: [[0, 'desc']],
-        pageLength: 10,
-        responsive: true
-    });
-    
-    // Handle form submission
-    $('#submitRequest').click(function() {
-        const form = $('#addRequestForm');
-        
-        if (!form[0].checkValidity()) {
-            form[0].reportValidity();
-            return;
-        }
-        
-        $.ajax({
-            url: 'includes/process_request.php',
-            method: 'POST',
-            data: form.serialize(),
-            success: function(response) {
-                const data = JSON.parse(response);
-                if (data.success) {
-                    $('#addRequestModal').modal('hide');
-                    form[0].reset();
-                    table.ajax.reload();
-                    showAlert('success', data.message);
-                } else {
-                    showAlert('danger', data.message);
-                }
-            },
-            error: function() {
-                showAlert('danger', 'An error occurred while processing your request');
-            }
-        });
-    });
-    
-    // Handle status update
-    $('#updateStatus').click(function() {
-        const form = $('#updateStatusForm');
-        
-        $.ajax({
-            url: 'includes/process_request.php',
-            method: 'POST',
-            data: form.serialize(),
-            success: function(response) {
-                const data = JSON.parse(response);
-                if (data.success) {
-                    $('#editStatusModal').modal('hide');
-                    table.ajax.reload();
-                    showAlert('success', data.message);
-                } else {
-                    showAlert('danger', data.message);
-                }
-            },
-            error: function() {
-                showAlert('danger', 'An error occurred while updating the status');
-            }
-        });
-    });
-    
-    // Handle edit status button click
-    $('#requestsTable').on('click', '.edit-status', function() {
-        $('#editRequestId').val($(this).data('id'));
-        $('#editStatusModal').modal('show');
-    });
-    
-    // Handle delete button click
-    $('#requestsTable').on('click', '.delete-request', function() {
-        const requestId = $(this).data('id');
-        
-        if (confirm('Are you sure you want to delete this request?')) {
-            $.ajax({
-                url: 'includes/process_request.php',
-                method: 'POST',
-                data: {
-                    action: 'delete',
-                    request_id: requestId,
-                    csrf_token: $('input[name="csrf_token"]').val()
-                },
-                success: function(response) {
-                    const data = JSON.parse(response);
-                    if (data.success) {
-                        table.ajax.reload();
-                        showAlert('success', data.message);
-                    } else {
-                        showAlert('danger', data.message);
-                    }
-                },
-                error: function() {
-                    showAlert('danger', 'An error occurred while deleting the request');
-                }
-            });
-        }
-    });
-    
-    // Search functionality
-    $('#searchInput').on('keyup', function() {
-        table.search(this.value).draw();
-    });
-});
-
-function showAlert(type, message) {
-    const alertHtml = `
-        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>`;
-    
-    $('.container-fluid').prepend(alertHtml);
-    
-    setTimeout(function() {
-        $('.alert').alert('close');
-    }, 5000);
-}
+    // Make CSRF token available to JavaScript
+    const csrfToken = <?php echo json_encode($_SESSION['csrf_token']); ?>;
 </script>

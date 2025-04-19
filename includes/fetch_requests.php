@@ -1,5 +1,5 @@
 <?php
-require_once '../config.php';
+require_once 'config.php';
 require_once 'db_connect.php';
 
 // Start session with secure settings
@@ -11,7 +11,7 @@ session_start([
 
 // Check if user is logged in
 if (!isset($_SESSION['user_id'])) {
-    header('HTTP/1.1 403 Forbidden');
+    http_response_code(403);
     echo json_encode(['error' => 'Unauthorized access']);
     exit;
 }
@@ -29,7 +29,7 @@ try {
             tr.request_date,
             tr.status,
             tr.priority,
-            tr.created_by,
+            tr.user_id,
             (tr.status != 'Completed' AND :user_role = 'Admin') as can_delete
         FROM Test_Requests tr
         JOIN Patients p ON tr.patient_id = p.patient_id
@@ -42,17 +42,18 @@ try {
         'user_role' => $_SESSION['role'] ?? 'User'
     ]);
     
-    $requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $requests = $stmt->fetchAll();
     
     // Format dates and ensure boolean values are correct
     foreach ($requests as &$request) {
         $request['can_delete'] = (bool)$request['can_delete'];
+        $request['request_date'] = date('Y-m-d H:i:s', strtotime($request['request_date']));
     }
     
     echo json_encode($requests);
     
 } catch (Exception $e) {
     error_log("Error fetching test requests: " . $e->getMessage());
-    header('HTTP/1.1 500 Internal Server Error');
+    http_response_code(500);
     echo json_encode(['error' => 'Failed to fetch test requests']);
 } 
