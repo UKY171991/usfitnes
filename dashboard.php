@@ -7,423 +7,264 @@ session_start([
     'cookie_httponly' => true,
     'cookie_secure' => true,
     'cookie_samesite' => 'Strict',
-    'use_strict_mode' => true,
-    'gc_maxlifetime' => SESSION_LIFETIME
+    'use_strict_mode' => true
 ]);
 
 // Check if user is logged in
-if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in']) {
-    header("Location: login.php");
-    exit();
+if (!isset($_SESSION['user_id']) || !isset($_SESSION['role'])) {
+    header('Location: login.php');
+    exit;
 }
 
-// Restrict access to Admin only with proper role check
-if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'Admin') {
-    header("Location: index.php");
-    exit();
-}
-
-// Initialize error variable
-$error = '';
-
-// Get user data
 try {
     $db = Database::getInstance();
     
-    // Fetch user data
+    // Get user details
     $stmt = $db->query(
-        "SELECT u.first_name, u.last_name, u.role, u.last_login, b.name as branch_name 
-         FROM users u 
-         LEFT JOIN branches b ON u.branch_id = b.branch_id 
-         WHERE u.user_id = :user_id",
+        "SELECT first_name, last_name, role FROM Users WHERE user_id = :user_id",
         ['user_id' => $_SESSION['user_id']]
     );
-    $user = $stmt->fetch();
-
-    if (!$user) {
-        throw new Exception('User not found');
-    }
-
-    // Get branch_id from session
-    $branch_id = isset($_SESSION['branch_id']) ? $_SESSION['branch_id'] : null;
-    if (!$branch_id) {
-        throw new Exception('Branch not selected');
-    }
-
-    // Fetch statistics
-    $stats = [];
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
     
-    // Total Patients
+    // Get total patients count
+    $stmt = $db->query("SELECT COUNT(*) as total FROM Patients");
+    $total_patients = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
+    
+    // Get pending tests count
+    $stmt = $db->query("SELECT COUNT(*) as total FROM Test_Requests WHERE status = 'Pending'");
+    $pending_tests = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
+    
+    // Get today's reports count
     $stmt = $db->query(
-        "SELECT COUNT(*) FROM patients WHERE branch_id = :branch_id",
-        ['branch_id' => $branch_id]
+        "SELECT COUNT(*) as total FROM Test_Results WHERE DATE(recorded_at) = CURDATE()"
     );
-    $stats['patients'] = $stmt->fetchColumn();
-
-    // Pending Tests
+    $today_reports = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
+    
+    // Get monthly revenue
     $stmt = $db->query(
-        "SELECT COUNT(*) FROM test_requests WHERE branch_id = :branch_id AND status = 'pending'",
-        ['branch_id' => $branch_id]
+        "SELECT COALESCE(SUM(tc.price), 0) as total 
+         FROM Test_Requests tr 
+         JOIN tests_catalog_old tc ON tr.test_id = tc.test_id 
+         WHERE MONTH(tr.request_date) = MONTH(CURRENT_DATE()) 
+         AND YEAR(tr.request_date) = YEAR(CURRENT_DATE())"
     );
-    $stats['pending_tests'] = $stmt->fetchColumn();
-
-    // Today's Reports
+    $monthly_revenue = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
+    
+    // Get recent test requests
     $stmt = $db->query(
-        "SELECT COUNT(*) FROM test_results WHERE branch_id = :branch_id AND DATE(created_at) = CURDATE()",
-        ['branch_id' => $branch_id]
+        "SELECT tr.request_id, p.first_name, p.last_name, tc.test_name, tr.status, tr.request_date 
+         FROM Test_Requests tr 
+         JOIN Patients p ON tr.patient_id = p.patient_id 
+         JOIN tests_catalog_old tc ON tr.test_id = tc.test_id 
+         ORDER BY tr.request_date DESC LIMIT 5"
     );
-    $stats['today_reports'] = $stmt->fetchColumn();
-
-    // Monthly Revenue
+    $recent_requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Get test categories distribution
     $stmt = $db->query(
-        "SELECT COALESCE(SUM(amount), 0) FROM payments 
-         WHERE branch_id = :branch_id AND MONTH(payment_date) = MONTH(CURRENT_DATE())",
-        ['branch_id' => $branch_id]
+        "SELECT tc.category_name, COUNT(tr.request_id) as count 
+         FROM Test_Categories tc 
+         LEFT JOIN Tests_Catalog t ON tc.category_id = t.category_id 
+         LEFT JOIN Test_Requests tr ON t.test_id = tr.test_id 
+         GROUP BY tc.category_id"
     );
-    $stats['monthly_revenue'] = $stmt->fetchColumn();
-
-    // Recent Activities
-    $stmt = $db->query(
-        "SELECT * FROM (
-            SELECT 
-                'test_request' as type,
-                tr.request_id as id,
-                p.first_name,
-                p.last_name,
-                tr.created_at,
-                tr.status
-            FROM test_requests tr
-            JOIN patients p ON tr.patient_id = p.patient_id
-            WHERE tr.branch_id = :branch_id
-            UNION ALL
-            SELECT 
-                'test_result' as type,
-                tr.result_id as id,
-                p.first_name,
-                p.last_name,
-                tr.created_at,
-                tr.status
-            FROM test_results tr
-            JOIN patients p ON tr.patient_id = p.patient_id
-            WHERE tr.branch_id = :branch_id
-        ) activities 
-        ORDER BY created_at DESC LIMIT 10",
-        ['branch_id' => $branch_id]
-    );
-    $recent_activities = $stmt->fetchAll();
-
-    // Monthly Test Statistics for Chart
-    $stmt = $db->query(
-        "SELECT 
-            MONTH(created_at) as month,
-            COUNT(*) as count
-        FROM test_requests 
-        WHERE branch_id = :branch_id 
-        AND created_at >= DATE_SUB(CURRENT_DATE(), INTERVAL 6 MONTH)
-        GROUP BY MONTH(created_at)
-        ORDER BY month",
-        ['branch_id' => $branch_id]
-    );
-    $monthly_stats = array_fill(0, 6, 0);
-    while ($row = $stmt->fetch()) {
-        $monthly_stats[$row['month'] - 1] = (int)$row['count'];
-    }
-
-    // Test Categories Distribution for Chart
-    $stmt = $db->query(
-        "SELECT 
-            tc.name,
-            COUNT(*) as count
-        FROM test_requests tr
-        JOIN test_categories tc ON tr.category_id = tc.category_id
-        WHERE tr.branch_id = :branch_id
-        GROUP BY tc.name
-        ORDER BY count DESC
-        LIMIT 5",
-        ['branch_id' => $branch_id]
-    );
-    $category_stats = [];
-    $category_labels = [];
-    while ($row = $stmt->fetch()) {
-        $category_labels[] = $row['name'];
-        $category_stats[] = (int)$row['count'];
-    }
-
+    $test_categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
 } catch (Exception $e) {
-    error_log("Dashboard Error: " . $e->getMessage());
-    $error = "Failed to load dashboard data. Please try again later.";
+    error_log("Dashboard error: " . $e->getMessage());
+    $_SESSION['error_message'] = "Failed to load dashboard data";
 }
 ?>
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo APP_NAME; ?> - Dashboard</title>
-    <?php include('inc/head.php'); ?>
-    <link href="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.css" rel="stylesheet">
-    <style>
-        .welcome-section {
-            background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
-            color: white;
-            padding: 2rem;
-            border-radius: 0.5rem;
-            margin-bottom: 2rem;
-            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
-        }
-        .welcome-section h1 {
-            font-size: 1.8rem;
-            margin: 0;
-            font-weight: 600;
-        }
-        .welcome-section p {
-            margin: 0.5rem 0 0;
-            opacity: 0.9;
-        }
-        .stats-card {
-            background: white;
-            border-radius: 0.5rem;
-            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
-            transition: transform 0.3s ease;
-            height: 100%;
-        }
-        .stats-card:hover {
-            transform: translateY(-3px);
-        }
-        .stats-icon {
-            font-size: 2rem;
-            width: 60px;
-            height: 60px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
-            margin-bottom: 1rem;
-        }
-        .stats-number {
-            font-size: 2rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-            color: #4e73df;
-        }
-        .stats-label {
-            color: #858796;
-            font-size: 0.875rem;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            margin: 0;
-        }
-        .activity-card {
-            background: white;
-            border-radius: 0.5rem;
-            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
-            margin-top: 2rem;
-        }
-        .activity-header {
-            padding: 1.25rem;
-            border-bottom: 1px solid #e3e6f0;
-        }
-        .activity-list {
-            list-style: none;
-            margin: 0;
-            padding: 0;
-        }
-        .activity-item {
-            padding: 1rem 1.25rem;
-            border-bottom: 1px solid #e3e6f0;
-            display: flex;
-            align-items: center;
-        }
-        .activity-item:last-child {
-            border-bottom: none;
-        }
-        .activity-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 1rem;
-            flex-shrink: 0;
-        }
-        .activity-icon.request {
-            background-color: rgba(78, 115, 223, 0.1);
-            color: #4e73df;
-        }
-        .activity-icon.result {
-            background-color: rgba(28, 200, 138, 0.1);
-            color: #1cc88a;
-        }
-        .activity-content {
-            flex-grow: 1;
-        }
-        .activity-title {
-            margin: 0;
-            font-size: 0.875rem;
-            font-weight: 600;
-        }
-        .activity-time {
-            font-size: 0.75rem;
-            color: #858796;
-        }
-        .chart-card {
-            background: white;
-            border-radius: 0.5rem;
-            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
-            margin-top: 2rem;
-            padding: 1.25rem;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .fade-in {
-            animation: fadeIn 0.5s ease-out forwards;
-        }
-        .status-badge {
-            padding: 0.25rem 0.5rem;
-            border-radius: 0.25rem;
-            font-size: 0.75rem;
-            font-weight: 600;
-        }
-        .status-pending {
-            background-color: rgba(246, 194, 62, 0.1);
-            color: #f6c23e;
-        }
-        .status-completed {
-            background-color: rgba(28, 200, 138, 0.1);
-            color: #1cc88a;
-        }
-    </style>
+    <?php include 'inc/head.php'; ?>
+    <title>Dashboard | Lab Management System</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<body class="layout-fixed sidebar-expand-lg bg-body-tertiary">
-    <div class="app-wrapper">
-        <?php include('inc/top.php'); ?>
-        <?php include('inc/sidebar.php'); ?>
+<body class="layout-fixed">
+    <div class="wrapper">
+        <?php include 'inc/sidebar.php'; ?>
         
-        <main class="app-main">
-            <div class="app-content">
-                <div class="container-fluid p-4">
-                    <!-- Welcome Section -->
-                    <div class="welcome-section fade-in">
-                        <h1>Welcome back, <?php echo htmlspecialchars($user['first_name'] . ' ' . $user['last_name']); ?>!</h1>
-                        <p>
-                            <i class="bi bi-building"></i> <?php echo htmlspecialchars($user['branch_name']); ?> | 
-                            <i class="bi bi-clock"></i> Last login: <?php echo $user['last_login'] ? date('M d, Y H:i', strtotime($user['last_login'])) : 'First login'; ?>
-                        </p>
+        <div class="content-wrapper">
+            <div class="content-header">
+                <div class="container-fluid">
+                    <div class="row mb-2">
+                        <div class="col-sm-6">
+                            <h1 class="m-0">Dashboard</h1>
+                        </div>
                     </div>
+                </div>
+            </div>
 
-                    <?php if (isset($error)): ?>
-                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                            <?php echo htmlspecialchars($error); ?>
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>
-                    <?php endif; ?>
-
-                    <!-- Stats Row -->
-                    <div class="row">
-                        <div class="col-xl-3 col-md-6 mb-4 fade-in" style="animation-delay: 0.1s">
-                            <div class="stats-card p-4">
-                                <div class="stats-icon bg-primary bg-opacity-10 text-primary">
-                                    <i class="bi bi-people"></i>
+            <section class="content">
+                <div class="container-fluid">
+                    <!-- Welcome Message -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card bg-primary text-white">
+                                <div class="card-body">
+                                    <h4>Welcome back, <?php echo htmlspecialchars($user['first_name'] . ' ' . $user['last_name']); ?>!</h4>
+                                    <p class="mb-0">Here's what's happening in your lab today.</p>
                                 </div>
-                                <div class="stats-number"><?php echo number_format($stats['patients']); ?></div>
-                                <p class="stats-label">Total Patients</p>
-                            </div>
-                        </div>
-                        <div class="col-xl-3 col-md-6 mb-4 fade-in" style="animation-delay: 0.2s">
-                            <div class="stats-card p-4">
-                                <div class="stats-icon bg-warning bg-opacity-10 text-warning">
-                                    <i class="bi bi-clipboard2-pulse"></i>
-                                </div>
-                                <div class="stats-number"><?php echo number_format($stats['pending_tests']); ?></div>
-                                <p class="stats-label">Pending Tests</p>
-                            </div>
-                        </div>
-                        <div class="col-xl-3 col-md-6 mb-4 fade-in" style="animation-delay: 0.3s">
-                            <div class="stats-card p-4">
-                                <div class="stats-icon bg-success bg-opacity-10 text-success">
-                                    <i class="bi bi-file-earmark-text"></i>
-                                </div>
-                                <div class="stats-number"><?php echo number_format($stats['today_reports']); ?></div>
-                                <p class="stats-label">Today's Reports</p>
-                            </div>
-                        </div>
-                        <div class="col-xl-3 col-md-6 mb-4 fade-in" style="animation-delay: 0.4s">
-                            <div class="stats-card p-4">
-                                <div class="stats-icon bg-info bg-opacity-10 text-info">
-                                    <i class="bi bi-currency-rupee"></i>
-                                </div>
-                                <div class="stats-number">₹<?php echo number_format($stats['monthly_revenue'], 2); ?></div>
-                                <p class="stats-label">Monthly Revenue</p>
                             </div>
                         </div>
                     </div>
 
+                    <!-- Statistics Cards -->
                     <div class="row">
-                        <!-- Charts -->
-                        <div class="col-xl-8 fade-in" style="animation-delay: 0.5s">
-                            <div class="chart-card">
-                                <h5 class="card-title mb-4">Monthly Statistics</h5>
-                                <canvas id="monthlyChart" height="300"></canvas>
-                            </div>
-                        </div>
-
-                        <!-- Recent Activities -->
-                        <div class="col-xl-4 fade-in" style="animation-delay: 0.6s">
-                            <div class="activity-card">
-                                <div class="activity-header">
-                                    <h5 class="card-title mb-0">Recent Activities</h5>
-                                </div>
-                                <div class="activity-list">
-                                    <?php foreach ($recent_activities as $activity): ?>
-                                        <div class="activity-item">
-                                            <div class="activity-icon <?php echo $activity['type'] === 'test_request' ? 'request' : 'result'; ?>">
-                                                <i class="bi bi-<?php echo $activity['type'] === 'test_request' ? 'clipboard2-pulse' : 'file-earmark-text'; ?>"></i>
-                                            </div>
-                                            <div class="activity-content">
-                                                <h6 class="activity-title">
-                                                    <?php echo htmlspecialchars($activity['first_name'] . ' ' . $activity['last_name']); ?>
-                                                </h6>
-                                                <div class="d-flex justify-content-between align-items-center">
-                                                    <span class="activity-time">
-                                                        <i class="bi bi-clock"></i> 
-                                                        <?php echo date('M d, H:i', strtotime($activity['created_at'])); ?>
-                                                    </span>
-                                                    <span class="status-badge <?php echo $activity['status'] === 'pending' ? 'status-pending' : 'status-completed'; ?>">
-                                                        <?php echo ucfirst($activity['status']); ?>
-                                                    </span>
-                                                </div>
-                                            </div>
+                        <div class="col-lg-3 col-6">
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="text-muted mb-2">Total Patients</h6>
+                                            <h3 class="mb-0"><?php echo number_format($total_patients); ?></h3>
                                         </div>
-                                    <?php endforeach; ?>
+                                        <div class="text-primary">
+                                            <i class="bi bi-people fs-1"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-lg-3 col-6">
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="text-muted mb-2">Pending Tests</h6>
+                                            <h3 class="mb-0"><?php echo number_format($pending_tests); ?></h3>
+                                        </div>
+                                        <div class="text-warning">
+                                            <i class="bi bi-clock-history fs-1"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-lg-3 col-6">
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="text-muted mb-2">Today's Reports</h6>
+                                            <h3 class="mb-0"><?php echo number_format($today_reports); ?></h3>
+                                        </div>
+                                        <div class="text-success">
+                                            <i class="bi bi-file-earmark-text fs-1"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-lg-3 col-6">
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="text-muted mb-2">Monthly Revenue</h6>
+                                            <h3 class="mb-0">$<?php echo number_format($monthly_revenue, 2); ?></h3>
+                                        </div>
+                                        <div class="text-info">
+                                            <i class="bi bi-currency-dollar fs-1"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Charts Row -->
+                    <div class="row">
+                        <div class="col-lg-8">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title">Monthly Test Statistics</h5>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="monthlyStats" height="300"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-lg-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title">Test Categories</h5>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="categoryDistribution" height="300"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Activities -->
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title">Recent Test Requests</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>Patient</th>
+                                                    <th>Test</th>
+                                                    <th>Status</th>
+                                                    <th>Date</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <?php foreach ($recent_requests as $request): ?>
+                                                <tr>
+                                                    <td><?php echo htmlspecialchars($request['first_name'] . ' ' . $request['last_name']); ?></td>
+                                                    <td><?php echo htmlspecialchars($request['test_name']); ?></td>
+                                                    <td>
+                                                        <span class="badge bg-<?php 
+                                                            echo $request['status'] === 'Completed' ? 'success' : 
+                                                                ($request['status'] === 'Pending' ? 'warning' : 'info'); 
+                                                        ?>">
+                                                            <?php echo htmlspecialchars($request['status']); ?>
+                                                        </span>
+                                                    </td>
+                                                    <td><?php echo date('M d, Y', strtotime($request['request_date'])); ?></td>
+                                                </tr>
+                                                <?php endforeach; ?>
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        </main>
+            </section>
+        </div>
     </div>
 
-    <?php include('inc/js.php'); ?>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script>
     <script>
+    // Initialize charts when DOM is loaded
+    document.addEventListener('DOMContentLoaded', function() {
         // Monthly Statistics Chart
-        const ctx = document.getElementById('monthlyChart').getContext('2d');
-        new Chart(ctx, {
+        const monthlyCtx = document.getElementById('monthlyStats').getContext('2d');
+        new Chart(monthlyCtx, {
             type: 'line',
             data: {
-                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
                 datasets: [{
-                    label: 'Tests',
-                    data: <?php echo json_encode($monthly_stats ?? []); ?>,
-                    borderColor: '#4e73df',
-                    backgroundColor: 'rgba(78, 115, 223, 0.05)',
+                    label: 'Tests Conducted',
+                    data: [65, 59, 80, 81, 56, 55, 40, 45, 58, 62, 70, 75],
+                    borderColor: '#4361ee',
                     tension: 0.4,
-                    fill: true
+                    fill: false
                 }]
             },
             options: {
@@ -436,36 +277,56 @@ try {
                 },
                 scales: {
                     y: {
-                        beginAtZero: true,
-                        grid: {
-                            drawBorder: false
-                        }
-                    },
-                    x: {
-                        grid: {
-                            display: false
-                        }
+                        beginAtZero: true
                     }
                 }
             }
         });
 
-        // Auto-update dashboard
-        function updateDashboard() {
-            fetch('includes/fetch_dashboard_stats.php')
-                .then(response => response.json())
-                .then(data => {
-                    // Update statistics
-                    document.querySelectorAll('.stats-number').forEach((el, index) => {
-                        const value = Object.values(data)[index];
-                        el.textContent = index === 3 ? `₹${value.toLocaleString()}` : value.toLocaleString();
-                    });
-                })
-                .catch(error => console.error('Error updating dashboard:', error));
-        }
+        // Category Distribution Chart
+        const categoryCtx = document.getElementById('categoryDistribution').getContext('2d');
+        new Chart(categoryCtx, {
+            type: 'doughnut',
+            data: {
+                labels: <?php echo json_encode(array_column($test_categories, 'category_name')); ?>,
+                datasets: [{
+                    data: <?php echo json_encode(array_column($test_categories, 'count')); ?>,
+                    backgroundColor: [
+                        '#4361ee',
+                        '#2ec4b6',
+                        '#ff9f1c',
+                        '#e71d36',
+                        '#4cc9f0'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    });
 
-        // Update every 30 seconds
-        setInterval(updateDashboard, 30000);
+    // Auto-refresh dashboard data every 30 seconds
+    setInterval(() => {
+        fetch('includes/fetch_dashboard_stats.php')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update statistics
+                    document.querySelector('#total-patients').textContent = data.total_patients;
+                    document.querySelector('#pending-tests').textContent = data.pending_tests;
+                    document.querySelector('#today-reports').textContent = data.today_reports;
+                    document.querySelector('#monthly-revenue').textContent = data.monthly_revenue;
+                }
+            })
+            .catch(error => console.error('Error updating dashboard:', error));
+    }, 30000);
     </script>
 </body>
 </html>
