@@ -1,226 +1,361 @@
 <?php
+require_once 'config.php';
 require_once 'db_connect.php';
 
 // Start session with secure settings
 session_start([
     'cookie_httponly' => true,
     'cookie_secure' => true,
-    'cookie_samesite' => 'Strict',
-    'use_strict_mode' => true
+    'cookie_samesite' => 'Strict'
 ]);
 
 // Check if user is logged in
-if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in']) {
-    header("Location: login.php");
-    exit();
+if (!isset($_SESSION['user_id'])) {
+    header('Location: login.php');
+    exit;
 }
 
-// Restrict to Admin, Doctor, Technician with proper role check
-$allowed_roles = ['Admin', 'Doctor', 'Technician'];
-if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], $allowed_roles)) {
-    header("Location: index3.php");
-    exit();
-}
-
-// Generate CSRF token if not exists
+// Generate CSRF token if it doesn't exist
 if (!isset($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
-// Delete request (Admin-only) with CSRF protection
-if (isset($_GET['delete']) && $_SESSION['role'] === 'Admin') {
-    // Verify CSRF token
-    if (!isset($_GET['csrf_token']) || $_GET['csrf_token'] !== $_SESSION['csrf_token']) {
-        die('Invalid request');
-    }
+$db = Database::getInstance();
 
-    try {
-        $request_id = filter_input(INPUT_GET, 'delete', FILTER_VALIDATE_INT);
-        if ($request_id === false) {
-            throw new Exception('Invalid request ID');
-        }
+// Fetch all tests for dropdown
+$tests_stmt = $db->query("
+    SELECT test_id, test_name, category_name 
+    FROM Tests_Catalog tc
+    JOIN Test_Categories tcat ON tc.category_id = tcat.category_id
+    ORDER BY category_name, test_name
+");
+$tests = $tests_stmt->fetchAll();
 
-        $stmt = $pdo->prepare("DELETE FROM Test_Requests WHERE request_id = :request_id");
-        $stmt->execute(['request_id' => $request_id]);
-        
-        // Log the deletion
-        error_log("Test request deleted by user {$_SESSION['user_id']}: Request ID {$request_id}");
-        
-        header("Location: test_requests.php");
-        exit();
-    } catch (Exception $e) {
-        error_log("Delete request error: " . $e->getMessage());
-        die('Error deleting request');
-    }
-}
+// Fetch all patients for dropdown
+$patients_stmt = $db->query("
+    SELECT patient_id, CONCAT(first_name, ' ', last_name) as patient_name 
+    FROM Patients 
+    ORDER BY first_name, last_name
+");
+$patients = $patients_stmt->fetchAll();
+
+include 'includes/head.php';
 ?>
 
-<!doctype html>
-<html lang="en">
-<head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>Pathology | Test Requests</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <?php include('inc/head.php'); ?>
-</head>
-<body class="layout-fixed sidebar-expand-lg bg-body-tertiary">
-    <div class="app-wrapper">
-        <?php include('inc/top.php'); ?>
-        <?php include('inc/sidebar.php'); ?>
-        <main class="app-main">
-            <section class="content-header">
-                <div class="container-fluid">
-                    <div class="row mb-2 mt-2">
-                        <div class="col-sm-6">
-                            <h3>Test Requests</h3>
-                        </div>
-                        <div class="col-sm-6 text-end">
-                            <a href="add_test_request.php" class="btn btn-primary">
-                                <i class="bi bi-plus"></i> Add New Request
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </section>
-            <div class="app-content">
-                <div class="container-fluid">
-                    <div class="row mb-3">
-                        <div class="col-md-4">
-                            <div class="input-group">
-                                <input type="text" id="searchInput" class="form-control" placeholder="Search by patient or test">
-                                <button class="btn btn-primary" onclick="loadRequests(1)">Search</button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-12">
-                            <div class="card mb-4">
-                                <div class="card-header"><h3 class="card-title">Request List</h3></div>
-                                <div class="card-body">
-                                    <table id="requestTable" class="table table-bordered table-striped">
-                                        <thead>
-                                            <tr>
-                                                <th>ID</th>
-                                                <th>Patient</th>
-                                                <th>Test</th>
-                                                <th>Ordered By</th>
-                                                <th>Request Date</th>
-                                                <th>Status</th>
-                                                <th>Priority</th>
-                                                <th>Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="requestTableBody"></tbody>
-                                    </table>
-                                </div>
-                                <div class="card-footer clearfix">
-                                    <ul class="pagination pagination-sm m-0 float-end" id="pagination"></ul>
-                                </div>
-                            </div>
-                        </div>
+<div class="container-fluid px-4">
+    <div class="card mt-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Test Requests</h5>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addRequestModal">
+                <i class="fas fa-plus me-2"></i>Add New Request
+            </button>
+        </div>
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <input type="text" class="form-control" id="searchInput" placeholder="Search requests...">
                     </div>
                 </div>
             </div>
-        </main>
-        <footer class="app-footer">
-            <div class="float-end d-none d-sm-inline">Anything you want</div>
-            <strong>Copyright © 2025 <a href="#" class="text-decoration-none">Pathology System</a>.</strong> All rights reserved.
-        </footer>
+            <div class="table-responsive">
+                <table class="table table-hover" id="requestsTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Patient Name</th>
+                            <th>Test Type</th>
+                            <th>Ordered By</th>
+                            <th>Request Date</th>
+                            <th>Status</th>
+                            <th>Priority</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Data will be loaded dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
-    <?php include('inc/js.php'); ?>
-    <script>
-        function loadRequests(page = 1) {
-            const searchQuery = document.getElementById('searchInput').value.trim();
-            const url = `includes/fetch_test_requests.php?page=${page}${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''}`;
-            
-            fetch(url)
-                .then(response => {
-                    if (!response.ok) throw new Error('Network response was not ok');
-                    return response.json();
-                })
-                .then(data => {
-                    const tbody = document.getElementById('requestTableBody');
-                    tbody.innerHTML = '';
+</div>
 
-                    if (data.requests.length === 0) {
-                        tbody.innerHTML = '<tr><td colspan="8" class="text-center">No requests found</td></tr>';
+<!-- Add Request Modal -->
+<div class="modal fade" id="addRequestModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Test Request</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addRequestForm">
+                    <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
+                    <input type="hidden" name="action" value="add">
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Patient <span class="text-danger">*</span></label>
+                        <select class="form-select" name="patient_id" required>
+                            <option value="">Select Patient</option>
+                            <?php foreach ($patients as $patient): ?>
+                                <option value="<?php echo htmlspecialchars($patient['patient_id']); ?>">
+                                    <?php echo htmlspecialchars($patient['patient_name']); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Test <span class="text-danger">*</span></label>
+                        <select class="form-select" name="test_id" required>
+                            <option value="">Select Test</option>
+                            <?php 
+                            $current_category = '';
+                            foreach ($tests as $test):
+                                if ($current_category !== $test['category_name']):
+                                    if ($current_category !== '') echo '</optgroup>';
+                                    $current_category = $test['category_name'];
+                                    echo '<optgroup label="' . htmlspecialchars($current_category) . '">';
+                                endif;
+                            ?>
+                                <option value="<?php echo htmlspecialchars($test['test_id']); ?>">
+                                    <?php echo htmlspecialchars($test['test_name']); ?>
+                                </option>
+                            <?php 
+                            endforeach;
+                            if ($current_category !== '') echo '</optgroup>';
+                            ?>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Ordered By <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="ordered_by" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Priority <span class="text-danger">*</span></label>
+                        <select class="form-select" name="priority" required>
+                            <option value="Normal">Normal</option>
+                            <option value="Urgent">Urgent</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="submitRequest">Submit</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Status Modal -->
+<div class="modal fade" id="editStatusModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Update Request Status</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="updateStatusForm">
+                    <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
+                    <input type="hidden" name="action" value="update">
+                    <input type="hidden" name="request_id" id="editRequestId">
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Status</label>
+                        <select class="form-select" name="status">
+                            <option value="Pending">Pending</option>
+                            <option value="In Progress">In Progress</option>
+                            <option value="Completed">Completed</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="updateStatus">Update</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<?php include 'includes/footer.php'; ?>
+
+<script>
+$(document).ready(function() {
+    // Initialize DataTable
+    const table = $('#requestsTable').DataTable({
+        ajax: {
+            url: 'includes/fetch_requests.php',
+            dataSrc: ''
+        },
+        columns: [
+            { data: 'request_id' },
+            { data: 'patient_name' },
+            { data: 'test_name' },
+            { data: 'ordered_by' },
+            { 
+                data: 'request_date',
+                render: function(data) {
+                    return moment(data).format('MMM D, YYYY h:mm A');
+                }
+            },
+            { 
+                data: 'status',
+                render: function(data) {
+                    const badges = {
+                        'Pending': 'bg-warning',
+                        'In Progress': 'bg-info',
+                        'Completed': 'bg-success'
+                    };
+                    return `<span class="badge ${badges[data]}">${data}</span>`;
+                }
+            },
+            {
+                data: 'priority',
+                render: function(data) {
+                    const badges = {
+                        'Normal': 'bg-secondary',
+                        'Urgent': 'bg-danger'
+                    };
+                    return `<span class="badge ${badges[data]}">${data}</span>`;
+                }
+            },
+            {
+                data: null,
+                render: function(data, type, row) {
+                    let buttons = `
+                        <button class="btn btn-sm btn-info me-1 edit-status" data-id="${row.request_id}">
+                            <i class="fas fa-edit"></i>
+                        </button>`;
+                    
+                    if (data.can_delete) {
+                        buttons += `
+                            <button class="btn btn-sm btn-danger delete-request" data-id="${row.request_id}">
+                                <i class="fas fa-trash"></i>
+                            </button>`;
+                    }
+                    
+                    return buttons;
+                }
+            }
+        ],
+        order: [[0, 'desc']],
+        pageLength: 10,
+        responsive: true
+    });
+    
+    // Handle form submission
+    $('#submitRequest').click(function() {
+        const form = $('#addRequestForm');
+        
+        if (!form[0].checkValidity()) {
+            form[0].reportValidity();
+            return;
+        }
+        
+        $.ajax({
+            url: 'includes/process_request.php',
+            method: 'POST',
+            data: form.serialize(),
+            success: function(response) {
+                const data = JSON.parse(response);
+                if (data.success) {
+                    $('#addRequestModal').modal('hide');
+                    form[0].reset();
+                    table.ajax.reload();
+                    showAlert('success', data.message);
+                } else {
+                    showAlert('danger', data.message);
+                }
+            },
+            error: function() {
+                showAlert('danger', 'An error occurred while processing your request');
+            }
+        });
+    });
+    
+    // Handle status update
+    $('#updateStatus').click(function() {
+        const form = $('#updateStatusForm');
+        
+        $.ajax({
+            url: 'includes/process_request.php',
+            method: 'POST',
+            data: form.serialize(),
+            success: function(response) {
+                const data = JSON.parse(response);
+                if (data.success) {
+                    $('#editStatusModal').modal('hide');
+                    table.ajax.reload();
+                    showAlert('success', data.message);
+                } else {
+                    showAlert('danger', data.message);
+                }
+            },
+            error: function() {
+                showAlert('danger', 'An error occurred while updating the status');
+            }
+        });
+    });
+    
+    // Handle edit status button click
+    $('#requestsTable').on('click', '.edit-status', function() {
+        $('#editRequestId').val($(this).data('id'));
+        $('#editStatusModal').modal('show');
+    });
+    
+    // Handle delete button click
+    $('#requestsTable').on('click', '.delete-request', function() {
+        const requestId = $(this).data('id');
+        
+        if (confirm('Are you sure you want to delete this request?')) {
+            $.ajax({
+                url: 'includes/process_request.php',
+                method: 'POST',
+                data: {
+                    action: 'delete',
+                    request_id: requestId,
+                    csrf_token: $('input[name="csrf_token"]').val()
+                },
+                success: function(response) {
+                    const data = JSON.parse(response);
+                    if (data.success) {
+                        table.ajax.reload();
+                        showAlert('success', data.message);
                     } else {
-                        data.requests.forEach(request => {
-                            const row = `
-                                <tr>
-                                    <td>${escapeHtml(request.request_id)}</td>
-                                    <td>${escapeHtml(request.patient_name)}</td>
-                                    <td>${escapeHtml(request.test_name)}</td>
-                                    <td>${escapeHtml(request.ordered_by)}</td>
-                                    <td>${escapeHtml(request.request_date)}</td>
-                                    <td>${escapeHtml(request.status)}</td>
-                                    <td>${escapeHtml(request.priority)}</td>
-                                    <td>
-                                        <a href="add_test_request.php?edit=${escapeHtml(request.request_id)}" class="btn btn-sm btn-warning"><i class="bi bi-pencil"></i> Edit</a>
-                                        <?php if ($_SESSION['role'] === 'Admin'): ?>
-                                            <a href="test_requests.php?delete=${escapeHtml(request.request_id)}&csrf_token=<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?');"><i class="bi bi-trash"></i> Delete</a>
-                                        <?php endif; ?>
-                                    </td>
-                                </tr>`;
-                            tbody.innerHTML += row;
-                        });
+                        showAlert('danger', data.message);
                     }
-
-                    const pagination = document.getElementById('pagination');
-                    pagination.innerHTML = '';
-                    if (data.total_pages > 1) {
-                        pagination.innerHTML += `<li class="page-item ${data.current_page === 1 ? 'disabled' : ''}">
-                            <a class="page-link" href="#" onclick="loadRequests(${data.current_page - 1}); return false;">«</a>
-                        </li>`;
-                        for (let i = 1; i <= data.total_pages; i++) {
-                            pagination.innerHTML += `<li class="page-item ${i === data.current_page ? 'active' : ''}">
-                                <a class="page-link" href="#" onclick="loadRequests(${i}); return false;">${i}</a>
-                            </li>`;
-                        }
-                        pagination.innerHTML += `<li class="page-item ${data.current_page === data.total_pages ? 'disabled' : ''}">
-                            <a class="page-link" href="#" onclick="loadRequests(${data.current_page + 1}); return false;">»</a>
-                        </li>`;
-                    }
-                })
-                .catch(error => {
-                    console.error('Error fetching requests:', error);
-                    document.getElementById('requestTableBody').innerHTML = '<tr><td colspan="8" class="text-center">Error loading requests</td></tr>';
-                });
+                },
+                error: function() {
+                    showAlert('danger', 'An error occurred while deleting the request');
+                }
+            });
         }
+    });
+    
+    // Search functionality
+    $('#searchInput').on('keyup', function() {
+        table.search(this.value).draw();
+    });
+});
 
-        document.addEventListener('DOMContentLoaded', () => loadRequests(1));
-
-        document.getElementById('searchInput').addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') {
-                loadRequests(1);
-            }
-        });
-
-        const SELECTOR_SIDEBAR_WRAPPER = '.sidebar-wrapper';
-        const Default = {
-            scrollbarTheme: 'os-theme-light',
-            scrollbarAutoHide: 'leave',
-            scrollbarClickScroll: true,
-        };
-        document.addEventListener('DOMContentLoaded', function () {
-            const sidebarWrapper = document.querySelector(SELECTOR_SIDEBAR_WRAPPER);
-            if (sidebarWrapper && typeof OverlayScrollbarsGlobal?.OverlayScrollbars !== 'undefined') {
-                OverlayScrollbarsGlobal.OverlayScrollbars(sidebarWrapper, {
-                    scrollbars: {
-                        theme: Default.scrollbarTheme,
-                        autoHide: Default.scrollbarAutoHide,
-                        clickScroll: Default.scrollbarClickScroll,
-                    },
-                });
-            }
-        });
-
-        // Helper function to escape HTML
-        function escapeHtml(str) {
-            const div = document.createElement('div');
-            div.textContent = str;
-            return div.innerHTML;
-        }
-    </script>
-</body>
-</html>
+function showAlert(type, message) {
+    const alertHtml = `
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>`;
+    
+    $('.container-fluid').prepend(alertHtml);
+    
+    setTimeout(function() {
+        $('.alert').alert('close');
+    }, 5000);
+}
+</script>
