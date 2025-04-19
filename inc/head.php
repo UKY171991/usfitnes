@@ -42,3 +42,48 @@
 
     <!-- Inside inc/head.php -->
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+<!-- Meta tags -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Pathology Management System">
+
+<!-- Favicon -->
+<link rel="icon" type="image/x-icon" href="assets/img/favicon.ico">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/img/favicon-16x16.png">
+<link rel="manifest" href="assets/site.webmanifest">
+
+<!-- Bootstrap CSS -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+
+<!-- Custom CSS -->
+<link href="assets/css/style.css" rel="stylesheet">
+
+<!-- Additional CSS -->
+<style>
+    .app-wrapper {
+        display: flex;
+        min-height: 100vh;
+    }
+    .app-content {
+        flex: 1;
+        padding: 20px;
+    }
+    .sidebar {
+        width: 250px;
+        background: #343a40;
+    }
+    .nav-link {
+        color: rgba(255,255,255,.75);
+    }
+    .nav-link:hover {
+        color: rgba(255,255,255,1);
+    }
+    .nav-link.active {
+        color: #fff;
+        background: rgba(255,255,255,.1);
+    }
+</style>

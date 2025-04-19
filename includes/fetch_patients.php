@@ -46,21 +46,13 @@ try {
     // Base query
     $query = "SELECT 
                 p.*,
-                CONCAT(u.first_name, ' ', u.last_name) as created_by_name,
-                COALESCE(p.status, 'active') as status
+                CONCAT(u.first_name, ' ', u.last_name) as created_by_name
               FROM Patients p 
               LEFT JOIN Users u ON p.user_id = u.user_id
               WHERE 1=1";
     
     $count_query = "SELECT COUNT(*) FROM Patients p WHERE 1=1";
     $params = [];
-
-    // Add branch condition if branch_id is set in session
-    if (isset($_SESSION['branch_id'])) {
-        $query .= " AND (p.branch_id = :branch_id OR p.branch_id IS NULL)";
-        $count_query .= " AND (p.branch_id = :branch_id OR p.branch_id IS NULL)";
-        $params['branch_id'] = $_SESSION['branch_id'];
-    }
 
     // Add search condition if search term exists
     if (!empty($search)) {
@@ -77,17 +69,15 @@ try {
     // Add sorting
     $query .= " ORDER BY p.patient_id DESC";
 
-    // Add pagination
-    $query .= " LIMIT :limit OFFSET :offset";
-
     // Get total count first
     $stmt = $db->query($count_query, $params);
     $total_patients = $stmt->fetchColumn();
     $total_pages = ceil($total_patients / $limit);
 
-    // Add pagination parameters
-    $params['limit'] = $limit;
-    $params['offset'] = $offset;
+    // Add pagination
+    $query .= " LIMIT :limit OFFSET :offset";
+    $params['limit'] = (int)$limit;
+    $params['offset'] = (int)$offset;
 
     // Execute main query
     $stmt = $db->query($query, $params);
@@ -99,7 +89,7 @@ try {
         $patient['created_by_name'] = $patient['created_by_name'] ?: 'System';
         $patient['email'] = $patient['email'] ?: '';
         $patient['phone'] = $patient['phone'] ?: '';
-        $patient['status'] = $patient['status'] ?: 'active';
+        $patient['status'] = isset($patient['status']) ? $patient['status'] : 'active';
     }
 
     echo json_encode([
@@ -116,6 +106,6 @@ try {
     echo json_encode([
         'success' => false,
         'error' => 'Failed to fetch patients',
-        'message' => defined('ENVIRONMENT') && ENVIRONMENT === 'development' ? $e->getMessage() : null
+        'debug_message' => ENVIRONMENT === 'development' ? $e->getMessage() : null
     ]);
 }

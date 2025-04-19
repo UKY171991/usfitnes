@@ -33,7 +33,7 @@ try {
     $db = Database::getInstance();
 
     // Delete patient (Admin-only) with CSRF protection
-    if (isset($_GET['delete']) && $_SESSION['role'] === 'Admin') {
+if (isset($_GET['delete']) && $_SESSION['role'] === 'Admin') {
         // Verify CSRF token
         if (!isset($_GET['csrf_token']) || $_GET['csrf_token'] !== $_SESSION['csrf_token']) {
             throw new Exception('Invalid CSRF token');
@@ -231,7 +231,7 @@ try {
                                 <div class="col-md-6">
                                     <h3 class="card-title">Patient List</h3>
                                 </div>
-                                <div class="col-md-6">
+                        <div class="col-md-6">
                                     <div class="search-box">
                                         <input type="text" id="searchInput" class="form-control" 
                                                placeholder="Search by name, email, or phone"
@@ -251,24 +251,24 @@ try {
                             <div class="table-responsive">
                                 <table class="table table-bordered table-hover">
                                     <thead>
-                                        <tr>
-                                            <th>ID</th>
-                                            <th>Name</th>
-                                            <th>DOB</th>
-                                            <th>Gender</th>
-                                            <th>Contact</th>
-                                            <th>Email</th>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Name</th>
+                                                <th>DOB</th>
+                                                <th>Gender</th>
+                                                <th>Contact</th>
+                                                <th>Email</th>
                                             <th>Status</th>
-                                            <th>Created By</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="patientTableBody">
-                                        <tr>
+                                                <th>Created By</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="patientTableBody">
+                                            <tr>
                                             <td colspan="9" class="text-center">Loading patients...</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
+                                            </tr>
+                                        </tbody>
+                                    </table>
                             </div>
                         </div>
                         <div class="card-footer">
@@ -365,9 +365,9 @@ try {
                         return;
                     }
 
-                    data.patients.forEach(patient => {
-                        const row = `
-                            <tr>
+                        data.patients.forEach(patient => {
+                            const row = `
+                                <tr>
                                 <td>${escapeHtml(patient.patient_id)}</td>
                                 <td>${escapeHtml(patient.first_name + ' ' + patient.last_name)}</td>
                                 <td>${escapeHtml(patient.date_of_birth)}</td>
@@ -388,18 +388,18 @@ try {
                                     <a href="edit_patient.php?id=${encodeURIComponent(patient.patient_id)}&csrf_token=${encodeURIComponent(csrfToken)}" 
                                        class="btn btn-sm btn-warning" title="Edit">
                                         <i class="bi bi-pencil"></i>
-                                    </a>
-                                    <?php if ($_SESSION['role'] === 'Admin'): ?>
+                                        </a>
+                                        <?php if ($_SESSION['role'] === 'Admin'): ?>
                                     <a href="javascript:void(0)" 
                                        onclick="deletePatient(${patient.patient_id})" 
                                        class="btn btn-sm btn-danger" title="Delete">
                                         <i class="bi bi-trash"></i>
-                                    </a>
-                                    <?php endif; ?>
-                                </td>
-                            </tr>`;
-                        tbody.innerHTML += row;
-                    });
+                                            </a>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>`;
+                            tbody.innerHTML += row;
+                        });
 
                     updatePagination(data.current_page, data.total_pages);
                 })
