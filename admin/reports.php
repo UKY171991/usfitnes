@@ -14,10 +14,21 @@ $branch_id = $_GET['branch_id'] ?? '';
 
 // Build query
 $query = "
-    SELECT r.*, p.name as patient_name, b.branch_name as branch_name
+    SELECT 
+        r.*,
+        p.name as patient_name,
+        b.name as branch_name,
+        t.price as test_price,
+        COALESCE((
+            SELECT SUM(py.paid_amount)
+            FROM payments py
+            WHERE py.patient_id = r.patient_id
+            AND py.invoice_no = CONCAT('INV-', LPAD(r.id, 6, '0'))
+        ), 0) as total_amount
     FROM reports r
     LEFT JOIN patients p ON r.patient_id = p.id
     LEFT JOIN branches b ON p.branch_id = b.id
+    LEFT JOIN tests t ON r.test_id = t.id
     WHERE r.created_at BETWEEN ? AND ?
 ";
 $params = [$start_date, $end_date];
@@ -34,7 +45,7 @@ $stmt->execute($params);
 $reports = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Get all branches for filter
-$branches = $conn->query("SELECT id, branch_name FROM branches ORDER BY branch_name")->fetchAll(PDO::FETCH_ASSOC);
+$branches = $conn->query("SELECT id, name as branch_name FROM branches ORDER BY branch_name")->fetchAll(PDO::FETCH_ASSOC);
 
 // Calculate statistics
 $total_reports = count($reports);
@@ -56,28 +67,29 @@ include '../inc/header.php';
 <!-- Filters -->
 <div class="card mb-4">
     <div class="card-body">
-        <form method="GET" action="" class="row g-3">
+        <form method="GET" class="row g-3">
             <div class="col-md-3">
-                <label for="start_date" class="form-label">Start Date</label>
-                <input type="date" class="form-control" id="start_date" name="start_date" value="<?php echo $start_date; ?>">
+                <label class="form-label">Start Date</label>
+                <input type="date" name="start_date" class="form-control" value="<?php echo $start_date; ?>">
             </div>
             <div class="col-md-3">
-                <label for="end_date" class="form-label">End Date</label>
-                <input type="date" class="form-control" id="end_date" name="end_date" value="<?php echo $end_date; ?>">
+                <label class="form-label">End Date</label>
+                <input type="date" name="end_date" class="form-control" value="<?php echo $end_date; ?>">
             </div>
-            <div class="col-md-3">
-                <label for="branch_id" class="form-label">Branch</label>
-                <select class="form-control" id="branch_id" name="branch_id">
+            <div class="col-md-4">
+                <label class="form-label">Branch</label>
+                <select name="branch_id" class="form-select">
                     <option value="">All Branches</option>
-                    <?php foreach($branches as $branch): ?>
-                        <option value="<?php echo $branch['id']; ?>" <?php echo $branch_id == $branch['id'] ? 'selected' : ''; ?>>
-                            <?php echo htmlspecialchars($branch['branch_name']); ?>
+                    <?php foreach($branches as $b): ?>
+                        <option value="<?php echo $b['id']; ?>" <?php echo $branch_id == $b['id'] ? 'selected' : ''; ?>>
+                            <?php echo htmlspecialchars($b['branch_name']); ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
             </div>
-            <div class="col-md-3 d-flex align-items-end">
-                <button type="submit" class="btn btn-primary">Filter</button>
+            <div class="col-md-2">
+                <label class="form-label">&nbsp;</label>
+                <button type="submit" class="btn btn-primary d-block w-100">Filter</button>
             </div>
         </form>
     </div>
@@ -89,7 +101,7 @@ include '../inc/header.php';
         <div class="card bg-primary text-white">
             <div class="card-body">
                 <h5 class="card-title">Total Reports</h5>
-                <h2 class="display-4"><?php echo $total_reports; ?></h2>
+                <h2 class="display-4"><?php echo number_format($total_reports); ?></h2>
             </div>
         </div>
     </div>
@@ -105,7 +117,7 @@ include '../inc/header.php';
         <div class="card bg-warning text-white">
             <div class="card-body">
                 <h5 class="card-title">Pending Reports</h5>
-                <h2 class="display-4"><?php echo $pending_reports; ?></h2>
+                <h2 class="display-4"><?php echo number_format($pending_reports); ?></h2>
             </div>
         </div>
     </div>
@@ -113,7 +125,7 @@ include '../inc/header.php';
         <div class="card bg-info text-white">
             <div class="card-body">
                 <h5 class="card-title">Completed Reports</h5>
-                <h2 class="display-4"><?php echo $completed_reports; ?></h2>
+                <h2 class="display-4"><?php echo number_format($completed_reports); ?></h2>
             </div>
         </div>
     </div>
@@ -147,14 +159,21 @@ include '../inc/header.php';
                         </span>
                     </td>
                     <td>
-                        <a href="../reports/report-template.php?id=<?php echo $report['id']; ?>" 
-                           class="btn btn-sm btn-info" target="_blank">
-                            <i class="fas fa-eye"></i>
-                        </a>
-                        <a href="../reports/report-template.php?id=<?php echo $report['id']; ?>&download=1" 
-                           class="btn btn-sm btn-primary">
-                            <i class="fas fa-download"></i>
-                        </a>
+                        <div class="btn-group">
+                            <a href="view-report.php?id=<?php echo $report['id']; ?>" 
+                               class="btn btn-sm btn-info" title="View Report">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            <a href="print-report.php?id=<?php echo $report['id']; ?>" 
+                               class="btn btn-sm btn-secondary" title="Print Report"
+                               target="_blank">
+                                <i class="fas fa-print"></i>
+                            </a>
+                            <a href="download-report.php?id=<?php echo $report['id']; ?>" 
+                               class="btn btn-sm btn-primary" title="Download Report">
+                                <i class="fas fa-download"></i>
+                            </a>
+                        </div>
                     </td>
                 </tr>
             <?php endforeach; ?>

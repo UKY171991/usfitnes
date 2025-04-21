@@ -1,19 +1,21 @@
             </main>
         </div>
     </div>
-    
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Font Awesome -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
+    <!-- Custom Scripts -->
     <script>
-        // Highlight active menu item
-        $(document).ready(function() {
-            var currentPage = window.location.pathname;
-            $('.nav-link').each(function() {
-                var href = $(this).attr('href');
-                if (currentPage.endsWith(href)) {
-                    $(this).addClass('active');
-                } else {
-                    $(this).removeClass('active');
+        // Add active class to current sidebar link
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentPath = window.location.pathname;
+            const sidebarLinks = document.querySelectorAll('.sidebar .nav-link');
+            
+            sidebarLinks.forEach(link => {
+                if (currentPath.includes(link.getAttribute('href'))) {
+                    link.classList.add('active');
                 }
             });
         });

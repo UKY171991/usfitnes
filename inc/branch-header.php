@@ -10,8 +10,8 @@ if(!isset($config_loaded)) {
     require_once __DIR__ . '/db.php';
 }
 
-// Check if user is logged in
-if(!isset($_SESSION['user_id'])) {
+// Check if user is logged in and has branch admin access
+if(!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'branch_admin') {
     header("Location: " . $base_path . "auth/login.php");
     exit();
 }
@@ -21,7 +21,7 @@ if(!isset($_SESSION['user_id'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pathology CRM</title>
+    <title>Branch Admin - Pathology CRM</title>
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
@@ -95,33 +95,35 @@ if(!isset($_SESSION['user_id'])) {
         .content {
             padding: 1.5rem;
         }
+        .page-title {
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .card {
+            box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075);
+            margin-bottom: 1.5rem;
+        }
+        .card-header {
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .table th {
+            background-color: #f8f9fa;
+        }
     </style>
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container-fluid">
-            <a class="navbar-brand" href="/usfitnes/admin/dashboard.php">
-                <i class="fas fa-flask me-2"></i>Pathology CRM
+            <a class="navbar-brand" href="/usfitnes/branch-admin/dashboard.php">
+                <i class="fas fa-flask me-2"></i>Branch Admin
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'dashboard.php' ? 'active' : ''; ?>" 
-                           href="/usfitnes/admin/dashboard.php">
-                            <i class="fas fa-tachometer-alt"></i> Dashboard
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'reports.php' ? 'active' : ''; ?>" 
-                           href="/usfitnes/admin/reports.php">
-                            <i class="fas fa-file-medical-alt"></i> Reports
-                        </a>
-                    </li>
-                </ul>
-                <div class="d-flex align-items-center">
+                <div class="d-flex align-items-center ms-auto">
                     <span class="user-info">
                         <i class="fas fa-user me-1"></i>
                         Welcome, <?php echo htmlspecialchars($_SESSION['user_name'] ?? 'User'); ?>
@@ -136,48 +138,6 @@ if(!isset($_SESSION['user_id'])) {
 
     <div class="container-fluid">
         <div class="row">
-            <nav class="col-md-2 sidebar">
-                <div class="position-sticky">
-                    <ul class="nav flex-column">
-                        <li class="nav-item">
-                            <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'dashboard.php' ? 'active' : ''; ?>" 
-                               href="/usfitnes/admin/dashboard.php">
-                                <i class="fas fa-tachometer-alt"></i> Dashboard
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'branches.php' ? 'active' : ''; ?>" 
-                               href="/usfitnes/admin/branches.php">
-                                <i class="fas fa-hospital"></i> Branches
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'users.php' ? 'active' : ''; ?>" 
-                               href="/usfitnes/admin/users.php">
-                                <i class="fas fa-users"></i> Users
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'test-categories.php' ? 'active' : ''; ?>" 
-                               href="/usfitnes/admin/test-categories.php">
-                                <i class="fas fa-list"></i> Test Categories
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'test-master.php' ? 'active' : ''; ?>" 
-                               href="/usfitnes/admin/test-master.php">
-                                <i class="fas fa-vial"></i> Test Master
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'reports.php' ? 'active' : ''; ?>" 
-                               href="/usfitnes/admin/reports.php">
-                                <i class="fas fa-file-medical-alt"></i> Reports
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-            </nav>
-
+            <?php include __DIR__ . '/branch-sidebar.php'; ?>
             <main class="col-md-10 ms-sm-auto content">
                 <!-- Content will be injected here --> 

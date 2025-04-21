@@ -1,174 +1,446 @@
 <?php
 require_once '../inc/config.php';
 require_once '../inc/db.php';
-require_once '../auth/session-check.php';
-
-checkBranchAdminAccess();
+require_once '../auth/branch-admin-check.php';
 
 $branch_id = $_SESSION['branch_id'];
 
-// Get statistics for the branch
-$stats = [
-    'patients' => $conn->prepare("SELECT COUNT(*) FROM patients WHERE branch_id = ?")->execute([$branch_id])->fetchColumn(),
-    'tests' => $conn->prepare("SELECT COUNT(*) FROM tests")->fetchColumn(),
-    'reports' => $conn->prepare("SELECT COUNT(*) FROM reports WHERE branch_id = ?")->execute([$branch_id])->fetchColumn(),
-    'revenue' => $conn->prepare("SELECT SUM(amount) FROM payments WHERE branch_id = ?")->execute([$branch_id])->fetchColumn() ?? 0,
-    'pending_reports' => $conn->prepare("SELECT COUNT(*) FROM reports WHERE branch_id = ? AND status = 'pending'")->execute([$branch_id])->fetchColumn(),
-    'completed_reports' => $conn->prepare("SELECT COUNT(*) FROM reports WHERE branch_id = ? AND status = 'completed'")->execute([$branch_id])->fetchColumn()
-];
+// Get date range filter
+$date_range = $_GET['date_range'] ?? 'today';
+$custom_start = $_GET['start_date'] ?? '';
+$custom_end = $_GET['end_date'] ?? '';
 
-// Get recent activities for the branch
-$activities = $conn->prepare("
-    SELECT a.*, u.name as user_name 
-    FROM activities a 
-    LEFT JOIN users u ON a.user_id = u.id 
-    WHERE u.branch_id = ? 
-    ORDER BY a.created_at DESC 
-    LIMIT 10
-");
-$activities->execute([$branch_id]);
-$activities = $activities->fetchAll(PDO::FETCH_ASSOC);
+// Set date range based on filter
+switch($date_range) {
+    case 'week':
+        $start_date = date('Y-m-d', strtotime('-7 days'));
+        $end_date = date('Y-m-d');
+        break;
+    case 'month':
+        $start_date = date('Y-m-01');
+        $end_date = date('Y-m-d');
+        break;
+    case 'custom':
+        $start_date = $custom_start;
+        $end_date = $custom_end;
+        break;
+    default: // today
+        $start_date = date('Y-m-d');
+        $end_date = date('Y-m-d');
+}
 
-// Get recent reports
-$recent_reports = $conn->prepare("
-    SELECT r.*, p.name as patient_name 
-    FROM reports r 
-    LEFT JOIN patients p ON r.patient_id = p.id 
-    WHERE r.branch_id = ? 
-    ORDER BY r.created_at DESC 
-    LIMIT 5
-");
-$recent_reports->execute([$branch_id]);
-$recent_reports = $recent_reports->fetchAll(PDO::FETCH_ASSOC);
+try {
+    // Get branch details
+    $branch_stmt = $conn->prepare("SELECT * FROM branches WHERE id = ?");
+    $branch_stmt->execute([$branch_id]);
+    $branch = $branch_stmt->fetch(PDO::FETCH_ASSOC);
 
-include '../inc/header.php';
+    // Basic statistics for the branch
+    // Total patients
+    $stmt = $conn->prepare("SELECT COUNT(*) FROM patients WHERE branch_id = ?");
+    $stmt->execute([$branch_id]);
+    $total_patients = $stmt->fetchColumn() ?? 0;
+    
+    // Total reports
+    $stmt = $conn->prepare("
+        SELECT COUNT(r.id) 
+        FROM reports r 
+        JOIN patients p ON r.patient_id = p.id 
+        WHERE p.branch_id = ?
+    ");
+    $stmt->execute([$branch_id]);
+    $total_reports = $stmt->fetchColumn() ?? 0;
+    
+    // Total revenue
+    $stmt = $conn->prepare("
+        SELECT COALESCE(SUM(py.paid_amount), 0)
+        FROM payments py
+        JOIN reports r ON py.report_id = r.id
+        JOIN patients p ON r.patient_id = p.id
+        WHERE p.branch_id = ?
+    ");
+    $stmt->execute([$branch_id]);
+    $total_revenue = $stmt->fetchColumn() ?? 0;
+    
+    // Available tests
+    $stmt = $conn->prepare("
+        SELECT COUNT(*) FROM branch_tests 
+        WHERE branch_id = ? AND status = 1
+    ");
+    $stmt->execute([$branch_id]);
+    $available_tests = $stmt->fetchColumn() ?? 0;
+
+    $stats = [
+        'total_patients' => $total_patients,
+        'total_reports' => $total_reports,
+        'total_revenue' => $total_revenue,
+        'available_tests' => $available_tests
+    ];
+
+    // Period specific statistics
+    // New patients
+    $stmt = $conn->prepare("
+        SELECT COUNT(*) FROM patients 
+        WHERE branch_id = ? AND DATE(created_at) BETWEEN ? AND ?
+    ");
+    $stmt->execute([$branch_id, $start_date, $end_date]);
+    $new_patients = $stmt->fetchColumn() ?? 0;
+    
+    // Completed reports
+    $stmt = $conn->prepare("
+        SELECT COUNT(r.id) 
+        FROM reports r 
+        JOIN patients p ON r.patient_id = p.id 
+        WHERE p.branch_id = ? 
+        AND r.status = 'completed'
+        AND DATE(r.created_at) BETWEEN ? AND ?
+    ");
+    $stmt->execute([$branch_id, $start_date, $end_date]);
+    $completed_reports = $stmt->fetchColumn() ?? 0;
+    
+    // Pending reports
+    $stmt = $conn->prepare("
+        SELECT COUNT(r.id) 
+        FROM reports r 
+        JOIN patients p ON r.patient_id = p.id 
+        WHERE p.branch_id = ? 
+        AND r.status = 'pending'
+        AND DATE(r.created_at) BETWEEN ? AND ?
+    ");
+    $stmt->execute([$branch_id, $start_date, $end_date]);
+    $pending_reports = $stmt->fetchColumn() ?? 0;
+    
+    // Period revenue
+    $stmt = $conn->prepare("
+        SELECT COALESCE(SUM(py.paid_amount), 0)
+        FROM payments py
+        JOIN reports r ON py.report_id = r.id
+        JOIN patients p ON r.patient_id = p.id
+        WHERE p.branch_id = ?
+        AND DATE(py.created_at) BETWEEN ? AND ?
+    ");
+    $stmt->execute([$branch_id, $start_date, $end_date]);
+    $period_revenue = $stmt->fetchColumn() ?? 0;
+
+    $period_stats = [
+        'new_patients' => $new_patients,
+        'completed_reports' => $completed_reports,
+        'pending_reports' => $pending_reports,
+        'period_revenue' => $period_revenue
+    ];
+
+    // Popular tests in this branch
+    $popular_tests_stmt = $conn->prepare("
+        SELECT 
+            t.test_name,
+            COUNT(r.id) as report_count,
+            COALESCE(SUM(py.paid_amount), 0) as revenue
+        FROM tests t
+        JOIN branch_tests bt ON t.id = bt.test_id
+        LEFT JOIN reports r ON t.id = r.test_id
+        LEFT JOIN payments py ON r.id = py.report_id
+        LEFT JOIN patients p ON r.patient_id = p.id
+        WHERE bt.branch_id = ? AND p.branch_id = ?
+        GROUP BY t.id, t.test_name
+        ORDER BY report_count DESC
+        LIMIT 5
+    ");
+    $popular_tests_stmt->execute([$branch_id, $branch_id]);
+    $popular_tests = $popular_tests_stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Recent payments
+    $payment_stmt = $conn->prepare("
+        SELECT 
+            py.id,
+            py.paid_amount,
+            py.payment_method,
+            py.created_at,
+            p.name as patient_name,
+            t.test_name
+        FROM payments py
+        JOIN reports r ON py.report_id = r.id
+        JOIN patients p ON r.patient_id = p.id
+        JOIN tests t ON r.test_id = t.id
+        WHERE p.branch_id = ?
+        AND DATE(py.created_at) BETWEEN ? AND ?
+        ORDER BY py.created_at DESC
+        LIMIT 5
+    ");
+    $payment_stmt->execute([$branch_id, $start_date, $end_date]);
+    $recent_payments = $payment_stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Recent reports
+    $report_stmt = $conn->prepare("
+        SELECT 
+            r.id,
+            r.status,
+            r.created_at,
+            p.name as patient_name,
+            t.test_name
+        FROM reports r
+        JOIN patients p ON r.patient_id = p.id
+        JOIN tests t ON r.test_id = t.id
+        WHERE p.branch_id = ?
+        AND DATE(r.created_at) BETWEEN ? AND ?
+        ORDER BY r.created_at DESC
+        LIMIT 5
+    ");
+    $report_stmt->execute([$branch_id, $start_date, $end_date]);
+    $recent_reports = $report_stmt->fetchAll(PDO::FETCH_ASSOC);
+
+} catch(PDOException $e) {
+    error_log("Branch Dashboard Error: " . $e->getMessage());
+    $stats = [
+        'total_patients' => 0,
+        'total_reports' => 0,
+        'total_revenue' => 0,
+        'available_tests' => 0
+    ];
+    $period_stats = [
+        'new_patients' => 0,
+        'completed_reports' => 0,
+        'pending_reports' => 0,
+        'period_revenue' => 0
+    ];
+    $popular_tests = [];
+    $recent_payments = [];
+    $recent_reports = [];
+    $branch = [];
+}
+
+include '../inc/branch-header.php';
 ?>
 
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-    <h1 class="h2">Branch Dashboard</h1>
+    <div>
+        <h1 class="h2">Branch Dashboard</h1>
+        <p class="text-muted"><?php echo htmlspecialchars($branch['name'] ?? 'Unknown Branch'); ?></p>
+    </div>
+    <form class="row g-3 align-items-center" method="GET">
+        <div class="col-auto">
+            <select class="form-select" name="date_range" id="date_range">
+                <option value="today" <?php echo $date_range === 'today' ? 'selected' : ''; ?>>Today</option>
+                <option value="week" <?php echo $date_range === 'week' ? 'selected' : ''; ?>>Last 7 Days</option>
+                <option value="month" <?php echo $date_range === 'month' ? 'selected' : ''; ?>>This Month</option>
+                <option value="custom" <?php echo $date_range === 'custom' ? 'selected' : ''; ?>>Custom Range</option>
+            </select>
+        </div>
+        <div class="col-auto date-inputs" style="display: none;">
+            <input type="date" class="form-control" name="start_date" value="<?php echo $custom_start; ?>">
+        </div>
+        <div class="col-auto date-inputs" style="display: none;">
+            <input type="date" class="form-control" name="end_date" value="<?php echo $custom_end; ?>">
+        </div>
+        <div class="col-auto">
+            <button type="submit" class="btn btn-primary">Apply</button>
+        </div>
+    </form>
 </div>
 
-<!-- Statistics Cards -->
-<div class="row">
-    <div class="col-md-4 mb-4">
+<!-- Quick Actions -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex gap-2">
+                    <a href="patients.php" class="btn btn-primary">
+                        <i class="fas fa-user-plus"></i> New Patient
+                    </a>
+                    <a href="reports.php" class="btn btn-success">
+                        <i class="fas fa-file-medical"></i> New Report
+                    </a>
+                    <a href="tests.php" class="btn btn-info">
+                        <i class="fas fa-flask"></i> Manage Tests
+                    </a>
+                    <a href="payments.php" class="btn btn-warning">
+                        <i class="fas fa-money-bill"></i> Record Payment
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Period Statistics -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card border-primary h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0 me-3">
+                        <i class="fas fa-user-plus fa-2x text-primary"></i>
+                    </div>
+                    <div>
+                        <h6 class="card-subtitle mb-2 text-muted">New Patients</h6>
+                        <h2 class="card-title mb-0"><?php echo number_format($period_stats['new_patients']); ?></h2>
+                        <p class="card-text text-muted small">In selected period</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-success h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0 me-3">
+                        <i class="fas fa-check-circle fa-2x text-success"></i>
+                    </div>
+                    <div>
+                        <h6 class="card-subtitle mb-2 text-muted">Completed Reports</h6>
+                        <h2 class="card-title mb-0"><?php echo number_format($period_stats['completed_reports']); ?></h2>
+                        <p class="card-text text-muted small">In selected period</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-warning h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0 me-3">
+                        <i class="fas fa-clock fa-2x text-warning"></i>
+                    </div>
+                    <div>
+                        <h6 class="card-subtitle mb-2 text-muted">Pending Reports</h6>
+                        <h2 class="card-title mb-0"><?php echo number_format($period_stats['pending_reports']); ?></h2>
+                        <p class="card-text text-muted small">In selected period</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-info h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0 me-3">
+                        <i class="fas fa-rupee-sign fa-2x text-info"></i>
+                    </div>
+                    <div>
+                        <h6 class="card-subtitle mb-2 text-muted">Revenue</h6>
+                        <h2 class="card-title mb-0">₹<?php echo number_format($period_stats['period_revenue'], 2); ?></h2>
+                        <p class="card-text text-muted small">In selected period</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Overall Statistics -->
+<div class="row mb-4">
+    <div class="col-md-3">
         <div class="card bg-primary text-white h-100">
             <div class="card-body">
-                <h5 class="card-title">Patients</h5>
-                <h2 class="display-4"><?php echo $stats['patients']; ?></h2>
+                <h5 class="card-title">Total Patients</h5>
+                <div class="display-4"><?php echo number_format($stats['total_patients']); ?></div>
             </div>
         </div>
     </div>
-    <div class="col-md-4 mb-4">
+    <div class="col-md-3">
         <div class="card bg-success text-white h-100">
             <div class="card-body">
-                <h5 class="card-title">Tests</h5>
-                <h2 class="display-4"><?php echo $stats['tests']; ?></h2>
+                <h5 class="card-title">Total Reports</h5>
+                <div class="display-4"><?php echo number_format($stats['total_reports']); ?></div>
             </div>
         </div>
     </div>
-    <div class="col-md-4 mb-4">
-        <div class="card bg-info text-white h-100">
-            <div class="card-body">
-                <h5 class="card-title">Reports</h5>
-                <h2 class="display-4"><?php echo $stats['reports']; ?></h2>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4 mb-4">
+    <div class="col-md-3">
         <div class="card bg-warning text-white h-100">
             <div class="card-body">
-                <h5 class="card-title">Pending Reports</h5>
-                <h2 class="display-4"><?php echo $stats['pending_reports']; ?></h2>
+                <h5 class="card-title">Available Tests</h5>
+                <div class="display-4"><?php echo number_format($stats['available_tests']); ?></div>
             </div>
         </div>
     </div>
-    <div class="col-md-4 mb-4">
-        <div class="card bg-danger text-white h-100">
+    <div class="col-md-3">
+        <div class="card bg-info text-white h-100">
             <div class="card-body">
-                <h5 class="card-title">Completed Reports</h5>
-                <h2 class="display-4"><?php echo $stats['completed_reports']; ?></h2>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4 mb-4">
-        <div class="card bg-secondary text-white h-100">
-            <div class="card-body">
-                <h5 class="card-title">Revenue</h5>
-                <h2 class="display-4">₹<?php echo number_format($stats['revenue'], 2); ?></h2>
+                <h5 class="card-title">Total Revenue</h5>
+                <div class="display-4">₹<?php echo number_format($stats['total_revenue'], 2); ?></div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Recent Reports -->
-<div class="row mt-4">
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
+<div class="row">
+    <!-- Popular Tests -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Popular Tests</h5>
+                <a href="tests.php" class="btn btn-sm btn-primary">View All</a>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Test Name</th>
+                                <th>Reports</th>
+                                <th>Revenue</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if(empty($popular_tests)): ?>
+                                <tr>
+                                    <td colspan="3" class="text-center">No tests found</td>
+                                </tr>
+                            <?php else: ?>
+                                <?php foreach($popular_tests as $test): ?>
+                                    <tr>
+                                        <td><?php echo htmlspecialchars($test['test_name']); ?></td>
+                                        <td><?php echo number_format($test['report_count']); ?></td>
+                                        <td>₹<?php echo number_format($test['revenue'], 2); ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Reports -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="card-title mb-0">Recent Reports</h5>
+                <a href="reports.php" class="btn btn-sm btn-primary">View All</a>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
                     <table class="table">
                         <thead>
                             <tr>
-                                <th>ID</th>
                                 <th>Patient</th>
-                                <th>Date</th>
+                                <th>Test</th>
                                 <th>Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach($recent_reports as $report): ?>
-                                <tr>
-                                    <td><?php echo $report['id']; ?></td>
-                                    <td><?php echo htmlspecialchars($report['patient_name']); ?></td>
-                                    <td><?php echo date('Y-m-d', strtotime($report['created_at'])); ?></td>
-                                    <td>
-                                        <span class="badge bg-<?php echo $report['status'] == 'completed' ? 'success' : 'warning'; ?>">
-                                            <?php echo ucfirst($report['status']); ?>
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <a href="../reports/report-template.php?id=<?php echo $report['id']; ?>" 
-                                           class="btn btn-sm btn-info" target="_blank">
-                                            <i class="fas fa-eye"></i>
-                                        </a>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Recent Activities -->
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">Recent Activities</h5>
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>Activity</th>
-                                <th>User</th>
                                 <th>Date</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <?php foreach($activities as $activity): ?>
+                            <?php if(empty($recent_reports)): ?>
                                 <tr>
-                                    <td><?php echo htmlspecialchars($activity['description']); ?></td>
-                                    <td><?php echo htmlspecialchars($activity['user_name']); ?></td>
-                                    <td><?php echo date('Y-m-d H:i:s', strtotime($activity['created_at'])); ?></td>
+                                    <td colspan="4" class="text-center">No recent reports</td>
                                 </tr>
-                            <?php endforeach; ?>
+                            <?php else: ?>
+                                <?php foreach($recent_reports as $report): ?>
+                                    <tr>
+                                        <td><?php echo htmlspecialchars($report['patient_name']); ?></td>
+                                        <td><?php echo htmlspecialchars($report['test_name']); ?></td>
+                                        <td>
+                                            <span class="badge bg-<?php echo $report['status'] === 'completed' ? 'success' : 'warning'; ?>">
+                                                <?php echo ucfirst($report['status']); ?>
+                                            </span>
+                                        </td>
+                                        <td><?php echo date('Y-m-d H:i', strtotime($report['created_at'])); ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
                         </tbody>
                     </table>
                 </div>
@@ -176,5 +448,66 @@ include '../inc/header.php';
         </div>
     </div>
 </div>
+
+<div class="row">
+    <!-- Recent Payments -->
+    <div class="col-md-12 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Recent Payments</h5>
+                <a href="payments.php" class="btn btn-sm btn-primary">View All</a>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Patient</th>
+                                <th>Test</th>
+                                <th>Amount</th>
+                                <th>Method</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if(empty($recent_payments)): ?>
+                                <tr>
+                                    <td colspan="5" class="text-center">No recent payments</td>
+                                </tr>
+                            <?php else: ?>
+                                <?php foreach($recent_payments as $payment): ?>
+                                    <tr>
+                                        <td><?php echo htmlspecialchars($payment['patient_name']); ?></td>
+                                        <td><?php echo htmlspecialchars($payment['test_name']); ?></td>
+                                        <td>₹<?php echo number_format($payment['paid_amount'], 2); ?></td>
+                                        <td><?php echo htmlspecialchars($payment['payment_method']); ?></td>
+                                        <td><?php echo date('Y-m-d H:i', strtotime($payment['created_at'])); ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const dateRange = document.getElementById('date_range');
+    const dateInputs = document.querySelectorAll('.date-inputs');
+    
+    function toggleDateInputs() {
+        const isCustom = dateRange.value === 'custom';
+        dateInputs.forEach(input => {
+            input.style.display = isCustom ? 'block' : 'none';
+        });
+    }
+    
+    dateRange.addEventListener('change', toggleDateInputs);
+    toggleDateInputs();
+});
+</script>
 
 <?php include '../inc/footer.php'; ?> 
