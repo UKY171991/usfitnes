@@ -200,93 +200,98 @@ include '../inc/header.php';
 </div>
 
 <script>
-// Initialize the view report modal
-const viewReportModal = new bootstrap.Modal(document.getElementById('viewReportModal'));
-
-// Function to view report
-function viewReport(reportId) {
-    // Show loading state
-    document.getElementById('reportContent').innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
-    viewReportModal.show();
-
-    // Fetch report details
-    fetch(`ajax/get-report.php?id=${reportId}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                document.getElementById('reportContent').innerHTML = `
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <h6>Patient Details</h6>
-                            <p>Name: ${data.report.patient_name}<br>
-                               Test: ${data.report.test_name}<br>
-                               Date: ${data.report.created_at}</p>
+// Wait for the DOM to be fully loaded
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize Bootstrap modal
+    const viewReportModal = new bootstrap.Modal(document.getElementById('viewReportModal'));
+    
+    // Global function to view report
+    window.viewReport = function(reportId) {
+        // Show loading state
+        document.getElementById('reportContent').innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+        
+        // Show the modal
+        viewReportModal.show();
+        
+        // Fetch report details
+        fetch('ajax/get-report.php?id=' + reportId)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('reportContent').innerHTML = `
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <h6>Patient Details</h6>
+                                <p>
+                                    <strong>Name:</strong> ${data.report.patient_name}<br>
+                                    <strong>Test:</strong> ${data.report.test_name}<br>
+                                    <strong>Date:</strong> ${data.report.created_at}
+                                </p>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Report Details</h6>
+                                <p>
+                                    <strong>Status:</strong> <span class="badge bg-${data.report.status === 'completed' ? 'success' : 'warning'}">${data.report.status}</span><br>
+                                    <strong>Result:</strong> ${data.report.result || 'Not available'}<br>
+                                    <strong>Amount:</strong> ₹${data.report.total_amount}
+                                </p>
+                            </div>
                         </div>
-                        <div class="col-md-6">
-                            <h6>Report Details</h6>
-                            <p>Status: ${data.report.status}<br>
-                               Result: ${data.report.result || 'Not available'}<br>
-                               Amount: ₹${data.report.total_amount}</p>
+                    `;
+                } else {
+                    document.getElementById('reportContent').innerHTML = `
+                        <div class="alert alert-danger">
+                            ${data.message || 'Failed to load report details'}
                         </div>
-                    </div>
-                    ${data.report.result_file ? `
-                        <div class="text-center">
-                            <img src="${data.report.result_file}" class="img-fluid" alt="Report Result">
-                        </div>
-                    ` : ''}
-                `;
-            } else {
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
                 document.getElementById('reportContent').innerHTML = `
                     <div class="alert alert-danger">
-                        ${data.message || 'Failed to load report details'}
+                        An error occurred while loading the report. Please try again.
                     </div>
                 `;
-            }
-        })
-        .catch(error => {
-            document.getElementById('reportContent').innerHTML = `
-                <div class="alert alert-danger">
-                    An error occurred while loading the report
-                </div>
-            `;
-        });
-}
+            });
+    };
 
-// Function to print report
-function printReport(reportId) {
-    const printWindow = window.open(`print-report.php?id=${reportId}`, '_blank', 'width=800,height=600');
-    printWindow.focus();
-}
+    // Global function to print report
+    window.printReport = function(reportId) {
+        const printWindow = window.open('print-report.php?id=' + reportId, '_blank', 'width=800,height=600');
+        printWindow.focus();
+    };
 
-// Function to print current report from modal
-function printCurrentReport() {
-    const content = document.getElementById('reportContent').innerHTML;
-    const printWindow = window.open('', '_blank', 'width=800,height=600');
-    printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Report</title>
-            <link href="../assets/css/bootstrap.min.css" rel="stylesheet">
-            <style>
-                @media print {
-                    body { padding: 20px; }
-                }
-            </style>
-        </head>
-        <body>
-            ${content}
-            <script>
-                window.onload = function() {
-                    window.print();
-                    window.onfocus = function() { window.close(); }
-                }
-            </script>
-        </body>
-        </html>
-    `);
-    printWindow.document.close();
-}
+    // Global function to print current report from modal
+    window.printCurrentReport = function() {
+        const content = document.getElementById('reportContent').innerHTML;
+        const printWindow = window.open('', '_blank', 'width=800,height=600');
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Report</title>
+                <link href="../assets/css/bootstrap.min.css" rel="stylesheet">
+                <style>
+                    @media print {
+                        body { padding: 20px; }
+                    }
+                </style>
+            </head>
+            <body>
+                ${content}
+                <script>
+                    window.onload = function() {
+                        window.print();
+                        window.onfocus = function() { window.close(); }
+                    }
+                </script>
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
+    };
+});
 </script>
 
 <?php include '../inc/footer.php'; ?> 
