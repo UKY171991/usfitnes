@@ -17,7 +17,8 @@ $query = "
     SELECT 
         r.*,
         p.name as patient_name,
-        b.name as branch_name,
+        b.branch_name,
+        t.test_name,
         t.price as test_price,
         COALESCE((
             SELECT SUM(py.paid_amount)
@@ -45,7 +46,7 @@ $stmt->execute($params);
 $reports = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Get all branches for filter
-$branches = $conn->query("SELECT id, name as branch_name FROM branches ORDER BY branch_name")->fetchAll(PDO::FETCH_ASSOC);
+$branches = $conn->query("SELECT id, branch_name FROM branches ORDER BY branch_name")->fetchAll(PDO::FETCH_ASSOC);
 
 // Calculate statistics
 $total_reports = count($reports);
@@ -160,17 +161,13 @@ include '../inc/header.php';
                     </td>
                     <td>
                         <div class="btn-group">
-                            <a href="view-report.php?id=<?php echo $report['id']; ?>" 
-                               class="btn btn-sm btn-info" title="View Report">
+                            <button type="button" class="btn btn-sm btn-info" onclick="viewReport(<?php echo $report['id']; ?>)" title="View Report">
                                 <i class="fas fa-eye"></i>
-                            </a>
-                            <a href="print-report.php?id=<?php echo $report['id']; ?>" 
-                               class="btn btn-sm btn-secondary" title="Print Report"
-                               target="_blank">
+                            </button>
+                            <button type="button" class="btn btn-sm btn-secondary" onclick="printReport(<?php echo $report['id']; ?>)" title="Print Report">
                                 <i class="fas fa-print"></i>
-                            </a>
-                            <a href="download-report.php?id=<?php echo $report['id']; ?>" 
-                               class="btn btn-sm btn-primary" title="Download Report">
+                            </button>
+                            <a href="download-report.php?id=<?php echo $report['id']; ?>" class="btn btn-sm btn-primary" title="Download Report">
                                 <i class="fas fa-download"></i>
                             </a>
                         </div>
@@ -180,5 +177,116 @@ include '../inc/header.php';
         </tbody>
     </table>
 </div>
+
+<!-- View Report Modal -->
+<div class="modal fade" id="viewReportModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">View Report</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="reportContent">
+                    <!-- Report content will be loaded here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="printCurrentReport()">Print</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Initialize the view report modal
+const viewReportModal = new bootstrap.Modal(document.getElementById('viewReportModal'));
+
+// Function to view report
+function viewReport(reportId) {
+    // Show loading state
+    document.getElementById('reportContent').innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+    viewReportModal.show();
+
+    // Fetch report details
+    fetch(`ajax/get-report.php?id=${reportId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('reportContent').innerHTML = `
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <h6>Patient Details</h6>
+                            <p>Name: ${data.report.patient_name}<br>
+                               Test: ${data.report.test_name}<br>
+                               Date: ${data.report.created_at}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Report Details</h6>
+                            <p>Status: ${data.report.status}<br>
+                               Result: ${data.report.result || 'Not available'}<br>
+                               Amount: ₹${data.report.total_amount}</p>
+                        </div>
+                    </div>
+                    ${data.report.result_file ? `
+                        <div class="text-center">
+                            <img src="${data.report.result_file}" class="img-fluid" alt="Report Result">
+                        </div>
+                    ` : ''}
+                `;
+            } else {
+                document.getElementById('reportContent').innerHTML = `
+                    <div class="alert alert-danger">
+                        ${data.message || 'Failed to load report details'}
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            document.getElementById('reportContent').innerHTML = `
+                <div class="alert alert-danger">
+                    An error occurred while loading the report
+                </div>
+            `;
+        });
+}
+
+// Function to print report
+function printReport(reportId) {
+    const printWindow = window.open(`print-report.php?id=${reportId}`, '_blank', 'width=800,height=600');
+    printWindow.focus();
+}
+
+// Function to print current report from modal
+function printCurrentReport() {
+    const content = document.getElementById('reportContent').innerHTML;
+    const printWindow = window.open('', '_blank', 'width=800,height=600');
+    printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Report</title>
+            <link href="../assets/css/bootstrap.min.css" rel="stylesheet">
+            <style>
+                @media print {
+                    body { padding: 20px; }
+                }
+            </style>
+        </head>
+        <body>
+            ${content}
+            <script>
+                window.onload = function() {
+                    window.print();
+                    window.onfocus = function() { window.close(); }
+                }
+            </script>
+        </body>
+        </html>
+    `);
+    printWindow.document.close();
+}
+</script>
 
 <?php include '../inc/footer.php'; ?> 
