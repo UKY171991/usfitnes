@@ -493,6 +493,97 @@ include '../inc/branch-header.php';
     </div>
 </div>
 
+<!-- Recent Reports Section -->
+<div class="col-12 mt-4">
+    <div class="card">
+        <div class="card-header bg-light">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Recent Test Results</h5>
+                <a href="reports.php?status=completed" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Report ID</th>
+                            <th>Patient</th>
+                            <th>Test</th>
+                            <th>Result</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php
+                        // Get recent completed reports for this branch
+                        $stmt = $conn->prepare("
+                            SELECT 
+                                r.id, 
+                                r.result, 
+                                r.created_at,
+                                p.name as patient_name,
+                                t.test_name
+                            FROM reports r
+                            JOIN patients p ON r.patient_id = p.id
+                            JOIN tests t ON r.test_id = t.id
+                            WHERE r.branch_id = :branch_id 
+                            AND r.status = 'completed'
+                            ORDER BY r.created_at DESC
+                            LIMIT 5
+                        ");
+                        $stmt->bindParam(':branch_id', $branch_id, PDO::PARAM_INT);
+                        $stmt->execute();
+                        $recentResults = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                        if (count($recentResults) > 0) {
+                            foreach ($recentResults as $result) {
+                                echo "<tr>";
+                                echo "<td>#" . htmlspecialchars($result['id']) . "</td>";
+                                echo "<td>" . htmlspecialchars($result['patient_name']) . "</td>";
+                                echo "<td>" . htmlspecialchars($result['test_name']) . "</td>";
+                                echo "<td>" . (strlen($result['result']) > 30 ? htmlspecialchars(substr($result['result'], 0, 30)) . "..." : htmlspecialchars($result['result'])) . "</td>";
+                                echo "<td>" . date('d M Y', strtotime($result['created_at'])) . "</td>";
+                                echo "<td>";
+                                echo "<div class='btn-group btn-group-sm'>";
+                                echo "<a href='javascript:void(0)' class='btn btn-info view-report' data-report-id='" . $result['id'] . "' title='View'><i class='fas fa-eye'></i></a>";
+                                echo "<a href='javascript:void(0)' class='btn btn-secondary print-report' data-report-id='" . $result['id'] . "' title='Print'><i class='fas fa-print'></i></a>";
+                                echo "</div>";
+                                echo "</td>";
+                                echo "</tr>";
+                            }
+                        } else {
+                            echo "<tr><td colspan='6' class='text-center'>No completed reports found</td></tr>";
+                        }
+                        ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- View Report Modal -->
+<div class="modal fade" id="viewReportModal" tabindex="-1" aria-labelledby="viewReportModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="viewReportModalLabel">Report Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="viewReportContent">
+                <!-- Content will be loaded dynamically -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="printViewedReport">Print Report</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript for Dashboard Functions -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const dateRange = document.getElementById('date_range');
@@ -507,6 +598,113 @@ document.addEventListener('DOMContentLoaded', function() {
     
     dateRange.addEventListener('change', toggleDateInputs);
     toggleDateInputs();
+
+    // For "View Report" buttons
+    document.querySelectorAll('.view-report').forEach(button => {
+        button.addEventListener('click', function() {
+            const reportId = this.getAttribute('data-report-id');
+            viewReport(reportId);
+        });
+    });
+
+    // For "Print Report" buttons
+    document.querySelectorAll('.print-report').forEach(button => {
+        button.addEventListener('click', function() {
+            const reportId = this.getAttribute('data-report-id');
+            printReport(reportId);
+        });
+    });
+
+    // Print button in view modal
+    document.getElementById('printViewedReport').addEventListener('click', function() {
+        const reportId = this.getAttribute('data-report-id');
+        printReport(reportId);
+    });
+
+    // Function to view report details
+    function viewReport(reportId) {
+        fetch(`ajax/get-report.php?id=${reportId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const report = data.report;
+                const viewContent = document.getElementById('viewReportContent');
+                document.getElementById('printViewedReport').setAttribute('data-report-id', reportId);
+                
+                let html = `
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <h5>Patient Information</h5>
+                            <p><strong>Name:</strong> ${escapeHtml(report.patient_name)}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h5>Test Information</h5>
+                            <p><strong>Test:</strong> ${escapeHtml(report.test_name)}</p>
+                            <p><strong>Normal Range:</strong> ${escapeHtml(report.normal_range || 'N/A')}</p>
+                            <p><strong>Unit:</strong> ${escapeHtml(report.unit || 'N/A')}</p>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <h5>Result</h5>
+                            <div class="p-3 bg-light rounded">
+                                ${report.result ? escapeHtml(report.result) : '<em>No result yet</em>'}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <p><strong>Status:</strong> 
+                                <span class="badge bg-${report.status === 'completed' ? 'success' : 'warning'}">
+                                    ${escapeHtml(report.status.charAt(0).toUpperCase() + report.status.slice(1))}
+                                </span>
+                            </p>
+                        </div>
+                        <div class="col-md-4">
+                            <p><strong>Price:</strong> ₹${parseFloat(report.test_price).toFixed(2)}</p>
+                        </div>
+                        <div class="col-md-4">
+                            <p><strong>Date:</strong> ${new Date(report.created_at).toLocaleDateString()}</p>
+                        </div>
+                    </div>
+                `;
+                viewContent.innerHTML = html;
+                
+                const viewReportModal = new bootstrap.Modal(document.getElementById('viewReportModal'));
+                viewReportModal.show();
+            } else {
+                alert(data.message || 'Report details not found.');
+            }
+        })
+        .catch(error => {
+            console.error('Error loading report details:', error);
+            alert('Error loading report details. Please try again.');
+        });
+    }
+
+    // Function to print report
+    function printReport(reportId) {
+        const printWindow = window.open(`print-report.php?id=${reportId}`, '_blank', 'width=800,height=600');
+        if (printWindow) {
+            printWindow.focus();
+            printWindow.onload = function() {
+                printWindow.print();
+            };
+        } else {
+            alert('Please allow popups to print the report');
+        }
+    }
+
+    // Helper function to escape HTML
+    function escapeHtml(unsafe) {
+        if (unsafe === null || typeof unsafe === 'undefined') return '-';
+        return String(unsafe)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
 });
 </script>
 

@@ -278,6 +278,7 @@ include '../inc/branch-header.php';
                                 <option value="netbanking">Net Banking</option>
                             </select>
                         </div>
+
                         <div class="col-md-6">
                             <label class="form-label">Transaction ID</label>
                             <input type="text" class="form-control" name="transaction_id">
@@ -330,33 +331,59 @@ include '../inc/branch-header.php';
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <form id="editReportForm" action="ajax/update-report.php" method="POST">
+                <div id="editReportSpinner" class="text-center d-none mb-3">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+                <form id="editReportForm" action="ajax/update-report.php" method="POST" class="needs-validation" novalidate>
                     <input type="hidden" name="report_id" id="editReportId">
-                    
+
                     <div class="mb-3">
-                        <label class="form-label">Test Result</label>
-                        <textarea class="form-control" name="result" id="editResult" rows="4" required></textarea>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <label class="form-label fw-bold">Test Results <span class="text-danger" id="resultsRequiredIndicator" style="display: none;">*</span></label>
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="addResultField">
+                                <i class="fas fa-plus"></i> Add Parameter
+                            </button>
+                        </div>
+                        <div id="testResultsContainer">
+                            <!-- Initial result field will be added by JS or populated -->
+                        </div>
+                        <small class="text-muted">Add parameters, values, and units. At least one result is required if status is 'Completed'.</small>
+                        <div class="invalid-feedback" id="testResultsFeedback"></div> 
+                    </div>
+
+                    <hr>
+
+                    <div class="mb-3">
+                        <label class="form-label" for="editResult">Additional Result Details / Interpretation</label>
+                        <textarea class="form-control" name="result" id="editResult" rows="3"></textarea>
+                        <small class="text-muted">Use this for overall comments or results that don't fit the structure above.</small>
                     </div>
 
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label class="form-label">Status</label>
+                            <label class="form-label" for="editStatus">Status <span class="text-danger">*</span></label>
                             <select class="form-select" name="status" id="editStatus" required>
                                 <option value="pending">Pending</option>
                                 <option value="completed">Completed</option>
                             </select>
+                            <div class="invalid-feedback">Please select a status.</div>
                         </div>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Notes</label>
+                        <label class="form-label" for="editNotes">Notes</label>
                         <textarea class="form-control" name="notes" id="editNotes" rows="2"></textarea>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="submit" form="editReportForm" class="btn btn-primary">Update Report</button>
+                <button type="submit" form="editReportForm" class="btn btn-primary" id="updateReportSubmitBtn">
+                    <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                    Update Report
+                </button>
             </div>
         </div>
     </div>
@@ -516,14 +543,14 @@ include '../inc/branch-header.php';
                             <td><?php echo date('Y-m-d', strtotime($report['created_at'])); ?></td>
                             <td>
                                 <div class="btn-group">
-                                    <button type="button" class="btn btn-sm btn-info" 
-                                            onclick="viewReport(<?php echo $report['id']; ?>)"
+                                    <button type="button" class="btn btn-sm btn-info view-report" 
+                                            data-report-id="<?php echo $report['id']; ?>"
                                             title="View Report">
                                         <i class="fas fa-eye"></i>
                                     </button>
                                     <?php if($report['status'] == 'pending'): ?>
-                                    <button type="button" class="btn btn-sm btn-primary"
-                                            onclick="editReport(<?php echo $report['id']; ?>)"
+                                    <button type="button" class="btn btn-sm btn-primary edit-report"
+                                            data-report-id="<?php echo $report['id']; ?>"
                                             title="Edit Report">
                                         <i class="fas fa-edit"></i>
                                     </button>
@@ -535,8 +562,8 @@ include '../inc/branch-header.php';
                                         <i class="fas fa-money-bill"></i>
                                     </a>
                                     <?php endif; ?>
-                                    <button type="button" class="btn btn-sm btn-secondary"
-                                            onclick="printReport(<?php echo $report['id']; ?>)"
+                                    <button type="button" class="btn btn-sm btn-secondary print-report"
+                                            data-report-id="<?php echo $report['id']; ?>"
                                             title="Print Report">
                                         <i class="fas fa-print"></i>
                                     </button>
@@ -577,143 +604,521 @@ include '../inc/branch-header.php';
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const dateRange = document.getElementById('dateRange');
-    const dateInputs = document.querySelectorAll('.custom-date');
-    
-    function toggleDateInputs() {
-        const isCustom = dateRange.value === 'custom';
-        dateInputs.forEach(input => {
-            input.style.display = isCustom ? 'block' : 'none';
-        });
-    }
-    
-    dateRange.addEventListener('change', toggleDateInputs);
-    toggleDateInputs();
-
-    // New Report form handling
-    const testSelect = document.querySelector('select[name="test_id"]');
-    const testPrice = document.getElementById('testPrice');
-    const paidAmount = document.querySelector('input[name="paid_amount"]');
-    const dueAmount = document.getElementById('dueAmount');
-    const paymentMethodSelect = document.querySelector('select[name="payment_method"]');
-    const transactionIdInput = document.querySelector('input[name="transaction_id"]');
-
-    testSelect.addEventListener('change', function() {
-        const selectedOption = this.options[this.selectedIndex];
-        const price = selectedOption.getAttribute('data-price') || '0';
-        testPrice.value = price;
-        updateDueAmount();
-    });
-
-    paidAmount.addEventListener('input', updateDueAmount);
-
-    function updateDueAmount() {
-        const total = parseFloat(testPrice.value) || 0;
-        const paid = parseFloat(paidAmount.value) || 0;
-        dueAmount.value = Math.max(0, total - paid).toFixed(2);
-    }
-
-    paymentMethodSelect.addEventListener('change', function() {
-        const isCash = this.value === 'cash';
-        transactionIdInput.required = !isCash;
-        if (isCash) {
-            transactionIdInput.value = '';
-        }
-    });
-
-    // Form submission handling
+    // --- Modal & Form References ---
+    const editReportModalEl = document.getElementById('editReportModal');
+    let editReportModal = bootstrap.Modal.getInstance(editReportModalEl) || new bootstrap.Modal(editReportModalEl);
+    const editReportForm = document.getElementById('editReportForm');
+    const editReportSpinner = document.getElementById('editReportSpinner');
+    const updateReportSubmitBtn = document.getElementById('updateReportSubmitBtn');
+    const submitSpinner = updateReportSubmitBtn.querySelector('.spinner-border');
+    const viewReportModalEl = document.getElementById('viewReportModal');
+    let viewReportModal = bootstrap.Modal.getInstance(viewReportModalEl) || new bootstrap.Modal(viewReportModalEl);
+    const newReportModalEl = document.getElementById('newReportModal');
+    let newReportModal = bootstrap.Modal.getInstance(newReportModalEl) || new bootstrap.Modal(newReportModalEl);
     const newReportForm = document.getElementById('newReportForm');
-    newReportForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        const formData = new FormData(this);
-        fetch(this.action, {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                window.location.reload();
-            } else {
-                alert(data.message || 'Error creating report');
+
+    // --- Multiple Test Results Management ---
+    const addResultBtn = document.getElementById('addResultField');
+    const testResultsContainer = document.getElementById('testResultsContainer');
+    const editStatusSelect = document.getElementById('editStatus');
+    const resultsRequiredIndicator = document.getElementById('resultsRequiredIndicator');
+    const testResultsFeedback = document.getElementById('testResultsFeedback');
+    const editResultTextarea = document.getElementById('editResult');
+
+    // To store fetched parameters for the current test being edited
+    let currentTestParameters = [];
+
+    // Function to add a new result field row with dynamic parameters
+    function addResultRow(availableParams = [], savedParameter = '', savedValue = '', savedUnit = '') {
+        const resultItem = document.createElement('div');
+        resultItem.className = 'mb-2 test-result-item';
+        const uniqueId = `other_param_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`; // Unique ID for linking
+
+        let optionsHTML = '<option value="">-- Select Parameter --</option>';
+        let foundSavedParamInOptions = false;
+        availableParams.forEach(param => {
+            const isSelected = param.parameter_name === savedParameter;
+            optionsHTML += `<option value="${escapeHtml(param.parameter_name)}" data-unit="${escapeHtml(param.default_unit || '')}" ${isSelected ? 'selected' : ''}>${escapeHtml(param.parameter_name)}</option>`;
+            if (isSelected) {
+                foundSavedParamInOptions = true;
             }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Error creating report. Please try again.');
         });
+        optionsHTML += '<option value="__OTHER__">Other...</option>';
+
+        const isOtherSelected = !foundSavedParamInOptions && savedParameter !== '';
+        const otherInputDisplay = isOtherSelected ? 'block' : 'none';
+        const otherValue = isOtherSelected ? savedParameter : '';
+
+        resultItem.innerHTML = `
+            <div class="input-group input-group-sm mb-1">
+                <select class="form-select form-select-sm result-parameter-select" name="result_parameter_selects[]">
+                    ${optionsHTML}
+                </select>
+                <input type="text" class="form-control form-control-sm result-value" 
+                    placeholder="Value" name="result_values[]" value="${escapeHtml(savedValue)}">
+                <input type="text" class="form-control form-control-sm result-unit" 
+                    placeholder="Unit" name="result_units[]" value="${escapeHtml(savedUnit)}">
+                <button type="button" class="btn btn-outline-danger remove-result">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <input type="text" class="form-control form-control-sm result-parameter-other mb-1" 
+                   placeholder="Enter Parameter Name" name="result_parameter_others[]" 
+                   value="${escapeHtml(otherValue)}" style="display: ${otherInputDisplay};" aria-label="Other parameter name">
+            <hr class="my-1">
+        `;
+        testResultsContainer.appendChild(resultItem);
+        
+        // Add event listener to the remove button
+        resultItem.querySelector('.remove-result').addEventListener('click', function() {
+            resultItem.remove();
+            validateTestResults(); // Re-validate after removing
+        });
+
+        // Add event listener to the select dropdown
+        const selectElement = resultItem.querySelector('.result-parameter-select');
+        const otherInputElement = resultItem.querySelector('.result-parameter-other');
+        const unitInputElement = resultItem.querySelector('.result-unit');
+        selectElement.addEventListener('change', function() {
+            if (this.value === '__OTHER__') {
+                otherInputElement.style.display = 'block';
+                otherInputElement.focus();
+                unitInputElement.value = ''; // Clear unit if Other is selected
+            } else {
+                otherInputElement.style.display = 'none';
+                otherInputElement.value = ''; // Clear other input if a standard param is selected
+                // Set default unit if available
+                const selectedOption = this.options[this.selectedIndex];
+                unitInputElement.value = selectedOption.dataset.unit || '';
+            }
+            validateTestResults(); // Re-validate on change
+        });
+        // Set initial state for loaded data
+        if(isOtherSelected) {
+            selectElement.value = '__OTHER__';
+        } else if (foundSavedParamInOptions && !savedUnit) {
+             // Pre-fill unit if a standard parameter was selected and unit wasn't already saved
+             const selectedOption = selectElement.options[selectElement.selectedIndex];
+             if(selectedOption && selectedOption.dataset.unit) {
+                 unitInputElement.value = selectedOption.dataset.unit;
+             }
+        }
+
+    }
+
+    // Add first result field button click
+    if (addResultBtn) {
+        addResultBtn.addEventListener('click', function() {
+            // Use the parameters fetched for the current test
+            addResultRow(currentTestParameters);
+        });
+    }
+
+    // Remove result field (using event delegation)
+    if (testResultsContainer) {
+        testResultsContainer.addEventListener('click', function(e) {
+            if (e.target.classList.contains('remove-result') || e.target.closest('.remove-result')) {
+                const resultItem = e.target.closest('.test-result-item');
+                if (resultItem) {
+                    resultItem.remove();
+                    validateTestResults(); // Re-validate after removing
+                }
+            }
+        });
+    }
+    
+    // Validate test results based on status
+    function validateTestResults() {
+        const isCompleted = editStatusSelect.value === 'completed';
+        resultsRequiredIndicator.style.display = isCompleted ? 'inline' : 'none';
+        
+        let hasResultData = false;
+        const resultItems = testResultsContainer.querySelectorAll('.test-result-item');
+        resultItems.forEach(item => {
+            const selectValue = item.querySelector('.result-parameter-select').value;
+            const otherValue = item.querySelector('.result-parameter-other').value.trim();
+            const val = item.querySelector('.result-value').value.trim();
+            // Consider valid if a parameter (select or other) OR a value is entered
+            if ((selectValue && selectValue !== '__OTHER__') || otherValue || val) {
+                hasResultData = true;
+            }
+        });
+        
+        const hasAdditionalResult = editResultTextarea.value.trim() !== '';
+        const isValid = !isCompleted || hasResultData || hasAdditionalResult;
+
+        if (!isValid) {
+            testResultsFeedback.textContent = 'At least one Test Result (parameter/value or additional details) is required when status is Completed.';
+            testResultsFeedback.style.display = 'block';
+        } else {
+            testResultsFeedback.textContent = '';
+            testResultsFeedback.style.display = 'none';
+        }
+        return isValid;
+    }
+
+    if (editStatusSelect) {
+        editStatusSelect.addEventListener('change', validateTestResults);
+    }
+    if (testResultsContainer) {
+         testResultsContainer.addEventListener('input', validateTestResults); 
+    }
+    if (editResultTextarea) {
+        editResultTextarea.addEventListener('input', validateTestResults);
+    }
+    if (testResultsContainer) { // Need to listen for changes in select too
+        testResultsContainer.addEventListener('change', function(event) {
+            if (event.target.classList.contains('result-parameter-select')) {
+                validateTestResults();
+            }
+        });
+    }
+
+    // --- Message Container ---
+    const messageContainer = document.getElementById('message-container');
+
+    // --- Helper Functions ---
+    function showMessage(message, type = 'success') {
+        const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+        // Ensure messageContainer exists before trying to write to it
+        if (messageContainer) {
+            messageContainer.innerHTML = `<div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+                                            ${message}
+                                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                          </div>`;
+            messageContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+
+    function escapeHtml(unsafe) {
+        if (unsafe === null || typeof unsafe === 'undefined') return '-';
+        return String(unsafe)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    function refreshReportsTable() {
+        // Simple page reload
+        window.location.reload(); 
+    }
+    
+    // --- Form Validation (Standard Bootstrap) ---
+    const forms = document.querySelectorAll('.needs-validation');
+    Array.from(forms).forEach(form => {
+        form.addEventListener('submit', event => {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            form.classList.add('was-validated');
+        }, false);
     });
 
-    // View Report Function
-    window.viewReport = function(reportId) {
+    // --- Event Delegation for Table Actions ---
+    const reportTableBody = document.querySelector('.table tbody'); // Assuming table body exists
+
+    if (reportTableBody) {
+        reportTableBody.addEventListener('click', function(event) {
+            const targetButton = event.target.closest('button'); // Find the clicked button or its parent button
+
+            if (!targetButton) return; // Exit if click wasn't on a button
+
+            const reportId = targetButton.dataset.reportId;
+            if (!reportId) return; // Exit if button doesn't have reportId
+
+            if (targetButton.classList.contains('view-report')) {
+                viewReport(reportId);
+            }
+            else if (targetButton.classList.contains('edit-report')) {
+                editReport(reportId);
+            }
+            else if (targetButton.classList.contains('print-report')) {
+                printReport(reportId);
+            }
+        });
+    }
+
+    // --- View Report Logic --- 
+    function viewReport(reportId) {
         fetch(`ajax/get-report.php?id=${reportId}`)
-            .then(response => response.json())
+          .then(response => response.json())
             .then(data => {
                 if (data.success) {
                     const report = data.report;
-                    let content = `
-                        <div class="report-details">
+
+                    // Populate and Show View Modal 
+                    const viewContent = document.getElementById('viewReportContent');
+                    if(viewContent) {
+                        let html = `
                             <div class="row mb-3">
                                 <div class="col-md-6">
-                                    <p><strong>Report ID:</strong> ${report.id}</p>
-                                    <p><strong>Patient Name:</strong> ${report.patient_name}</p>
-                                    <p><strong>Test Name:</strong> ${report.test_name}</p>
-                                    <p><strong>Status:</strong> <span class="badge bg-${report.status === 'completed' ? 'success' : 'warning'}">${report.status}</span></p>
+                                    <h5>Patient Information</h5>
+                                    <p><strong>Name:</strong> ${escapeHtml(report.patient_name)}</p>
                                 </div>
                                 <div class="col-md-6">
-                                    <p><strong>Test Price:</strong> ₹${parseFloat(report.test_price).toFixed(2)}</p>
-                                    <p><strong>Paid Amount:</strong> ₹${parseFloat(report.paid_amount).toFixed(2)}</p>
-                                    <p><strong>Due Amount:</strong> ₹${parseFloat(report.due_amount).toFixed(2)}</p>
+                                    <h5>Test Information</h5>
+                                    <p><strong>Test:</strong> ${escapeHtml(report.test_name)}</p>
+                                    <p><strong>Normal Range:</strong> ${escapeHtml(report.normal_range)}</p>
+                                    <p><strong>Unit:</strong> ${escapeHtml(report.unit)}</p>
+                                </div>
+                            </div>`;
+                            
+                        // Display structured test results if available
+                        if (report.test_results && Array.isArray(JSON.parse(report.test_results))) {
+                            const testResults = JSON.parse(report.test_results);
+                            if (testResults.length > 0) {
+                                html += `
+                                <div class="row mb-3">
+                                    <div class="col-md-12">
+                                        <h5>Test Results</h5>
+                                        <table class="table table-bordered">
+                                            <thead>
+                                                <tr>
+                                                    <th>Parameter</th>
+                                                    <th>Value</th>
+                                                    <th>Unit</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>`;
+                                
+                                testResults.forEach(result => {
+                                    html += `
+                                        <tr>
+                                            <td>${escapeHtml(result.parameter)}</td>
+                                            <td>${escapeHtml(result.value)}</td>
+                                            <td>${escapeHtml(result.unit)}</td>
+                                        </tr>`;
+                                });
+                                
+                                html += `
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>`;
+                            }
+                        }
+                            
+                        // Display additional result details if available
+                        if (report.result) {
+                            html += `
+                            <div class="row mb-3">
+                                <div class="col-md-12">
+                                    <h5>Additional Details</h5>
+                                    <div class="p-3 bg-light rounded">
+                                        ${report.result ? escapeHtml(report.result) : '<em>No additional details</em>'}
+                                    </div>
+                                </div>
+                            </div>`;
+                        }
+                            
+                        html += `
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <p><strong>Status:</strong> 
+                                        <span class="badge bg-${report.status === 'completed' ? 'success' : 'warning'}">
+                                            ${escapeHtml(report.status.charAt(0).toUpperCase() + report.status.slice(1))}
+                                        </span>
+                                    </p>
+                                </div>
+                                <div class="col-md-4">
+                                    <p><strong>Price:</strong> ₹${parseFloat(report.test_price).toFixed(2)}</p>
+                                </div>
+                                <div class="col-md-4">
                                     <p><strong>Date:</strong> ${new Date(report.created_at).toLocaleDateString()}</p>
                                 </div>
                             </div>
-                            ${report.result ? `
-                            <div class="row mb-3">
-                                <div class="col-12">
-                                    <h6>Test Result</h6>
-                                    <div class="border rounded p-3">
-                                        ${report.result}
-                                    </div>
-                                </div>
-                            </div>` : ''}
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <p><strong>Normal Range:</strong> ${report.normal_range || 'N/A'}</p>
-                                </div>
-                                <div class="col-md-6">
-                                    <p><strong>Unit:</strong> ${report.unit || 'N/A'}</p>
-                                </div>
-                            </div>
-                            ${report.notes ? `
-                            <div class="row mt-3">
-                                <div class="col-12">
-                                    <h6>Notes</h6>
-                                    <div class="border rounded p-3">
-                                        ${report.notes}
-                                    </div>
-                                </div>
-                            </div>` : ''}
-                        </div>
-                    `;
-                    document.getElementById('viewReportContent').innerHTML = content;
-                    new bootstrap.Modal(document.getElementById('viewReportModal')).show();
+                        `;
+                        viewContent.innerHTML = html;
+                    }
+                    if(viewReportModal) viewReportModal.show();
                 } else {
-                    alert(data.message || 'Error loading report details');
+                    showMessage(data.message || 'Report details not found.', 'danger');
                 }
             })
             .catch(error => {
-                console.error('Error:', error);
-                alert('Error loading report details. Please try again.');
+                console.error('Error loading report details:', error);
+                showMessage('Error loading report details. Please try again.', 'danger');
             });
     }
+    
+    // --- Edit Report Logic (Fetch Data & Parameters) --- 
+    async function editReport(reportId) {
+        editReportSpinner.classList.remove('d-none'); 
+        editReportForm.classList.add('d-none'); 
+        currentTestParameters = []; // Reset parameters
+        if(editReportModal) editReportModal.show();
 
-    // Print report function
+        try {
+            // 1. Fetch Report Details
+            const reportResponse = await fetch(`ajax/get-report.php?id=${reportId}`);
+            const reportData = await reportResponse.json();
+
+            if (!reportData.success) {
+                throw new Error(reportData.message || 'Report details not found.');
+            }
+            const report = reportData.report;
+            const testId = report.test_id; // Get the test ID
+
+            // 2. Fetch Test Parameters (if testId is available)
+            if (testId) {
+                try {
+                    const paramsResponse = await fetch(`ajax/get-test-parameters.php?test_id=${testId}`);
+                    const paramsData = await paramsResponse.json();
+                    if (paramsData.success) {
+                        currentTestParameters = paramsData.parameters;
+                    } else {
+                        console.warn('Could not fetch parameters for test:', paramsData.message);
+                        currentTestParameters = []; // Use empty if fetch fails
+                    }
+                } catch (paramError) {
+                    console.error('Error fetching test parameters:', paramError);
+                    currentTestParameters = []; // Use empty on error
+                }
+            } else {
+                currentTestParameters = []; // No test ID, no parameters
+            }
+
+            // 3. Populate Form
+            document.getElementById('editReportId').value = report.id;
+            editResultTextarea.value = report.result || '';
+            editStatusSelect.value = report.status;
+            document.getElementById('editNotes').value = report.notes || '';
+            
+            // Clear existing test result fields before populating
+            while (testResultsContainer.firstChild) {
+                testResultsContainer.removeChild(testResultsContainer.firstChild);
+            }
+
+            // Populate structured test results
+            let addedResults = false;
+            if (report.test_results && typeof report.test_results === 'string') {
+                try {
+                    const testResults = JSON.parse(report.test_results);
+                    if (Array.isArray(testResults) && testResults.length > 0) {
+                        testResults.forEach(result => {
+                            addResultRow(currentTestParameters, result.parameter, result.value, result.unit);
+                        });
+                        addedResults = true;
+                    } 
+                } catch (e) {
+                    console.error('Error parsing test results:', e);
+                }
+            }
+            
+            // If no structured results were parsed/added, add one empty row
+            if (!addedResults) {
+                 addResultRow(currentTestParameters);
+            }
+            
+            validateTestResults(); 
+            editReportForm.classList.remove('was-validated');
+            editReportSpinner.classList.add('d-none'); 
+            editReportForm.classList.remove('d-none'); 
+
+        } catch (error) {
+            console.error('Error loading report details:', error);
+            showMessage(error.message || 'Error loading report details. Please try again.', 'danger');
+            editReportModal.hide(); 
+            editReportSpinner.classList.add('d-none'); 
+            editReportForm.classList.remove('d-none');
+        }
+    }
+    
+    // --- Edit Report Form Submission Logic --- (Adjusted)
+    if (editReportForm) {
+        editReportForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+            event.stopPropagation();
+
+            if (!editReportForm.checkValidity()) {
+                editReportForm.classList.add('was-validated');
+                return;
+            }
+            if (!validateTestResults()) {
+                 editReportForm.classList.add('was-validated'); 
+                 return;
+            }
+
+            // Format the multiple test results
+            const testResults = [];
+            const resultItems = testResultsContainer.querySelectorAll('.test-result-item');
+            resultItems.forEach(item => {
+                const selectElement = item.querySelector('.result-parameter-select');
+                const otherInputElement = item.querySelector('.result-parameter-other');
+                const valueInput = item.querySelector('.result-value');
+                const unitInput = item.querySelector('.result-unit');
+
+                let parameter = '';
+                if (selectElement.value === '__OTHER__') {
+                    parameter = otherInputElement.value.trim();
+                } else {
+                    parameter = selectElement.value;
+                }
+                const value = valueInput.value.trim();
+                const unit = unitInput.value.trim();
+
+                // Only include rows where a parameter (selected or other) AND a value are present
+                if (parameter && value) { 
+                    testResults.push({
+                        parameter: parameter,
+                        value: value,
+                        unit: unit
+                    });
+                }
+            });
+            
+            const formData = new FormData(editReportForm);
+            
+            // Remove individual parameter fields from FormData object 
+            // as we are sending the combined JSON string
+            formData.delete('result_parameter_selects[]');
+            formData.delete('result_parameter_others[]');
+            formData.delete('result_values[]');
+            formData.delete('result_units[]');
+
+            // Add the JSON string of results
+            if (testResults.length > 0) {
+                formData.set('test_results', JSON.stringify(testResults));
+            } else {
+                 // Ensure test_results is explicitly set to empty array or removed if handled server-side
+                 formData.set('test_results', '[]'); 
+            }
+
+            // Show spinner, disable button
+            submitSpinner.classList.remove('d-none');
+            updateReportSubmitBtn.disabled = true;
+
+            fetch('ajax/update-report.php', { 
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                showMessage(data.message, data.success ? 'success' : 'danger');
+                if (data.success) {
+                    editReportModal.hide();
+                    refreshReportsTable();
+                }
+            })
+            .catch(error => {
+                console.error('Error updating report:', error);
+                showMessage('An unexpected error occurred while updating the report.', 'danger');
+            })
+            .finally(() => {
+                submitSpinner.classList.add('d-none');
+                updateReportSubmitBtn.disabled = false;
+            });
+        });
+    }
+    
+    // --- Print Report Logic --- 
     window.printReport = function(reportId) {
-        const printWindow = window.open(`print-report.php?id=${reportId}`, '_blank', 'width=800,height=600');
+         const printWindow = window.open(`print-report.php?id=${reportId}`, '_blank', 'width=800,height=600');
         if (printWindow) {
             printWindow.focus();
-            // Add event listener to automatically trigger print when the page loads
             printWindow.onload = function() {
                 printWindow.print();
             };
@@ -722,51 +1127,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Edit Report Function
-    window.editReport = function(reportId) {
-        fetch(`ajax/get-report.php?id=${reportId}`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    const report = data.report;
-                    document.getElementById('editReportId').value = report.id;
-                    document.getElementById('editResult').value = report.result || '';
-                    document.getElementById('editStatus').value = report.status;
-                    document.getElementById('editNotes').value = report.notes || '';
-                    
-                    new bootstrap.Modal(document.getElementById('editReportModal')).show();
-                } else {
-                    alert(data.message || 'Error loading report details');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Error loading report details. Please try again.');
-            });
-    }
-
-    // Handle edit form submission
-    document.getElementById('editReportForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        const formData = new FormData(this);
-        fetch(this.action, {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                window.location.reload();
-            } else {
-                alert(data.message || 'Error updating report');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Error updating report. Please try again.');
-        });
-    });
 });
 </script>
 

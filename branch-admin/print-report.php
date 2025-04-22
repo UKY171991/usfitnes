@@ -145,9 +145,41 @@ if (!$report) {
                 </div>
             </div>
 
+            <?php 
+            // Display test results in table format if available
+            if (isset($report['test_results']) && !empty($report['test_results'])) {
+                $test_results = json_decode($report['test_results'], true);
+                if (is_array($test_results) && count($test_results) > 0) {
+            ?>
+            <div class="test-results mb-4">
+                <h5>Test Results</h5>
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Parameter</th>
+                            <th>Result</th>
+                            <th>Unit</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($test_results as $test_result): ?>
+                        <tr>
+                            <td><?php echo htmlspecialchars($test_result['parameter']); ?></td>
+                            <td><?php echo htmlspecialchars($test_result['value']); ?></td>
+                            <td><?php echo htmlspecialchars($test_result['unit']); ?></td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+            <?php 
+                }
+            }
+            ?>
+
             <?php if($report['result']): ?>
             <div class="test-result mb-4">
-                <h5>Test Result</h5>
+                <h5>Additional Details</h5>
                 <div class="border rounded p-3">
                     <?php echo nl2br(htmlspecialchars($report['result'])); ?>
                 </div>

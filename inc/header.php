@@ -170,6 +170,12 @@ if(!isset($_SESSION['user_id'])) {
                             </a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'test-parameters.php' ? 'active' : ''; ?>" 
+                               href="/usfitnes/admin/test-parameters.php">
+                                <i class="fas fa-tags"></i> Test Parameters
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'reports.php' ? 'active' : ''; ?>" 
                                href="/usfitnes/admin/reports.php">
                                 <i class="fas fa-file-medical-alt"></i> Reports

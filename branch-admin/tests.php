@@ -5,64 +5,16 @@ require_once '../auth/branch-admin-check.php';
 
 $branch_id = $_SESSION['branch_id'];
 
-// Handle form submission for adding/updating branch test
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $test_id = $_POST['test_id'] ?? '';
-    $price = trim($_POST['price'] ?? '');
-    $reporting_time = trim($_POST['reporting_time'] ?? '');
-    $status = isset($_POST['status']) ? 1 : 0;
-
-    $errors = [];
-    if (empty($test_id)) {
-        $errors[] = "Test selection is required";
-    }
-    if (empty($price)) {
-        $errors[] = "Price is required";
-    } elseif (!is_numeric($price) || $price < 0) {
-        $errors[] = "Price must be a valid positive number";
-    }
-    if (strlen($reporting_time) > 50) {
-        $errors[] = "Reporting time must be less than 50 characters";
-    }
-
-    if (empty($errors)) {
-        try {
-            $conn->beginTransaction();
-
-            // Check if branch test already exists
-            $stmt = $conn->prepare("SELECT id FROM branch_tests WHERE branch_id = ? AND test_id = ?");
-            $stmt->execute([$branch_id, $test_id]);
-            $existing = $stmt->fetch();
-
-            if ($existing) {
-                // Update existing branch test
-                $stmt = $conn->prepare("
-                    UPDATE branch_tests 
-                    SET price = ?, reporting_time = ?, status = ?, updated_at = CURRENT_TIMESTAMP
-                    WHERE branch_id = ? AND test_id = ?
-                ");
-                $stmt->execute([$price, $reporting_time, $status, $branch_id, $test_id]);
-                $success_msg = "Test updated successfully";
-            } else {
-                // Add new branch test
-                $stmt = $conn->prepare("
-                    INSERT INTO branch_tests (branch_id, test_id, price, reporting_time, status) 
-                    VALUES (?, ?, ?, ?, ?)
-                ");
-                $stmt->execute([$branch_id, $test_id, $price, $reporting_time, $status]);
-                $success_msg = "Test added successfully";
-            }
-
-            $conn->commit();
-        } catch (PDOException $e) {
-            $conn->rollBack();
-            $errors[] = "Database error: " . $e->getMessage();
-        }
-    }
-
-    if (!empty($errors)) {
-        $error_msg = implode("<br>", $errors);
-    }
+// --- Fetch Master Tests for Dropdown ---
+$master_tests_list = [];
+try {
+    // Fetch default price and reporting time as well
+    $tests_stmt = $conn->query("SELECT id, test_name, price, reporting_time FROM tests WHERE status = '1' ORDER BY test_name");
+    $master_tests_list = $tests_stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    error_log("Error fetching master tests for modal: " . $e->getMessage());
+    // Set an error message to display if needed
+    $page_error_msg = "Could not load master test list.";
 }
 
 // Search and filter parameters
@@ -160,23 +112,16 @@ include '../inc/branch-header.php';
 
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
     <h1 class="h2">Manage Tests</h1>
-    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addTestModal">
+    <button type="button" class="btn btn-primary" id="mainAddUpdateButton" data-bs-toggle="modal" data-bs-target="#addTestModal">
         <i class="fas fa-plus"></i> Add/Update Test
     </button>
 </div>
 
-<?php if (isset($success_msg)): ?>
-    <div class="alert alert-success alert-dismissible fade show" role="alert">
-        <?php echo $success_msg; ?>
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-<?php endif; ?>
+<!-- Placeholder for AJAX messages -->
+<div id="message-container" class="mb-3"></div> 
 
-<?php if (isset($error_msg)): ?>
-    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-        <?php echo $error_msg; ?>
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
+<?php if (isset($page_error_msg)): /* Keep page-load errors if needed */ ?>
+    <div class="alert alert-warning"><?php echo $page_error_msg; ?></div>
 <?php endif; ?>
 
 <!-- Search and Filters -->
@@ -335,48 +280,64 @@ include '../inc/branch-header.php';
 </nav>
 <?php endif; ?>
 
-<!-- Add/Edit Test Modal -->
+<!-- Add/Update Test Modal -->
 <div class="modal fade" id="addTestModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Add/Update Test</h5>
+                <h5 class="modal-title">Add/Update Test Settings</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form method="POST" id="testForm" class="needs-validation" novalidate>
+            <form id="branchTestForm" method="POST">
                 <div class="modal-body">
-                    <input type="hidden" name="test_id" id="test_id">
+                    <!-- Test Selection Dropdown -->
                     <div class="mb-3">
-                        <label class="form-label">Test Name</label>
-                        <input type="text" class="form-control" id="test_name" readonly>
+                        <label for="modal_test_id" class="form-label">Select Test *</label>
+                        <select class="form-select" id="modal_test_id" name="test_id" required>
+                            <option value="" data-price="" data-reporting-time="">-- Select a Master Test --</option>
+                            <?php if (empty($master_tests_list)): ?>
+                                <option value="" disabled>No active master tests found.</option>
+                            <?php else: ?>
+                                <?php foreach ($master_tests_list as $master_test): ?>
+                                    <option 
+                                        value="<?php echo $master_test['id']; ?>"
+                                        data-price="<?php echo htmlspecialchars($master_test['price'] ?? ''); ?>"
+                                        data-reporting-time="<?php echo htmlspecialchars($master_test['reporting_time'] ?? ''); ?>">
+                                        <?php echo htmlspecialchars($master_test['test_name']); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </select>
+                        <div class="invalid-feedback">Please select a test.</div>
                     </div>
+                    
+                    <!-- Price Input -->
                     <div class="mb-3">
-                        <label for="price" class="form-label">Price</label>
+                        <label for="modal_price" class="form-label">Branch Price *</label>
                         <div class="input-group">
                             <span class="input-group-text">₹</span>
-                            <input type="number" step="0.01" min="0" class="form-control" id="price" name="price" required>
+                            <input type="number" class="form-control" id="modal_price" name="price" required min="0" step="0.01" placeholder="Enter branch-specific price">
                         </div>
-                        <div class="invalid-feedback">Please enter a valid price.</div>
+                        <div class="invalid-feedback">Please enter a valid positive price.</div>
                     </div>
+
+                    <!-- Reporting Time Input -->
                     <div class="mb-3">
-                        <label for="reporting_time" class="form-label">Reporting Time</label>
-                        <input type="text" class="form-control" id="reporting_time" name="reporting_time" 
-                               placeholder="e.g., 24 hours, Same day, etc." maxlength="50">
-                        <div class="form-text">Maximum 50 characters</div>
+                        <label for="modal_reporting_time" class="form-label">Branch Reporting Time</label>
+                        <input type="text" class="form-control" id="modal_reporting_time" name="reporting_time" maxlength="50" placeholder="e.g., 24 Hours, Same Day">
+                         <small class="text-muted">Leave blank to use default time.</small>
                     </div>
-                    <div class="mb-3">
-                        <div class="form-check">
-                            <input type="checkbox" class="form-check-input" id="status" name="status" value="1" checked>
-                            <label class="form-check-label" for="status">Active</label>
-                        </div>
+
+                    <!-- Status Checkbox -->
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="modal_status" name="status" value="1" checked>
+                        <label class="form-check-label" for="modal_status">Make Active for this Branch</label>
                     </div>
+
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-primary" id="saveButton">
-                        <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
-                        Save Changes
-                    </button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
                 </div>
             </form>
         </div>
@@ -412,39 +373,123 @@ include '../inc/branch-header.php';
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Form validation
-    const form = document.getElementById('testForm');
-    form.addEventListener('submit', function(event) {
-        if (!form.checkValidity()) {
-            event.preventDefault();
-            event.stopPropagation();
-        } else {
-            const submitButton = document.getElementById('saveButton');
-            const spinner = submitButton.querySelector('.spinner-border');
-            submitButton.disabled = true;
-            spinner.classList.remove('d-none');
+    const addTestModalEl = document.getElementById('addTestModal');
+    const addTestModal = bootstrap.Modal.getInstance(addTestModalEl) || new bootstrap.Modal(addTestModalEl);
+    const testForm = document.getElementById('branchTestForm'); // Use form ID
+    const testSelect = document.getElementById('modal_test_id');
+    const priceInput = document.getElementById('modal_price');
+    const timeInput = document.getElementById('modal_reporting_time');
+    const statusCheckbox = document.getElementById('modal_status');
+    const messageContainer = document.getElementById('message-container'); // Message container
+
+    // Helper to show messages
+    function showMessage(message, type = 'success') {
+        const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+        messageContainer.innerHTML = `<div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+                                        ${message}
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                      </div>`;
+        messageContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    
+     // Helper function to refresh the page (simple refresh)
+    function refreshTestList() {
+        // For simplicity, reload the page to see changes.
+        // A more advanced implementation would fetch data and rebuild the accordion.
+        window.location.reload(); 
+    }
+
+    // Reset form only when opened by the main Add/Update button
+    addTestModalEl.addEventListener('show.bs.modal', function (event) {
+        if (event.relatedTarget && event.relatedTarget.id === 'mainAddUpdateButton') {
+            testForm.reset();
+            testSelect.disabled = false;
+            statusCheckbox.checked = true;
+            testForm.classList.remove('was-validated');
         }
-        form.classList.add('was-validated');
     });
 
-    // Handle edit test button clicks
+    // Handle Edit button clicks
     document.querySelectorAll('.edit-test').forEach(button => {
         button.addEventListener('click', function() {
             const testData = JSON.parse(this.dataset.test);
-            document.getElementById('test_id').value = testData.id;
-            document.getElementById('test_name').value = testData.test_name;
-            document.getElementById('price').value = testData.price;
-            document.getElementById('reporting_time').value = testData.reporting_time;
-            document.getElementById('status').checked = testData.status == 1;
-            
-            // Reset validation state
-            form.classList.remove('was-validated');
-            document.getElementById('saveButton').disabled = false;
-            document.querySelector('#saveButton .spinner-border').classList.add('d-none');
+            testSelect.value = testData.id;
+            testSelect.disabled = true;
+            priceInput.value = testData.price || '';
+            timeInput.value = testData.reporting_time || '';
+            statusCheckbox.checked = testData.status == 1;
+            testForm.classList.remove('was-validated');
         });
     });
 
-    // Handle test details button clicks
+    // Add Change listener to Test Select dropdown
+    testSelect.addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        if (this.value === "") {
+            priceInput.value = '';
+            timeInput.value = '';
+             statusCheckbox.checked = true; 
+        } else {
+            const defaultPrice = selectedOption.dataset.price;
+            const defaultTime = selectedOption.dataset.reportingTime;
+            priceInput.value = defaultPrice || '';
+            timeInput.value = defaultTime || '';
+            statusCheckbox.checked = true; 
+        }
+        testForm.classList.remove('was-validated');
+    });
+    
+    // Handle AJAX form submission
+    testForm.addEventListener('submit', function(event) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (!testForm.checkValidity()) {
+            testForm.classList.add('was-validated');
+            return; 
+        }
+
+        // Re-enable select before creating FormData if it was disabled for edit
+        const wasDisabled = testSelect.disabled;
+        if (wasDisabled) {
+            testSelect.disabled = false;
+        }
+        
+        const formData = new FormData(testForm);
+        const submitButton = testForm.querySelector('button[type="submit"]');
+        submitButton.disabled = true; // Disable button
+        
+        // Restore disabled state if needed (for UI consistency)
+        if (wasDisabled) {
+             testSelect.disabled = true;
+        }
+
+        fetch('ajax/update-branch-test.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            showMessage(data.message, data.success ? 'success' : 'danger');
+            if (data.success) {
+                addTestModal.hide();
+                refreshTestList(); // Reload page to see changes
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('An unexpected error occurred. Please try again.', 'danger');
+        })
+        .finally(() => {
+            submitButton.disabled = false; // Re-enable button
+             // Re-enable select if it was disabled for edit, regardless of outcome
+             if (wasDisabled) {
+                 testSelect.disabled = false;
+             }
+        });
+    });
+    
+    // Test Details Modal Population (keep existing logic)
     document.querySelectorAll('[data-bs-target="#testDetailsModal"]').forEach(button => {
         button.addEventListener('click', function() {
             const testData = JSON.parse(this.dataset.test);
@@ -456,14 +501,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('detail_preparation').textContent = testData.preparation || 'No special preparation required';
         });
     });
-
-    // Auto-submit form on filter change
-    document.getElementById('category').addEventListener('change', function() {
-        this.form.submit();
-    });
-    document.getElementById('status').addEventListener('change', function() {
-        this.form.submit();
-    });
+    
 });
 </script>
 

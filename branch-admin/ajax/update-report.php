@@ -7,19 +7,42 @@ header('Content-Type: application/json');
 
 try {
     // Validate input
-    if (!isset($_POST['report_id']) || !isset($_POST['result']) || !isset($_POST['status'])) {
+    if (!isset($_POST['report_id']) || !isset($_POST['status'])) {
         throw new Exception('Missing required fields');
     }
 
     $report_id = intval($_POST['report_id']);
-    $result = trim($_POST['result']);
+    $result = trim($_POST['result'] ?? '');
     $status = trim($_POST['status']);
     $notes = trim($_POST['notes'] ?? '');
     $branch_id = $_SESSION['branch_id'];
+    $test_results = isset($_POST['test_results']) ? $_POST['test_results'] : '[]';
 
     // Validate status
     if (!in_array($status, ['pending', 'completed'])) {
         throw new Exception('Invalid status');
+    }
+
+    // If status is completed, ensure there are test results
+    if ($status === 'completed') {
+        $hasResults = false;
+        
+        // Check if there are test results in JSON format
+        if (!empty($test_results)) {
+            $parsedResults = json_decode($test_results, true);
+            if (is_array($parsedResults) && count($parsedResults) > 0) {
+                $hasResults = true;
+            }
+        }
+        
+        // Also check if there's a traditional result
+        if (!empty($result)) {
+            $hasResults = true;
+        }
+        
+        if (!$hasResults) {
+            throw new Exception('Test result is required for completed reports');
+        }
     }
 
     // Check if report exists and belongs to this branch
@@ -40,13 +63,14 @@ try {
     $update_stmt = $conn->prepare("
         UPDATE reports 
         SET result = ?,
+            test_results = ?,
             status = ?,
             notes = ?,
             updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
     ");
 
-    $update_stmt->execute([$result, $status, $notes, $report_id]);
+    $update_stmt->execute([$result, $test_results, $status, $notes, $report_id]);
 
     echo json_encode([
         'success' => true,
