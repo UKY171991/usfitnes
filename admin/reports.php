@@ -177,7 +177,7 @@ include '../inc/header.php';
                     <tr>
                         <th>ID</th>
                         <th>Patient</th>
-                        <th>Test Name</th> <!-- Added Test Name Header -->
+                        <th>Test Name</th>
                         <th>Branch</th>
                         <th>Date</th>
                         <th>Amount</th>
@@ -200,7 +200,7 @@ include '../inc/header.php';
                             <tr>
                                 <td><?php echo $report['id']; ?></td>
                                 <td><?php echo htmlspecialchars($report['patient_name']); ?></td>
-                                <td><?php echo htmlspecialchars($report['test_name'] ?: '-'); ?></td> <!-- Added Test Name Data -->
+                                <td><?php echo htmlspecialchars($report['test_name'] ?: '-'); ?></td>
                                 <td><?php echo htmlspecialchars($report['branch_name']); ?></td>
                                 <td><?php echo date('Y-m-d', strtotime($report['created_at'])); ?></td>
                                 <td>₹<?php echo number_format($report['total_amount'], 2); ?></td>
@@ -211,15 +211,18 @@ include '../inc/header.php';
                                 </td>
                                 <td class="text-end">
                                     <div class="btn-group">
+                                        <!-- VIEW BUTTON -->
                                         <button type="button" class="btn btn-sm btn-info" onclick="viewReport(<?php echo $report['id']; ?>)" title="View Report">
                                             <i class="fas fa-eye"></i>
                                         </button>
-                                        <button type="button" class="btn btn-sm btn-secondary" onclick="printReport(<?php echo $report['id']; ?>)" title="Print Report">
+                                        <!-- PRINT BUTTON -->
+                                        <!-- <button type="button" class="btn btn-sm btn-secondary" onclick="printReport(<?php echo $report['id']; ?>)" title="Print Report">
                                             <i class="fas fa-print"></i>
-                                        </button>
-                                        <a href="download-report.php?id=<?php echo $report['id']; ?>" class="btn btn-sm btn-primary" title="Download Report">
+                                        </button> -->
+                                        <!-- DOWNLOAD BUTTON -->
+                                        <!-- <a href="download-report.php?id=<?php echo $report['id']; ?>" class="btn btn-sm btn-primary" title="Download Report" target="_blank">
                                             <i class="fas fa-download"></i>
-                                        </a>
+                                        </a> -->
                                     </div>
                                 </td>
                             </tr>
@@ -231,13 +234,13 @@ include '../inc/header.php';
     </div>
 </div>
 
-<!-- View Report Modal -->
-<div class="modal fade" id="viewReportModal" tabindex="-1">
+<!-- View Report Modal (Ensure this HTML exists correctly) -->
+<div class="modal fade" id="viewReportModal" tabindex="-1" aria-labelledby="viewReportModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">View Report</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <h5 class="modal-title" id="viewReportModalLabel">View Report</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <div id="reportContent">
@@ -246,104 +249,109 @@ include '../inc/header.php';
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary" onclick="printCurrentReport()">Print</button>
+                <button type="button" class="btn btn-primary" 
+                        onclick="printReport(document.getElementById('viewReportModal').dataset.reportId)" 
+                        id="modalPrintButton">Print</button> 
             </div>
         </div>
     </div>
 </div>
 
 <script>
-// Wait for the DOM to be fully loaded
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialize Bootstrap modal
-    const viewReportModal = new bootstrap.Modal(document.getElementById('viewReportModal'));
+// Make sure functions are globally available
+let viewReportModalInstance = null;
+
+// Function to view report
+window.viewReport = function(reportId) {
+    console.log("viewReport called with ID:", reportId);
+    const modalElement = document.getElementById('viewReportModal');
+    if (!viewReportModalInstance) {
+        console.error('View Report Modal instance not initialized!');
+        return;
+    }
+    // Store the report ID on the modal element itself for the print button to access
+    modalElement.dataset.reportId = reportId; 
     
-    // Global function to view report
-    window.viewReport = function(reportId) {
-        // Show loading state
-        document.getElementById('reportContent').innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
-        
-        // Show the modal
-        viewReportModal.show();
-        
-        // Fetch report details
-        fetch('ajax/get-report.php?id=' + reportId)
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    document.getElementById('reportContent').innerHTML = `
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <h6>Patient Details</h6>
-                                <p>
-                                    <strong>Name:</strong> ${data.report.patient_name}<br>
-                                    <strong>Test:</strong> ${data.report.test_name}<br>
-                                    <strong>Date:</strong> ${data.report.created_at}
-                                </p>
-                            </div>
-                            <div class="col-md-6">
-                                <h6>Report Details</h6>
-                                <p>
-                                    <strong>Status:</strong> <span class="badge bg-${data.report.status === 'completed' ? 'success' : 'warning'}">${data.report.status}</span><br>
-                                    <strong>Result:</strong> ${data.report.result || 'Not available'}<br>
-                                    <strong>Amount:</strong> ₹${data.report.total_amount}
-                                </p>
-                            </div>
+    const reportContentEl = document.getElementById('reportContent');
+    if (!reportContentEl) {
+        console.error('Element with ID reportContent not found!');
+        return;
+    }
+
+    // Show loading state
+    reportContentEl.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+    viewReportModalInstance.show();
+
+    // Fetch report details
+    fetch('ajax/get-report.php?id=' + reportId)
+        .then(response => {
+            if (!response.ok) {
+                 throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+         })
+        .then(data => {
+            console.log("AJAX response received:", data);
+            if (data.success && data.report) {
+                reportContentEl.innerHTML = `
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <h6>Patient Details</h6>
+                            <p>
+                                <strong>Name:</strong> ${data.report.patient_name || 'N/A'}<br>
+                                <strong>Test:</strong> ${data.report.test_name || 'N/A'}<br>
+                                <strong>Date:</strong> ${data.report.created_at || 'N/A'}
+                            </p>
                         </div>
-                    `;
-                } else {
-                    document.getElementById('reportContent').innerHTML = `
-                        <div class="alert alert-danger">
-                            ${data.message || 'Failed to load report details'}
+                        <div class="col-md-6">
+                            <h6>Report Details</h6>
+                            <p>
+                                <strong>Status:</strong> <span class="badge bg-${data.report.status === 'completed' ? 'success' : 'warning'}">${data.report.status || 'N/A'}</span><br>
+                                <strong>Result:</strong> ${data.report.result || 'Not available'}<br>
+                                <strong>Amount:</strong> ₹${data.report.total_amount || '0.00'}
+                            </p>
                         </div>
-                    `;
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                document.getElementById('reportContent').innerHTML = `
-                    <div class="alert alert-danger">
-                        An error occurred while loading the report. Please try again.
                     </div>
                 `;
-            });
-    };
+            } else {
+                reportContentEl.innerHTML = `<div class="alert alert-danger">${data.message || 'Failed to load report details'}</div>`;
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching report:', error);
+            reportContentEl.innerHTML = `<div class="alert alert-danger">An error occurred: ${error.message}. Please check console.</div>`;
+        });
+};
 
-    // Global function to print report
-    window.printReport = function(reportId) {
-        const printWindow = window.open('print-report.php?id=' + reportId, '_blank', 'width=800,height=600');
+// Function to print report (opens new window)
+window.printReport = function(reportId) {
+    console.log("printReport called with ID:", reportId);
+    if (!reportId) {
+        console.error("printReport called with invalid ID:", reportId);
+        alert("Cannot print report: Invalid ID provided.");
+        return;
+    }
+    const printUrl = `print-report.php?id=${reportId}`;
+    const printWindow = window.open(printUrl, '_blank', 'width=800,height=600,scrollbars=yes');
+    if (printWindow) {
         printWindow.focus();
-    };
+    } else {
+        alert('Please allow popups for this website to print the report.');
+    }
+};
 
-    // Global function to print current report from modal
-    window.printCurrentReport = function() {
-        const content = document.getElementById('reportContent').innerHTML;
-        const printWindow = window.open('', '_blank', 'width=800,height=600');
-        printWindow.document.write(`
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Report</title>
-                <link href="../assets/css/bootstrap.min.css" rel="stylesheet">
-                <style>
-                    @media print {
-                        body { padding: 20px; }
-                    }
-                </style>
-            </head>
-            <body>
-                ${content}
-                <script>
-                    window.onload = function() {
-                        window.print();
-                        window.onfocus = function() { window.close(); }
-                    }
-                </script>
-            </body>
-            </html>
-        `);
-        printWindow.document.close();
-    };
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("DOM fully loaded and parsed");
+    
+    const modalElement = document.getElementById('viewReportModal');
+    if (modalElement) {
+        viewReportModalInstance = new bootstrap.Modal(modalElement);
+        console.log("View Report Modal Initialized");
+    } else {
+        console.error("View Report Modal element not found!");
+    }
+    
+    // Add any other initializations here
 });
 </script>
 

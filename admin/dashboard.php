@@ -33,44 +33,39 @@ switch($date_range) {
 try {
     // Basic statistics
     $stats = [
-        'branches' => $conn->query("SELECT COUNT(*) FROM branches")->fetchColumn() ?? 0,
-        'users' => $conn->query("SELECT COUNT(*) FROM users WHERE deleted_at IS NULL")->fetchColumn() ?? 0,
+        'branches' => $conn->query("SELECT COUNT(*) FROM branches WHERE status = 'active'")->fetchColumn() ?? 0,
+        'users' => $conn->query("SELECT COUNT(*) FROM users WHERE status = 'active' AND deleted_at IS NULL")->fetchColumn() ?? 0,
         'patients' => $conn->query("SELECT COUNT(*) FROM patients")->fetchColumn() ?? 0,
-        'tests' => $conn->query("SELECT COUNT(*) FROM tests")->fetchColumn() ?? 0,
+        'tests' => $conn->query("SELECT COUNT(*) FROM tests WHERE status = 1")->fetchColumn() ?? 0,
         'reports' => $conn->query("SELECT COUNT(*) FROM reports")->fetchColumn() ?? 0,
         'revenue' => $conn->query("SELECT COALESCE(SUM(paid_amount), 0) as total FROM payments")->fetchColumn() ?? 0
     ];
 
     // Period specific statistics
-    $period_stats = [
-        'new_patients' => $conn->prepare("
-            SELECT COUNT(*) FROM patients 
-            WHERE DATE(created_at) BETWEEN ? AND ?
-        ")->execute([$start_date, $end_date])->fetchColumn() ?? 0,
-        
-        'completed_reports' => $conn->prepare("
-            SELECT COUNT(*) FROM reports 
-            WHERE status = 'completed' 
-            AND DATE(created_at) BETWEEN ? AND ?
-        ")->execute([$start_date, $end_date])->fetchColumn() ?? 0,
-        
-        'pending_reports' => $conn->prepare("
-            SELECT COUNT(*) FROM reports 
-            WHERE status = 'pending'
-            AND DATE(created_at) BETWEEN ? AND ?
-        ")->execute([$start_date, $end_date])->fetchColumn() ?? 0,
-        
-        'period_revenue' => $conn->prepare("
-            SELECT COALESCE(SUM(paid_amount), 0) 
-            FROM payments 
-            WHERE DATE(created_at) BETWEEN ? AND ?
-        ")->execute([$start_date, $end_date])->fetchColumn() ?? 0
-    ];
+    // Prepare end date for range comparison (exclusive)
+    $end_date_exclusive = date('Y-m-d', strtotime($end_date . ' +1 day'));
+
+    $period_stmt_new_patients = $conn->prepare("SELECT COUNT(*) FROM patients WHERE created_at >= ? AND created_at < ?");
+    $period_stmt_new_patients->execute([$start_date, $end_date_exclusive]);
+    $period_stats['new_patients'] = $period_stmt_new_patients->fetchColumn() ?? 0;
+
+    // Apply similar logic to other period stats for consistency and potential performance benefit
+    $period_stmt_completed = $conn->prepare("SELECT COUNT(*) FROM reports WHERE status = 'completed' AND created_at >= ? AND created_at < ?");
+    $period_stmt_completed->execute([$start_date, $end_date_exclusive]);
+    $period_stats['completed_reports'] = $period_stmt_completed->fetchColumn() ?? 0;
+
+    $period_stmt_pending = $conn->prepare("SELECT COUNT(*) FROM reports WHERE status = 'pending' AND created_at >= ? AND created_at < ?");
+    $period_stmt_pending->execute([$start_date, $end_date_exclusive]);
+    $period_stats['pending_reports'] = $period_stmt_pending->fetchColumn() ?? 0;
+
+    $period_stmt_revenue = $conn->prepare("SELECT COALESCE(SUM(paid_amount), 0) FROM payments WHERE created_at >= ? AND created_at < ?");
+    $period_stmt_revenue->execute([$start_date, $end_date_exclusive]);
+    $period_stats['period_revenue'] = $period_stmt_revenue->fetchColumn() ?? 0;
 
     // Branch statistics
     $branch_stmt = $conn->query("
         SELECT 
-            b.name,
+            b.branch_name,
             COUNT(DISTINCT p.id) as patient_count,
             COUNT(DISTINCT r.id) as report_count,
             COALESCE(SUM(py.paid_amount), 0) as revenue
@@ -78,7 +73,8 @@ try {
         LEFT JOIN patients p ON b.id = p.branch_id
         LEFT JOIN reports r ON p.id = r.patient_id
         LEFT JOIN payments py ON r.id = py.report_id
-        GROUP BY b.id, b.name
+        WHERE b.status = 'active'
+        GROUP BY b.id, b.branch_name
         ORDER BY revenue DESC
         LIMIT 5
     ");
@@ -88,11 +84,12 @@ try {
     $category_stmt = $conn->query("
         SELECT 
             c.category_name,
-            COUNT(t.id) as test_count,
-            COUNT(r.id) as report_count
+            COUNT(DISTINCT t.id) as test_count,
+            COUNT(DISTINCT r.id) as report_count
         FROM test_categories c
-        LEFT JOIN tests t ON c.id = t.category_id
+        LEFT JOIN tests t ON c.id = t.category_id AND t.status = 1
         LEFT JOIN reports r ON t.id = r.test_id
+        WHERE c.status = 'active'
         GROUP BY c.id, c.category_name
         ORDER BY report_count DESC
         LIMIT 5
@@ -108,12 +105,12 @@ try {
             p.created_at,
             pt.name as patient_name,
             t.test_name,
-            b.name as branch_name
+            b.branch_name
         FROM payments p
-        JOIN reports r ON p.report_id = r.id
-        JOIN patients pt ON r.patient_id = pt.id
-        JOIN tests t ON r.test_id = t.id
-        JOIN branches b ON pt.branch_id = b.id
+        LEFT JOIN reports r ON p.report_id = r.id
+        LEFT JOIN patients pt ON r.patient_id = pt.id
+        LEFT JOIN tests t ON r.test_id = t.id
+        LEFT JOIN branches b ON pt.branch_id = b.id
         WHERE DATE(p.created_at) BETWEEN ? AND ?
         ORDER BY p.created_at DESC
         LIMIT 5
@@ -122,7 +119,7 @@ try {
     $recent_payments = $payment_stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // Get recent activities
-    $stmt = $conn->prepare("
+    $activity_stmt = $conn->prepare("
         SELECT a.*, u.name as user_name 
         FROM activities a 
         LEFT JOIN users u ON a.user_id = u.id 
@@ -130,8 +127,8 @@ try {
         ORDER BY a.created_at DESC 
         LIMIT 10
     ");
-    $stmt->execute([$start_date, $end_date]);
-    $activities = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $activity_stmt->execute([$start_date, $end_date]);
+    $activities = $activity_stmt->fetchAll(PDO::FETCH_ASSOC);
 
 } catch(PDOException $e) {
     error_log("Dashboard Error: " . $e->getMessage());
@@ -294,7 +291,7 @@ include '../inc/header.php';
                         <tbody>
                             <?php foreach($branch_stats as $branch): ?>
                                 <tr>
-                                    <td><?php echo htmlspecialchars($branch['name']); ?></td>
+                                    <td><?php echo htmlspecialchars($branch['branch_name']); ?></td>
                                     <td><?php echo number_format($branch['patient_count']); ?></td>
                                     <td><?php echo number_format($branch['report_count']); ?></td>
                                     <td>₹<?php echo number_format($branch['revenue'], 2); ?></td>
