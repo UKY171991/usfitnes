@@ -113,51 +113,124 @@ include '../inc/header.php';
     <div class="alert alert-danger"><?php echo $error; ?></div>
 <?php endif; ?>
 
-<div class="table-responsive">
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Name</th>
-                <th>Description</th>
-                <th>Tests Count</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php foreach($categories as $category): 
-                // Get test count for this category
-                $test_count = $conn->prepare("SELECT COUNT(*) FROM tests WHERE category_id = ?");
-                $test_count->execute([$category['id']]);
-                $count = $test_count->fetchColumn();
-            ?>
-                <tr>
-                    <td><?php echo $category['id']; ?></td>
-                    <td><?php echo htmlspecialchars($category['category_name']); ?></td>
-                    <td><?php echo htmlspecialchars($category['description']); ?></td>
-                    <td><?php echo $count; ?></td>
-                    <td>
-                        <button class="btn btn-sm btn-info" onclick="editCategory(<?php 
-                            echo htmlspecialchars(json_encode([
-                                'id' => $category['id'],
-                                'category_name' => $category['category_name'],
-                                'description' => $category['description']
-                            ])); 
-                        ?>)">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <form method="POST" style="display: inline;">
-                            <input type="hidden" name="category_id" value="<?php echo $category['id']; ?>">
-                            <input type="hidden" name="delete_category" value="1">
-                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this category? All tests in this category will also be deleted.')">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </form>
-                    </td>
-                </tr>
-            <?php endforeach; ?>
-        </tbody>
-    </table>
+<!-- Test Categories Table -->
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>Category Details</th>
+                        <th>Tests</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if (empty($categories)): ?>
+                        <tr>
+                            <td colspan="5" class="text-center py-4">
+                                <div class="text-muted">
+                                    <i class="fas fa-flask fa-2x mb-2"></i>
+                                    <p>No test categories found</p>
+                                </div>
+                            </td>
+                        </tr>
+                    <?php else: ?>
+                        <?php foreach($categories as $category): ?>
+                            <tr>
+                                <td>
+                                    <span class="badge bg-secondary">
+                                        <?php echo $category['id']; ?>
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="fw-bold"><?php echo htmlspecialchars($category['category_name']); ?></div>
+                                    <small class="text-muted"><?php echo htmlspecialchars($category['description'] ?: 'No description'); ?></small>
+                                </td>
+                                <td>
+                                    <span class="badge bg-info">
+                                        <?php echo $category['test_count']; ?> Tests
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-<?php echo $category['status'] ? 'success' : 'danger'; ?>">
+                                        <?php echo $category['status'] ? 'Active' : 'Inactive'; ?>
+                                    </span>
+                                </td>
+                                <td class="text-end">
+                                    <div class="btn-group">
+                                        <button type="button" class="btn btn-sm btn-info view-category" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#viewCategoryModal"
+                                                data-id="<?php echo $category['id']; ?>"
+                                                data-name="<?php echo htmlspecialchars($category['category_name']); ?>"
+                                                data-description="<?php echo htmlspecialchars($category['description']); ?>"
+                                                data-status="<?php echo $category['status']; ?>"
+                                                data-test-count="<?php echo $category['test_count']; ?>"
+                                                title="View Category">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-primary edit-category" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#categoryModal"
+                                                data-id="<?php echo $category['id']; ?>"
+                                                data-name="<?php echo htmlspecialchars($category['category_name']); ?>"
+                                                data-description="<?php echo htmlspecialchars($category['description']); ?>"
+                                                data-status="<?php echo $category['status']; ?>"
+                                                title="Edit Category">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <a href="?delete=<?php echo $category['id']; ?>" 
+                                           class="btn btn-sm btn-danger"
+                                           onclick="return confirm('Are you sure you want to delete this category? All tests in this category will also be deleted.')"
+                                           title="Delete Category">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- View Category Modal -->
+<div class="modal fade" id="viewCategoryModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Category Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="card">
+                    <div class="card-body">
+                        <dl class="row mb-0">
+                            <dt class="col-sm-4">Category Name</dt>
+                            <dd class="col-sm-8" id="view-category-name">-</dd>
+                            
+                            <dt class="col-sm-4">Description</dt>
+                            <dd class="col-sm-8" id="view-category-description">-</dd>
+                            
+                            <dt class="col-sm-4">Status</dt>
+                            <dd class="col-sm-8" id="view-category-status">-</dd>
+                            
+                            <dt class="col-sm-4">Tests Count</dt>
+                            <dd class="col-sm-8" id="view-category-test-count">-</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Add Category Modal -->
@@ -189,7 +262,7 @@ include '../inc/header.php';
 </div>
 
 <!-- Edit Category Modal -->
-<div class="modal fade" id="editCategoryModal" tabindex="-1">
+<div class="modal fade" id="categoryModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
@@ -198,15 +271,22 @@ include '../inc/header.php';
             </div>
             <form method="POST" action="">
                 <input type="hidden" name="edit_category" value="1">
-                <input type="hidden" name="category_id" id="edit_category_id">
+                <input type="hidden" name="category_id" id="category_id">
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label for="edit_category_name" class="form-label">Category Name *</label>
-                        <input type="text" class="form-control" id="edit_category_name" name="category_name" required>
+                        <label for="category_name" class="form-label">Category Name *</label>
+                        <input type="text" class="form-control" id="category_name" name="category_name" required>
                     </div>
                     <div class="mb-3">
-                        <label for="edit_description" class="form-label">Description</label>
-                        <textarea class="form-control" id="edit_description" name="description"></textarea>
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="status" class="form-label">Status</label>
+                        <select class="form-select" id="status" name="status">
+                            <option value="1">Active</option>
+                            <option value="0">Inactive</option>
+                        </select>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -219,15 +299,42 @@ include '../inc/header.php';
 </div>
 
 <script>
-function editCategory(categoryData) {
-    // Populate the edit modal with category data
-    document.getElementById('edit_category_id').value = categoryData.id;
-    document.getElementById('edit_category_name').value = categoryData.category_name;
-    document.getElementById('edit_description').value = categoryData.description || '';
-    
-    // Show the modal
-    new bootstrap.Modal(document.getElementById('editCategoryModal')).show();
-}
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle view category button clicks
+    document.querySelectorAll('.view-category').forEach(button => {
+        button.addEventListener('click', function() {
+            // Update view modal content
+            document.getElementById('view-category-name').textContent = this.dataset.name || '-';
+            document.getElementById('view-category-description').textContent = this.dataset.description || '-';
+            document.getElementById('view-category-status').innerHTML = `
+                <span class="badge bg-${this.dataset.status == 1 ? 'success' : 'danger'}">
+                    ${this.dataset.status == 1 ? 'Active' : 'Inactive'}
+                </span>
+            `;
+            document.getElementById('view-category-test-count').innerHTML = `
+                <span class="badge bg-info">${this.dataset.testCount} Tests</span>
+            `;
+        });
+    });
+
+    // Handle edit category button clicks
+    document.querySelectorAll('.edit-category').forEach(button => {
+        button.addEventListener('click', function() {
+            const modal = document.getElementById('categoryModal');
+            modal.querySelector('.modal-title').textContent = 'Edit Category';
+            
+            // Fill form fields
+            document.getElementById('category_id').value = this.dataset.id;
+            document.getElementById('category_name').value = this.dataset.name;
+            document.getElementById('description').value = this.dataset.description || '';
+            document.getElementById('status').value = this.dataset.status;
+            
+            // Show the modal
+            const editModal = new bootstrap.Modal(modal);
+            editModal.show();
+        });
+    });
+});
 </script>
 
 <?php include '../inc/footer.php'; ?> 

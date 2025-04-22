@@ -223,7 +223,7 @@ include '../inc/header.php';
                                         </button>
                                         <button type="button" class="btn btn-sm btn-primary edit-user" 
                                                 data-bs-toggle="modal" 
-                                                data-bs-target="#userModal"
+                                                data-bs-target="#editUserModal"
                                                 data-id="<?php echo $user['id']; ?>"
                                                 data-name="<?php echo htmlspecialchars($user['name']); ?>"
                                                 data-username="<?php echo htmlspecialchars($user['username']); ?>"
@@ -320,17 +320,29 @@ include '../inc/header.php';
                 <h5 class="modal-title">Edit User</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form method="POST" action="">
+            <form method="POST" action="" class="needs-validation" novalidate>
                 <input type="hidden" name="edit_user" value="1">
                 <input type="hidden" name="user_id" id="edit_user_id">
                 <div class="modal-body">
                     <div class="mb-3">
+                        <label for="edit_username" class="form-label">Username *</label>
+                        <input type="text" class="form-control" id="edit_username" name="username" required readonly>
+                        <div class="form-text">Username cannot be changed</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_password" class="form-label">New Password</label>
+                        <input type="password" class="form-control" id="edit_password" name="password">
+                        <div class="form-text">Leave blank to keep current password</div>
+                    </div>
+                    <div class="mb-3">
                         <label for="edit_name" class="form-label">Full Name *</label>
                         <input type="text" class="form-control" id="edit_name" name="name" required>
+                        <div class="invalid-feedback">Please enter full name</div>
                     </div>
                     <div class="mb-3">
                         <label for="edit_email" class="form-label">Email</label>
                         <input type="email" class="form-control" id="edit_email" name="email">
+                        <div class="invalid-feedback">Please enter a valid email</div>
                     </div>
                     <div class="mb-3">
                         <label for="edit_phone" class="form-label">Phone</label>
@@ -339,11 +351,12 @@ include '../inc/header.php';
                     <div class="mb-3">
                         <label for="edit_role" class="form-label">Role *</label>
                         <select class="form-control" id="edit_role" name="role" required>
-                            <option value="admin">Admin</option>
+                            <option value="master_admin">Master Admin</option>
                             <option value="branch_admin">Branch Admin</option>
                             <option value="receptionist">Receptionist</option>
                             <option value="technician">Technician</option>
                         </select>
+                        <div class="invalid-feedback">Please select a role</div>
                     </div>
                     <div class="mb-3">
                         <label for="edit_branch_id" class="form-label">Branch</label>
@@ -354,6 +367,13 @@ include '../inc/header.php';
                                     <?php echo htmlspecialchars($branch['name']); ?>
                                 </option>
                             <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_status" class="form-label">Status</label>
+                        <select class="form-control" id="edit_status" name="status">
+                            <option value="1">Active</option>
+                            <option value="0">Inactive</option>
                         </select>
                     </div>
                 </div>
@@ -427,6 +447,18 @@ include '../inc/header.php';
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Form validation
+    const forms = document.querySelectorAll('.needs-validation');
+    Array.from(forms).forEach(form => {
+        form.addEventListener('submit', event => {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            form.classList.add('was-validated');
+        }, false);
+    });
+
     // Handle view user button clicks
     document.querySelectorAll('.view-user').forEach(button => {
         button.addEventListener('click', function() {
@@ -447,6 +479,31 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('view-user-email').textContent = this.dataset.email || '-';
             document.getElementById('view-user-branch').textContent = this.dataset.branch || '-';
             document.getElementById('view-user-last-login').textContent = this.dataset.lastLogin || 'Never';
+        });
+    });
+
+    // Handle edit user button clicks
+    document.querySelectorAll('.edit-user').forEach(button => {
+        button.addEventListener('click', function() {
+            const modal = document.getElementById('editUserModal');
+            modal.querySelector('.modal-title').textContent = 'Edit User';
+            
+            // Fill form fields
+            document.getElementById('edit_user_id').value = this.dataset.id;
+            document.getElementById('edit_username').value = this.dataset.username;
+            document.getElementById('edit_name').value = this.dataset.name;
+            document.getElementById('edit_email').value = this.dataset.email || '';
+            document.getElementById('edit_phone').value = this.dataset.phone || '';
+            document.getElementById('edit_role').value = this.dataset.role;
+            document.getElementById('edit_branch_id').value = this.dataset.branch || '';
+            document.getElementById('edit_status').value = this.dataset.status;
+            
+            // Clear password field
+            document.getElementById('edit_password').value = '';
+            
+            // Show the modal
+            const editModal = new bootstrap.Modal(modal);
+            editModal.show();
         });
     });
 
