@@ -42,15 +42,16 @@ if(isset($_POST['edit_category'])) {
     $category_id = $_POST['category_id'] ?? 0;
     $name = $_POST['category_name'] ?? '';
     $description = $_POST['description'] ?? '';
+    $status = $_POST['status'] ?? 0; // Get status value (default to 0 - inactive)
     
     if(!empty($name)) {
         try {
             $stmt = $conn->prepare("
                 UPDATE test_categories 
-                SET category_name = ?, description = ?
+                SET category_name = ?, description = ?, status = ?
                 WHERE id = ?
             ");
-            $stmt->execute([$name, $description, $category_id]);
+            $stmt->execute([$name, $description, $status, $category_id]);
             
             // Log activity
             $activity = "Test category updated: $name";
@@ -92,8 +93,17 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 }
 
-// Get all categories
-$categories = $conn->query("SELECT * FROM test_categories ORDER BY category_name")->fetchAll(PDO::FETCH_ASSOC);
+// Get all categories with test counts
+$stmt = $conn->query("
+    SELECT 
+        tc.*, 
+        COUNT(t.id) as test_count 
+    FROM test_categories tc
+    LEFT JOIN tests t ON tc.id = t.category_id
+    GROUP BY tc.id
+    ORDER BY tc.category_name
+");
+$categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 include '../inc/header.php';
 ?>
@@ -138,7 +148,10 @@ include '../inc/header.php';
                             </td>
                         </tr>
                     <?php else: ?>
-                        <?php foreach($categories as $category): ?>
+                        <?php foreach($categories as $category): 
+                            $status = $category['status'] ?? 'inactive'; // Default to inactive if missing
+                            $test_count = $category['test_count'] ?? 0; // Default to 0 if missing
+                        ?>
                             <tr>
                                 <td>
                                     <span class="badge bg-secondary">
@@ -151,12 +164,12 @@ include '../inc/header.php';
                                 </td>
                                 <td>
                                     <span class="badge bg-info">
-                                        <?php echo $category['test_count']; ?> Tests
+                                        <?php echo $test_count; ?> Tests
                                     </span>
                                 </td>
                                 <td>
-                                    <span class="badge bg-<?php echo $category['status'] ? 'success' : 'danger'; ?>">
-                                        <?php echo $category['status'] ? 'Active' : 'Inactive'; ?>
+                                    <span class="badge bg-<?php echo $status == 'active' ? 'success' : 'danger'; ?>">
+                                        <?php echo ucfirst($status); ?>
                                     </span>
                                 </td>
                                 <td class="text-end">
@@ -167,8 +180,8 @@ include '../inc/header.php';
                                                 data-id="<?php echo $category['id']; ?>"
                                                 data-name="<?php echo htmlspecialchars($category['category_name']); ?>"
                                                 data-description="<?php echo htmlspecialchars($category['description']); ?>"
-                                                data-status="<?php echo $category['status']; ?>"
-                                                data-test-count="<?php echo $category['test_count']; ?>"
+                                                data-status="<?php echo $status; ?>"
+                                                data-test-count="<?php echo $test_count; ?>"
                                                 title="View Category">
                                             <i class="fas fa-eye"></i>
                                         </button>
@@ -178,7 +191,7 @@ include '../inc/header.php';
                                                 data-id="<?php echo $category['id']; ?>"
                                                 data-name="<?php echo htmlspecialchars($category['category_name']); ?>"
                                                 data-description="<?php echo htmlspecialchars($category['description']); ?>"
-                                                data-status="<?php echo $category['status']; ?>"
+                                                data-status="<?php echo $status; ?>"
                                                 title="Edit Category">
                                             <i class="fas fa-edit"></i>
                                         </button>
@@ -300,6 +313,14 @@ include '../inc/header.php';
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Get modal elements
+    const categoryEditModalEl = document.getElementById('categoryModal');
+    const categoryViewModalEl = document.getElementById('viewCategoryModal');
+    
+    // Initialize Bootstrap Modals
+    const categoryEditModal = new bootstrap.Modal(categoryEditModalEl);
+    const categoryViewModal = new bootstrap.Modal(categoryViewModalEl); // Assuming view modal exists
+
     // Handle view category button clicks
     document.querySelectorAll('.view-category').forEach(button => {
         button.addEventListener('click', function() {
@@ -307,31 +328,42 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('view-category-name').textContent = this.dataset.name || '-';
             document.getElementById('view-category-description').textContent = this.dataset.description || '-';
             document.getElementById('view-category-status').innerHTML = `
-                <span class="badge bg-${this.dataset.status == 1 ? 'success' : 'danger'}">
-                    ${this.dataset.status == 1 ? 'Active' : 'Inactive'}
+                <span class="badge bg-${this.dataset.status == 'active' ? 'success' : 'danger'}">
+                    ${this.dataset.status == 'active' ? 'Active' : 'Inactive'}
                 </span>
             `;
             document.getElementById('view-category-test-count').innerHTML = `
-                <span class="badge bg-info">${this.dataset.testCount} Tests</span>
+                <span class="badge bg-info">${this.dataset.testCount || 0} Tests</span>
             `;
+            // Show view modal if needed (assuming it's separate)
+            // categoryViewModal.show(); 
         });
     });
 
     // Handle edit category button clicks
     document.querySelectorAll('.edit-category').forEach(button => {
         button.addEventListener('click', function() {
-            const modal = document.getElementById('categoryModal');
-            modal.querySelector('.modal-title').textContent = 'Edit Category';
+            // Get references to form elements inside the modal
+            const modalTitle = categoryEditModalEl.querySelector('.modal-title');
+            const categoryIdInput = categoryEditModalEl.querySelector('#category_id');
+            const categoryNameInput = categoryEditModalEl.querySelector('#category_name');
+            const descriptionTextarea = categoryEditModalEl.querySelector('#description');
+            const statusSelect = categoryEditModalEl.querySelector('#status');
+
+            // Set modal title
+            modalTitle.textContent = 'Edit Category';
             
-            // Fill form fields
-            document.getElementById('category_id').value = this.dataset.id;
-            document.getElementById('category_name').value = this.dataset.name;
-            document.getElementById('description').value = this.dataset.description || '';
-            document.getElementById('status').value = this.dataset.status;
+            // Fill form fields using data attributes
+            categoryIdInput.value = this.dataset.id || '';
+            categoryNameInput.value = this.dataset.name || '';
+            descriptionTextarea.value = this.dataset.description || '';
+            
+            // Set status dropdown value (map 'active'/'inactive' string to 1/0)
+            const statusValue = (this.dataset.status === 'active') ? '1' : '0';
+            statusSelect.value = statusValue;
             
             // Show the modal
-            const editModal = new bootstrap.Modal(modal);
-            editModal.show();
+            categoryEditModal.show();
         });
     });
 });
