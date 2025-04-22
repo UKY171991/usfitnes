@@ -135,55 +135,121 @@ include '../inc/header.php';
     <div class="alert alert-danger"><?php echo $error; ?></div>
 <?php endif; ?>
 
-<div class="table-responsive">
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Username</th>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Phone</th>
-                <th>Role</th>
-                <th>Branch</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php foreach($users as $user): ?>
-                <tr>
-                    <td><?php echo $user['id']; ?></td>
-                    <td><?php echo htmlspecialchars($user['username']); ?></td>
-                    <td><?php echo htmlspecialchars($user['name']); ?></td>
-                    <td><?php echo htmlspecialchars($user['email']); ?></td>
-                    <td><?php echo htmlspecialchars($user['phone']); ?></td>
-                    <td><?php echo ucfirst(htmlspecialchars($user['role'])); ?></td>
-                    <td><?php echo htmlspecialchars($user['branch_name'] ?? 'N/A'); ?></td>
-                    <td>
-                        <button class="btn btn-sm btn-info" onclick="editUser(<?php 
-                            echo htmlspecialchars(json_encode([
-                                'id' => $user['id'],
-                                'name' => $user['name'],
-                                'email' => $user['email'],
-                                'phone' => $user['phone'],
-                                'role' => $user['role'],
-                                'branch_id' => $user['branch_id']
-                            ])); 
-                        ?>)">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <form method="POST" style="display: inline;">
-                            <input type="hidden" name="user_id" value="<?php echo $user['id']; ?>">
-                            <input type="hidden" name="delete_user" value="1">
-                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this user?')">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </form>
-                    </td>
-                </tr>
-            <?php endforeach; ?>
-        </tbody>
-    </table>
+<!-- Users Table -->
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>User Details</th>
+                        <th>Contact</th>
+                        <th>Role</th>
+                        <th>Branch</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if (empty($users)): ?>
+                        <tr>
+                            <td colspan="7" class="text-center py-4">
+                                <div class="text-muted">
+                                    <i class="fas fa-users fa-2x mb-2"></i>
+                                    <p>No users found</p>
+                                </div>
+                            </td>
+                        </tr>
+                    <?php else: ?>
+                        <?php foreach($users as $user): ?>
+                            <tr>
+                                <td>
+                                    <span class="badge bg-secondary">
+                                        <?php echo $user['id']; ?>
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="fw-bold"><?php echo htmlspecialchars($user['name']); ?></div>
+                                    <small class="text-muted"><?php echo htmlspecialchars($user['username']); ?></small>
+                                </td>
+                                <td>
+                                    <div><?php echo htmlspecialchars($user['phone'] ?: '-'); ?></div>
+                                    <small class="text-muted"><?php echo htmlspecialchars($user['email'] ?: 'No email'); ?></small>
+                                </td>
+                                <td>
+                                    <span class="badge bg-<?php 
+                                        echo match($user['role']) {
+                                            'master_admin' => 'danger',
+                                            'branch_admin' => 'primary',
+                                            'receptionist' => 'info',
+                                            'technician' => 'warning',
+                                            default => 'secondary'
+                                        };
+                                    ?>">
+                                        <?php echo ucfirst(str_replace('_', ' ', $user['role'])); ?>
+                                    </span>
+                                </td>
+                                <td>
+                                    <?php if ($user['branch_name']): ?>
+                                        <div class="text-truncate" style="max-width: 150px;" title="<?php echo htmlspecialchars($user['branch_name']); ?>">
+                                            <?php echo htmlspecialchars($user['branch_name']); ?>
+                                        </div>
+                                    <?php else: ?>
+                                        <span class="text-muted">-</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td>
+                                    <span class="badge bg-<?php echo $user['status'] ? 'success' : 'danger'; ?>">
+                                        <?php echo $user['status'] ? 'Active' : 'Inactive'; ?>
+                                    </span>
+                                </td>
+                                <td class="text-end">
+                                    <div class="btn-group">
+                                        <button type="button" class="btn btn-sm btn-info view-user" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#viewUserModal"
+                                                data-id="<?php echo $user['id']; ?>"
+                                                data-name="<?php echo htmlspecialchars($user['name']); ?>"
+                                                data-username="<?php echo htmlspecialchars($user['username']); ?>"
+                                                data-phone="<?php echo htmlspecialchars($user['phone']); ?>"
+                                                data-email="<?php echo htmlspecialchars($user['email']); ?>"
+                                                data-role="<?php echo htmlspecialchars($user['role']); ?>"
+                                                data-branch="<?php echo htmlspecialchars($user['branch_name']); ?>"
+                                                data-status="<?php echo $user['status']; ?>"
+                                                data-last-login="<?php echo $user['last_login']; ?>"
+                                                title="View User">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-primary edit-user" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#userModal"
+                                                data-id="<?php echo $user['id']; ?>"
+                                                data-name="<?php echo htmlspecialchars($user['name']); ?>"
+                                                data-username="<?php echo htmlspecialchars($user['username']); ?>"
+                                                data-phone="<?php echo htmlspecialchars($user['phone']); ?>"
+                                                data-email="<?php echo htmlspecialchars($user['email']); ?>"
+                                                data-role="<?php echo htmlspecialchars($user['role']); ?>"
+                                                data-branch="<?php echo $user['branch_id']; ?>"
+                                                data-status="<?php echo $user['status']; ?>"
+                                                title="Edit User">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <a href="?delete=<?php echo $user['id']; ?>" 
+                                           class="btn btn-sm btn-danger"
+                                           onclick="return confirm('Are you sure you want to delete this user?')"
+                                           title="Delete User">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
 
 <!-- Add User Modal -->
@@ -300,19 +366,105 @@ include '../inc/header.php';
     </div>
 </div>
 
+<!-- View User Modal -->
+<div class="modal fade" id="viewUserModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">User Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h6 class="card-title">Basic Information</h6>
+                                <dl class="row mb-0">
+                                    <dt class="col-sm-4">Name</dt>
+                                    <dd class="col-sm-8" id="view-user-name">-</dd>
+                                    
+                                    <dt class="col-sm-4">Username</dt>
+                                    <dd class="col-sm-8" id="view-user-username">-</dd>
+                                    
+                                    <dt class="col-sm-4">Role</dt>
+                                    <dd class="col-sm-8" id="view-user-role">-</dd>
+                                    
+                                    <dt class="col-sm-4">Status</dt>
+                                    <dd class="col-sm-8" id="view-user-status">-</dd>
+                                </dl>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h6 class="card-title">Contact Information</h6>
+                                <dl class="row mb-0">
+                                    <dt class="col-sm-4">Phone</dt>
+                                    <dd class="col-sm-8" id="view-user-phone">-</dd>
+                                    
+                                    <dt class="col-sm-4">Email</dt>
+                                    <dd class="col-sm-8" id="view-user-email">-</dd>
+                                    
+                                    <dt class="col-sm-4">Branch</dt>
+                                    <dd class="col-sm-8" id="view-user-branch">-</dd>
+                                    
+                                    <dt class="col-sm-4">Last Login</dt>
+                                    <dd class="col-sm-8" id="view-user-last-login">-</dd>
+                                </dl>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
-function editUser(userData) {
-    // Populate the edit modal with user data
-    document.getElementById('edit_user_id').value = userData.id;
-    document.getElementById('edit_name').value = userData.name;
-    document.getElementById('edit_email').value = userData.email || '';
-    document.getElementById('edit_phone').value = userData.phone || '';
-    document.getElementById('edit_role').value = userData.role;
-    document.getElementById('edit_branch_id').value = userData.branch_id || '';
-    
-    // Show the modal
-    new bootstrap.Modal(document.getElementById('editUserModal')).show();
-}
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle view user button clicks
+    document.querySelectorAll('.view-user').forEach(button => {
+        button.addEventListener('click', function() {
+            // Update view modal content
+            document.getElementById('view-user-name').textContent = this.dataset.name || '-';
+            document.getElementById('view-user-username').textContent = this.dataset.username || '-';
+            document.getElementById('view-user-role').innerHTML = `
+                <span class="badge bg-${getRoleBadgeColor(this.dataset.role)}">
+                    ${formatRole(this.dataset.role)}
+                </span>
+            `;
+            document.getElementById('view-user-status').innerHTML = `
+                <span class="badge bg-${this.dataset.status == 1 ? 'success' : 'danger'}">
+                    ${this.dataset.status == 1 ? 'Active' : 'Inactive'}
+                </span>
+            `;
+            document.getElementById('view-user-phone').textContent = this.dataset.phone || '-';
+            document.getElementById('view-user-email').textContent = this.dataset.email || '-';
+            document.getElementById('view-user-branch').textContent = this.dataset.branch || '-';
+            document.getElementById('view-user-last-login').textContent = this.dataset.lastLogin || 'Never';
+        });
+    });
+
+    // Helper function to get role badge color
+    function getRoleBadgeColor(role) {
+        return {
+            'master_admin': 'danger',
+            'branch_admin': 'primary',
+            'receptionist': 'info',
+            'technician': 'warning'
+        }[role] || 'secondary';
+    }
+
+    // Helper function to format role display
+    function formatRole(role) {
+        return role.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+    }
+});
 </script>
 
 <?php include '../inc/footer.php'; ?> 

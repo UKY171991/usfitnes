@@ -409,17 +409,6 @@ document.addEventListener('DOMContentLoaded', function() {
             modal.querySelector('.modal-title').textContent = 'Edit Branch';
             modal.querySelector('#branch_id').value = this.dataset.id;
             
-            // Show branch code in readonly mode for existing branches
-            const branchCodeHtml = `
-                <div class="col-md-6">
-                    <label class="form-label">Branch Code</label>
-                    <input type="text" class="form-control" value="${this.dataset.code}" readonly>
-                </div>`;
-            
-            // Insert branch code field at the start of the form
-            const firstField = modal.querySelector('.modal-body .row');
-            firstField.insertAdjacentHTML('afterbegin', branchCodeHtml);
-            
             // Fill form fields
             modal.querySelector('#name').value = this.dataset.name;
             modal.querySelector('#address').value = this.dataset.address;
@@ -438,12 +427,6 @@ document.addEventListener('DOMContentLoaded', function() {
         modal.querySelector('form').reset();
         modal.querySelector('#branch_id').value = '';
         modal.querySelector('form').classList.remove('was-validated');
-        
-        // Remove branch code field if it exists
-        const branchCodeField = modal.querySelector('.modal-body .row .col-md-6:first-child');
-        if (branchCodeField && branchCodeField.querySelector('label').textContent === 'Branch Code') {
-            branchCodeField.remove();
-        }
     });
 });
 </script>
