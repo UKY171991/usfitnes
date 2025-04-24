@@ -1,0 +1,10 @@
+[24-Apr-2025 10:02:35 Europe/Berlin] PHP Warning:  require_once(../inc/db.php): Failed to open stream: No such file or directory in C:\xampp\htdocs\usfitnes\branch-admin\ajax\get-test-parameters.php on line 7
+[24-Apr-2025 10:02:35 Europe/Berlin] PHP Fatal error:  Uncaught Error: Failed opening required '../inc/db.php' (include_path='C:\xampp\php\PEAR') in C:\xampp\htdocs\usfitnes\branch-admin\ajax\get-test-parameters.php:7
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\usfitnes\branch-admin\ajax\get-test-parameters.php on line 7
+[24-Apr-2025 10:02:38 Europe/Berlin] PHP Warning:  require_once(../inc/db.php): Failed to open stream: No such file or directory in C:\xampp\htdocs\usfitnes\branch-admin\ajax\get-test-parameters.php on line 7
+[24-Apr-2025 10:02:38 Europe/Berlin] PHP Fatal error:  Uncaught Error: Failed opening required '../inc/db.php' (include_path='C:\xampp\php\PEAR') in C:\xampp\htdocs\usfitnes\branch-admin\ajax\get-test-parameters.php:7
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\usfitnes\branch-admin\ajax\get-test-parameters.php on line 7

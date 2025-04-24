@@ -1,47 +1,43 @@
 <?php
-require_once '../../inc/config.php';
+// Suppress output of errors and log them instead
+ini_set('display_errors', 0);
+ini_set('log_errors', 1);
+ini_set('error_log', __DIR__ . '/error_log.txt');
+
 require_once '../../inc/db.php';
-require_once '../../auth/branch-admin-check.php';
 
 header('Content-Type: application/json');
 
 try {
-    if (!isset($_GET['test_id'])) {
-        throw new Exception('Test ID is required');
-    }
+    // Fetch test names
+    $stmt = $conn->prepare("SELECT id, test_name FROM tests ORDER BY test_name");
+    $stmt->execute();
+    $tests = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    $test_id = intval($_GET['test_id']);
-    $branch_id = $_SESSION['branch_id']; // Ensure branch context if needed, though parameters are usually test-specific
-
-    // Check if the test is actually available to this branch first (optional security check)
-    $check_test_stmt = $conn->prepare("SELECT 1 FROM branch_tests WHERE test_id = ? AND branch_id = ?");
-    $check_test_stmt->execute([$test_id, $branch_id]);
-    if (!$check_test_stmt->fetchColumn()) {
-        // Silently return empty or throw error, depending on desired behaviour
-         echo json_encode(['success' => true, 'parameters' => []]);
-         exit;
-        // throw new Exception('Test not associated with this branch'); 
-    }
-
-    // Fetch parameters for the given test_id
-    $stmt = $conn->prepare("
-        SELECT parameter_name, default_unit 
-        FROM test_parameters 
-        WHERE test_id = ? 
-        ORDER BY parameter_name ASC
-    ");
-    $stmt->execute([$test_id]);
+    // Fetch parameters grouped by test_id
+    $stmt = $conn->prepare("SELECT test_id, parameter_name, default_unit, normal_value FROM test_parameters ORDER BY test_id, parameter_name");
+    $stmt->execute();
     $parameters = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Group parameters by test_id
+    $groupedParameters = [];
+    foreach ($parameters as $parameter) {
+        $groupedParameters[$parameter['test_id']][] = [
+            'parameter_name' => $parameter['parameter_name'],
+            'default_unit' => $parameter['default_unit'],
+            'normal_value' => $parameter['normal_value']
+        ];
+    }
 
     echo json_encode([
         'success' => true,
-        'parameters' => $parameters
+        'tests' => $tests,
+        'parameters' => $groupedParameters
     ]);
-
 } catch (Exception $e) {
-    http_response_code(400);
+    error_log('Error fetching test parameters: ' . $e->getMessage());
     echo json_encode([
         'success' => false,
-        'message' => $e->getMessage()
+        'message' => 'Error fetching data. Please check the logs.'
     ]);
-} 
+}
