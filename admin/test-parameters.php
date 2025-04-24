@@ -101,7 +101,7 @@ if ($selected_test_id) {
     }
 }
 
-include '../inc/admin-header.php'; // Use the correct admin header include
+include '../inc/header.php';
 ?>
 
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
@@ -235,6 +235,4 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<?php
-include '../inc/admin-footer.php'; // Use the correct admin footer include
-?> 
+<?php include '../inc/footer.php'; ?>

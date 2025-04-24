@@ -54,4 +54,16 @@ INSERT INTO tests (test_name, category_id, method, price, unit, normal_range, sa
 
 -- Allergy Tests
 ('Total IgE', 10, 'ELISA', 1000.00, 'IU/mL', '<100 IU/mL', 'Serum', 1),
-('Specific IgE Panel', 10, 'ImmunoCAP', 2500.00, 'kU/L', '<0.35 kU/L', 'Serum', 1); 
+('Specific IgE Panel', 10, 'ImmunoCAP', 2500.00, 'kU/L', '<0.35 kU/L', 'Serum', 1);
+
+-- Insert demo content into the test_parameters table
+INSERT INTO test_parameters (test_id, parameter_name, default_unit) VALUES
+(1, 'Hemoglobin', 'g/dL'),
+(1, 'White Blood Cell Count', 'cells/mcL'),
+(1, 'Platelet Count', 'cells/mcL'),
+(2, 'Blood Glucose (Fasting)', 'mg/dL'),
+(2, 'Blood Glucose (Postprandial)', 'mg/dL'),
+(3, 'Cholesterol', 'mg/dL'),
+(3, 'HDL Cholesterol', 'mg/dL'),
+(3, 'LDL Cholesterol', 'mg/dL'),
+(3, 'Triglycerides', 'mg/dL');
