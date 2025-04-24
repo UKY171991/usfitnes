@@ -58,12 +58,23 @@ INSERT INTO tests (test_name, category_id, method, price, unit, normal_range, sa
 
 -- Insert demo content into the test_parameters table
 INSERT INTO test_parameters (test_id, parameter_name, default_unit) VALUES
+-- Insert dummy parameters for Complete Blood Count (CBC)
+(1, 'Red Blood Cell Count', 'million/µL'),
 (1, 'Hemoglobin', 'g/dL'),
-(1, 'White Blood Cell Count', 'cells/mcL'),
-(1, 'Platelet Count', 'cells/mcL'),
+(1, 'Hematocrit', '%'),
+(1, 'White Blood Cell Count', 'cells/µL'),
+(1, 'Platelet Count', 'cells/µL'),
+(1, 'Mean Corpuscular Volume (MCV)', 'fL'),
+(1, 'Mean Corpuscular Hemoglobin (MCH)', 'pg'),
+(1, 'Mean Corpuscular Hemoglobin Concentration (MCHC)', 'g/dL'),
+(1, 'Red Cell Distribution Width (RDW)', '%'),
 (2, 'Blood Glucose (Fasting)', 'mg/dL'),
 (2, 'Blood Glucose (Postprandial)', 'mg/dL'),
 (3, 'Cholesterol', 'mg/dL'),
 (3, 'HDL Cholesterol', 'mg/dL'),
 (3, 'LDL Cholesterol', 'mg/dL'),
-(3, 'Triglycerides', 'mg/dL');
+(3, 'Triglycerides', 'mg/dL'),
+-- Insert dummy parameters for Creatinine test
+(8, 'Serum Creatinine', 'mg/dL'),
+(8, 'Creatinine Clearance', 'mL/min'),
+(8, 'Urine Creatinine', 'mg/dL');
