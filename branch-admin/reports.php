@@ -628,6 +628,7 @@ include '../inc/branch-header.php';
 
         let testOptions = '<option value="">Select Test Name</option>';
         let parameterOptionsByTest = {};
+        let testPriceMap = {};
 
         // Fetch test names and parameters dynamically
         fetch('ajax/get-test-parameters.php')
@@ -636,6 +637,7 @@ include '../inc/branch-header.php';
                 if (data.success) {
                     data.tests.forEach(test => {
                         testOptions += `<option value="${test.id}">${test.test_name}</option>`;
+                        testPriceMap[test.id] = parseFloat(test.price) || 0;
                     });
 
                     parameterOptionsByTest = data.parameters;
@@ -896,9 +898,8 @@ include '../inc/branch-header.php';
             document.querySelectorAll('#testResultsContainer .row').forEach(row => {
                 const testSelect = row.querySelector('.test-select');
                 const selectedTestId = testSelect.value;
-                if (selectedTestId && parameterOptionsByTest[selectedTestId]) {
-                    const testPrice = parameterOptionsByTest[selectedTestId][0]?.price || 0;
-                    totalPrice += parseFloat(testPrice);
+                if (selectedTestId && testPriceMap[selectedTestId]) {
+                    totalPrice += testPriceMap[selectedTestId];
                 }
             });
             document.getElementById('totalPrice').textContent = `₹${totalPrice.toFixed(2)}`;
@@ -914,6 +915,7 @@ include '../inc/branch-header.php';
             if (event.target.classList.contains('test-select')) {
                 calculateTotalPrice();
             }
+        });
         });
     });
 </script>

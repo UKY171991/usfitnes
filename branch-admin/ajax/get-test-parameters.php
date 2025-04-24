@@ -9,8 +9,8 @@ require_once '../../inc/db.php';
 header('Content-Type: application/json');
 
 try {
-    // Fetch test names
-    $stmt = $conn->prepare("SELECT id, test_name FROM tests ORDER BY test_name");
+    // Fetch test names and prices
+    $stmt = $conn->prepare("SELECT id, test_name, price FROM tests ORDER BY test_name");
     $stmt->execute();
     $tests = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
