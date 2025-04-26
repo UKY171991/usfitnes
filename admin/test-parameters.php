@@ -25,6 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_parameter'])) {
     $add_test_id = $_POST['add_test_id'] ?? null;
     $parameter_name = trim($_POST['parameter_name'] ?? '');
     $default_unit = trim($_POST['default_unit'] ?? '');
+    $price = trim($_POST['price'] ?? '');
 
     if ($add_test_id && !empty($parameter_name)) {
         try {
@@ -35,8 +36,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_parameter'])) {
                 $message = "Parameter '" . htmlspecialchars($parameter_name) . "' already exists for this test.";
                 $message_type = 'warning'; // Use warning for existing
             } else {
-                $insert_stmt = $conn->prepare("INSERT INTO test_parameters (test_id, parameter_name, default_unit) VALUES (?, ?, ?)");
-                if ($insert_stmt->execute([$add_test_id, $parameter_name, $default_unit])) {
+                $insert_stmt = $conn->prepare("INSERT INTO test_parameters (test_id, parameter_name, default_unit, price) VALUES (?, ?, ?, ?)");
+                if ($insert_stmt->execute([$add_test_id, $parameter_name, $default_unit, $price])) {
                     $message = "Parameter '" . htmlspecialchars($parameter_name) . "' added successfully.";
                     $message_type = 'success';
                     // Keep the same test selected after adding
@@ -87,11 +88,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_parameter'])) 
     }
 }
 
+// Handle update parameter
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_parameter'])) {
+    $edit_param_id = $_POST['edit_param_id'] ?? null;
+    $edit_parameter_name = trim($_POST['edit_parameter_name'] ?? '');
+    $edit_default_unit = trim($_POST['edit_default_unit'] ?? '');
+    $edit_price = trim($_POST['edit_price'] ?? '');
+    if ($edit_param_id && $edit_parameter_name !== '') {
+        try {
+            $update_stmt = $conn->prepare("UPDATE test_parameters SET parameter_name = ?, default_unit = ?, price = ? WHERE id = ?");
+            if ($update_stmt->execute([$edit_parameter_name, $edit_default_unit, $edit_price, $edit_param_id])) {
+                $message = "Parameter updated successfully.";
+                $message_type = 'success';
+            } else {
+                $message = "Error updating parameter.";
+                $message_type = 'danger';
+            }
+        } catch (PDOException $e) {
+            $message = "Database error updating parameter: " . $e->getMessage();
+            $message_type = 'danger';
+        }
+    } else {
+        $message = "Parameter name is required.";
+        $message_type = 'danger';
+    }
+}
 
 // Fetch parameters if a test is selected
 if ($selected_test_id) {
     try {
-        $params_stmt = $conn->prepare("SELECT id, parameter_name, default_unit FROM test_parameters WHERE test_id = ? ORDER BY parameter_name ASC");
+        $params_stmt = $conn->prepare("SELECT id, parameter_name, default_unit, price FROM test_parameters WHERE test_id = ? ORDER BY parameter_name ASC");
         $params_stmt->execute([$selected_test_id]);
         $parameters = $params_stmt->fetchAll(PDO::FETCH_ASSOC);
     } catch (PDOException $e) {
@@ -171,23 +197,35 @@ include '../inc/header.php';
                             <tr>
                                 <th>Parameter Name</th>
                                 <th>Default Unit</th>
+                                <th>Price</th>
                                 <th>Action</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php foreach ($parameters as $param): ?>
                             <tr>
-                                <td><?php echo htmlspecialchars($param['parameter_name']); ?></td>
-                                <td><?php echo htmlspecialchars($param['default_unit'] ?: '-'); ?></td>
-                                <td>
-                                    <form method="POST" action="test-parameters.php?test_id=<?php echo $selected_test_id; ?>" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this parameter?');">
-                                        <input type="hidden" name="parameter_id" value="<?php echo $param['id']; ?>">
-                                        <input type="hidden" name="delete_test_id" value="<?php echo $selected_test_id; ?>"> <!-- Hidden field to keep test selected -->
-                                        <button type="submit" name="delete_parameter" class="btn btn-danger btn-sm" title="Delete Parameter">
-                                            <i class="fas fa-trash-alt"></i>
-                                        </button>
-                                    </form>
-                                </td>
+                                <form method="POST" action="test-parameters.php?test_id=<?php echo $selected_test_id; ?>">
+                                    <input type="hidden" name="edit_param_id" value="<?php echo $param['id']; ?>">
+                                    <td>
+                                        <input type="text" class="form-control form-control-sm" name="edit_parameter_name" value="<?php echo htmlspecialchars($param['parameter_name']); ?>" required>
+                                    </td>
+                                    <td>
+                                        <input type="text" class="form-control form-control-sm" name="edit_default_unit" value="<?php echo htmlspecialchars($param['default_unit']); ?>">
+                                    </td>
+                                    <td>
+                                        <input type="number" step="0.01" class="form-control form-control-sm" name="edit_price" value="<?php echo htmlspecialchars($param['price']); ?>">
+                                    </td>
+                                    <td>
+                                        <button type="submit" name="update_parameter" class="btn btn-success btn-sm" title="Save"><i class="fas fa-save"></i></button>
+                                        <form method="POST" action="test-parameters.php?test_id=<?php echo $selected_test_id; ?>" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this parameter?');">
+                                            <input type="hidden" name="parameter_id" value="<?php echo $param['id']; ?>">
+                                            <input type="hidden" name="delete_test_id" value="<?php echo $selected_test_id; ?>">
+                                            <button type="submit" name="delete_parameter" class="btn btn-danger btn-sm" title="Delete Parameter">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </form>
                             </tr>
                             <?php endforeach; ?>
                         </tbody>
@@ -210,6 +248,10 @@ include '../inc/header.php';
                     <div class="mb-3">
                         <label for="default_unit" class="form-label">Default Unit (Optional)</label>
                         <input type="text" class="form-control" id="default_unit" name="default_unit">
+                    </div>
+                    <div class="mb-3">
+                        <label for="price" class="form-label">Price (Optional)</label>
+                        <input type="number" step="0.01" class="form-control" id="price" name="price">
                     </div>
                     <button type="submit" name="add_parameter" class="btn btn-success">Add Parameter</button>
                 </form>

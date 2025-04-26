@@ -916,8 +916,8 @@ include '../inc/branch-header.php';
                 calculateTotalPrice();
             }
         });
-        });
     });
+</script>
 </script>
 
 <?php include '../inc/footer.php'; ?>
