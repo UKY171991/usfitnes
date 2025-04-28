@@ -352,6 +352,7 @@ include '../inc/header.php';
                         <label for="edit_role" class="form-label">Role *</label>
                         <select class="form-control" id="edit_role" name="role" required>
                             <option value="master_admin">Master Admin</option>
+                            <option value="admin">Admin</option>
                             <option value="branch_admin">Branch Admin</option>
                             <option value="receptionist">Receptionist</option>
                             <option value="technician">Technician</option>

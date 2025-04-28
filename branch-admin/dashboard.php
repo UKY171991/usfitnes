@@ -79,12 +79,15 @@ try {
 
     // Period specific statistics
     // New patients
-    $stmt = $conn->prepare("
-        SELECT COUNT(*) FROM patients 
-        WHERE branch_id = ? AND DATE(created_at) BETWEEN ? AND ?
-    ");
-    $stmt->execute([$branch_id, $start_date, $end_date]);
-    $new_patients = $stmt->fetchColumn() ?? 0;
+    if ($date_range === 'all') {
+        $stmt = $conn->prepare("SELECT COUNT(*) FROM patients WHERE branch_id = ?");
+        $stmt->execute([$branch_id]);
+        $new_patients = $stmt->fetchColumn() ?? 0;
+    } else {
+        $stmt = $conn->prepare("SELECT COUNT(*) FROM patients WHERE branch_id = ? AND DATE(created_at) BETWEEN ? AND ?");
+        $stmt->execute([$branch_id, $start_date, $end_date]);
+        $new_patients = $stmt->fetchColumn() ?? 0;
+    }
     
     // Completed reports
     $stmt = $conn->prepare("
@@ -214,7 +217,15 @@ include '../inc/branch-header.php';
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
     <div>
         <h1 class="h2">Branch Dashboard</h1>
-        <p class="text-muted"><?php echo htmlspecialchars($branch['name'] ?? 'Unknown Branch'); ?></p>
+        <p class="text-muted">
+            <?php
+            if (isset($branch['name'])) {
+                echo htmlspecialchars($branch['name']);
+            } else {
+                echo '<span class="text-danger">Branch not found (ID: ' . htmlspecialchars($branch_id) . ')</span>';
+            }
+            ?>
+        </p>
     </div>
     <form class="row g-3 align-items-center" method="GET">
         <div class="col-auto">
@@ -223,6 +234,7 @@ include '../inc/branch-header.php';
                 <option value="week" <?php echo $date_range === 'week' ? 'selected' : ''; ?>>Last 7 Days</option>
                 <option value="month" <?php echo $date_range === 'month' ? 'selected' : ''; ?>>This Month</option>
                 <option value="custom" <?php echo $date_range === 'custom' ? 'selected' : ''; ?>>Custom Range</option>
+                <option value="all" <?php echo $date_range === 'all' ? 'selected' : ''; ?>>All Time</option>
             </select>
         </div>
         <div class="col-auto date-inputs" style="display: none;">
@@ -528,7 +540,7 @@ include '../inc/branch-header.php';
                             FROM reports r
                             JOIN patients p ON r.patient_id = p.id
                             JOIN tests t ON r.test_id = t.id
-                            WHERE r.branch_id = :branch_id 
+                            WHERE p.branch_id = :branch_id 
                             AND r.status = 'completed'
                             ORDER BY r.created_at DESC
                             LIMIT 5
