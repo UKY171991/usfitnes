@@ -21,7 +21,7 @@ if ($is_local) {
 // System Configuration
 define('SITE_NAME', 'Pathology CRM');
 define('SITE_URL', $is_local ? 'http://localhost/usfitnes' : 'https://usfitnes.com');
-define('UPLOAD_PATH', __DIR__ . '/../assets/uploads/');
+define('UPLOAD_PATH', __DIR__ . '/../assets/uploads/'); 
 
 // Error Reporting
 error_reporting(E_ALL);
