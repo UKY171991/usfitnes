@@ -99,6 +99,8 @@ $user_role = isset($_SESSION['user_role']) ? $_SESSION['user_role'] : '';
                     </a>
                 </li>
             <?php endif; ?>
+
+            
         </ul>
     </div>
 </div> 
