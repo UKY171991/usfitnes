@@ -100,7 +100,7 @@ if(!isset($_SESSION['user_id'])) {
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container-fluid">
-            <a class="navbar-brand" href="/usfitnes/admin/dashboard.php">
+            <a class="navbar-brand" href="/admin/dashboard.php">
                 <i class="fas fa-flask me-2"></i>Pathology CRM
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -110,13 +110,13 @@ if(!isset($_SESSION['user_id'])) {
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
                         <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'dashboard.php' ? 'active' : ''; ?>" 
-                           href="/usfitnes/admin/dashboard.php">
+                           href="/admin/dashboard.php">
                             <i class="fas fa-tachometer-alt"></i> Dashboard
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'reports.php' ? 'active' : ''; ?>" 
-                           href="/usfitnes/admin/reports.php">
+                           href="/admin/reports.php">
                             <i class="fas fa-file-medical-alt"></i> Reports
                         </a>
                     </li>
@@ -126,7 +126,7 @@ if(!isset($_SESSION['user_id'])) {
                         <i class="fas fa-user me-1"></i>
                         Welcome, <?php echo htmlspecialchars($_SESSION['user_name'] ?? 'User'); ?>
                     </span>
-                    <a href="/usfitnes/auth/logout.php" class="btn logout-btn">
+                    <a href="/auth/logout.php" class="btn logout-btn">
                         <i class="fas fa-sign-out-alt me-1"></i>Logout
                     </a>
                 </div>
@@ -141,43 +141,43 @@ if(!isset($_SESSION['user_id'])) {
                     <ul class="nav flex-column">
                         <li class="nav-item">
                             <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'dashboard.php' ? 'active' : ''; ?>" 
-                               href="/usfitnes/admin/dashboard.php">
+                               href="/admin/dashboard.php">
                                 <i class="fas fa-tachometer-alt"></i> Dashboard
                             </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'branches.php' ? 'active' : ''; ?>" 
-                               href="/usfitnes/admin/branches.php">
+                               href="/admin/branches.php">
                                 <i class="fas fa-hospital"></i> Branches
                             </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'users.php' ? 'active' : ''; ?>" 
-                               href="/usfitnes/admin/users.php">
+                               href="/admin/users.php">
                                 <i class="fas fa-users"></i> Users
                             </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'test-categories.php' ? 'active' : ''; ?>" 
-                               href="/usfitnes/admin/test-categories.php">
+                               href="/admin/test-categories.php">
                                 <i class="fas fa-list"></i> Test Categories
                             </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'test-master.php' ? 'active' : ''; ?>" 
-                               href="/usfitnes/admin/test-master.php">
+                               href="/admin/test-master.php">
                                 <i class="fas fa-vial"></i> Test Master
                             </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'test-parameters.php' ? 'active' : ''; ?>" 
-                               href="/usfitnes/admin/test-parameters.php">
+                               href="/admin/test-parameters.php">
                                 <i class="fas fa-tags"></i> Test Parameters
                             </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'reports.php' ? 'active' : ''; ?>" 
-                               href="/usfitnes/admin/reports.php">
+                               href="/admin/reports.php">
                                 <i class="fas fa-file-medical-alt"></i> Reports
                             </a>
                         </li>

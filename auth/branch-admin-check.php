@@ -6,19 +6,19 @@ if(!isset($config_loaded)) {
 
 // Check if user is logged in
 if (!isset($_SESSION['user_id'])) {
-    header("Location: /usfitnes/auth/login.php");
+    header("Location: /auth/login.php");
     exit();
 }
 
 // Check if user has branch admin role
 if ($_SESSION['role'] !== 'branch_admin') {
-    header("Location: /usfitnes/auth/unauthorized.php");
+    header("Location: /auth/unauthorized.php");
     exit();
 }
 
 // Check if branch_id is set
 if (!isset($_SESSION['branch_id'])) {
-    header("Location: /usfitnes/auth/unauthorized.php");
+    header("Location: /auth/unauthorized.php");
     exit();
 }
 

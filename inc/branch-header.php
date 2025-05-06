@@ -116,7 +116,7 @@ if(!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'branch_admin') {
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container-fluid">
-            <a class="navbar-brand" href="/usfitnes/branch-admin/dashboard.php">
+            <a class="navbar-brand" href="/branch-admin/dashboard.php">
                 <i class="fas fa-flask me-2"></i>Branch Admin
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -128,7 +128,7 @@ if(!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'branch_admin') {
                         <i class="fas fa-user me-1"></i>
                         Welcome, <?php echo htmlspecialchars($_SESSION['user_name'] ?? 'User'); ?>
                     </span>
-                    <a href="/usfitnes/auth/logout.php" class="btn logout-btn">
+                    <a href="/auth/logout.php" class="btn logout-btn">
                         <i class="fas fa-sign-out-alt me-1"></i>Logout
                     </a>
                 </div>
