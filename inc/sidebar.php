@@ -9,7 +9,7 @@ $user_role = isset($_SESSION['user_role']) ? $_SESSION['user_role'] : '';
                 <li class="nav-item">
                     <a class="nav-link <?php echo $current_page == 'dashboard.php' ? 'active' : ''; ?>" 
                        href="<?php echo SITE_URL; ?>/admin/dashboard.php">
-                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                        <i class="fas fa-tachometer-alt"></i> <?php echo SITE_URL; ?> Dashboard
                     </a>
                 </li>
                 <li class="nav-item">
@@ -46,7 +46,7 @@ $user_role = isset($_SESSION['user_role']) ? $_SESSION['user_role'] : '';
                 <li class="nav-item">
                     <a class="nav-link <?php echo $current_page == 'dashboard.php' ? 'active' : ''; ?>" 
                        href="<?php echo SITE_URL; ?>/branch-admin/dashboard.php">
-                        <i class="fas fa-tachometer-alt"></i> <?php echo SITE_URL; ?> Dashboard
+                        <i class="fas fa-tachometer-alt"></i> Dashboard
                     </a>
                 </li>
                 <li class="nav-item">
