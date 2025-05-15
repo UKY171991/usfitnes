@@ -184,7 +184,7 @@ include '../inc/header.php';
     <h1 class="h2">Dashboard</h1>
     <form class="row g-2 align-items-center" method="GET">
         <div class="col-auto">
-            <label for="date_range" class="form-label mb-0">Date Range:</label>
+            <label for="date_range" class="form-label mb-0">Date Range: yyy</label>
             <select class="form-select" name="date_range" id="date_range">
                 <option value="today" <?php echo $date_range === 'today' ? 'selected' : ''; ?>>Today</option>
                 <option value="week" <?php echo $date_range === 'week' ? 'selected' : ''; ?>>Last 7 Days</option>
