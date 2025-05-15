@@ -44,9 +44,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             if (empty($branch_id)) {
                 // Generate new branch code for new branches
                 $branch_code = generateBranchCode($conn);
-                
-                // Add new branch
-                $stmt = $conn->prepare("INSERT INTO branches (branch_code, branch_name, address, city, state, pincode, phone, email) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                // Always set status=1 (active) for new branches
+                $stmt = $conn->prepare("INSERT INTO branches (branch_code, branch_name, address, city, state, pincode, phone, email, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)");
                 $stmt->execute([$branch_code, $name, $address, $city, $state, $pincode, $phone, $email]);
                 $success_msg = "Branch added successfully";
             } else {
@@ -431,4 +430,4 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<?php include '../inc/footer.php'; ?> 
+<?php include '../inc/footer.php'; ?>
