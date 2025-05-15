@@ -155,10 +155,35 @@ try {
 include '../inc/header.php';
 ?>
 
+<style>
+/* Dashboard UI improvements */
+.card-stats {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    min-height: 110px;
+    transition: box-shadow 0.2s;
+}
+.card-stats:hover {
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+}
+.card-stats .icon {
+    font-size: 2.5rem;
+    opacity: 0.7;
+}
+.table thead th {
+    background: #f8f9fa;
+}
+.table tbody tr:hover {
+    background: #f1f3f5;
+}
+</style>
+
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
     <h1 class="h2">Dashboard</h1>
-    <form class="row g-3 align-items-center" method="GET">
+    <form class="row g-2 align-items-center" method="GET">
         <div class="col-auto">
+            <label for="date_range" class="form-label mb-0">Date Range:</label>
             <select class="form-select" name="date_range" id="date_range">
                 <option value="today" <?php echo $date_range === 'today' ? 'selected' : ''; ?>>Today</option>
                 <option value="week" <?php echo $date_range === 'week' ? 'selected' : ''; ?>>Last 7 Days</option>
@@ -167,10 +192,12 @@ include '../inc/header.php';
             </select>
         </div>
         <div class="col-auto date-inputs" style="display: none;">
-            <input type="date" class="form-control" name="start_date" value="<?php echo $custom_start; ?>">
+            <label for="start_date" class="form-label mb-0">From:</label>
+            <input type="date" class="form-control" id="start_date" name="start_date" value="<?php echo htmlspecialchars($custom_start); ?>">
         </div>
         <div class="col-auto date-inputs" style="display: none;">
-            <input type="date" class="form-control" name="end_date" value="<?php echo $custom_end; ?>">
+            <label for="end_date" class="form-label mb-0">To:</label>
+            <input type="date" class="form-control" id="end_date" name="end_date" value="<?php echo htmlspecialchars($custom_end); ?>">
         </div>
         <div class="col-auto">
             <button type="submit" class="btn btn-primary">Apply</button>
@@ -179,39 +206,43 @@ include '../inc/header.php';
 </div>
 
 <!-- Period Statistics -->
-<div class="row mb-4">
+<div class="row mb-4 g-3">
     <div class="col-md-3">
-        <div class="card border-primary">
-            <div class="card-body">
+        <div class="card border-primary card-stats">
+            <span class="icon text-primary"><i class="bi bi-person-plus"></i></span>
+            <div>
                 <h6 class="card-subtitle mb-2 text-muted">New Patients</h6>
-                <h2 class="card-title"><?php echo number_format($period_stats['new_patients']); ?></h2>
+                <h2 class="card-title" title="New patients in period"><?php echo number_format($period_stats['new_patients']); ?></h2>
                 <p class="card-text text-muted">In selected period</p>
             </div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card border-success">
-            <div class="card-body">
+        <div class="card border-success card-stats">
+            <span class="icon text-success"><i class="bi bi-file-earmark-check"></i></span>
+            <div>
                 <h6 class="card-subtitle mb-2 text-muted">Completed Reports</h6>
-                <h2 class="card-title"><?php echo number_format($period_stats['completed_reports']); ?></h2>
+                <h2 class="card-title" title="Completed reports in period"><?php echo number_format($period_stats['completed_reports']); ?></h2>
                 <p class="card-text text-muted">In selected period</p>
             </div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card border-warning">
-            <div class="card-body">
+        <div class="card border-warning card-stats">
+            <span class="icon text-warning"><i class="bi bi-hourglass-split"></i></span>
+            <div>
                 <h6 class="card-subtitle mb-2 text-muted">Pending Reports</h6>
-                <h2 class="card-title"><?php echo number_format($period_stats['pending_reports']); ?></h2>
+                <h2 class="card-title" title="Pending reports in period"><?php echo number_format($period_stats['pending_reports']); ?></h2>
                 <p class="card-text text-muted">In selected period</p>
             </div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card border-info">
-            <div class="card-body">
+        <div class="card border-info card-stats">
+            <span class="icon text-info"><i class="bi bi-currency-rupee"></i></span>
+            <div>
                 <h6 class="card-subtitle mb-2 text-muted">Revenue</h6>
-                <h2 class="card-title">₹<?php echo number_format($period_stats['period_revenue'], 2); ?></h2>
+                <h2 class="card-title" title="Revenue in period">₹<?php echo number_format($period_stats['period_revenue'], 2); ?></h2>
                 <p class="card-text text-muted">In selected period</p>
             </div>
         </div>
@@ -219,52 +250,58 @@ include '../inc/header.php';
 </div>
 
 <!-- Overall Statistics -->
-<div class="row">
+<div class="row g-3">
     <div class="col-md-4 mb-4">
-        <div class="card bg-primary text-white h-100">
-            <div class="card-body">
+        <div class="card bg-primary text-white h-100 card-stats">
+            <span class="icon"><i class="bi bi-diagram-3"></i></span>
+            <div>
                 <h5 class="card-title">Total Branches</h5>
-                <div class="display-4"><?php echo number_format($stats['branches']); ?></div>
+                <div class="display-4" title="Total active branches"><?php echo number_format($stats['branches']); ?></div>
             </div>
         </div>
     </div>
     <div class="col-md-4 mb-4">
-        <div class="card bg-success text-white h-100">
-            <div class="card-body">
+        <div class="card bg-success text-white h-100 card-stats">
+            <span class="icon"><i class="bi bi-people"></i></span>
+            <div>
                 <h5 class="card-title">Active Users</h5>
-                <div class="display-4"><?php echo number_format($stats['users']); ?></div>
+                <div class="display-4" title="Active users"><?php echo number_format($stats['users']); ?></div>
             </div>
         </div>
     </div>
     <div class="col-md-4 mb-4">
-        <div class="card bg-info text-white h-100">
-            <div class="card-body">
+        <div class="card bg-info text-white h-100 card-stats">
+            <span class="icon"><i class="bi bi-person"></i></span>
+            <div>
                 <h5 class="card-title">Total Patients</h5>
-                <div class="display-4"><?php echo number_format($stats['patients']); ?></div>
+                <div class="display-4" title="Total patients"><?php echo number_format($stats['patients']); ?></div>
             </div>
         </div>
     </div>
     <div class="col-md-4 mb-4">
-        <div class="card bg-warning text-white h-100">
-            <div class="card-body">
+        <div class="card bg-warning text-white h-100 card-stats">
+            <span class="icon"><i class="bi bi-clipboard-data"></i></span>
+            <div>
                 <h5 class="card-title">Available Tests</h5>
-                <div class="display-4"><?php echo number_format($stats['tests']); ?></div>
+                <div class="display-4" title="Available tests"><?php echo number_format($stats['tests']); ?></div>
             </div>
         </div>
     </div>
     <div class="col-md-4 mb-4">
-        <div class="card bg-danger text-white h-100">
-            <div class="card-body">
+        <div class="card bg-danger text-white h-100 card-stats">
+            <span class="icon"><i class="bi bi-file-earmark-text"></i></span>
+            <div>
                 <h5 class="card-title">Total Reports</h5>
-                <div class="display-4"><?php echo number_format($stats['reports']); ?></div>
+                <div class="display-4" title="Total reports"><?php echo number_format($stats['reports']); ?></div>
             </div>
         </div>
     </div>
     <div class="col-md-4 mb-4">
-        <div class="card bg-secondary text-white h-100">
-            <div class="card-body">
+        <div class="card bg-secondary text-white h-100 card-stats">
+            <span class="icon"><i class="bi bi-cash-coin"></i></span>
+            <div>
                 <h5 class="card-title">Total Revenue</h5>
-                <div class="display-4">₹<?php echo number_format($stats['revenue'], 2); ?></div>
+                <div class="display-4" title="Total revenue">₹<?php echo number_format($stats['revenue'], 2); ?></div>
             </div>
         </div>
     </div>
@@ -431,4 +468,4 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<?php include '../inc/footer.php'; ?> 
+<?php include '../inc/footer.php'; ?>
