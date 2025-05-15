@@ -257,7 +257,7 @@ include '../inc/header.php';
             <span class="icon"><i class="bi bi-diagram-3"></i></span>
             <div>
                 <h5 class="card-title">Total Branches</h5>
-                <div class="display-4" title="Total active branches"><?php echo number_format($stats['branches']); ?></div>
+                <div class="display-4" title="Total active branches"><?php echo isset($stats['branches']) ? number_format($stats['branches']) : '0'; ?></div>
             </div>
         </div>
     </div>
@@ -266,7 +266,7 @@ include '../inc/header.php';
             <span class="icon"><i class="bi bi-people"></i></span>
             <div>
                 <h5 class="card-title">Active Users</h5>
-                <div class="display-4" title="Active users"><?php echo number_format($stats['users']); ?></div>
+                <div class="display-4" title="Active users"><?php echo isset($stats['users']) ? number_format($stats['users']) : '0'; ?></div>
             </div>
         </div>
     </div>
@@ -275,7 +275,7 @@ include '../inc/header.php';
             <span class="icon"><i class="bi bi-person"></i></span>
             <div>
                 <h5 class="card-title">Total Patients</h5>
-                <div class="display-4" title="Total patients"><?php echo number_format($stats['patients']); ?></div>
+                <div class="display-4" title="Total patients"><?php echo isset($stats['patients']) ? number_format($stats['patients']) : '0'; ?></div>
             </div>
         </div>
     </div>
@@ -284,7 +284,7 @@ include '../inc/header.php';
             <span class="icon"><i class="bi bi-clipboard-data"></i></span>
             <div>
                 <h5 class="card-title">Available Tests</h5>
-                <div class="display-4" title="Available tests"><?php echo number_format($stats['tests']); ?></div>
+                <div class="display-4" title="Available tests"><?php echo isset($stats['tests']) ? number_format($stats['tests']) : '0'; ?></div>
             </div>
         </div>
     </div>
@@ -293,7 +293,7 @@ include '../inc/header.php';
             <span class="icon"><i class="bi bi-file-earmark-text"></i></span>
             <div>
                 <h5 class="card-title">Total Reports</h5>
-                <div class="display-4" title="Total reports"><?php echo number_format($stats['reports']); ?></div>
+                <div class="display-4" title="Total reports"><?php echo isset($stats['reports']) ? number_format($stats['reports']) : '0'; ?></div>
             </div>
         </div>
     </div>
@@ -302,7 +302,7 @@ include '../inc/header.php';
             <span class="icon"><i class="bi bi-cash-coin"></i></span>
             <div>
                 <h5 class="card-title">Total Revenue</h5>
-                <div class="display-4" title="Total revenue">₹<?php echo number_format($stats['revenue'], 2); ?></div>
+                <div class="display-4" title="Total revenue">₹<?php echo isset($stats['revenue']) ? number_format($stats['revenue'], 2) : '0.00'; ?></div>
             </div>
         </div>
     </div>
