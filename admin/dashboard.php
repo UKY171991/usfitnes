@@ -33,7 +33,8 @@ switch($date_range) {
 try {
     // Basic statistics
     $stats = [
-        'branches' => $conn->query("SELECT COUNT(*) FROM branches WHERE status = 'active'")->fetchColumn() ?? 0,
+        // Fix: count branches with status 'active' (case-insensitive)
+        'branches' => $conn->query("SELECT COUNT(*) FROM branches WHERE LOWER(status) = 'active'")->fetchColumn() ?? 0,
         'users' => $conn->query("SELECT COUNT(*) FROM users WHERE status = 'active' AND deleted_at IS NULL")->fetchColumn() ?? 0,
         'patients' => $conn->query("SELECT COUNT(*) FROM patients")->fetchColumn() ?? 0,
         'tests' => $conn->query("SELECT COUNT(*) FROM tests WHERE status = 1")->fetchColumn() ?? 0,
