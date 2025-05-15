@@ -33,9 +33,9 @@ switch($date_range) {
 try {
     // Basic statistics
     $stats = [
-        // Fix: count branches with status 'active' (case-insensitive)
-        'branches' => $conn->query("SELECT COUNT(*) FROM branches WHERE LOWER(status) = 'active'")->fetchColumn() ?? 0,
-        'users' => $conn->query("SELECT COUNT(*) FROM users WHERE status = 'active' AND deleted_at IS NULL")->fetchColumn() ?? 0,
+        // Fix: match branches table structure (status is TINYINT, 1=active)
+        'branches' => $conn->query("SELECT COUNT(*) FROM branches WHERE status = 1")->fetchColumn() ?? 0,
+        'users' => $conn->query("SELECT COUNT(*) FROM users WHERE status = 1 AND deleted_at IS NULL")->fetchColumn() ?? 0,
         'patients' => $conn->query("SELECT COUNT(*) FROM patients")->fetchColumn() ?? 0,
         'tests' => $conn->query("SELECT COUNT(*) FROM tests WHERE status = 1")->fetchColumn() ?? 0,
         'reports' => $conn->query("SELECT COUNT(*) FROM reports")->fetchColumn() ?? 0,
