@@ -5,15 +5,15 @@ require_once '../auth/session-check.php';
 
 checkAdminAccess();
 
+// Set base URL for all relative links
+$base_url = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/\\') . '/';
+
 // Handle delete request
 if(isset($_POST['delete_user'])) {
     $user_id = $_POST['user_id'] ?? 0;
     try {
         $stmt = $conn->prepare("DELETE FROM users WHERE id = ?");
         $stmt->execute([$user_id]);
-        $activity = "User deleted: ID $user_id";
-        $stmt = $conn->prepare("INSERT INTO activities (user_id, description) VALUES (?, ?)");
-        $stmt->execute([$_SESSION['user_id'], $activity]);
         header("Location: users.php?success=2");
         exit();
     } catch(PDOException $e) {
