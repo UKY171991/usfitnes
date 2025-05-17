@@ -140,6 +140,7 @@ include '../inc/header.php';
             <table class="table table-striped table-hover align-middle">
                 <thead class="table-light">
                     <tr>
+                        <th>Sr. No.</th>
                         <th>Branch Code</th>
                         <th>Name</th>
                         <th>Contact</th>
@@ -151,47 +152,24 @@ include '../inc/header.php';
                 <tbody>
                     <?php if (empty($branches)): ?>
                         <tr>
-                            <td colspan="6" class="text-center py-4">
+                            <td colspan="7" class="text-center py-4">
                                 <div class="text-muted">
-                                    <i class="fas fa-building fa-2x mb-2"></i>
+                                    <i class="fas fa-hospital fa-2x mb-2"></i>
                                     <p>No branches found</p>
                                 </div>
                             </td>
                         </tr>
                     <?php else: ?>
-                        <?php foreach ($branches as $branch): ?>
+                        <?php $sr = 1; foreach($branches as $branch): ?>
                             <tr>
+                                <td><?php echo $sr++; ?></td>
+                                <td><?php echo htmlspecialchars($branch['branch_code']); ?></td>
+                                <td><?php echo htmlspecialchars($branch['branch_name']); ?></td>
+                                <td><?php echo htmlspecialchars($branch['phone']); ?><br><?php echo htmlspecialchars($branch['email']); ?></td>
+                                <td><?php echo htmlspecialchars($branch['city']); ?>, <?php echo htmlspecialchars($branch['state']); ?>, <?php echo htmlspecialchars($branch['pincode']); ?></td>
                                 <td>
-                                    <span class="badge bg-secondary">
-                                        <?php echo htmlspecialchars($branch['branch_code'] ?: '-'); ?>
-                                    </span>
-                                </td>
-                                <td>
-                                    <div class="fw-bold"><?php echo htmlspecialchars($branch['branch_name']); ?></div>
-                                    <small class="text-muted"><?php echo htmlspecialchars($branch['email'] ?: 'No email'); ?></small>
-                                </td>
-                                <td>
-                                    <div><?php echo htmlspecialchars($branch['phone']); ?></div>
-                                    <small class="text-muted"><?php echo htmlspecialchars($branch['email'] ?: 'No email'); ?></small>
-                                </td>
-                                <td>
-                                    <div class="text-truncate" style="max-width: 200px;" title="<?php echo htmlspecialchars($branch['address']); ?>">
-                                        <?php echo htmlspecialchars($branch['address']); ?>
-                                    </div>
-                                    <small class="text-muted">
-                                        <?php 
-                                        $location = array_filter([
-                                            $branch['city'],
-                                            $branch['state'],
-                                            $branch['pincode']
-                                        ]);
-                                        echo htmlspecialchars(implode(', ', $location) ?: 'No location details');
-                                        ?>
-                                    </small>
-                                </td>
-                                <td>
-                                    <span class="badge bg-<?php echo $branch['status'] ? 'success' : 'danger'; ?>">
-                                        <?php echo $branch['status'] ? 'Active' : 'Inactive'; ?>
+                                    <span class="badge bg-<?php echo $branch['status'] == 1 ? 'success' : 'danger'; ?>">
+                                        <?php echo $branch['status'] == 1 ? 'Active' : 'Inactive'; ?>
                                     </span>
                                 </td>
                                 <td class="text-end">
