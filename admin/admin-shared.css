@@ -1,0 +1,102 @@
+/* Shared admin panel styles for all pages */
+body {
+    background: #f6f8fa;
+}
+.dashboard-title, .page-title {
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: #2c3e50;
+    margin-bottom: 1.5rem;
+}
+.card-stats, .card-summary, .card-table, .card-form {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    min-height: 110px;
+    border-radius: 1.25rem;
+    box-shadow: 0 2px 16px rgba(44,62,80,0.07);
+    background: #fff;
+    transition: box-shadow 0.2s, transform 0.2s;
+    padding: 1.25rem 1.25rem;
+    border: 1px solid #e3e6f0;
+    margin-bottom: 1.5rem;
+}
+.card-stats:hover, .card-summary:hover, .card-table:hover, .card-form:hover {
+    box-shadow: 0 8px 32px rgba(44,62,80,0.13);
+    transform: translateY(-2px) scale(1.01);
+}
+.card-stats .icon, .card-summary .icon {
+    font-size: 2.5rem;
+    opacity: 0.9;
+    margin-right: 0.5rem;
+    color: #4e73df;
+}
+.card-stats .card-title, .card-summary .card-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 0.15rem;
+    color: #34495e;
+}
+.card-stats .display-4, .card-summary .display-4 {
+    font-size: 2.1rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #222;
+}
+.card-stats .card-text, .card-summary .card-text {
+    font-size: 0.95rem;
+    color: #7b8a99;
+}
+.card, .card-table, .card-form {
+    border-radius: 1.25rem;
+    box-shadow: 0 2px 12px rgba(44,62,80,0.04);
+    border: 1px solid #e3e6f0;
+    background: #fff;
+}
+.card-header {
+    background: #f6f8fa;
+    border-radius: 1.25rem 1.25rem 0 0;
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: #2c3e50;
+    border-bottom: 1px solid #e3e6f0;
+}
+.table thead th {
+    background: #f6f8fa;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    color: #2c3e50;
+}
+.table tbody tr:hover {
+    background: #f1f3f5;
+    transition: background 0.2s;
+}
+.btn-primary, .btn-success, .btn-info, .btn-warning, .btn-danger, .btn-secondary {
+    border-radius: 0.5rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+.form-control, .form-select {
+    border-radius: 0.5rem;
+    border: 1px solid #d1d5db;
+    font-size: 1rem;
+}
+.alert {
+    border-radius: 0.5rem;
+    font-size: 1rem;
+}
+@media (max-width: 767px) {
+    .card-stats, .card-summary, .card-table, .card-form {
+        flex-direction: column;
+        align-items: flex-start;
+        min-height: 100px;
+        padding: 1rem 0.75rem;
+    }
+    .card-stats .icon, .card-summary .icon {
+        margin-bottom: 0.5rem;
+        margin-right: 0;
+    }
+    .card-stats .display-4, .card-summary .display-4 {
+        font-size: 1.5rem;
+    }
+}
