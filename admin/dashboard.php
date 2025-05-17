@@ -35,7 +35,7 @@ try {
     $stats = [
         // Fix: match branches table structure (status is TINYINT, 1=active)
         'branches' => $conn->query("SELECT COUNT(*) FROM branches WHERE status = 1")->fetchColumn() ?? 0,
-        'users' => $conn->query("SELECT COUNT(*) FROM users WHERE status = 1 AND (deleted_at IS NULL OR deleted_at = '') AND username IS NOT NULL AND username != ''")->fetchColumn() ?? 0,
+        'users' => $conn->query("SELECT COUNT(*) FROM users WHERE status = 1 AND (deleted_at IS NULL OR deleted_at = '') AND role IN ('admin','branch_admin','receptionist','technician')")->fetchColumn() ?? 0,
         'patients' => $conn->query("SELECT COUNT(*) FROM patients")->fetchColumn() ?? 0,
         'tests' => $conn->query("SELECT COUNT(*) FROM tests WHERE status = 1")->fetchColumn() ?? 0,
         'reports' => $conn->query("SELECT COUNT(*) FROM reports")->fetchColumn() ?? 0,
