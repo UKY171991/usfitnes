@@ -143,6 +143,9 @@ include '../inc/header.php';
     <div class="alert alert-danger"><?php echo $error; ?></div>
 <?php endif; ?>
 
+<?php // DEBUG: Show users array for troubleshooting
+// if (isset($_GET['debug'])) { echo '<pre>'; print_r($users); echo '</pre>'; }
+?>
 <!-- Users Table -->
 <div class="card">
     <div class="card-body">
