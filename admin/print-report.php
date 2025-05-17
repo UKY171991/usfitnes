@@ -47,125 +47,15 @@ try {
     error_log("Print Report Error: " . $e->getMessage());
     die('An error occurred while fetching report details.');
 }
+include '../inc/header.php';
 ?>
+<link rel="stylesheet" href="admin-shared.css">
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Report #<?php echo htmlspecialchars($report['id']); ?></title>
-    <!-- Minimal styling, Bootstrap grid might be overkill -->
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            line-height: 1.5;
-            margin: 0;
-            padding: 0;
-            background-color: #fff;
-            color: #333;
-        }
-        .print-container {
-            max-width: 800px; /* A4-ish width */
-            margin: 15px auto;
-            padding: 20px;
-            border: 1px solid #eee;
-        }
-        .report-header {
-            text-align: center;
-            margin-bottom: 25px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #666;
-        }
-        .report-header h1 {
-            margin: 0 0 5px 0;
-            font-size: 22px;
-            font-weight: 600;
-        }
-        .report-header p {
-            margin: 0;
-            font-size: 11px;
-            color: #555;
-        }
-        .section {
-             margin-bottom: 20px;
-        }
-        .section-title {
-            font-weight: 600;
-            font-size: 15px;
-            margin-bottom: 8px;
-            padding-bottom: 3px;
-            border-bottom: 1px solid #eee;
-        }
-        .info-grid {
-            display: grid;
-            grid-template-columns: 150px 1fr; /* Label column and Value column */
-            gap: 5px 15px; /* Row gap and Column gap */
-            font-size: 13px;
-        }
-         .info-grid dt {
-             font-weight: 500;
-             color: #444;
-             grid-column: 1;
-         }
-         .info-grid dd {
-             margin: 0;
-             grid-column: 2;
-         }
-        .result-section {
-            margin-top: 20px;
-            padding: 10px;
-            border: 1px solid #ddd;
-            min-height: 80px;
-            background-color: #fdfdfd;
-        }
-        .result-section p {
-             white-space: pre-wrap; 
-             margin: 0;
-             font-size: 13px;
-        }
-        .report-footer {
-            margin-top: 30px;
-            text-align: center;
-            font-size: 10px;
-            color: #888;
-            border-top: 1px solid #eee;
-            padding-top: 10px;
-        }
-
-        @media print {
-            body {
-                margin: 0;
-                padding: 0;
-                background-color: #fff;
-                font-size: 9.5pt;
-                line-height: 1.3;
-            }
-            .print-container {
-                width: 100%;
-                max-width: 100%;
-                margin: 0;
-                padding: 10mm 8mm; /* Margins for printing */
-                border: none;
-                box-shadow: none;
-            }
-            .no-print {
-                display: none;
-            }
-             /* Ensure sections don't break across pages awkwardly if possible */
-            .section, .result-section {
-                page-break-inside: avoid;
-            }
-             .report-header, .report-footer {
-                page-break-before: auto; 
-                page-break-after: auto;
-            }
-            h1 { font-size: 18pt; }
-            .section-title { font-size: 12pt; }
-            .info-grid { font-size: 9pt; grid-template-columns: 120px 1fr; }
-            .result-section p { font-size: 9pt; }
-            .report-footer { font-size: 8pt; }
-        }
-    </style>
 </head>
 <body>
     <div class="print-container">
@@ -268,4 +158,4 @@ try {
         }
     </script>
 </body>
-</html> 
+</html>
