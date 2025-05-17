@@ -71,9 +71,13 @@ try {
             text-align: center;
             margin-bottom: 30px;
         }
-        .report-header h1 {
+        .report-header h1 { /* Existing H1 for "Laboratory Test Report" */
             font-size: 18pt;
             margin-bottom: 5px;
+        }
+        .report-header h2 { /* New H2 for Branch Name */
+            font-size: 16pt; /* Slightly smaller than main title, or adjust as needed */
+            margin-bottom: 5px; 
         }
         .report-header p {
             font-size: 10pt;
@@ -156,6 +160,9 @@ try {
             .report-header h1 {
                 font-size: 20pt; /* Larger for print header */
             }
+            .report-header h2 {
+                font-size: 18pt; /* Adjust as needed for print */
+            }
             .report-header p {
                 font-size: 11pt;
             }
@@ -189,9 +196,10 @@ try {
     <div class="print-container">
         
         <div class="report-header">
+            <h2 style="font-size: 16pt; margin-bottom: 5px;"><?php echo htmlspecialchars($report['branch_name'] ?? 'Main Lab'); ?></h2>
             <h1>Laboratory Test Report</h1>
             <p>
-                <strong><?php echo htmlspecialchars($report['branch_name'] ?? 'Main Lab'); ?></strong><br>
+                <?php /* <strong><?php echo htmlspecialchars($report['branch_name'] ?? 'Main Lab'); ?></strong><br> */ ?>
                 <?php echo htmlspecialchars($report['branch_address'] ?? '-'); ?> | 
                 Phone: <?php echo htmlspecialchars($report['branch_phone'] ?? '-'); ?>
             </p>
