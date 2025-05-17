@@ -144,7 +144,7 @@ include '../inc/header.php';
             <table class="table table-striped table-hover align-middle">
                 <thead class="table-light">
                     <tr>
-                        <th>Sr. No.</th>
+                        <th>ID</th>
                         <th>Name</th>
                         <th>Username</th>
                         <th>Phone</th>
@@ -168,9 +168,9 @@ include '../inc/header.php';
                             </td>
                         </tr>
                     <?php else: ?>
-                        <?php $sr = 1; foreach($users as $user): ?>
+                        <?php foreach($users as $user): ?>
                             <tr>
-                                <td><?php echo $sr++; ?></td>
+                                <td><?php echo $user['id']; ?></td>
                                 <td><?php echo htmlspecialchars($user['name']); ?></td>
                                 <td><?php echo htmlspecialchars($user['username']); ?></td>
                                 <td><?php echo htmlspecialchars($user['phone']); ?></td>
