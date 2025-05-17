@@ -157,69 +157,83 @@ include '../inc/header.php';
 ?>
 
 <style>
-/* Dashboard UI improvements */
+body {
+    background: #f6f8fa;
+}
+.dashboard-title {
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: #2c3e50;
+    margin-bottom: 1.5rem;
+}
 .card-stats {
     display: flex;
     align-items: center;
-    gap: 1.5rem;
-    min-height: 120px;
-    border-radius: 1rem;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-    background: linear-gradient(135deg, #f8fafc 60%, #e9ecef 100%);
+    gap: 1.25rem;
+    min-height: 110px;
+    border-radius: 1.25rem;
+    box-shadow: 0 2px 16px rgba(44,62,80,0.07);
+    background: #fff;
     transition: box-shadow 0.2s, transform 0.2s;
-    padding: 1.5rem 1.25rem;
+    padding: 1.25rem 1.25rem;
+    border: 1px solid #e3e6f0;
 }
 .card-stats:hover {
-    box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+    box-shadow: 0 8px 32px rgba(44,62,80,0.13);
     transform: translateY(-2px) scale(1.01);
 }
 .card-stats .icon {
-    font-size: 2.8rem;
-    opacity: 0.85;
+    font-size: 2.5rem;
+    opacity: 0.9;
     margin-right: 0.5rem;
+    color: #4e73df;
 }
 .card-stats .card-title {
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     font-weight: 600;
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.15rem;
+    color: #34495e;
 }
 .card-stats .display-4 {
-    font-size: 2.5rem;
+    font-size: 2.1rem;
     font-weight: 700;
     letter-spacing: 1px;
+    color: #222;
 }
 .card-stats .card-text {
     font-size: 0.95rem;
-    color: #6c757d;
+    color: #7b8a99;
 }
 
+.card {
+    border-radius: 1.25rem;
+    box-shadow: 0 2px 12px rgba(44,62,80,0.04);
+    border: 1px solid #e3e6f0;
+    background: #fff;
+}
+.card-header {
+    background: #f6f8fa;
+    border-radius: 1.25rem 1.25rem 0 0;
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: #2c3e50;
+    border-bottom: 1px solid #e3e6f0;
+}
 .table thead th {
-    background: #f8f9fa;
+    background: #f6f8fa;
     font-weight: 600;
     letter-spacing: 0.5px;
+    color: #2c3e50;
 }
 .table tbody tr:hover {
     background: #f1f3f5;
     transition: background 0.2s;
-}
-
-.card {
-    border-radius: 1rem;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.04);
-    border: none;
-}
-.card-header {
-    background: linear-gradient(90deg, #f8fafc 80%, #e9ecef 100%);
-    border-radius: 1rem 1rem 0 0;
-    font-weight: 600;
-    font-size: 1.1rem;
 }
 .btn-primary, .btn-success, .btn-info, .btn-warning, .btn-danger, .btn-secondary {
     border-radius: 0.5rem;
     font-weight: 600;
     letter-spacing: 0.5px;
 }
-
 @media (max-width: 767px) {
     .card-stats {
         flex-direction: column;
@@ -232,7 +246,7 @@ include '../inc/header.php';
         margin-right: 0;
     }
     .card-stats .display-4 {
-        font-size: 2rem;
+        font-size: 1.5rem;
     }
 }
 </style>
