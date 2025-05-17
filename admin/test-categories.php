@@ -131,7 +131,7 @@ include '../inc/header.php';
             <table class="table table-striped table-hover align-middle">
                 <thead class="table-light">
                     <tr>
-                        <th>ID</th>
+                        <th>#</th>
                         <th>Category Details</th>
                         <th>Tests</th>
                         <th>Status</th>
@@ -149,6 +149,7 @@ include '../inc/header.php';
                             </td>
                         </tr>
                     <?php else: ?>
+                        <?php $sr_no = 1; // Initialize serial number ?>
                         <?php foreach($categories as $category): 
                             $status = $category['status'] ?? 'inactive'; // Default to inactive if missing
                             $test_count = $category['test_count'] ?? 0; // Default to 0 if missing
@@ -156,7 +157,7 @@ include '../inc/header.php';
                             <tr>
                                 <td>
                                     <span class="badge bg-secondary">
-                                        <?php echo $category['id']; ?>
+                                        <?php echo $sr_no++; // Display and increment serial number ?>
                                     </span>
                                 </td>
                                 <td>
