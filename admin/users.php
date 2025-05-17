@@ -32,21 +32,31 @@ if(isset($_POST['edit_user'])) {
     $phone = $_POST['phone'] ?? '';
     $role = $_POST['role'] ?? '';
     $branch_id = $_POST['branch_id'] ?? null;
-    
+    $status = isset($_POST['status']) ? (int)$_POST['status'] : 1;
+    $password = $_POST['password'] ?? '';
+
     if(!empty($name) && !empty($role)) {
         try {
-            $stmt = $conn->prepare("
-                UPDATE users 
-                SET name = ?, email = ?, phone = ?, role = ?, branch_id = ?
-                WHERE id = ?
-            ");
-            $stmt->execute([$name, $email, $phone, $role, $branch_id, $user_id]);
-            
+            if (!empty($password)) {
+                $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+                $stmt = $conn->prepare("
+                    UPDATE users 
+                    SET name = ?, email = ?, phone = ?, role = ?, branch_id = ?, status = ?, password = ?
+                    WHERE id = ?
+                ");
+                $stmt->execute([$name, $email, $phone, $role, $branch_id, $status, $hashed_password, $user_id]);
+            } else {
+                $stmt = $conn->prepare("
+                    UPDATE users 
+                    SET name = ?, email = ?, phone = ?, role = ?, branch_id = ?, status = ?
+                    WHERE id = ?
+                ");
+                $stmt->execute([$name, $email, $phone, $role, $branch_id, $status, $user_id]);
+            }
             // Log activity
             $activity = "User updated: ID $user_id";
             $stmt = $conn->prepare("INSERT INTO activities (user_id, description) VALUES (?, ?)");
             $stmt->execute([$_SESSION['user_id'], $activity]);
-            
             header("Location: users.php?success=3");
             exit();
         } catch(PDOException $e) {
@@ -57,8 +67,8 @@ if(isset($_POST['edit_user'])) {
     }
 }
 
-// Handle form submission
-if($_SERVER['REQUEST_METHOD'] == 'POST') {
+// Handle form submission (add user)
+if(isset($_POST['username']) && isset($_POST['password']) && isset($_POST['name']) && isset($_POST['role'])) {
     $username = $_POST['username'] ?? '';
     $password = $_POST['password'] ?? '';
     $name = $_POST['name'] ?? '';
@@ -66,22 +76,19 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
     $phone = $_POST['phone'] ?? '';
     $role = $_POST['role'] ?? '';
     $branch_id = $_POST['branch_id'] ?? null;
-    
+    $status = isset($_POST['status']) ? (int)$_POST['status'] : 1;
     if(!empty($username) && !empty($password) && !empty($name) && !empty($role)) {
         try {
             $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-            
             $stmt = $conn->prepare("
-                INSERT INTO users (username, password, name, email, phone, role, branch_id) 
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO users (username, password, name, email, phone, role, branch_id, status) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             ");
-            $stmt->execute([$username, $hashed_password, $name, $email, $phone, $role, $branch_id]);
-            
+            $stmt->execute([$username, $hashed_password, $name, $email, $phone, $role, $branch_id, $status]);
             // Log activity
             $activity = "New user added: $username";
             $stmt = $conn->prepare("INSERT INTO activities (user_id, description) VALUES (?, ?)");
             $stmt->execute([$_SESSION['user_id'], $activity]);
-            
             header("Location: users.php?success=1");
             exit();
         } catch(PDOException $e) {
@@ -144,9 +151,13 @@ include '../inc/header.php';
                 <thead class="table-light">
                     <tr>
                         <th>Sr. No.</th>
-                        <th>User Details</th>
-                        <th>Contact</th>
+                        <th>Name</th>
+                        <th>Username</th>
+                        <th>Phone</th>
+                        <th>Email</th>
                         <th>Role</th>
+                        <th>Branch</th>
+                        <th>Last Login</th>
                         <th>Status</th>
                         <th class="text-end">Actions</th>
                     </tr>
@@ -154,35 +165,25 @@ include '../inc/header.php';
                 <tbody>
                     <?php if (empty($users)): ?>
                         <tr>
-                            <td colspan="6" class="text-center py-4">
+                            <td colspan="10" class="text-center py-4">
                                 <div class="text-muted">
                                     <i class="fas fa-users fa-2x mb-2"></i>
                                     <p>No users found</p>
-                                </div>
-                            </td>
-                        </tr>
+                            </div>
+                        </td>
+                    </tr>
                     <?php else: ?>
                         <?php $sr = 1; foreach($users as $user): ?>
                             <tr>
                                 <td><?php echo $sr++; ?></td>
-                                <td>
-                                    <div class="fw-bold"><?php echo htmlspecialchars($user['name']); ?></div>
-                                    <small class="text-muted"><?php echo htmlspecialchars($user['username']); ?></small>
-                                </td>
-                                <td>
-                                    <?php echo htmlspecialchars($user['phone']); ?><br>
-                                    <?php echo htmlspecialchars($user['email']); ?>
-                                </td>
-                                <td>
-                                    <span class="badge bg-<?php echo getRoleBadgeColor($user['role']); ?>">
-                                        <?php echo formatRole($user['role']); ?>
-                                    </span>
-                                </td>
-                                <td>
-                                    <span class="badge bg-<?php echo $user['status'] ? 'success' : 'danger'; ?>">
-                                        <?php echo $user['status'] ? 'Active' : 'Inactive'; ?>
-                                    </span>
-                                </td>
+                                <td><?php echo htmlspecialchars($user['name']); ?></td>
+                                <td><?php echo htmlspecialchars($user['username']); ?></td>
+                                <td><?php echo htmlspecialchars($user['phone']); ?></td>
+                                <td><?php echo htmlspecialchars($user['email']); ?></td>
+                                <td><span class="badge bg-<?php echo getRoleBadgeColor($user['role']); ?>"><?php echo formatRole($user['role']); ?></span></td>
+                                <td><?php echo htmlspecialchars($user['branch_name'] ?? '-'); ?></td>
+                                <td><?php echo $user['last_login'] ? date('Y-m-d H:i', strtotime($user['last_login'])) : 'Never'; ?></td>
+                                <td><span class="badge bg-<?php echo $user['status'] ? 'success' : 'danger'; ?>"><?php echo $user['status'] ? 'Active' : 'Inactive'; ?></span></td>
                                 <td class="text-end">
                                     <div class="btn-group">
                                         <button type="button" class="btn btn-sm btn-info view-user" 
@@ -264,6 +265,7 @@ include '../inc/header.php';
                     <div class="mb-3">
                         <label for="role" class="form-label">Role *</label>
                         <select class="form-control" id="role" name="role" required>
+                            <option value="master_admin">Master Admin</option>
                             <option value="admin">Admin</option>
                             <option value="branch_admin">Branch Admin</option>
                             <option value="receptionist">Receptionist</option>
@@ -279,6 +281,13 @@ include '../inc/header.php';
                                     <?php echo htmlspecialchars($branch['name']); ?>
                                 </option>
                             <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="status" class="form-label">Status</label>
+                        <select class="form-control" id="status" name="status">
+                            <option value="1">Active</option>
+                            <option value="0">Inactive</option>
                         </select>
                     </div>
                 </div>
