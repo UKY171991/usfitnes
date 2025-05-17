@@ -193,8 +193,8 @@ include '../inc/header.php';
                 <?php if (empty($parameters)): ?>
                     <p class="text-muted">No parameters defined for this test yet.</p>
                 <?php else: ?>
-                    <table class="table table-striped table-sm">
-                        <thead>
+                    <table class="table table-striped table-hover align-middle">
+                        <thead class="table-light">
                             <tr>
                                 <th>Parameter Name</th>
                                 <th>Default Unit</th>

@@ -134,39 +134,44 @@ include '../inc/header.php';
 </div>
 
 <!-- Statistics Cards -->
-<div class="row mb-4">
-    <div class="col-md-3">
-        <div class="card text-white bg-primary">
-            <div class="card-body">
-                <h5 class="card-title">Total Reports</h5>
-                <p class="card-text fs-4 fw-bold"><?php echo number_format($total_reports); ?></p>
+<div class="dashboard-cards-row mb-4">
+    <?php
+    $report_stats = [
+        [
+            'label' => 'Total Reports',
+            'value' => number_format($total_reports),
+            'icon' => 'bi-file-earmark-text',
+            'border' => 'border-primary',
+        ],
+        [
+            'label' => 'Total Amount',
+            'value' => '₹' . number_format($total_amount, 2),
+            'icon' => 'bi-cash-coin',
+            'border' => 'border-success',
+        ],
+        [
+            'label' => 'Pending Reports',
+            'value' => number_format($pending_reports),
+            'icon' => 'bi-hourglass-split',
+            'border' => 'border-warning',
+        ],
+        [
+            'label' => 'Completed Reports',
+            'value' => number_format($completed_reports),
+            'icon' => 'bi-check-circle',
+            'border' => 'border-info',
+        ],
+    ];
+    foreach ($report_stats as $meta) {
+        ?>
+        <div class="dashboard-card <?php echo $meta['border']; ?>">
+            <div>
+                <div class="card-value"><?php echo $meta['value']; ?></div>
+                <div class="card-label"><?php echo $meta['label']; ?></div>
             </div>
+            <span class="card-icon"><i class="bi <?php echo $meta['icon']; ?>"></i></span>
         </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card text-white bg-success">
-            <div class="card-body">
-                <h5 class="card-title">Total Amount</h5>
-                <p class="card-text fs-4 fw-bold">₹<?php echo number_format($total_amount, 2); ?></p>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card text-dark bg-warning">
-            <div class="card-body">
-                <h5 class="card-title">Pending Reports</h5>
-                <p class="card-text fs-4 fw-bold"><?php echo number_format($pending_reports); ?></p>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card text-white bg-info">
-            <div class="card-body">
-                <h5 class="card-title">Completed Reports</h5>
-                <p class="card-text fs-4 fw-bold"><?php echo number_format($completed_reports); ?></p>
-            </div>
-        </div>
-    </div>
+    <?php } ?>
 </div>
 
 <!-- Reports Table -->
