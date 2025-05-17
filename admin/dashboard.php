@@ -156,34 +156,163 @@ try {
 include '../inc/header.php';
 ?>
 <link rel="stylesheet" href="admin-shared.css">
+<style>
+.dashboard-cards-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+.dashboard-card {
+    flex: 1 1 22%;
+    min-width: 220px;
+    max-width: 24%;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(44,62,80,0.07);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 1.5rem 1.25rem 0.5rem 1.25rem;
+    position: relative;
+    overflow: hidden;
+    transition: box-shadow 0.2s, transform 0.2s;
+}
+.dashboard-card .card-value {
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: #222;
+    margin-bottom: 0.5rem;
+}
+.dashboard-card .card-label {
+    font-size: 1.1rem;
+    color: #444;
+    margin-bottom: 1.5rem;
+}
+.dashboard-card .card-icon {
+    position: absolute;
+    right: 1.25rem;
+    top: 1.25rem;
+    font-size: 3.2rem;
+    opacity: 0.13;
+}
+.dashboard-card .card-footer {
+    background: rgba(0,0,0,0.04);
+    border-radius: 0 0 12px 12px;
+    padding: 0.5rem 1rem;
+    text-align: right;
+    font-weight: 600;
+    color: #007bff;
+    font-size: 1rem;
+    margin: 0 -1.25rem -0.5rem -1.25rem;
+    transition: background 0.2s;
+}
+.dashboard-card .card-footer:hover {
+    background: rgba(0,0,0,0.09);
+    color: #0056b3;
+    text-decoration: underline;
+}
+.dashboard-card.bg-primary { background: #17a2b8; color: #fff; }
+.dashboard-card.bg-success { background: #28a745; color: #fff; }
+.dashboard-card.bg-warning { background: #ffc107; color: #222; }
+.dashboard-card.bg-danger { background: #dc3545; color: #fff; }
+.dashboard-card.bg-info { background: #007bff; color: #fff; }
+.dashboard-card.bg-secondary { background: #6c757d; color: #fff; }
+.dashboard-card.bg-dark { background: #343a40; color: #fff; }
+@media (max-width: 991px) {
+    .dashboard-card { max-width: 48%; min-width: 180px; }
+}
+@media (max-width: 767px) {
+    .dashboard-cards-row { flex-direction: column; gap: 1rem; }
+    .dashboard-card { max-width: 100%; min-width: 100%; }
+}
+</style>
 
-<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-    <h1 class="h2">Dashboard</h1>
-    <form class="row g-2 align-items-center" method="GET">
-        <div class="col-auto">
-            <label for="date_range" class="form-label mb-0">Date Range:</label>
-            <select class="form-select" name="date_range" id="date_range">
-                <option value="today" <?php echo $date_range === 'today' ? 'selected' : ''; ?>>Today</option>
-                <option value="week" <?php echo $date_range === 'week' ? 'selected' : ''; ?>>Last 7 Days</option>
-                <option value="month" <?php echo $date_range === 'month' ? 'selected' : ''; ?>>This Month</option>
-                <option value="custom" <?php echo $date_range === 'custom' ? 'selected' : ''; ?>>Custom Range</option>
-            </select>
-        </div>
-        <div class="col-auto date-inputs" style="display: none;">
-            <label for="start_date" class="form-label mb-0">From:</label>
-            <input type="date" class="form-control" id="start_date" name="start_date" value="<?php echo htmlspecialchars($custom_start); ?>">
-        </div>
-        <div class="col-auto date-inputs" style="display: none;">
-            <label for="end_date" class="form-label mb-0">To:</label>
-            <input type="date" class="form-control" id="end_date" name="end_date" value="<?php echo htmlspecialchars($custom_end); ?>">
-        </div>
-        <div class="col-auto">
-            <button type="submit" class="btn btn-primary">Apply</button>
-        </div>
-    </form>
+<div class="dashboard-cards-row">
+<?php
+$overall_queries = [
+    [
+        'label' => 'Total Branches',
+        'query' => "SELECT COUNT(*) FROM branches",
+        'icon' => 'bi-diagram-3',
+        'bg' => 'bg-primary',
+        'footer' => 'More info <i class=\"bi bi-arrow-right-circle\"></i>',
+        'footer_link' => 'branches.php',
+        'format' => 'number',
+    ],
+    [
+        'label' => 'Test Categories',
+        'query' => "SELECT COUNT(*) FROM test_categories",
+        'icon' => 'bi-tags',
+        'bg' => 'bg-dark',
+        'footer' => 'More info <i class=\"bi bi-arrow-right-circle\"></i>',
+        'footer_link' => 'test-categories.php',
+        'format' => 'number',
+    ],
+    [
+        'label' => 'Active Users',
+        'query' => "SELECT COUNT(*) FROM users WHERE status = 1",
+        'icon' => 'bi-people',
+        'bg' => 'bg-success',
+        'footer' => 'More info <i class=\"bi bi-arrow-right-circle\"></i>',
+        'footer_link' => 'users.php',
+        'format' => 'number',
+    ],
+    [
+        'label' => 'Total Patients',
+        'query' => "SELECT COUNT(*) FROM patients",
+        'icon' => 'bi-person',
+        'bg' => 'bg-info',
+        'footer' => 'More info <i class=\"bi bi-arrow-right-circle\"></i>',
+        'footer_link' => 'patients.php',
+        'format' => 'number',
+    ],
+    [
+        'label' => 'Available Tests',
+        'query' => "SELECT COUNT(*) FROM tests WHERE status = 1",
+        'icon' => 'bi-clipboard-data',
+        'bg' => 'bg-warning',
+        'footer' => 'More info <i class=\"bi bi-arrow-right-circle\"></i>',
+        'footer_link' => 'test-master.php',
+        'format' => 'number',
+    ],
+    [
+        'label' => 'Total Reports',
+        'query' => "SELECT COUNT(*) FROM reports",
+        'icon' => 'bi-file-earmark-text',
+        'bg' => 'bg-danger',
+        'footer' => 'More info <i class=\"bi bi-arrow-right-circle\"></i>',
+        'footer_link' => 'reports.php',
+        'format' => 'number',
+    ],
+    [
+        'label' => 'Total Revenue',
+        'query' => "SELECT COALESCE(SUM(paid_amount), 0) FROM payments",
+        'icon' => 'bi-cash-coin',
+        'bg' => 'bg-secondary',
+        'footer' => 'More info <i class=\"bi bi-arrow-right-circle\"></i>',
+        'footer_link' => '#',
+        'format' => 'currency',
+    ],
+];
+foreach ($overall_queries as $meta) {
+    $stmt = $conn->query($meta['query']);
+    $value = $stmt->fetchColumn() ?? 0;
+    if ($meta['format'] === 'currency') {
+        $value = '₹' . number_format($value, 2);
+    } else {
+        $value = number_format($value);
+    }
+    ?>
+    <div class="dashboard-card <?php echo $meta['bg']; ?>">
+        <div class="card-value"><?php echo $value; ?></div>
+        <div class="card-label"><?php echo $meta['label']; ?></div>
+        <span class="card-icon"><i class="bi <?php echo $meta['icon']; ?>"></i></span>
+        <a class="card-footer d-block" href="<?php echo $meta['footer_link']; ?>"><?php echo $meta['footer']; ?></a>
+    </div>
+<?php } ?>
 </div>
 
-<!-- Dynamic Period Statistics -->
 <div class="row mb-4 g-3">
 <?php
 $period_queries = [
@@ -238,87 +367,6 @@ foreach ($period_queries as $title => $meta) {
         </div>
     </div>
 <?php } ?>
-</div>
-
-<!-- Dynamic Overall Statistics -->
-<div class="row g-3">
-<?php
-$overall_queries = [
-    'Total Branches' => [
-        'query' => "SELECT COUNT(*) FROM branches",
-        'icon' => 'bi-diagram-3',
-        'bg' => 'primary',
-        'text' => 'white',
-        'format' => 'number',
-    ],
-    'Test Categories' => [
-        'query' => "SELECT COUNT(*) FROM test_categories",
-        'icon' => 'bi-tags',
-        'bg' => 'dark',
-        'text' => 'white',
-        'format' => 'number',
-    ],
-    'Active Users <small class=\"text-white-50\">(not deleted)</small>' => [
-        'query' => "SELECT COUNT(*) FROM users WHERE status = 1",
-        'icon' => 'bi-people',
-        'bg' => 'success',
-        'text' => 'white',
-        'format' => 'number',
-        'extra' => '<a href="users.php" class="btn btn-light btn-sm mt-2">View All Users</a>'
-    ],
-    'Total Patients' => [
-        'query' => "SELECT COUNT(*) FROM patients",
-        'icon' => 'bi-person',
-        'bg' => 'info',
-        'text' => 'white',
-        'format' => 'number',
-    ],
-    'Available Tests' => [
-        'query' => "SELECT COUNT(*) FROM tests WHERE status = 1",
-        'icon' => 'bi-clipboard-data',
-        'bg' => 'warning',
-        'text' => 'white',
-        'format' => 'number',
-    ],
-    'Total Reports' => [
-        'query' => "SELECT COUNT(*) FROM reports",
-        'icon' => 'bi-file-earmark-text',
-        'bg' => 'danger',
-        'text' => 'white',
-        'format' => 'number',
-    ],
-    'Total Revenue' => [
-        'query' => "SELECT COALESCE(SUM(paid_amount), 0) FROM payments",
-        'icon' => 'bi-cash-coin',
-        'bg' => 'secondary',
-        'text' => 'white',
-        'format' => 'currency',
-    ],
-];
-$card_count = 0;
-foreach ($overall_queries as $title => $meta) {
-    $stmt = $conn->query($meta['query']);
-    $value = $stmt->fetchColumn() ?? 0;
-    if ($meta['format'] === 'currency') {
-        $value = '₹' . number_format($value, 2);
-    } else {
-        $value = number_format($value);
-    }
-    if ($card_count % 4 === 0 && $card_count !== 0) {
-        echo '</div><div class="row g-3">';
-    }
-    ?>
-    <div class="col-md-3 mb-4">
-        <div class="card bg-<?php echo $meta['bg']; ?> text-<?php echo $meta['text']; ?> h-100 card-stats">
-            <span class="icon"><i class="bi <?php echo $meta['icon']; ?>"></i></span>
-            <div>
-                <h5 class="card-title"><?php echo $title; ?></h5>
-                <div class="display-4" title="<?php echo strip_tags($title); ?>"><?php echo $value; ?></div>
-                <?php if (!empty($meta['extra'])) echo $meta['extra']; ?>
-            </div>
-        </div>
-    </div>
-    <?php $card_count++; } ?>
 </div>
 
 <div class="row">
