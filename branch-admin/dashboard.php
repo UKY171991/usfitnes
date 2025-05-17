@@ -60,6 +60,11 @@ function getBranchRevenueForPeriod($conn, $branch_id, $start_date, $end_date) {
 
 $branch_id = $_SESSION['branch_id'];
 
+// DEBUGGING: Output session branch_id
+error_log("Dashboard - Session branch_id: " . $branch_id); 
+echo "<pre>DEBUG: Dashboard - Session branch_id: " . htmlspecialchars($branch_id) . "</pre>";
+
+
 // Get date range filter
 $date_range = $_GET['date_range'] ?? 'today';
 $custom_start = $_GET['start_date'] ?? '';
@@ -90,6 +95,17 @@ try {
     $branch_stmt->execute([$branch_id]);
     $branch = $branch_stmt->fetch(PDO::FETCH_ASSOC);
 
+    // DEBUGGING: Output fetched branch details
+    error_log("Dashboard - Fetched branch: " . print_r($branch, true));
+    echo "<pre>DEBUG: Dashboard - Fetched branch: " . htmlspecialchars(print_r($branch, true)) . "</pre>";
+
+    // DEBUGGING: Directly test the 'All Time' patient count for this branch_id
+    $debug_all_time_patients_stmt = $conn->prepare("SELECT COUNT(*) as count FROM patients WHERE branch_id = ?");
+    $debug_all_time_patients_stmt->execute([$branch_id]);
+    $debug_all_time_patients_count = $debug_all_time_patients_stmt->fetchColumn();
+    error_log("Dashboard - DEBUG All Time Patient Count for branch_id {$branch_id}: " . $debug_all_time_patients_count);
+    echo "<pre>DEBUG: Dashboard - DEBUG All Time Patient Count for branch_id {$branch_id}: " . htmlspecialchars($debug_all_time_patients_count) . "</pre>";
+    
     // Basic statistics for the branch (using helper functions)
     $stats = [
         'total_patients' => getBranchTotalPatients($conn, $branch_id),
