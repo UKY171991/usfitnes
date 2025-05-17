@@ -11,12 +11,9 @@ if(isset($_POST['delete_user'])) {
     try {
         $stmt = $conn->prepare("DELETE FROM users WHERE id = ?");
         $stmt->execute([$user_id]);
-        
-        // Log activity
         $activity = "User deleted: ID $user_id";
         $stmt = $conn->prepare("INSERT INTO activities (user_id, description) VALUES (?, ?)");
         $stmt->execute([$_SESSION['user_id'], $activity]);
-        
         header("Location: users.php?success=2");
         exit();
     } catch(PDOException $e) {
@@ -28,32 +25,31 @@ if(isset($_POST['delete_user'])) {
 if(isset($_POST['edit_user'])) {
     $user_id = $_POST['user_id'] ?? 0;
     $name = $_POST['name'] ?? '';
+    $username = $_POST['username'] ?? '';
     $email = $_POST['email'] ?? '';
     $phone = $_POST['phone'] ?? '';
     $role = $_POST['role'] ?? '';
     $branch_id = $_POST['branch_id'] ?? null;
     $status = isset($_POST['status']) ? (int)$_POST['status'] : 1;
     $password = $_POST['password'] ?? '';
-
-    if(!empty($name) && !empty($role)) {
+    if(!empty($name) && !empty($username) && !empty($role)) {
         try {
             if (!empty($password)) {
                 $hashed_password = password_hash($password, PASSWORD_DEFAULT);
                 $stmt = $conn->prepare("
                     UPDATE users 
-                    SET name = ?, email = ?, phone = ?, role = ?, branch_id = ?, status = ?, password = ?
+                    SET name = ?, username = ?, email = ?, phone = ?, role = ?, branch_id = ?, status = ?, password = ?
                     WHERE id = ?
                 ");
-                $stmt->execute([$name, $email, $phone, $role, $branch_id, $status, $hashed_password, $user_id]);
+                $stmt->execute([$name, $username, $email, $phone, $role, $branch_id, $status, $hashed_password, $user_id]);
             } else {
                 $stmt = $conn->prepare("
                     UPDATE users 
-                    SET name = ?, email = ?, phone = ?, role = ?, branch_id = ?, status = ?
+                    SET name = ?, username = ?, email = ?, phone = ?, role = ?, branch_id = ?, status = ?
                     WHERE id = ?
                 ");
-                $stmt->execute([$name, $email, $phone, $role, $branch_id, $status, $user_id]);
+                $stmt->execute([$name, $username, $email, $phone, $role, $branch_id, $status, $user_id]);
             }
-            // Log activity
             $activity = "User updated: ID $user_id";
             $stmt = $conn->prepare("INSERT INTO activities (user_id, description) VALUES (?, ?)");
             $stmt->execute([$_SESSION['user_id'], $activity]);
@@ -67,7 +63,7 @@ if(isset($_POST['edit_user'])) {
     }
 }
 
-// Handle form submission (add user)
+// Handle add user
 if(isset($_POST['username']) && isset($_POST['password']) && isset($_POST['name']) && isset($_POST['role'])) {
     $username = $_POST['username'] ?? '';
     $password = $_POST['password'] ?? '';
@@ -85,7 +81,6 @@ if(isset($_POST['username']) && isset($_POST['password']) && isset($_POST['name'
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             ");
             $stmt->execute([$username, $hashed_password, $name, $email, $phone, $role, $branch_id, $status]);
-            // Log activity
             $activity = "New user added: $username";
             $stmt = $conn->prepare("INSERT INTO activities (user_id, description) VALUES (?, ?)");
             $stmt->execute([$_SESSION['user_id'], $activity]);
@@ -101,10 +96,10 @@ if(isset($_POST['username']) && isset($_POST['password']) && isset($_POST['name'
 
 // Get all users with branch names
 $users = $conn->query("
-    SELECT u.*, b.branch_name as branch_name 
+    SELECT u.*, b.branch_name 
     FROM users u 
     LEFT JOIN branches b ON u.branch_id = b.id 
-    ORDER BY u.name
+    ORDER BY u.id DESC
 ")->fetchAll(PDO::FETCH_ASSOC);
 
 // Get all branches for dropdown
@@ -143,10 +138,6 @@ include '../inc/header.php';
     <div class="alert alert-danger"><?php echo $error; ?></div>
 <?php endif; ?>
 
-<?php // DEBUG: Show users array for troubleshooting
-// if (isset($_GET['debug'])) { echo '<pre>'; print_r($users); echo '</pre>'; }
-?>
-<!-- Users Table -->
 <div class="card">
     <div class="card-body">
         <div class="table-responsive">
@@ -162,19 +153,20 @@ include '../inc/header.php';
                         <th>Branch</th>
                         <th>Last Login</th>
                         <th>Status</th>
+                        <th>Created</th>
                         <th class="text-end">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php if (empty($users)): ?>
                         <tr>
-                            <td colspan="10" class="text-center py-4">
+                            <td colspan="11" class="text-center py-4">
                                 <div class="text-muted">
                                     <i class="fas fa-users fa-2x mb-2"></i>
                                     <p>No users found</p>
-                            </div>
-                        </td>
-                    </tr>
+                                </div>
+                            </td>
+                        </tr>
                     <?php else: ?>
                         <?php $sr = 1; foreach($users as $user): ?>
                             <tr>
@@ -187,6 +179,7 @@ include '../inc/header.php';
                                 <td><?php echo htmlspecialchars($user['branch_name'] ?? '-'); ?></td>
                                 <td><?php echo $user['last_login'] ? date('Y-m-d H:i', strtotime($user['last_login'])) : 'Never'; ?></td>
                                 <td><span class="badge bg-<?php echo $user['status'] ? 'success' : 'danger'; ?>"><?php echo $user['status'] ? 'Active' : 'Inactive'; ?></span></td>
+                                <td><?php echo $user['created_at'] ? date('Y-m-d H:i', strtotime($user['created_at'])) : '-'; ?></td>
                                 <td class="text-end">
                                     <div class="btn-group">
                                         <button type="button" class="btn btn-sm btn-info view-user" 
@@ -201,6 +194,7 @@ include '../inc/header.php';
                                                 data-branch="<?php echo htmlspecialchars($user['branch_name']); ?>"
                                                 data-status="<?php echo $user['status']; ?>"
                                                 data-last-login="<?php echo $user['last_login']; ?>"
+                                                data-created-at="<?php echo $user['created_at']; ?>"
                                                 title="View User">
                                             <i class="fas fa-eye"></i>
                                         </button>
@@ -215,15 +209,17 @@ include '../inc/header.php';
                                                 data-role="<?php echo htmlspecialchars($user['role']); ?>"
                                                 data-branch="<?php echo $user['branch_id']; ?>"
                                                 data-status="<?php echo $user['status']; ?>"
+                                                data-created-at="<?php echo $user['created_at']; ?>"
                                                 title="Edit User">
                                             <i class="fas fa-edit"></i>
                                         </button>
-                                        <a href="?delete=<?php echo $user['id']; ?>" 
-                                           class="btn btn-sm btn-danger"
-                                           onclick="return confirm('Are you sure you want to delete this user?')"
-                                           title="Delete User">
-                                            <i class="fas fa-trash"></i>
-                                        </a>
+                                        <form method="POST" action="" style="display:inline;">
+                                            <input type="hidden" name="delete_user" value="1">
+                                            <input type="hidden" name="user_id" value="<?php echo $user['id']; ?>">
+                                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this user?')" title="Delete User">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
                                     </div>
                                 </td>
                             </tr>
@@ -515,5 +511,4 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
-
 <?php include '../inc/footer.php'; ?>
