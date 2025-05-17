@@ -186,9 +186,10 @@ include '../inc/header.php';
                             </td>
                         </tr>
                     <?php else: ?>
+                        <?php $sr_no = 1; // Initialize serial number ?>
                         <?php foreach($users as $user): ?>
                             <tr>
-                                <td><?php echo $user['id']; ?></td>
+                                <td><?php echo $sr_no++; ?></td> <?php // Display and increment serial number ?>
                                 <td><?php echo htmlspecialchars($user['name']); ?></td>
                                 <td><?php echo htmlspecialchars($user['username']); ?></td>
                                 <td><?php echo htmlspecialchars($user['phone']); ?></td>
