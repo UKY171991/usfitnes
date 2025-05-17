@@ -161,22 +161,79 @@ include '../inc/header.php';
 .card-stats {
     display: flex;
     align-items: center;
-    gap: 1rem;
-    min-height: 110px;
-    transition: box-shadow 0.2s;
+    gap: 1.5rem;
+    min-height: 120px;
+    border-radius: 1rem;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    background: linear-gradient(135deg, #f8fafc 60%, #e9ecef 100%);
+    transition: box-shadow 0.2s, transform 0.2s;
+    padding: 1.5rem 1.25rem;
 }
 .card-stats:hover {
-    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+    transform: translateY(-2px) scale(1.01);
 }
 .card-stats .icon {
-    font-size: 2.5rem;
-    opacity: 0.7;
+    font-size: 2.8rem;
+    opacity: 0.85;
+    margin-right: 0.5rem;
 }
+.card-stats .card-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+.card-stats .display-4 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+.card-stats .card-text {
+    font-size: 0.95rem;
+    color: #6c757d;
+}
+
 .table thead th {
     background: #f8f9fa;
+    font-weight: 600;
+    letter-spacing: 0.5px;
 }
 .table tbody tr:hover {
     background: #f1f3f5;
+    transition: background 0.2s;
+}
+
+.card {
+    border-radius: 1rem;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+    border: none;
+}
+.card-header {
+    background: linear-gradient(90deg, #f8fafc 80%, #e9ecef 100%);
+    border-radius: 1rem 1rem 0 0;
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+.btn-primary, .btn-success, .btn-info, .btn-warning, .btn-danger, .btn-secondary {
+    border-radius: 0.5rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+@media (max-width: 767px) {
+    .card-stats {
+        flex-direction: column;
+        align-items: flex-start;
+        min-height: 100px;
+        padding: 1rem 0.75rem;
+    }
+    .card-stats .icon {
+        margin-bottom: 0.5rem;
+        margin-right: 0;
+    }
+    .card-stats .display-4 {
+        font-size: 2rem;
+    }
 }
 </style>
 
