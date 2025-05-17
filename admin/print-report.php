@@ -47,15 +47,143 @@ try {
     error_log("Print Report Error: " . $e->getMessage());
     die('An error occurred while fetching report details.');
 }
-include '../inc/header.php';
+// include '../inc/header.php'; // This line has been removed
 ?>
-<link rel="stylesheet" href="admin-shared.css">
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Report #<?php echo htmlspecialchars($report['id']); ?></title>
+    <link rel="stylesheet" href="admin-shared.css"> <!-- Moved into head -->
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            line-height: 1.4;
+        }
+        .print-container {
+            width: 100%;
+            max-width: 800px; /* Optional: constrain width for screen view */
+            margin: 0 auto; /* Center on screen */
+        }
+        .report-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .report-header h1 {
+            font-size: 18pt;
+            margin-bottom: 5px;
+        }
+        .report-header p {
+            font-size: 10pt;
+            margin-bottom: 3px;
+        }
+        .section {
+            margin-bottom: 25px;
+        }
+        .section-title {
+            font-size: 13pt;
+            font-weight: bold;
+            border-bottom: 2px solid #333;
+            padding-bottom: 4px;
+            margin-bottom: 15px;
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: 160px auto; /* Adjusted for potentially longer labels */
+            gap: 6px 12px;
+            font-size: 10pt;
+        }
+        .info-grid dt {
+            font-weight: bold;
+            color: #444;
+        }
+        .info-grid dd {
+            margin-left: 0; /* Reset default dd margin */
+        }
+        table.detail-table, table.result-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 10pt;
+        }
+        table.detail-table th, table.detail-table td,
+        table.result-table th, table.result-table td {
+            border: 1px solid #bbb;
+            padding: 8px;
+            text-align: left;
+            vertical-align: top;
+        }
+        table.detail-table th {
+            background-color: #f2f2f2; /* Light background for table headers */
+            width: 180px; /* Fixed width for label column */
+        }
+        table.result-table th {
+            background-color: #f2f2f2;
+        }
+        table.result-table td {
+            min-height: 60px; /* Ensure space for results */
+            white-space: pre-wrap; /* Preserve line breaks and spaces in results */
+        }
+        .report-footer {
+            text-align: center;
+            font-size: 9pt;
+            color: #555;
+            margin-top: 40px;
+            border-top: 1px solid #ccc;
+            padding-top: 15px;
+        }
+        .report-footer p {
+            margin: 5px 0;
+        }
+
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            body {
+                margin: 10mm; /* Standard print margin */
+                font-size: 10pt; /* Base font size for print */
+                color: #000; /* Ensure text is black for print */
+                -webkit-print-color-adjust: exact; /* Chrome/Safari: force printing of colors/backgrounds */
+                print-color-adjust: exact; /* Standard: force printing of colors/backgrounds */
+            }
+            .print-container {
+                width: 100%;
+                max-width: none;
+                margin: 0;
+            }
+            .report-header h1 {
+                font-size: 20pt; /* Larger for print header */
+            }
+            .report-header p {
+                font-size: 11pt;
+            }
+            .section-title {
+                font-size: 14pt;
+            }
+            .info-grid {
+                font-size: 10pt;
+            }
+            table.detail-table, table.result-table {
+                font-size: 9pt; /* Slightly smaller table text for print if needed */
+            }
+            table.detail-table th, table.detail-table td,
+            table.result-table th, table.result-table td {
+                padding: 5px; /* Adjust padding for print */
+            }
+            /* Attempt to prevent elements from breaking across pages */
+            .report-header, .section, table, .info-grid, .report-footer {
+                page-break-inside: avoid;
+            }
+            tr, dt, dd {
+                 page-break-inside: avoid;
+            }
+            h1, h2, h3, h4, h5, h6, .section-title {
+                page-break-after: avoid;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="print-container">
