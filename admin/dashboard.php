@@ -251,6 +251,13 @@ $overall_queries = [
         'text' => 'white',
         'format' => 'number',
     ],
+    'Test Categories' => [
+        'query' => "SELECT COUNT(*) FROM test_categories",
+        'icon' => 'bi-tags',
+        'bg' => 'dark',
+        'text' => 'white',
+        'format' => 'number',
+    ],
     'Active Users <small class=\"text-white-50\">(not deleted)</small>' => [
         'query' => "SELECT COUNT(*) FROM users WHERE status = 1",
         'icon' => 'bi-people',
@@ -288,6 +295,7 @@ $overall_queries = [
         'format' => 'currency',
     ],
 ];
+$card_count = 0;
 foreach ($overall_queries as $title => $meta) {
     $stmt = $conn->query($meta['query']);
     $value = $stmt->fetchColumn() ?? 0;
@@ -296,8 +304,11 @@ foreach ($overall_queries as $title => $meta) {
     } else {
         $value = number_format($value);
     }
+    if ($card_count % 4 === 0 && $card_count !== 0) {
+        echo '</div><div class="row g-3">';
+    }
     ?>
-    <div class="col-md-4 mb-4">
+    <div class="col-md-3 mb-4">
         <div class="card bg-<?php echo $meta['bg']; ?> text-<?php echo $meta['text']; ?> h-100 card-stats">
             <span class="icon"><i class="bi <?php echo $meta['icon']; ?>"></i></span>
             <div>
@@ -307,7 +318,7 @@ foreach ($overall_queries as $title => $meta) {
             </div>
         </div>
     </div>
-<?php } ?>
+    <?php $card_count++; } ?>
 </div>
 
 <div class="row">
