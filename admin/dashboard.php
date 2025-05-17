@@ -183,119 +183,131 @@ include '../inc/header.php';
     </form>
 </div>
 
-<!-- Period Statistics -->
+<!-- Dynamic Period Statistics -->
 <div class="row mb-4 g-3">
-    <?php
-    $period_cards = [
-        [
-            'title' => 'New Patients',
-            'value' => $period_stats['new_patients'],
-            'subtitle' => 'In selected period',
-            'icon' => 'bi-person-plus',
-            'border' => 'primary',
-            'text' => 'primary'
-        ],
-        [
-            'title' => 'Completed Reports',
-            'value' => $period_stats['completed_reports'],
-            'subtitle' => 'In selected period',
-            'icon' => 'bi-file-earmark-check',
-            'border' => 'success',
-            'text' => 'success'
-        ],
-        [
-            'title' => 'Pending Reports',
-            'value' => $period_stats['pending_reports'],
-            'subtitle' => 'In selected period',
-            'icon' => 'bi-hourglass-split',
-            'border' => 'warning',
-            'text' => 'warning'
-        ],
-        [
-            'title' => 'Revenue',
-            'value' => '₹' . number_format($period_stats['period_revenue'], 2),
-            'subtitle' => 'In selected period',
-            'icon' => 'bi-currency-rupee',
-            'border' => 'info',
-            'text' => 'info'
-        ]
-    ];
-    foreach ($period_cards as $card): ?>
+<?php
+$period_queries = [
+    'New Patients' => [
+        'query' => "SELECT COUNT(*) FROM patients WHERE created_at >= ? AND created_at < ?",
+        'icon' => 'bi-person-plus',
+        'border' => 'primary',
+        'text' => 'primary',
+        'format' => 'number',
+    ],
+    'Completed Reports' => [
+        'query' => "SELECT COUNT(*) FROM reports WHERE status = 'completed' AND created_at >= ? AND created_at < ?",
+        'icon' => 'bi-file-earmark-check',
+        'border' => 'success',
+        'text' => 'success',
+        'format' => 'number',
+    ],
+    'Pending Reports' => [
+        'query' => "SELECT COUNT(*) FROM reports WHERE status = 'pending' AND created_at >= ? AND created_at < ?",
+        'icon' => 'bi-hourglass-split',
+        'border' => 'warning',
+        'text' => 'warning',
+        'format' => 'number',
+    ],
+    'Revenue' => [
+        'query' => "SELECT COALESCE(SUM(paid_amount), 0) FROM payments WHERE created_at >= ? AND created_at < ?",
+        'icon' => 'bi-currency-rupee',
+        'border' => 'info',
+        'text' => 'info',
+        'format' => 'currency',
+    ],
+];
+$end_date_exclusive = date('Y-m-d', strtotime($end_date . ' +1 day'));
+foreach ($period_queries as $title => $meta) {
+    $stmt = $conn->prepare($meta['query']);
+    $stmt->execute([$start_date, $end_date_exclusive]);
+    $value = $stmt->fetchColumn() ?? 0;
+    if ($meta['format'] === 'currency') {
+        $value = '₹' . number_format($value, 2);
+    } else {
+        $value = number_format($value);
+    }
+    ?>
     <div class="col-md-3">
-        <div class="card border-<?php echo $card['border']; ?> card-stats">
-            <span class="icon text-<?php echo $card['text']; ?>"><i class="bi <?php echo $card['icon']; ?>"></i></span>
+        <div class="card border-<?php echo $meta['border']; ?> card-stats">
+            <span class="icon text-<?php echo $meta['text']; ?>"><i class="bi <?php echo $meta['icon']; ?>"></i></span>
             <div>
-                <h6 class="card-subtitle mb-2 text-muted"><?php echo $card['title']; ?></h6>
-                <h2 class="card-title" title="<?php echo $card['title']; ?> in period"><?php echo is_numeric($card['value']) ? number_format($card['value']) : $card['value']; ?></h2>
-                <p class="card-text text-muted"><?php echo $card['subtitle']; ?></p>
+                <h6 class="card-subtitle mb-2 text-muted"><?php echo $title; ?></h6>
+                <h2 class="card-title" title="<?php echo $title; ?> in period"><?php echo $value; ?></h2>
+                <p class="card-text text-muted">In selected period</p>
             </div>
         </div>
     </div>
-    <?php endforeach; ?>
+<?php } ?>
 </div>
 
-<!-- Overall Statistics -->
+<!-- Dynamic Overall Statistics -->
 <div class="row g-3">
-    <?php
-    $overall_cards = [
-        [
-            'title' => 'Total Branches',
-            'value' => $conn->query("SELECT COUNT(*) FROM branches")->fetchColumn() ?? 0,
-            'icon' => 'bi-diagram-3',
-            'bg' => 'primary',
-            'text' => 'white',
-        ],
-        [
-            'title' => 'Active Users <small class=\"text-white-50\">(not deleted)</small>',
-            'value' => $stats['users'],
-            'icon' => 'bi-people',
-            'bg' => 'success',
-            'text' => 'white',
-            'extra' => '<a href="users.php" class="btn btn-light btn-sm mt-2">View All Users</a>'
-        ],
-        [
-            'title' => 'Total Patients',
-            'value' => $stats['patients'],
-            'icon' => 'bi-person',
-            'bg' => 'info',
-            'text' => 'white',
-        ],
-        [
-            'title' => 'Available Tests',
-            'value' => $stats['tests'],
-            'icon' => 'bi-clipboard-data',
-            'bg' => 'warning',
-            'text' => 'white',
-        ],
-        [
-            'title' => 'Total Reports',
-            'value' => $stats['reports'],
-            'icon' => 'bi-file-earmark-text',
-            'bg' => 'danger',
-            'text' => 'white',
-        ],
-        [
-            'title' => 'Total Revenue',
-            'value' => '₹' . number_format($stats['revenue'], 2),
-            'icon' => 'bi-cash-coin',
-            'bg' => 'secondary',
-            'text' => 'white',
-        ],
-    ];
-    foreach ($overall_cards as $card): ?>
+<?php
+$overall_queries = [
+    'Total Branches' => [
+        'query' => "SELECT COUNT(*) FROM branches",
+        'icon' => 'bi-diagram-3',
+        'bg' => 'primary',
+        'text' => 'white',
+        'format' => 'number',
+    ],
+    'Active Users <small class=\"text-white-50\">(not deleted)</small>' => [
+        'query' => "SELECT COUNT(*) FROM users WHERE status = 1",
+        'icon' => 'bi-people',
+        'bg' => 'success',
+        'text' => 'white',
+        'format' => 'number',
+        'extra' => '<a href="users.php" class="btn btn-light btn-sm mt-2">View All Users</a>'
+    ],
+    'Total Patients' => [
+        'query' => "SELECT COUNT(*) FROM patients",
+        'icon' => 'bi-person',
+        'bg' => 'info',
+        'text' => 'white',
+        'format' => 'number',
+    ],
+    'Available Tests' => [
+        'query' => "SELECT COUNT(*) FROM tests WHERE status = 1",
+        'icon' => 'bi-clipboard-data',
+        'bg' => 'warning',
+        'text' => 'white',
+        'format' => 'number',
+    ],
+    'Total Reports' => [
+        'query' => "SELECT COUNT(*) FROM reports",
+        'icon' => 'bi-file-earmark-text',
+        'bg' => 'danger',
+        'text' => 'white',
+        'format' => 'number',
+    ],
+    'Total Revenue' => [
+        'query' => "SELECT COALESCE(SUM(paid_amount), 0) FROM payments",
+        'icon' => 'bi-cash-coin',
+        'bg' => 'secondary',
+        'text' => 'white',
+        'format' => 'currency',
+    ],
+];
+foreach ($overall_queries as $title => $meta) {
+    $stmt = $conn->query($meta['query']);
+    $value = $stmt->fetchColumn() ?? 0;
+    if ($meta['format'] === 'currency') {
+        $value = '₹' . number_format($value, 2);
+    } else {
+        $value = number_format($value);
+    }
+    ?>
     <div class="col-md-4 mb-4">
-        <div class="card bg-<?php echo $card['bg']; ?> text-<?php echo $card['text']; ?> h-100 card-stats">
-            <span class="icon"><i class="bi <?php echo $card['icon']; ?>"></i></span>
+        <div class="card bg-<?php echo $meta['bg']; ?> text-<?php echo $meta['text']; ?> h-100 card-stats">
+            <span class="icon"><i class="bi <?php echo $meta['icon']; ?>"></i></span>
             <div>
-                <h5 class="card-title"><?php echo $card['title']; ?></h5>
-                <div class="display-4" title="<?php echo strip_tags($card['title']); ?>">
-                    <?php echo is_numeric($card['value']) ? number_format($card['value']) : $card['value']; ?>
-                </div>
-                <?php if (!empty($card['extra'])) echo $card['extra']; ?>
+                <h5 class="card-title"><?php echo $title; ?></h5>
+                <div class="display-4" title="<?php echo strip_tags($title); ?>"><?php echo $value; ?></div>
+                <?php if (!empty($meta['extra'])) echo $meta['extra']; ?>
             </div>
         </div>
     </div>
-    <?php endforeach; ?>
+<?php } ?>
 </div>
 
 <div class="row">
