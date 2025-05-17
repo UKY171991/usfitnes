@@ -271,10 +271,11 @@ include '../inc/header.php';
         <div class="card bg-success text-white h-100 card-stats">
             <span class="icon"><i class="bi bi-people"></i></span>
             <div>
-                <h5 class="card-title">Active Users</h5>
+                <h5 class="card-title">Active Users <small class="text-white-50">(not deleted)</small></h5>
                 <div class="display-4" title="Active users">
                     <?php echo isset($stats['users']) ? number_format($stats['users']) : '0'; ?>
                 </div>
+                <a href="users.php" class="btn btn-light btn-sm mt-2">View All Users</a>
             </div>
         </div>
     </div>
