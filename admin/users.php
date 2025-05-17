@@ -162,7 +162,7 @@ include '../inc/header.php';
             <table class="table table-striped table-hover align-middle">
                 <thead class="table-light">
                     <tr>
-                        <th>ID</th>
+                        <th>#</th>
                         <th>Name</th>
                         <th>Username</th>
                         <th>Phone</th>
