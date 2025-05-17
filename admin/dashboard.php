@@ -257,7 +257,13 @@ include '../inc/header.php';
             <span class="icon"><i class="bi bi-diagram-3"></i></span>
             <div>
                 <h5 class="card-title">Total Branches</h5>
-                <div class="display-4" title="Total active branches"><?php echo isset($stats['branches']) ? number_format($stats['branches']) : '0'; ?></div>
+                <div class="display-4" title="Total branches (all, not just active)">
+                    <?php 
+                    // Show total branches (all, not just active)
+                    $total_branches = $conn->query("SELECT COUNT(*) FROM branches")->fetchColumn() ?? 0;
+                    echo number_format($total_branches);
+                    ?>
+                </div>
             </div>
         </div>
     </div>
@@ -266,7 +272,9 @@ include '../inc/header.php';
             <span class="icon"><i class="bi bi-people"></i></span>
             <div>
                 <h5 class="card-title">Active Users</h5>
-                <div class="display-4" title="Active users"><?php echo isset($stats['users']) ? number_format($stats['users']) : '0'; ?></div>
+                <div class="display-4" title="Active users">
+                    <?php echo isset($stats['users']) ? number_format($stats['users']) : '0'; ?>
+                </div>
             </div>
         </div>
     </div>
@@ -275,7 +283,9 @@ include '../inc/header.php';
             <span class="icon"><i class="bi bi-person"></i></span>
             <div>
                 <h5 class="card-title">Total Patients</h5>
-                <div class="display-4" title="Total patients"><?php echo isset($stats['patients']) ? number_format($stats['patients']) : '0'; ?></div>
+                <div class="display-4" title="Total patients">
+                    <?php echo isset($stats['patients']) ? number_format($stats['patients']) : '0'; ?>
+                </div>
             </div>
         </div>
     </div>
