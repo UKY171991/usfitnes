@@ -156,77 +156,6 @@ try {
 include '../inc/header.php';
 ?>
 <link rel="stylesheet" href="admin-shared.css">
-<style>
-.dashboard-cards-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1.5rem;
-    margin-bottom: 2rem;
-}
-.dashboard-card {
-    flex: 1 1 22%;
-    min-width: 220px;
-    max-width: 24%;
-    background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 2px 12px rgba(44,62,80,0.07);
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    padding: 1.5rem 1.25rem 0.5rem 1.25rem;
-    position: relative;
-    overflow: hidden;
-    transition: box-shadow 0.2s, transform 0.2s;
-}
-.dashboard-card .card-value {
-    font-size: 2.2rem;
-    font-weight: 700;
-    color: #222;
-    margin-bottom: 0.5rem;
-}
-.dashboard-card .card-label {
-    font-size: 1.1rem;
-    color: #444;
-    margin-bottom: 1.5rem;
-}
-.dashboard-card .card-icon {
-    position: absolute;
-    right: 1.25rem;
-    top: 1.25rem;
-    font-size: 3.2rem;
-    opacity: 0.13;
-}
-.dashboard-card .card-footer {
-    background: rgba(0,0,0,0.04);
-    border-radius: 0 0 12px 12px;
-    padding: 0.5rem 1rem;
-    text-align: right;
-    font-weight: 600;
-    color: #007bff;
-    font-size: 1rem;
-    margin: 0 -1.25rem -0.5rem -1.25rem;
-    transition: background 0.2s;
-}
-.dashboard-card .card-footer:hover {
-    background: rgba(0,0,0,0.09);
-    color: #0056b3;
-    text-decoration: underline;
-}
-.dashboard-card.bg-primary { background: #17a2b8; color: #fff; }
-.dashboard-card.bg-success { background: #28a745; color: #fff; }
-.dashboard-card.bg-warning { background: #ffc107; color: #222; }
-.dashboard-card.bg-danger { background: #dc3545; color: #fff; }
-.dashboard-card.bg-info { background: #007bff; color: #fff; }
-.dashboard-card.bg-secondary { background: #6c757d; color: #fff; }
-.dashboard-card.bg-dark { background: #343a40; color: #fff; }
-@media (max-width: 991px) {
-    .dashboard-card { max-width: 48%; min-width: 180px; }
-}
-@media (max-width: 767px) {
-    .dashboard-cards-row { flex-direction: column; gap: 1rem; }
-    .dashboard-card { max-width: 100%; min-width: 100%; }
-}
-</style>
 
 <div class="dashboard-cards-row">
 <?php
@@ -511,6 +440,45 @@ foreach ($period_queries as $title => $meta) {
             </div>
         </div>
     </div>
+</div>
+
+<!-- Small Quick Stats Cards Row -->
+<div class="dashboard-cards-row-small">
+<?php
+$quick_stats = [
+    [
+        'label' => 'Active Branches',
+        'value' => $stats['branches'],
+        'icon' => 'bi-diagram-3',
+        'bg' => 'bg-primary',
+    ],
+    [
+        'label' => 'Active Users',
+        'value' => $stats['users'],
+        'icon' => 'bi-people',
+        'bg' => 'bg-success',
+    ],
+    [
+        'label' => "Today's Revenue",
+        'value' => '₹' . number_format($period_stats['period_revenue'], 2),
+        'icon' => 'bi-cash-coin',
+        'bg' => 'bg-info',
+    ],
+    [
+        'label' => 'Pending Reports',
+        'value' => $period_stats['pending_reports'],
+        'icon' => 'bi-hourglass-split',
+        'bg' => 'bg-warning',
+    ],
+];
+foreach ($quick_stats as $meta) {
+    ?>
+    <div class="dashboard-card-small <?php echo $meta['bg']; ?>">
+        <div class="card-value"><?php echo $meta['value']; ?></div>
+        <div class="card-label"><?php echo $meta['label']; ?></div>
+        <span class="card-icon"><i class="bi <?php echo $meta['icon']; ?>"></i></span>
+    </div>
+<?php } ?>
 </div>
 
 <script>
