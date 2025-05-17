@@ -143,11 +143,10 @@ include '../inc/header.php';
             <table class="table table-striped table-hover align-middle">
                 <thead class="table-light">
                     <tr>
-                        <th>ID</th>
+                        <th>Sr. No.</th>
                         <th>User Details</th>
                         <th>Contact</th>
                         <th>Role</th>
-                        <th>Branch</th>
                         <th>Status</th>
                         <th class="text-end">Actions</th>
                     </tr>
@@ -155,7 +154,7 @@ include '../inc/header.php';
                 <tbody>
                     <?php if (empty($users)): ?>
                         <tr>
-                            <td colspan="7" class="text-center py-4">
+                            <td colspan="6" class="text-center py-4">
                                 <div class="text-muted">
                                     <i class="fas fa-users fa-2x mb-2"></i>
                                     <p>No users found</p>
@@ -163,42 +162,21 @@ include '../inc/header.php';
                             </td>
                         </tr>
                     <?php else: ?>
-                        <?php foreach($users as $user): ?>
+                        <?php $sr = 1; foreach($users as $user): ?>
                             <tr>
-                                <td>
-                                    <span class="badge bg-secondary">
-                                        <?php echo $user['id']; ?>
-                                    </span>
-                                </td>
+                                <td><?php echo $sr++; ?></td>
                                 <td>
                                     <div class="fw-bold"><?php echo htmlspecialchars($user['name']); ?></div>
                                     <small class="text-muted"><?php echo htmlspecialchars($user['username']); ?></small>
                                 </td>
                                 <td>
-                                    <div><?php echo htmlspecialchars($user['phone'] ?: '-'); ?></div>
-                                    <small class="text-muted"><?php echo htmlspecialchars($user['email'] ?: 'No email'); ?></small>
+                                    <?php echo htmlspecialchars($user['phone']); ?><br>
+                                    <?php echo htmlspecialchars($user['email']); ?>
                                 </td>
                                 <td>
-                                    <span class="badge bg-<?php 
-                                        echo match($user['role']) {
-                                            'master_admin' => 'danger',
-                                            'branch_admin' => 'primary',
-                                            'receptionist' => 'info',
-                                            'technician' => 'warning',
-                                            default => 'secondary'
-                                        };
-                                    ?>">
-                                        <?php echo ucfirst(str_replace('_', ' ', $user['role'])); ?>
+                                    <span class="badge bg-<?php echo getRoleBadgeColor($user['role']); ?>">
+                                        <?php echo formatRole($user['role']); ?>
                                     </span>
-                                </td>
-                                <td>
-                                    <?php if ($user['branch_name']): ?>
-                                        <div class="text-truncate" style="max-width: 150px;" title="<?php echo htmlspecialchars($user['branch_name']); ?>">
-                                            <?php echo htmlspecialchars($user['branch_name']); ?>
-                                        </div>
-                                    <?php else: ?>
-                                        <span class="text-muted">-</span>
-                                    <?php endif; ?>
                                 </td>
                                 <td>
                                     <span class="badge bg-<?php echo $user['status'] ? 'success' : 'danger'; ?>">
