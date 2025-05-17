@@ -164,7 +164,7 @@ $overall_queries = [
         'label' => 'Total Branches',
         'query' => "SELECT COUNT(*) FROM branches",
         'icon' => 'bi-diagram-3',
-        'bg' => 'bg-primary',
+        'border' => 'border-primary',
         'footer' => 'More info <i class=\"bi bi-arrow-right-circle\"></i>',
         'footer_link' => 'branches.php',
         'format' => 'number',
@@ -173,7 +173,7 @@ $overall_queries = [
         'label' => 'Test Categories',
         'query' => "SELECT COUNT(*) FROM test_categories",
         'icon' => 'bi-tags',
-        'bg' => 'bg-dark',
+        'border' => 'border-dark',
         'footer' => 'More info <i class=\"bi bi-arrow-right-circle\"></i>',
         'footer_link' => 'test-categories.php',
         'format' => 'number',
@@ -182,7 +182,7 @@ $overall_queries = [
         'label' => 'Active Users',
         'query' => "SELECT COUNT(*) FROM users WHERE status = 1",
         'icon' => 'bi-people',
-        'bg' => 'bg-success',
+        'border' => 'border-success',
         'footer' => 'More info <i class=\"bi bi-arrow-right-circle\"></i>',
         'footer_link' => 'users.php',
         'format' => 'number',
@@ -191,7 +191,7 @@ $overall_queries = [
         'label' => 'Total Patients',
         'query' => "SELECT COUNT(*) FROM patients",
         'icon' => 'bi-person',
-        'bg' => 'bg-info',
+        'border' => 'border-info',
         'footer' => 'More info <i class=\"bi bi-arrow-right-circle\"></i>',
         'footer_link' => 'patients.php',
         'format' => 'number',
@@ -200,7 +200,7 @@ $overall_queries = [
         'label' => 'Available Tests',
         'query' => "SELECT COUNT(*) FROM tests WHERE status = 1",
         'icon' => 'bi-clipboard-data',
-        'bg' => 'bg-warning',
+        'border' => 'border-warning',
         'footer' => 'More info <i class=\"bi bi-arrow-right-circle\"></i>',
         'footer_link' => 'test-master.php',
         'format' => 'number',
@@ -209,7 +209,7 @@ $overall_queries = [
         'label' => 'Total Reports',
         'query' => "SELECT COUNT(*) FROM reports",
         'icon' => 'bi-file-earmark-text',
-        'bg' => 'bg-danger',
+        'border' => 'border-danger',
         'footer' => 'More info <i class=\"bi bi-arrow-right-circle\"></i>',
         'footer_link' => 'reports.php',
         'format' => 'number',
@@ -218,7 +218,7 @@ $overall_queries = [
         'label' => 'Total Revenue',
         'query' => "SELECT COALESCE(SUM(paid_amount), 0) FROM payments",
         'icon' => 'bi-cash-coin',
-        'bg' => 'bg-secondary',
+        'border' => 'border-secondary',
         'footer' => 'More info <i class=\"bi bi-arrow-right-circle\"></i>',
         'footer_link' => '#',
         'format' => 'currency',
@@ -233,11 +233,13 @@ foreach ($overall_queries as $meta) {
         $value = number_format($value);
     }
     ?>
-    <div class="dashboard-card <?php echo $meta['bg']; ?>">
-        <div class="card-value"><?php echo $value; ?></div>
-        <div class="card-label"><?php echo $meta['label']; ?></div>
+    <div class="dashboard-card <?php echo $meta['border']; ?>">
+        <div>
+            <div class="card-value"><?php echo $value; ?></div>
+            <div class="card-label"><?php echo $meta['label']; ?></div>
+            <a class="card-footer d-block" href="<?php echo $meta['footer_link']; ?>"><?php echo $meta['footer']; ?></a>
+        </div>
         <span class="card-icon"><i class="bi <?php echo $meta['icon']; ?>"></i></span>
-        <a class="card-footer d-block" href="<?php echo $meta['footer_link']; ?>"><?php echo $meta['footer']; ?></a>
     </div>
 <?php } ?>
 </div>
@@ -450,32 +452,34 @@ $quick_stats = [
         'label' => 'Active Branches',
         'value' => $stats['branches'],
         'icon' => 'bi-diagram-3',
-        'bg' => 'bg-primary',
+        'border' => 'border-primary',
     ],
     [
         'label' => 'Active Users',
         'value' => $stats['users'],
         'icon' => 'bi-people',
-        'bg' => 'bg-success',
+        'border' => 'border-success',
     ],
     [
         'label' => "Today's Revenue",
         'value' => '₹' . number_format($period_stats['period_revenue'], 2),
         'icon' => 'bi-cash-coin',
-        'bg' => 'bg-info',
+        'border' => 'border-info',
     ],
     [
         'label' => 'Pending Reports',
         'value' => $period_stats['pending_reports'],
         'icon' => 'bi-hourglass-split',
-        'bg' => 'bg-warning',
+        'border' => 'border-warning',
     ],
 ];
 foreach ($quick_stats as $meta) {
     ?>
-    <div class="dashboard-card-small <?php echo $meta['bg']; ?>">
-        <div class="card-value"><?php echo $meta['value']; ?></div>
-        <div class="card-label"><?php echo $meta['label']; ?></div>
+    <div class="dashboard-card-small <?php echo $meta['border']; ?>">
+        <div>
+            <div class="card-value"><?php echo $meta['value']; ?></div>
+            <div class="card-label"><?php echo $meta['label']; ?></div>
+        </div>
         <span class="card-icon"><i class="bi <?php echo $meta['icon']; ?>"></i></span>
     </div>
 <?php } ?>
