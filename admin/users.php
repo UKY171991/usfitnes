@@ -5,6 +5,24 @@ require_once '../auth/session-check.php';
 
 checkAdminAccess();
 
+// Helper function to get role badge color
+function getRoleBadgeColor($role) {
+    $colors = [
+        'master_admin' => 'danger',
+        'admin' => 'warning',
+        'branch_admin' => 'info',
+        'receptionist' => 'success',
+        'technician' => 'primary'
+    ];
+    return $colors[$role] ?? 'secondary';
+}
+
+// Helper function to format role display name
+function formatRole($role) {
+    if (empty($role)) return '-';
+    return ucwords(str_replace('_', ' ', $role));
+}
+
 // Set base URL for all relative links
 $base_url = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/\\') . '/';
 
@@ -499,16 +517,19 @@ document.addEventListener('DOMContentLoaded', function() {
     function getRoleBadgeColor(role) {
         return {
             'master_admin': 'danger',
-            'branch_admin': 'primary',
-            'receptionist': 'info',
-            'technician': 'warning'
+            'admin': 'warning',
+            'branch_admin': 'info',
+            'receptionist': 'success',
+            'technician': 'primary'
         }[role] || 'secondary';
     }
 
-    // Helper function to format role display
+    // Helper function to format role display name
     function formatRole(role) {
-        return role.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+        if (!role) return '-';
+        return role.replace(/_/g, ' ').replace(/\\b\\w/g, l => l.toUpperCase());
     }
 });
 </script>
+
 <?php include '../inc/footer.php'; ?>
