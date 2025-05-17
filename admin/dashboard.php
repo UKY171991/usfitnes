@@ -155,7 +155,7 @@ try {
 
 include '../inc/header.php';
 ?>
-<link rel="stylesheet" href="dashboard.css">
+<link rel="stylesheet" href="admin-shared.css">
 
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
     <h1 class="h2">Dashboard</h1>
@@ -185,115 +185,117 @@ include '../inc/header.php';
 
 <!-- Period Statistics -->
 <div class="row mb-4 g-3">
+    <?php
+    $period_cards = [
+        [
+            'title' => 'New Patients',
+            'value' => $period_stats['new_patients'],
+            'subtitle' => 'In selected period',
+            'icon' => 'bi-person-plus',
+            'border' => 'primary',
+            'text' => 'primary'
+        ],
+        [
+            'title' => 'Completed Reports',
+            'value' => $period_stats['completed_reports'],
+            'subtitle' => 'In selected period',
+            'icon' => 'bi-file-earmark-check',
+            'border' => 'success',
+            'text' => 'success'
+        ],
+        [
+            'title' => 'Pending Reports',
+            'value' => $period_stats['pending_reports'],
+            'subtitle' => 'In selected period',
+            'icon' => 'bi-hourglass-split',
+            'border' => 'warning',
+            'text' => 'warning'
+        ],
+        [
+            'title' => 'Revenue',
+            'value' => '₹' . number_format($period_stats['period_revenue'], 2),
+            'subtitle' => 'In selected period',
+            'icon' => 'bi-currency-rupee',
+            'border' => 'info',
+            'text' => 'info'
+        ]
+    ];
+    foreach ($period_cards as $card): ?>
     <div class="col-md-3">
-        <div class="card border-primary card-stats">
-            <span class="icon text-primary"><i class="bi bi-person-plus"></i></span>
+        <div class="card border-<?php echo $card['border']; ?> card-stats">
+            <span class="icon text-<?php echo $card['text']; ?>"><i class="bi <?php echo $card['icon']; ?>"></i></span>
             <div>
-                <h6 class="card-subtitle mb-2 text-muted">New Patients</h6>
-                <h2 class="card-title" title="New patients in period"><?php echo number_format($period_stats['new_patients']); ?></h2>
-                <p class="card-text text-muted">In selected period</p>
+                <h6 class="card-subtitle mb-2 text-muted"><?php echo $card['title']; ?></h6>
+                <h2 class="card-title" title="<?php echo $card['title']; ?> in period"><?php echo is_numeric($card['value']) ? number_format($card['value']) : $card['value']; ?></h2>
+                <p class="card-text text-muted"><?php echo $card['subtitle']; ?></p>
             </div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card border-success card-stats">
-            <span class="icon text-success"><i class="bi bi-file-earmark-check"></i></span>
-            <div>
-                <h6 class="card-subtitle mb-2 text-muted">Completed Reports</h6>
-                <h2 class="card-title" title="Completed reports in period"><?php echo number_format($period_stats['completed_reports']); ?></h2>
-                <p class="card-text text-muted">In selected period</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card border-warning card-stats">
-            <span class="icon text-warning"><i class="bi bi-hourglass-split"></i></span>
-            <div>
-                <h6 class="card-subtitle mb-2 text-muted">Pending Reports</h6>
-                <h2 class="card-title" title="Pending reports in period"><?php echo number_format($period_stats['pending_reports']); ?></h2>
-                <p class="card-text text-muted">In selected period</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card border-info card-stats">
-            <span class="icon text-info"><i class="bi bi-currency-rupee"></i></span>
-            <div>
-                <h6 class="card-subtitle mb-2 text-muted">Revenue</h6>
-                <h2 class="card-title" title="Revenue in period">₹<?php echo number_format($period_stats['period_revenue'], 2); ?></h2>
-                <p class="card-text text-muted">In selected period</p>
-            </div>
-        </div>
-    </div>
+    <?php endforeach; ?>
 </div>
 
 <!-- Overall Statistics -->
 <div class="row g-3">
+    <?php
+    $overall_cards = [
+        [
+            'title' => 'Total Branches',
+            'value' => $conn->query("SELECT COUNT(*) FROM branches")->fetchColumn() ?? 0,
+            'icon' => 'bi-diagram-3',
+            'bg' => 'primary',
+            'text' => 'white',
+        ],
+        [
+            'title' => 'Active Users <small class=\"text-white-50\">(not deleted)</small>',
+            'value' => $stats['users'],
+            'icon' => 'bi-people',
+            'bg' => 'success',
+            'text' => 'white',
+            'extra' => '<a href="users.php" class="btn btn-light btn-sm mt-2">View All Users</a>'
+        ],
+        [
+            'title' => 'Total Patients',
+            'value' => $stats['patients'],
+            'icon' => 'bi-person',
+            'bg' => 'info',
+            'text' => 'white',
+        ],
+        [
+            'title' => 'Available Tests',
+            'value' => $stats['tests'],
+            'icon' => 'bi-clipboard-data',
+            'bg' => 'warning',
+            'text' => 'white',
+        ],
+        [
+            'title' => 'Total Reports',
+            'value' => $stats['reports'],
+            'icon' => 'bi-file-earmark-text',
+            'bg' => 'danger',
+            'text' => 'white',
+        ],
+        [
+            'title' => 'Total Revenue',
+            'value' => '₹' . number_format($stats['revenue'], 2),
+            'icon' => 'bi-cash-coin',
+            'bg' => 'secondary',
+            'text' => 'white',
+        ],
+    ];
+    foreach ($overall_cards as $card): ?>
     <div class="col-md-4 mb-4">
-        <div class="card bg-primary text-white h-100 card-stats">
-            <span class="icon"><i class="bi bi-diagram-3"></i></span>
+        <div class="card bg-<?php echo $card['bg']; ?> text-<?php echo $card['text']; ?> h-100 card-stats">
+            <span class="icon"><i class="bi <?php echo $card['icon']; ?>"></i></span>
             <div>
-                <h5 class="card-title">Total Branches</h5>
-                <div class="display-4" title="Total branches (all, not just active)">
-                    <?php 
-                    // Show total branches (all, not just active)
-                    $total_branches = $conn->query("SELECT COUNT(*) FROM branches")->fetchColumn() ?? 0;
-                    echo number_format($total_branches);
-                    ?>
+                <h5 class="card-title"><?php echo $card['title']; ?></h5>
+                <div class="display-4" title="<?php echo strip_tags($card['title']); ?>">
+                    <?php echo is_numeric($card['value']) ? number_format($card['value']) : $card['value']; ?>
                 </div>
+                <?php if (!empty($card['extra'])) echo $card['extra']; ?>
             </div>
         </div>
     </div>
-    <div class="col-md-4 mb-4">
-        <div class="card bg-success text-white h-100 card-stats">
-            <span class="icon"><i class="bi bi-people"></i></span>
-            <div>
-                <h5 class="card-title">Active Users <small class="text-white-50">(not deleted)</small></h5>
-                <div class="display-4" title="Active users">
-                    <?php echo isset($stats['users']) ? number_format($stats['users']) : '0'; ?>
-                </div>
-                <a href="users.php" class="btn btn-light btn-sm mt-2">View All Users</a>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4 mb-4">
-        <div class="card bg-info text-white h-100 card-stats">
-            <span class="icon"><i class="bi bi-person"></i></span>
-            <div>
-                <h5 class="card-title">Total Patients</h5>
-                <div class="display-4" title="Total patients">
-                    <?php echo isset($stats['patients']) ? number_format($stats['patients']) : '0'; ?>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4 mb-4">
-        <div class="card bg-warning text-white h-100 card-stats">
-            <span class="icon"><i class="bi bi-clipboard-data"></i></span>
-            <div>
-                <h5 class="card-title">Available Tests</h5>
-                <div class="display-4" title="Available tests"><?php echo isset($stats['tests']) ? number_format($stats['tests']) : '0'; ?></div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4 mb-4">
-        <div class="card bg-danger text-white h-100 card-stats">
-            <span class="icon"><i class="bi bi-file-earmark-text"></i></span>
-            <div>
-                <h5 class="card-title">Total Reports</h5>
-                <div class="display-4" title="Total reports"><?php echo isset($stats['reports']) ? number_format($stats['reports']) : '0'; ?></div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4 mb-4">
-        <div class="card bg-secondary text-white h-100 card-stats">
-            <span class="icon"><i class="bi bi-cash-coin"></i></span>
-            <div>
-                <h5 class="card-title">Total Revenue</h5>
-                <div class="display-4" title="Total revenue">₹<?php echo isset($stats['revenue']) ? number_format($stats['revenue'], 2) : '0.00'; ?></div>
-            </div>
-        </div>
-    </div>
+    <?php endforeach; ?>
 </div>
 
 <div class="row">
