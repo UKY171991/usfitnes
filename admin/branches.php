@@ -36,6 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $pincode = trim($_POST['pincode'] ?? '');
     $phone = trim($_POST['phone'] ?? '');
     $email = trim($_POST['email'] ?? '');
+    $status = $_POST['status'] ?? '1'; // Default to active if not provided
 
     if (empty($name)) {
         $error_msg = "Branch name is required";
@@ -45,13 +46,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 // Generate new branch code for new branches
                 $branch_code = generateBranchCode($conn);
                 // Always set status=1 (active) for new branches
-                $stmt = $conn->prepare("INSERT INTO branches (branch_code, branch_name, address, city, state, pincode, phone, email, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)");
-                $stmt->execute([$branch_code, $name, $address, $city, $state, $pincode, $phone, $email]);
+                $stmt = $conn->prepare("INSERT INTO branches (branch_code, branch_name, address, city, state, pincode, phone, email, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                $stmt->execute([$branch_code, $name, $address, $city, $state, $pincode, $phone, $email, $status]);
                 $success_msg = "Branch added successfully";
             } else {
                 // Update existing branch - don't update branch_code
-                $stmt = $conn->prepare("UPDATE branches SET branch_name = ?, address = ?, city = ?, state = ?, pincode = ?, phone = ?, email = ? WHERE id = ?");
-                $stmt->execute([$name, $address, $city, $state, $pincode, $phone, $email, $branch_id]);
+                $stmt = $conn->prepare("UPDATE branches SET branch_name = ?, address = ?, city = ?, state = ?, pincode = ?, phone = ?, email = ?, status = ? WHERE id = ?");
+                $stmt->execute([$name, $address, $city, $state, $pincode, $phone, $email, $status, $branch_id]);
                 $success_msg = "Branch updated successfully";
             }
 
@@ -202,6 +203,7 @@ include '../inc/header.php';
                                                 data-pincode="<?php echo htmlspecialchars($branch['pincode']); ?>"
                                                 data-phone="<?php echo htmlspecialchars($branch['phone']); ?>"
                                                 data-email="<?php echo htmlspecialchars($branch['email']); ?>"
+                                                data-status="<?php echo $branch['status']; ?>"
                                                 title="Edit Branch">
                                             <i class="fas fa-edit"></i>
                                         </button>
@@ -335,6 +337,14 @@ include '../inc/header.php';
                             <input type="email" class="form-control" id="email" name="email" maxlength="100">
                             <div class="invalid-feedback">Please enter a valid email address</div>
                         </div>
+                        <div class="col-md-12">
+                            <label for="status" class="form-label">Status *</label>
+                            <select class="form-select" id="status" name="status" required>
+                                <option value="1">Active</option>
+                                <option value="0">Inactive</option>
+                            </select>
+                            <div class="invalid-feedback">Please select a status.</div>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -395,6 +405,7 @@ document.addEventListener('DOMContentLoaded', function() {
             modal.querySelector('#pincode').value = this.dataset.pincode;
             modal.querySelector('#phone').value = this.dataset.phone;
             modal.querySelector('#email').value = this.dataset.email;
+            modal.querySelector('#status').value = this.dataset.status;
         });
     });
 
