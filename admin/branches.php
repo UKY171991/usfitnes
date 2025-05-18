@@ -45,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             if (empty($branch_id)) {
                 // Generate new branch code for new branches
                 $branch_code = generateBranchCode($conn);
-                // Always set status=1 (active) for new branches
+                // Status for new branches is taken from the form (defaults to '1' - Active)
                 $stmt = $conn->prepare("INSERT INTO branches (branch_code, branch_name, address, city, state, pincode, phone, email, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
                 $stmt->execute([$branch_code, $name, $address, $city, $state, $pincode, $phone, $email, $status]);
                 $success_msg = "Branch added successfully";
