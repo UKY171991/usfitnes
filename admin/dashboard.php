@@ -161,7 +161,7 @@ include '../inc/header.php';
 <?php
 $overall_queries = [
     [
-        'label' => 'Total Branches',
+        'label' => 'Total Branches uuu',
         'query' => "SELECT COUNT(*) FROM branches",
         'icon' => 'bi-diagram-3',
         'border' => 'border-primary',

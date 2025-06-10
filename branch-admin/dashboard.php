@@ -3,6 +3,79 @@ require_once '../inc/config.php';
 require_once '../inc/db.php';
 require_once '../auth/branch-admin-check.php';
 
+// Helper functions for fetching statistics
+function getBranchTotalPatients($conn, $branch_id) {
+    $stmt = $conn->prepare("SELECT COUNT(*) FROM patients WHERE branch_id = ?");
+    $stmt->execute([$branch_id]);
+    return $stmt->fetchColumn() ?? 0;
+}
+
+function getBranchTotalReports($conn, $branch_id) {
+    $stmt = $conn->prepare("SELECT COUNT(r.id) FROM reports r JOIN patients p ON r.patient_id = p.id WHERE p.branch_id = ?");
+    $stmt->execute([$branch_id]);
+    return $stmt->fetchColumn() ?? 0;
+}
+
+function getBranchTotalRevenue($conn, $branch_id) {
+    $stmt = $conn->prepare("SELECT COALESCE(SUM(py.paid_amount), 0) FROM payments py JOIN reports r ON py.report_id = r.id JOIN patients p ON r.patient_id = p.id WHERE p.branch_id = ?");
+    $stmt->execute([$branch_id]);
+    return $stmt->fetchColumn() ?? 0;
+}
+
+function getBranchAvailableTests($conn, $branch_id) {
+    $stmt = $conn->prepare("SELECT COUNT(*) FROM branch_tests WHERE branch_id = ? AND status = 1");
+    $stmt->execute([$branch_id]);
+    return $stmt->fetchColumn() ?? 0;
+}
+
+function getBranchNewPatientsForPeriod($conn, $branch_id, $start_date, $end_date, $is_all_time = false) {
+    if ($is_all_time) {
+        $stmt = $conn->prepare("SELECT COUNT(*) FROM patients WHERE branch_id = ?");
+        $stmt->execute([$branch_id]);
+    } else {
+        $stmt = $conn->prepare("SELECT COUNT(*) FROM patients WHERE branch_id = ? AND DATE(created_at) BETWEEN ? AND ?");
+        $stmt->execute([$branch_id, $start_date, $end_date]);
+    }
+    return $stmt->fetchColumn() ?? 0;
+}
+
+function getBranchCompletedReportsForPeriod($conn, $branch_id, $start_date, $end_date, $is_all_time = false) {
+    if ($is_all_time) {
+        $stmt = $conn->prepare("SELECT COUNT(r.id) FROM reports r JOIN patients p ON r.patient_id = p.id WHERE p.branch_id = ? AND r.status = 'completed'");
+        $stmt->execute([$branch_id]);
+    } else {
+        if (empty($start_date) || empty($end_date)) { return 0; } // Basic guard
+        $stmt = $conn->prepare("SELECT COUNT(r.id) FROM reports r JOIN patients p ON r.patient_id = p.id WHERE p.branch_id = ? AND r.status = 'completed' AND DATE(r.created_at) BETWEEN ? AND ?");
+        $stmt->execute([$branch_id, $start_date, $end_date]);
+    }
+    return $stmt->fetchColumn() ?? 0;
+}
+
+function getBranchPendingReportsForPeriod($conn, $branch_id, $start_date, $end_date, $is_all_time = false) {
+    if ($is_all_time) {
+        $stmt = $conn->prepare("SELECT COUNT(r.id) FROM reports r JOIN patients p ON r.patient_id = p.id WHERE p.branch_id = ? AND r.status = 'pending'");
+        $stmt->execute([$branch_id]);
+    } else {
+        if (empty($start_date) || empty($end_date)) { return 0; } // Basic guard
+        $stmt = $conn->prepare("SELECT COUNT(r.id) FROM reports r JOIN patients p ON r.patient_id = p.id WHERE p.branch_id = ? AND r.status = 'pending' AND DATE(r.created_at) BETWEEN ? AND ?");
+        $stmt->execute([$branch_id, $start_date, $end_date]);
+    }
+    return $stmt->fetchColumn() ?? 0;
+}
+
+function getBranchRevenueForPeriod($conn, $branch_id, $start_date, $end_date, $is_all_time = false) {
+    if ($is_all_time) {
+        $stmt = $conn->prepare("SELECT COALESCE(SUM(py.paid_amount), 0) FROM payments py JOIN reports r ON py.report_id = r.id JOIN patients p ON r.patient_id = p.id WHERE p.branch_id = ?");
+        $stmt->execute([$branch_id]);
+    } else {
+        if (empty($start_date) || empty($end_date)) { return 0; } // Basic guard
+        $stmt = $conn->prepare("SELECT COALESCE(SUM(py.paid_amount), 0) FROM payments py JOIN reports r ON py.report_id = r.id JOIN patients p ON r.patient_id = p.id WHERE p.branch_id = ? AND DATE(py.created_at) BETWEEN ? AND ?");
+        $stmt->execute([$branch_id, $start_date, $end_date]);
+    }
+    return $stmt->fetchColumn() ?? 0;
+}
+// End of helper functions
+
 $branch_id = $_SESSION['branch_id'];
 
 // Get date range filter
@@ -10,23 +83,39 @@ $date_range = $_GET['date_range'] ?? 'today';
 $custom_start = $_GET['start_date'] ?? '';
 $custom_end = $_GET['end_date'] ?? '';
 
+$is_all_time_filter = ($date_range === 'all');
+
 // Set date range based on filter
-switch($date_range) {
-    case 'week':
-        $start_date = date('Y-m-d', strtotime('-7 days'));
-        $end_date = date('Y-m-d');
-        break;
-    case 'month':
-        $start_date = date('Y-m-01');
-        $end_date = date('Y-m-d');
-        break;
-    case 'custom':
-        $start_date = $custom_start;
-        $end_date = $custom_end;
-        break;
-    default: // today
-        $start_date = date('Y-m-d');
-        $end_date = date('Y-m-d');
+if ($is_all_time_filter) {
+    $start_date = null; // Will be effectively ignored by helper functions when $is_all_time_filter is true
+    $end_date = null;   // Will be effectively ignored by helper functions when $is_all_time_filter is true
+} else {
+    switch($date_range) {
+        case 'week':
+            $start_date = date('Y-m-d', strtotime('-7 days'));
+            $end_date = date('Y-m-d');
+            break;
+        case 'month':
+            $start_date = date('Y-m-01');
+            $end_date = date('Y-m-d');
+            break;
+        case 'custom':
+            if (empty($custom_start) || empty($custom_end) || strtotime($custom_start) > strtotime($custom_end)) {
+                // Default to today if custom dates are invalid or not fully provided
+                $start_date = date('Y-m-d');
+                $end_date = date('Y-m-d');
+                // Optionally, set an error message to display to the user if dates are invalid
+            } else {
+                $start_date = $custom_start;
+                $end_date = $custom_end;
+            }
+            break;
+        case 'today':
+        default: // today or any other unexpected value
+            $start_date = date('Y-m-d');
+            $end_date = date('Y-m-d');
+            break;
+    }
 }
 
 try {
@@ -35,101 +124,21 @@ try {
     $branch_stmt->execute([$branch_id]);
     $branch = $branch_stmt->fetch(PDO::FETCH_ASSOC);
 
-    // Basic statistics for the branch
-    // Total patients
-    $stmt = $conn->prepare("SELECT COUNT(*) FROM patients WHERE branch_id = ?");
-    $stmt->execute([$branch_id]);
-    $total_patients = $stmt->fetchColumn() ?? 0;
-    
-    // Total reports
-    $stmt = $conn->prepare("
-        SELECT COUNT(r.id) 
-        FROM reports r 
-        JOIN patients p ON r.patient_id = p.id 
-        WHERE p.branch_id = ?
-    ");
-    $stmt->execute([$branch_id]);
-    $total_reports = $stmt->fetchColumn() ?? 0;
-    
-    // Total revenue
-    $stmt = $conn->prepare("
-        SELECT COALESCE(SUM(py.paid_amount), 0)
-        FROM payments py
-        JOIN reports r ON py.report_id = r.id
-        JOIN patients p ON r.patient_id = p.id
-        WHERE p.branch_id = ?
-    ");
-    $stmt->execute([$branch_id]);
-    $total_revenue = $stmt->fetchColumn() ?? 0;
-    
-    // Available tests
-    $stmt = $conn->prepare("
-        SELECT COUNT(*) FROM branch_tests 
-        WHERE branch_id = ? AND status = 1
-    ");
-    $stmt->execute([$branch_id]);
-    $available_tests = $stmt->fetchColumn() ?? 0;
-
+    // Basic statistics for the branch (using helper functions)
     $stats = [
-        'total_patients' => $total_patients,
-        'total_reports' => $total_reports,
-        'total_revenue' => $total_revenue,
-        'available_tests' => $available_tests
+        'total_patients' => getBranchTotalPatients($conn, $branch_id),
+        'total_reports' => getBranchTotalReports($conn, $branch_id),
+        'total_revenue' => getBranchTotalRevenue($conn, $branch_id),
+        'available_tests' => getBranchAvailableTests($conn, $branch_id)
     ];
 
-    // Period specific statistics
-    // New patients
-    if ($date_range === 'all') {
-        $stmt = $conn->prepare("SELECT COUNT(*) FROM patients WHERE branch_id = ?");
-        $stmt->execute([$branch_id]);
-        $new_patients = $stmt->fetchColumn() ?? 0;
-    } else {
-        $stmt = $conn->prepare("SELECT COUNT(*) FROM patients WHERE branch_id = ? AND DATE(created_at) BETWEEN ? AND ?");
-        $stmt->execute([$branch_id, $start_date, $end_date]);
-        $new_patients = $stmt->fetchColumn() ?? 0;
-    }
-    
-    // Completed reports
-    $stmt = $conn->prepare("
-        SELECT COUNT(r.id) 
-        FROM reports r 
-        JOIN patients p ON r.patient_id = p.id 
-        WHERE p.branch_id = ? 
-        AND r.status = 'completed'
-        AND DATE(r.created_at) BETWEEN ? AND ?
-    ");
-    $stmt->execute([$branch_id, $start_date, $end_date]);
-    $completed_reports = $stmt->fetchColumn() ?? 0;
-    
-    // Pending reports
-    $stmt = $conn->prepare("
-        SELECT COUNT(r.id) 
-        FROM reports r 
-        JOIN patients p ON r.patient_id = p.id 
-        WHERE p.branch_id = ? 
-        AND r.status = 'pending'
-        AND DATE(r.created_at) BETWEEN ? AND ?
-    ");
-    $stmt->execute([$branch_id, $start_date, $end_date]);
-    $pending_reports = $stmt->fetchColumn() ?? 0;
-    
-    // Period revenue
-    $stmt = $conn->prepare("
-        SELECT COALESCE(SUM(py.paid_amount), 0)
-        FROM payments py
-        JOIN reports r ON py.report_id = r.id
-        JOIN patients p ON r.patient_id = p.id
-        WHERE p.branch_id = ?
-        AND DATE(py.created_at) BETWEEN ? AND ?
-    ");
-    $stmt->execute([$branch_id, $start_date, $end_date]);
-    $period_revenue = $stmt->fetchColumn() ?? 0;
-
+    // Period specific statistics (using helper functions)
+    // Note: The original logic for $new_patients based on $date_range === 'all' is now inside getBranchNewPatientsForPeriod
     $period_stats = [
-        'new_patients' => $new_patients,
-        'completed_reports' => $completed_reports,
-        'pending_reports' => $pending_reports,
-        'period_revenue' => $period_revenue
+        'new_patients' => getBranchNewPatientsForPeriod($conn, $branch_id, $start_date, $end_date, $is_all_time_filter),
+        'completed_reports' => getBranchCompletedReportsForPeriod($conn, $branch_id, $start_date, $end_date, $is_all_time_filter),
+        'pending_reports' => getBranchPendingReportsForPeriod($conn, $branch_id, $start_date, $end_date, $is_all_time_filter),
+        'period_revenue' => getBranchRevenueForPeriod($conn, $branch_id, $start_date, $end_date, $is_all_time_filter)
     ];
 
     // Popular tests in this branch
@@ -152,7 +161,7 @@ try {
     $popular_tests = $popular_tests_stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // Recent payments
-    $payment_stmt = $conn->prepare("
+    $sql_recent_payments = "
         SELECT 
             py.id,
             py.paid_amount,
@@ -164,16 +173,21 @@ try {
         JOIN reports r ON py.report_id = r.id
         JOIN patients p ON r.patient_id = p.id
         JOIN tests t ON r.test_id = t.id
-        WHERE p.branch_id = ?
-        AND DATE(py.created_at) BETWEEN ? AND ?
-        ORDER BY py.created_at DESC
-        LIMIT 5
-    ");
-    $payment_stmt->execute([$branch_id, $start_date, $end_date]);
+        WHERE p.branch_id = ?";
+    $params_recent_payments = [$branch_id];
+
+    if (!$is_all_time_filter && !empty($start_date) && !empty($end_date)) {
+        $sql_recent_payments .= " AND DATE(py.created_at) BETWEEN ? AND ?";
+        $params_recent_payments[] = $start_date;
+        $params_recent_payments[] = $end_date;
+    }
+    $sql_recent_payments .= " ORDER BY py.created_at DESC LIMIT 5";
+    $payment_stmt = $conn->prepare($sql_recent_payments);
+    $payment_stmt->execute($params_recent_payments);
     $recent_payments = $payment_stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // Recent reports
-    $report_stmt = $conn->prepare("
+    $sql_recent_reports = "
         SELECT 
             r.id,
             r.status,
@@ -183,12 +197,17 @@ try {
         FROM reports r
         JOIN patients p ON r.patient_id = p.id
         JOIN tests t ON r.test_id = t.id
-        WHERE p.branch_id = ?
-        AND DATE(r.created_at) BETWEEN ? AND ?
-        ORDER BY r.created_at DESC
-        LIMIT 5
-    ");
-    $report_stmt->execute([$branch_id, $start_date, $end_date]);
+        WHERE p.branch_id = ?";
+    $params_recent_reports = [$branch_id];
+
+    if (!$is_all_time_filter && !empty($start_date) && !empty($end_date)) {
+        $sql_recent_reports .= " AND DATE(r.created_at) BETWEEN ? AND ?";
+        $params_recent_reports[] = $start_date;
+        $params_recent_reports[] = $end_date;
+    }
+    $sql_recent_reports .= " ORDER BY r.created_at DESC LIMIT 5";
+    $report_stmt = $conn->prepare($sql_recent_reports);
+    $report_stmt->execute($params_recent_reports);
     $recent_reports = $report_stmt->fetchAll(PDO::FETCH_ASSOC);
 
 } catch(PDOException $e) {
@@ -720,4 +739,4 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<?php include '../inc/footer.php'; ?> 
+<?php include '../inc/footer.php'; ?>

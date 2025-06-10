@@ -69,14 +69,15 @@ if(isset($_POST['edit_category'])) {
 }
 
 // Handle form submission
-if($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $name = $_POST['category_name'] ?? '';
-    $description = $_POST['description'] ?? '';
-    
+if($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_POST['edit_category']) && !isset($_POST['delete_category'])) {
+    $name = trim($_POST['category_name'] ?? '');
+    $description = trim($_POST['description'] ?? '');
+    $status = $_POST['status'] ?? '0'; // Default to '0' (inactive) if not provided
+
     if(!empty($name)) {
         try {
-            $stmt = $conn->prepare("INSERT INTO test_categories (category_name, description) VALUES (?, ?)");
-            $stmt->execute([$name, $description]);
+            $stmt = $conn->prepare("INSERT INTO test_categories (category_name, description, status) VALUES (?, ?, ?)");
+            $stmt->execute([$name, $description, $status]);
             
             // Log activity
             $activity = "New test category added: $name";
@@ -131,7 +132,7 @@ include '../inc/header.php';
             <table class="table table-striped table-hover align-middle">
                 <thead class="table-light">
                     <tr>
-                        <th>ID</th>
+                        <th>#</th>
                         <th>Category Details</th>
                         <th>Tests</th>
                         <th>Status</th>
@@ -149,14 +150,16 @@ include '../inc/header.php';
                             </td>
                         </tr>
                     <?php else: ?>
+                        <?php $sr_no = 1; // Initialize serial number ?>
                         <?php foreach($categories as $category): 
-                            $status = $category['status'] ?? 'inactive'; // Default to inactive if missing
+                            $db_status = $category['status']; // Assuming this is 0 or 1 from DB
+                            $status_string = ($db_status == 1) ? 'active' : 'inactive';
                             $test_count = $category['test_count'] ?? 0; // Default to 0 if missing
                         ?>
                             <tr>
                                 <td>
                                     <span class="badge bg-secondary">
-                                        <?php echo $category['id']; ?>
+                                        <?php echo $sr_no++; // Display and increment serial number ?>
                                     </span>
                                 </td>
                                 <td>
@@ -169,8 +172,8 @@ include '../inc/header.php';
                                     </span>
                                 </td>
                                 <td>
-                                    <span class="badge bg-<?php echo $status == 'active' ? 'success' : 'danger'; ?>">
-                                        <?php echo ucfirst($status); ?>
+                                    <span class="badge bg-<?php echo ($db_status == 1) ? 'success' : 'danger'; ?>">
+                                        <?php echo ($db_status == 1) ? 'Active' : 'Inactive'; ?>
                                     </span>
                                 </td>
                                 <td class="text-end">
@@ -181,7 +184,7 @@ include '../inc/header.php';
                                                 data-id="<?php echo $category['id']; ?>"
                                                 data-name="<?php echo htmlspecialchars($category['category_name']); ?>"
                                                 data-description="<?php echo htmlspecialchars($category['description']); ?>"
-                                                data-status="<?php echo $status; ?>"
+                                                data-status="<?php echo $status_string; ?>"
                                                 data-test-count="<?php echo $test_count; ?>"
                                                 title="View Category">
                                             <i class="fas fa-eye"></i>
@@ -192,7 +195,7 @@ include '../inc/header.php';
                                                 data-id="<?php echo $category['id']; ?>"
                                                 data-name="<?php echo htmlspecialchars($category['category_name']); ?>"
                                                 data-description="<?php echo htmlspecialchars($category['description']); ?>"
-                                                data-status="<?php echo $status; ?>"
+                                                data-status="<?php echo $status_string; ?>"
                                                 title="Edit Category">
                                             <i class="fas fa-edit"></i>
                                         </button>
@@ -264,6 +267,13 @@ include '../inc/header.php';
                     <div class="mb-3">
                         <label for="description" class="form-label">Description</label>
                         <textarea class="form-control" id="description" name="description"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="add_status" class="form-label">Status</label>
+                        <select class="form-select" id="add_status" name="status">
+                            <option value="1">Active</option>
+                            <option value="0" selected>Inactive</option> <!-- Default to Inactive -->
+                        </select>
                     </div>
                 </div>
                 <div class="modal-footer">

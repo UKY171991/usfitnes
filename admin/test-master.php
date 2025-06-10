@@ -156,7 +156,7 @@ include '../inc/header.php';
             <table class="table table-striped table-hover align-middle">
                 <thead class="table-light">
                     <tr>
-                        <th>ID</th>
+                        <th>#</th>
                         <th>Test Details</th>
                         <th>Price</th>
                         <th>Sample</th>
@@ -176,13 +176,14 @@ include '../inc/header.php';
                             </td>
                         </tr>
                     <?php else: ?>
+                        <?php $sr_no = 1; // Initialize serial number ?>
                         <?php foreach($tests as $test): 
                             $status = $test['status'] ?? 1; // Default to active (1) if missing
                         ?>
                             <tr>
                                 <td>
                                     <span class="badge bg-secondary">
-                                        <?php echo $test['id']; ?>
+                                        <?php echo $sr_no++; // Display and increment serial number ?>
                                     </span>
                                 </td>
                                 <td>

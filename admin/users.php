@@ -5,15 +5,33 @@ require_once '../auth/session-check.php';
 
 checkAdminAccess();
 
+// Helper function to get role badge color
+function getRoleBadgeColor($role) {
+    $colors = [
+        'master_admin' => 'danger',
+        'admin' => 'warning',
+        'branch_admin' => 'info',
+        'receptionist' => 'success',
+        'technician' => 'primary'
+    ];
+    return $colors[$role] ?? 'secondary';
+}
+
+// Helper function to format role display name
+function formatRole($role) {
+    if (empty($role)) return '-';
+    return ucwords(str_replace('_', ' ', $role));
+}
+
+// Set base URL for all relative links
+$base_url = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/\\') . '/';
+
 // Handle delete request
 if(isset($_POST['delete_user'])) {
     $user_id = $_POST['user_id'] ?? 0;
     try {
         $stmt = $conn->prepare("DELETE FROM users WHERE id = ?");
         $stmt->execute([$user_id]);
-        $activity = "User deleted: ID $user_id";
-        $stmt = $conn->prepare("INSERT INTO activities (user_id, description) VALUES (?, ?)");
-        $stmt->execute([$_SESSION['user_id'], $activity]);
         header("Location: users.php?success=2");
         exit();
     } catch(PDOException $e) {
@@ -144,7 +162,7 @@ include '../inc/header.php';
             <table class="table table-striped table-hover align-middle">
                 <thead class="table-light">
                     <tr>
-                        <th>ID</th>
+                        <th>#</th>
                         <th>Name</th>
                         <th>Username</th>
                         <th>Phone</th>
@@ -168,9 +186,10 @@ include '../inc/header.php';
                             </td>
                         </tr>
                     <?php else: ?>
+                        <?php $sr_no = 1; // Initialize serial number ?>
                         <?php foreach($users as $user): ?>
                             <tr>
-                                <td><?php echo $user['id']; ?></td>
+                                <td><?php echo $sr_no++; ?></td> <?php // Display and increment serial number ?>
                                 <td><?php echo htmlspecialchars($user['name']); ?></td>
                                 <td><?php echo htmlspecialchars($user['username']); ?></td>
                                 <td><?php echo htmlspecialchars($user['phone']); ?></td>
@@ -499,16 +518,19 @@ document.addEventListener('DOMContentLoaded', function() {
     function getRoleBadgeColor(role) {
         return {
             'master_admin': 'danger',
-            'branch_admin': 'primary',
-            'receptionist': 'info',
-            'technician': 'warning'
+            'admin': 'warning',
+            'branch_admin': 'info',
+            'receptionist': 'success',
+            'technician': 'primary'
         }[role] || 'secondary';
     }
 
-    // Helper function to format role display
+    // Helper function to format role display name
     function formatRole(role) {
-        return role.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+        if (!role) return '-';
+        return role.replace(/_/g, ' ').replace(/\\b\\w/g, l => l.toUpperCase());
     }
 });
 </script>
+
 <?php include '../inc/footer.php'; ?>

@@ -181,7 +181,7 @@ include '../inc/header.php';
             <table class="table table-striped table-hover align-middle">
                 <thead class="table-light">
                     <tr>
-                        <th>ID</th>
+                        <th>#</th>
                         <th>Patient</th>
                         <th>Test Name</th>
                         <th>Branch</th>
@@ -202,9 +202,10 @@ include '../inc/header.php';
                             </td>
                         </tr>
                     <?php else: ?>
+                        <?php $sr_no = 1; // Initialize serial number ?>
                         <?php foreach($reports as $report): ?>
                             <tr>
-                                <td><?php echo $report['id']; ?></td>
+                                <td><?php echo $sr_no++; ?></td>
                                 <td><?php echo htmlspecialchars($report['patient_name']); ?></td>
                                 <td><?php echo htmlspecialchars($report['test_name'] ?: '-'); ?></td>
                                 <td><?php echo htmlspecialchars($report['branch_name']); ?></td>
