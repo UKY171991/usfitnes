@@ -215,6 +215,15 @@ $overall_queries = [
         'format' => 'number',
     ],
     [
+        'label' => 'Test Parameters',
+        'query' => "SELECT COUNT(*) FROM test_parameters",
+        'icon' => 'bi-sliders',
+        'border' => 'border-primary',
+        'footer' => 'Manage Parameters <i class="bi bi-arrow-right-circle"></i>',
+        'footer_link' => 'test-parameters.php',
+        'format' => 'number',
+    ],
+    [
         'label' => 'Total Reports',
         'query' => "SELECT COUNT(*) FROM reports",
         'icon' => 'bi-file-earmark-text',
