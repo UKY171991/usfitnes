@@ -197,6 +197,15 @@ $overall_queries = [
         'format' => 'number',
     ],
     [
+        'label' => 'Test Master (All)',
+        'query' => "SELECT COUNT(*) FROM tests", // Counts all tests
+        'icon' => 'bi-archive', // Different icon
+        'border' => 'border-info', // Different border color
+        'footer' => 'Manage All Tests <i class="bi bi-arrow-right-circle"></i>',
+        'footer_link' => 'test-master.php',
+        'format' => 'number',
+    ],
+    [
         'label' => 'Available Tests',
         'query' => "SELECT COUNT(*) FROM tests WHERE status = 1",
         'icon' => 'bi-clipboard-data',
