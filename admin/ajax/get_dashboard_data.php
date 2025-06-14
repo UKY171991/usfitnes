@@ -88,20 +88,22 @@ try {
     $activity_stmt->execute([$start_date, $end_date]);
     $response_data['activities'] = $activity_stmt->fetchAll(PDO::FETCH_ASSOC);
 
-} catch(PDOException $e) {
-    // Log the detailed PDO exception message to the server's error log
-    error_log("AJAX Dashboard PDOException: " . $e->getMessage() . " in " . $e->getFile() . " on line " . $e->getLine());
+} catch (PDOException $e) {
+    http_response_code(500);
+    // Log to server error log
+    error_log("PDOException in get_dashboard_data.php: " . $e->getMessage() . " in " . $e->getFile() . " on line " . $e->getLine() . "\\nTrace: " . $e->getTraceAsString());
     
-    // Also, include a more specific error message in the JSON response for client-side debugging if appropriate
-    // For production, you might want to keep client-side error messages more generic.
-    $response_data['error'] = 'Database operation failed. Check server logs for details.';
-    // $response_data['debug_error'] = $e->getMessage(); // Optionally send detailed error to client during development
+    // Temporarily send detailed error to client for debugging
+    $response_data['error'] = 'Database Error: ' . $e->getMessage();
+    // Optionally, add more details, but be cautious in production
+    $response_data['error_details'] = [
+        'message' => $e->getMessage(),
+        'file' => $e->getFile(),
+        'line' => $e->getLine()
+        // 'trace' => $e->getTraceAsString() // Avoid sending full trace to client in production
+    ];
     
-    // It's good practice to set an appropriate HTTP status code for errors
-    if (!headers_sent()) {
-        http_response_code(500); // Internal Server Error
-    }
-} catch(Exception $e) {
+} catch (Exception $e) {
     // Catch any other general exceptions
     error_log("AJAX Dashboard Exception: " . $e->getMessage() . " in " . $e->getFile() . " on line " . $e->getLine());
     $response_data['error'] = 'An unexpected error occurred. Check server logs for details.';
