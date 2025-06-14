@@ -155,353 +155,398 @@ try {
 
 include '../inc/header.php';
 ?>
-<link rel="stylesheet" href="admin-shared.css">
+<link rel="stylesheet" href="admin-shared.css"> 
+<link rel="stylesheet" href="dashboard.css"> <!-- Ensure dashboard.css is also linked -->
 
-<div class="dashboard-cards-row">
-<?php
-$overall_queries = [
-    [
-        'label' => 'Total Branches uuu',
-        'query' => "SELECT COUNT(*) FROM branches",
-        'icon' => 'bi-diagram-3',
-        'border' => 'border-primary',
-        'footer' => 'More info <i class=\"bi bi-arrow-right-circle\"></i>',
-        'footer_link' => 'branches.php',
-        'format' => 'number',
-    ],
-    [
-        'label' => 'Test Categories',
-        'query' => "SELECT COUNT(*) FROM test_categories",
-        'icon' => 'bi-tags',
-        'border' => 'border-dark',
-        'footer' => 'More info <i class=\"bi bi-arrow-right-circle\"></i>',
-        'footer_link' => 'test-categories.php',
-        'format' => 'number',
-    ],
-    [
-        'label' => 'Active Users',
-        'query' => "SELECT COUNT(*) FROM users WHERE status = 1",
-        'icon' => 'bi-people',
-        'border' => 'border-success',
-        'footer' => 'More info <i class=\"bi bi-arrow-right-circle\"></i>',
-        'footer_link' => 'users.php',
-        'format' => 'number',
-    ],
-    [
-        'label' => 'Total Patients',
-        'query' => "SELECT COUNT(*) FROM patients",
-        'icon' => 'bi-person',
-        'border' => 'border-info',
-        'footer' => 'More info <i class=\"bi bi-arrow-right-circle\"></i>',
-        'footer_link' => 'patients.php',
-        'format' => 'number',
-    ],
-    [
-        'label' => 'Test Master (All)',
-        'query' => "SELECT COUNT(*) FROM tests", // Counts all tests
-        'icon' => 'bi-archive', // Different icon
-        'border' => 'border-info', // Different border color
-        'footer' => 'Manage All Tests <i class="bi bi-arrow-right-circle"></i>',
-        'footer_link' => 'test-master.php',
-        'format' => 'number',
-    ],
-    [
-        'label' => 'Available Tests',
-        'query' => "SELECT COUNT(*) FROM tests WHERE status = 1",
-        'icon' => 'bi-clipboard-data',
-        'border' => 'border-warning',
-        'footer' => 'More info <i class=\"bi bi-arrow-right-circle\"></i>',
-        'footer_link' => 'test-master.php',
-        'format' => 'number',
-    ],
-    [
-        'label' => 'Test Parameters',
-        'query' => "SELECT COUNT(*) FROM test_parameters",
-        'icon' => 'bi-sliders',
-        'border' => 'border-primary',
-        'footer' => 'Manage Parameters <i class="bi bi-arrow-right-circle"></i>',
-        'footer_link' => 'test-parameters.php',
-        'format' => 'number',
-    ],
-    [
-        'label' => 'Total Reports',
-        'query' => "SELECT COUNT(*) FROM reports",
-        'icon' => 'bi-file-earmark-text',
-        'border' => 'border-danger',
-        'footer' => 'More info <i class=\"bi bi-arrow-right-circle\"></i>',
-        'footer_link' => 'reports.php',
-        'format' => 'number',
-    ],
-    [
-        'label' => 'Total Revenue',
-        'query' => "SELECT COALESCE(SUM(paid_amount), 0) FROM payments",
-        'icon' => 'bi-cash-coin',
-        'border' => 'border-secondary',
-        'footer' => 'More info <i class=\"bi bi-arrow-right-circle\"></i>',
-        'footer_link' => '#',
-        'format' => 'currency',
-    ],
-];
-foreach ($overall_queries as $meta) {
-    $stmt = $conn->query($meta['query']);
-    $value = $stmt->fetchColumn() ?? 0;
-    if ($meta['format'] === 'currency') {
-        $value = '₹' . number_format($value, 2);
-    } else {
-        $value = number_format($value);
-    }
-    ?>
-    <div class="dashboard-card <?php echo $meta['border']; ?>">
-        <div>
-            <div class="card-value"><?php echo $value; ?></div>
-            <div class="card-label"><?php echo $meta['label']; ?></div>
-            <a class="card-footer d-block" href="<?php echo $meta['footer_link']; ?>"><?php echo $meta['footer']; ?></a>
-        </div>
-        <span class="card-icon"><i class="bi <?php echo $meta['icon']; ?>"></i></span>
-    </div>
-<?php } ?>
-</div>
+<div class="container-fluid">
+    <h1 class="dashboard-title">Admin Dashboard</h1>
 
-<div class="row mb-4 g-3">
-<?php
-$period_queries = [
-    'New Patients' => [
-        'query' => "SELECT COUNT(*) FROM patients WHERE created_at >= ? AND created_at < ?",
-        'icon' => 'bi-person-plus',
-        'border' => 'primary',
-        'text' => 'primary',
-        'format' => 'number',
-    ],
-    'Completed Reports' => [
-        'query' => "SELECT COUNT(*) FROM reports WHERE status = 'completed' AND created_at >= ? AND created_at < ?",
-        'icon' => 'bi-file-earmark-check',
-        'border' => 'success',
-        'text' => 'success',
-        'format' => 'number',
-    ],
-    'Pending Reports' => [
-        'query' => "SELECT COUNT(*) FROM reports WHERE status = 'pending' AND created_at >= ? AND created_at < ?",
-        'icon' => 'bi-hourglass-split',
-        'border' => 'warning',
-        'text' => 'warning',
-        'format' => 'number',
-    ],
-    'Revenue' => [
-        'query' => "SELECT COALESCE(SUM(paid_amount), 0) FROM payments WHERE created_at >= ? AND created_at < ?",
-        'icon' => 'bi-currency-rupee',
-        'border' => 'info',
-        'text' => 'info',
-        'format' => 'currency',
-    ],
-];
-$end_date_exclusive = date('Y-m-d', strtotime($end_date . ' +1 day'));
-foreach ($period_queries as $title => $meta) {
-    $stmt = $conn->prepare($meta['query']);
-    $stmt->execute([$start_date, $end_date_exclusive]);
-    $value = $stmt->fetchColumn() ?? 0;
-    if ($meta['format'] === 'currency') {
-        $value = '₹' . number_format($value, 2);
-    } else {
-        $value = number_format($value);
-    }
-    ?>
-    <div class="col-md-3">
-        <div class="card border-<?php echo $meta['border']; ?> card-stats">
-            <span class="icon text-<?php echo $meta['text']; ?>"><i class="bi <?php echo $meta['icon']; ?>"></i></span>
-            <div>
-                <h6 class="card-subtitle mb-2 text-muted"><?php echo $title; ?></h6>
-                <h2 class="card-title" title="<?php echo $title; ?> in period"><?php echo $value; ?></h2>
-                <p class="card-text text-muted">In selected period</p>
-            </div>
-        </div>
-    </div>
-<?php } ?>
-</div>
-
-<div class="row">
-    <!-- Branch Statistics -->
-    <div class="col-md-6 mb-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">Top Performing Branches</h5>
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>Branch</th>
-                                <th>Patients</th>
-                                <th>Reports</th>
-                                <th>Revenue</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach($branch_stats as $branch): ?>
-                                <tr>
-                                    <td><?php echo htmlspecialchars($branch['branch_name']); ?></td>
-                                    <td><?php echo number_format($branch['patient_count']); ?></td>
-                                    <td><?php echo number_format($branch['report_count']); ?></td>
-                                    <td>₹<?php echo number_format($branch['revenue'], 2); ?></td>
-                                </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
+    <!-- Date Filter Form -->
+    <form method="GET" action="dashboard.php" class="date-filter-form card mb-4">
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label for="date_range" class="form-label">Select Period:</label>
+                    <select name="date_range" id="date_range" class="form-select">
+                        <option value="today" <?php echo ($date_range == 'today') ? 'selected' : ''; ?>>Today</option>
+                        <option value="week" <?php echo ($date_range == 'week') ? 'selected' : ''; ?>>Last 7 Days</option>
+                        <option value="month" <?php echo ($date_range == 'month') ? 'selected' : ''; ?>>This Month</option>
+                        <option value="custom" <?php echo ($date_range == 'custom') ? 'selected' : ''; ?>>Custom Range</option>
+                    </select>
+                </div>
+                <div class="col-md-3 date-inputs" style="display: <?php echo ($date_range == 'custom') ? 'block' : 'none'; ?>;">
+                    <label for="start_date" class="form-label">Start Date:</label>
+                    <input type="date" name="start_date" id="start_date" class="form-control" value="<?php echo htmlspecialchars($custom_start); ?>">
+                </div>
+                <div class="col-md-3 date-inputs" style="display: <?php echo ($date_range == 'custom') ? 'block' : 'none'; ?>;">
+                    <label for="end_date" class="form-label">End Date:</label>
+                    <input type="date" name="end_date" id="end_date" class="form-control" value="<?php echo htmlspecialchars($custom_end); ?>">
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-primary w-100">Apply Filter</button>
                 </div>
             </div>
         </div>
+    </form>
+
+    <!-- Overall Stats Cards -->
+    <div class="dashboard-cards-row">
+    <?php
+    $overall_queries = [
+        [
+            'label' => 'Total Branches uuu',
+            'query' => "SELECT COUNT(*) FROM branches",
+            'icon' => 'bi-diagram-3',
+            'border' => 'border-primary',
+            'footer' => 'More info <i class=\"bi bi-arrow-right-circle\"></i>',
+            'footer_link' => 'branches.php',
+            'format' => 'number',
+        ],
+        [
+            'label' => 'Test Categories',
+            'query' => "SELECT COUNT(*) FROM test_categories",
+            'icon' => 'bi-tags',
+            'border' => 'border-dark',
+            'footer' => 'More info <i class=\"bi bi-arrow-right-circle\"></i>',
+            'footer_link' => 'test-categories.php',
+            'format' => 'number',
+        ],
+        [
+            'label' => 'Active Users',
+            'query' => "SELECT COUNT(*) FROM users WHERE status = 1",
+            'icon' => 'bi-people',
+            'border' => 'border-success',
+            'footer' => 'More info <i class=\"bi bi-arrow-right-circle\"></i>',
+            'footer_link' => 'users.php',
+            'format' => 'number',
+        ],
+        [
+            'label' => 'Total Patients',
+            'query' => "SELECT COUNT(*) FROM patients",
+            'icon' => 'bi-person',
+            'border' => 'border-info',
+            'footer' => 'More info <i class=\"bi bi-arrow-right-circle\"></i>',
+            'footer_link' => 'patients.php',
+            'format' => 'number',
+        ],
+        [
+            'label' => 'Test Master (All)',
+            'query' => "SELECT COUNT(*) FROM tests", // Counts all tests
+            'icon' => 'bi-archive', // Different icon
+            'border' => 'border-info', // Different border color
+            'footer' => 'Manage All Tests <i class="bi bi-arrow-right-circle"></i>',
+            'footer_link' => 'test-master.php',
+            'format' => 'number',
+        ],
+        [
+            'label' => 'Available Tests',
+            'query' => "SELECT COUNT(*) FROM tests WHERE status = 1",
+            'icon' => 'bi-clipboard-data',
+            'border' => 'border-warning',
+            'footer' => 'More info <i class=\"bi bi-arrow-right-circle\"></i>',
+            'footer_link' => 'test-master.php',
+            'format' => 'number',
+        ],
+        [
+            'label' => 'Test Parameters',
+            'query' => "SELECT COUNT(*) FROM test_parameters",
+            'icon' => 'bi-sliders',
+            'border' => 'border-primary',
+            'footer' => 'Manage Parameters <i class="bi bi-arrow-right-circle"></i>',
+            'footer_link' => 'test-parameters.php',
+            'format' => 'number',
+        ],
+        [
+            'label' => 'Total Reports',
+            'query' => "SELECT COUNT(*) FROM reports",
+            'icon' => 'bi-file-earmark-text',
+            'border' => 'border-danger',
+            'footer' => 'More info <i class=\"bi bi-arrow-right-circle\"></i>',
+            'footer_link' => 'reports.php',
+            'format' => 'number',
+        ],
+        [
+            'label' => 'Total Revenue',
+            'query' => "SELECT COALESCE(SUM(paid_amount), 0) FROM payments",
+            'icon' => 'bi-cash-coin',
+            'border' => 'border-secondary',
+            'footer' => 'More info <i class=\"bi bi-arrow-right-circle\"></i>',
+            'footer_link' => '#',
+            'format' => 'currency',
+        ],
+    ];
+    foreach ($overall_queries as $meta) {
+        $stmt = $conn->query($meta['query']);
+        $value = $stmt->fetchColumn() ?? 0;
+        if ($meta['format'] === 'currency') {
+            $value = '₹' . number_format($value, 2);
+        } else {
+            $value = number_format($value);
+        }
+        ?>
+        <div class="dashboard-card <?php echo $meta['border']; ?>">
+            <div class="card-content">
+                <div class="card-text-content">
+                    <div class="card-value"><?php echo $value; ?></div>
+                    <div class="card-label"><?php echo $meta['label']; ?></div>
+                </div>
+                <span class="card-icon"><i class="bi <?php echo $meta['icon']; ?>"></i></span>
+            </div>
+            <a class="card-footer" href="<?php echo $meta['footer_link']; ?>"><?php echo $meta['footer']; ?></a>
+        </div>
+    <?php } ?>
     </div>
 
-    <!-- Test Category Statistics -->
-    <div class="col-md-6 mb-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">Test Categories Overview</h5>
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>Category</th>
-                                <th>Tests</th>
-                                <th>Reports</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach($category_stats as $category): ?>
-                                <tr>
-                                    <td><?php echo htmlspecialchars($category['category_name']); ?></td>
-                                    <td><?php echo number_format($category['test_count']); ?></td>
-                                    <td><?php echo number_format($category['report_count']); ?></td>
-                                </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
+    <!-- Period Specific Stats -->
+    <h2 class="page-title mt-5 mb-3">Statistics for Selected Period</h2>
+    <div class="row g-3 mb-4">
+    <?php
+    $period_queries = [
+        'New Patients' => [
+            'query' => "SELECT COUNT(*) FROM patients WHERE created_at >= ? AND created_at < ?",
+            'icon' => 'bi-person-plus',
+            'border' => 'primary',
+            'text' => 'primary',
+            'format' => 'number',
+        ],
+        'Completed Reports' => [
+            'query' => "SELECT COUNT(*) FROM reports WHERE status = 'completed' AND created_at >= ? AND created_at < ?",
+            'icon' => 'bi-file-earmark-check',
+            'border' => 'success',
+            'text' => 'success',
+            'format' => 'number',
+        ],
+        'Pending Reports' => [
+            'query' => "SELECT COUNT(*) FROM reports WHERE status = 'pending' AND created_at >= ? AND created_at < ?",
+            'icon' => 'bi-hourglass-split',
+            'border' => 'warning',
+            'text' => 'warning',
+            'format' => 'number',
+        ],
+        'Revenue' => [
+            'query' => "SELECT COALESCE(SUM(paid_amount), 0) FROM payments WHERE created_at >= ? AND created_at < ?",
+            'icon' => 'bi-currency-rupee',
+            'border' => 'info',
+            'text' => 'info',
+            'format' => 'currency',
+        ],
+    ];
+    $end_date_exclusive = date('Y-m-d', strtotime($end_date . ' +1 day'));
+    foreach ($period_queries as $title => $meta) {
+        $stmt = $conn->prepare($meta['query']);
+        $stmt->execute([$start_date, $end_date_exclusive]);
+        $value = $stmt->fetchColumn() ?? 0;
+        if ($meta['format'] === 'currency') {
+            $value = '₹' . number_format($value, 2);
+        } else {
+            $value = number_format($value);
+        }
+        ?>
+        <div class="col-md-3">
+            <div class="card card-stats border-<?php echo $meta['border']; ?> h-100">
+                 <div class="card-body d-flex align-items-center">
+                    <span class="icon text-<?php echo $meta['text']; ?> me-3"><i class="bi <?php echo $meta['icon']; ?>"></i></span>
+                    <div>
+                        <h2 class="display-4"><?php echo $value; ?></h2>
+                        <h6 class="card-title"><?php echo $title; ?></h6>
+                        <!-- <p class="card-text text-muted">In selected period</p> -->
+                    </div>
                 </div>
             </div>
         </div>
+    <?php } ?>
     </div>
-</div>
 
-<div class="row">
-    <!-- Recent Payments -->
-    <div class="col-md-6 mb-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">Recent Payments</h5>
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>Patient</th>
-                                <th>Test</th>
-                                <th>Amount</th>
-                                <th>Date</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php if(empty($recent_payments)): ?>
+    <!-- Data Tables in Cards -->
+    <div class="row">
+        <!-- Branch Statistics -->
+        <div class="col-md-6 mb-4">
+            <div class="card card-table">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Top Performing Branches</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
                                 <tr>
-                                    <td colspan="4" class="text-center">No recent payments</td>
+                                    <th>Branch</th>
+                                    <th>Patients</th>
+                                    <th>Reports</th>
+                                    <th>Revenue</th>
                                 </tr>
-                            <?php else: ?>
-                                <?php foreach($recent_payments as $payment): ?>
+                            </thead>
+                            <tbody>
+                                <?php foreach($branch_stats as $branch): ?>
                                     <tr>
-                                        <td><?php echo htmlspecialchars($payment['patient_name']); ?></td>
-                                        <td><?php echo htmlspecialchars($payment['test_name']); ?></td>
-                                        <td>₹<?php echo number_format($payment['paid_amount'], 2); ?></td>
-                                        <td><?php echo date('Y-m-d H:i', strtotime($payment['created_at'])); ?></td>
+                                        <td><?php echo htmlspecialchars($branch['branch_name']); ?></td>
+                                        <td><?php echo number_format($branch['patient_count']); ?></td>
+                                        <td><?php echo number_format($branch['report_count']); ?></td>
+                                        <td>₹<?php echo number_format($branch['revenue'], 2); ?></td>
                                     </tr>
                                 <?php endforeach; ?>
-                            <?php endif; ?>
-                        </tbody>
-                    </table>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Recent Activities -->
-    <div class="col-md-6 mb-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">Recent Activities</h5>
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>Activity</th>
-                                <th>User</th>
-                                <th>Date</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php if(empty($activities)): ?>
+        <!-- Test Category Statistics -->
+        <div class="col-md-6 mb-4">
+            <div class="card card-table">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Test Categories Overview</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
                                 <tr>
-                                    <td colspan="3" class="text-center">No recent activities</td>
+                                    <th>Category</th>
+                                    <th>Tests</th>
+                                    <th>Reports</th>
                                 </tr>
-                            <?php else: ?>
-                                <?php foreach($activities as $activity): ?>
+                            </thead>
+                            <tbody>
+                                <?php foreach($category_stats as $category): ?>
                                     <tr>
-                                        <td><?php echo htmlspecialchars($activity['description']); ?></td>
-                                        <td><?php echo htmlspecialchars($activity['user_name'] ?? 'Unknown User'); ?></td>
-                                        <td><?php echo date('Y-m-d H:i', strtotime($activity['created_at'])); ?></td>
+                                        <td><?php echo htmlspecialchars($category['category_name']); ?></td>
+                                        <td><?php echo number_format($category['test_count']); ?></td>
+                                        <td><?php echo number_format($category['report_count']); ?></td>
                                     </tr>
                                 <?php endforeach; ?>
-                            <?php endif; ?>
-                        </tbody>
-                    </table>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
 
-<!-- Small Quick Stats Cards Row -->
-<div class="dashboard-cards-row-small">
-<?php
-$quick_stats = [
-    [
-        'label' => 'Active Branches',
-        'value' => $stats['branches'],
-        'icon' => 'bi-diagram-3',
-        'border' => 'border-primary',
-    ],
-    [
-        'label' => 'Active Users',
-        'value' => $stats['users'],
-        'icon' => 'bi-people',
-        'border' => 'border-success',
-    ],
-    [
-        'label' => "Today's Revenue",
-        'value' => '₹' . number_format($period_stats['period_revenue'], 2),
-        'icon' => 'bi-cash-coin',
-        'border' => 'border-info',
-    ],
-    [
-        'label' => 'Pending Reports',
-        'value' => $period_stats['pending_reports'],
-        'icon' => 'bi-hourglass-split',
-        'border' => 'border-warning',
-    ],
-];
-foreach ($quick_stats as $meta) {
-    ?>
-    <div class="dashboard-card-small <?php echo $meta['border']; ?>">
-        <div>
-            <div class="card-value"><?php echo $meta['value']; ?></div>
-            <div class="card-label"><?php echo $meta['label']; ?></div>
+    <div class="row">
+        <!-- Recent Payments -->
+        <div class="col-md-6 mb-4">
+            <div class="card card-table">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Recent Payments (Selected Period)</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Patient</th>
+                                    <th>Test</th>
+                                    <th>Amount</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php if(empty($recent_payments)): ?>
+                                    <tr>
+                                        <td colspan="4" class="text-center">No recent payments</td>
+                                    </tr>
+                                <?php else: ?>
+                                    <?php foreach($recent_payments as $payment): ?>
+                                        <tr>
+                                            <td><?php echo htmlspecialchars($payment['patient_name']); ?></td>
+                                            <td><?php echo htmlspecialchars($payment['test_name']); ?></td>
+                                            <td>₹<?php echo number_format($payment['paid_amount'], 2); ?></td>
+                                            <td><?php echo date('Y-m-d H:i', strtotime($payment['created_at'])); ?></td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
-        <span class="card-icon"><i class="bi <?php echo $meta['icon']; ?>"></i></span>
+
+        <!-- Recent Activities -->
+        <div class="col-md-6 mb-4">
+            <div class="card card-table">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Recent Activities (Selected Period)</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Activity</th>
+                                    <th>User</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php if(empty($activities)): ?>
+                                    <tr>
+                                        <td colspan="3" class="text-center">No recent activities</td>
+                                    </tr>
+                                <?php else: ?>
+                                    <?php foreach($activities as $activity): ?>
+                                        <tr>
+                                            <td><?php echo htmlspecialchars($activity['description']); ?></td>
+                                            <td><?php echo htmlspecialchars($activity['user_name'] ?? 'Unknown User'); ?></td>
+                                            <td><?php echo date('Y-m-d H:i', strtotime($activity['created_at'])); ?></td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-<?php } ?>
-</div>
+
+    <!-- Small Quick Stats Cards Row -->
+    <h2 class="page-title mt-4 mb-3">Quick Overview (Overall)</h2>
+    <div class="dashboard-cards-row-small">
+    <?php
+    $quick_stats = [
+        [
+            'label' => 'Active Branches',
+            'value' => $stats['branches'],
+            'icon' => 'bi-diagram-3',
+            'border' => 'border-primary',
+        ],
+        [
+            'label' => 'Active Users',
+            'value' => $stats['users'],
+            'icon' => 'bi-people',
+            'border' => 'border-success',
+        ],
+        [
+            'label' => "Today's Revenue",
+            'value' => '₹' . number_format($period_stats['period_revenue'], 2),
+            'icon' => 'bi-cash-coin',
+            'border' => 'border-info',
+        ],
+        [
+            'label' => 'Pending Reports',
+            'value' => $period_stats['pending_reports'],
+            'icon' => 'bi-hourglass-split',
+            'border' => 'border-warning',
+        ],
+    ];
+    foreach ($quick_stats as $meta) {
+        ?>
+        <div class="dashboard-card-small <?php echo $meta['border']; ?>">
+            <div class="card-content">
+                <div class="card-text-content">
+                    <div class="card-value"><?php echo $meta['value']; ?></div>
+                    <div class="card-label"><?php echo $meta['label']; ?></div>
+                </div>
+                <span class="card-icon"><i class="bi <?php echo $meta['icon']; ?>"></i></span>
+            </div>
+        </div>
+    <?php } ?>
+    </div>
+
+</div> <!-- End .container-fluid -->
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
