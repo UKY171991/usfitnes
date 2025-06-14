@@ -89,12 +89,30 @@ try {
     $response_data['activities'] = $activity_stmt->fetchAll(PDO::FETCH_ASSOC);
 
 } catch(PDOException $e) {
-    error_log("AJAX Dashboard Error: " . $e->getMessage());
-    $response_data['error'] = 'Failed to load data.';
-    // You might want to return a specific HTTP error code as well
-    // http_response_code(500);
+    // Log the detailed PDO exception message to the server's error log
+    error_log("AJAX Dashboard PDOException: " . $e->getMessage() . " in " . $e->getFile() . " on line " . $e->getLine());
+    
+    // Also, include a more specific error message in the JSON response for client-side debugging if appropriate
+    // For production, you might want to keep client-side error messages more generic.
+    $response_data['error'] = 'Database operation failed. Check server logs for details.';
+    // $response_data['debug_error'] = $e->getMessage(); // Optionally send detailed error to client during development
+    
+    // It's good practice to set an appropriate HTTP status code for errors
+    if (!headers_sent()) {
+        http_response_code(500); // Internal Server Error
+    }
+} catch(Exception $e) {
+    // Catch any other general exceptions
+    error_log("AJAX Dashboard Exception: " . $e->getMessage() . " in " . $e->getFile() . " on line " . $e->getLine());
+    $response_data['error'] = 'An unexpected error occurred. Check server logs for details.';
+    // $response_data['debug_error'] = $e->getMessage(); // Optionally send detailed error to client during development
+    if (!headers_sent()) {
+        http_response_code(500);
+    }
 }
 
-header('Content-Type: application/json');
+if (!headers_sent()) {
+    header('Content-Type: application/json');
+}
 echo json_encode($response_data);
 ?>
