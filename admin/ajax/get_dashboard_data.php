@@ -59,7 +59,7 @@ try {
         SELECT 
             p.id,
             p.paid_amount,
-            p.payment_method,
+            p.payment_mode, // Corrected column name from p.payment_method
             p.created_at,
             pt.name as patient_name,
             t.test_name,
