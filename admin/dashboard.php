@@ -162,7 +162,7 @@ include '../inc/header.php';
     <h1 class="dashboard-title">Admin Dashboard</h1>
 
     <!-- Date Filter Form -->
-    <form method="GET" action="dashboard.php" class="date-filter-form card mb-4">
+    <form id="filterForm" class="date-filter-form card mb-4">
         <div class="card-body">
             <div class="row g-3 align-items-end">
                 <div class="col-md-3">
@@ -189,7 +189,7 @@ include '../inc/header.php';
         </div>
     </form>
 
-    <!-- Overall Stats Cards -->
+    <!-- Overall Stats Cards (These are not updated by AJAX in this example as they are overall) -->
     <div class="dashboard-cards-row">
     <?php
     $overall_queries = [
@@ -297,134 +297,71 @@ include '../inc/header.php';
     <?php } ?>
     </div>
 
-    <!-- Period Specific Stats -->
-    <h2 class="page-title mt-5 mb-3">Statistics for Selected Period</h2>
-    <div class="row g-3 mb-4">
-    <?php
-    $period_queries = [
-        'New Patients' => [
-            'query' => "SELECT COUNT(*) FROM patients WHERE created_at >= ? AND created_at < ?",
-            'icon' => 'bi-person-plus',
-            'border' => 'primary',
-            'text' => 'primary',
-            'format' => 'number',
-        ],
-        'Completed Reports' => [
-            'query' => "SELECT COUNT(*) FROM reports WHERE status = 'completed' AND created_at >= ? AND created_at < ?",
-            'icon' => 'bi-file-earmark-check',
-            'border' => 'success',
-            'text' => 'success',
-            'format' => 'number',
-        ],
-        'Pending Reports' => [
-            'query' => "SELECT COUNT(*) FROM reports WHERE status = 'pending' AND created_at >= ? AND created_at < ?",
-            'icon' => 'bi-hourglass-split',
-            'border' => 'warning',
-            'text' => 'warning',
-            'format' => 'number',
-        ],
-        'Revenue' => [
-            'query' => "SELECT COALESCE(SUM(paid_amount), 0) FROM payments WHERE created_at >= ? AND created_at < ?",
-            'icon' => 'bi-currency-rupee',
-            'border' => 'info',
-            'text' => 'info',
-            'format' => 'currency',
-        ],
-    ];
-    $end_date_exclusive = date('Y-m-d', strtotime($end_date . ' +1 day'));
-    foreach ($period_queries as $title => $meta) {
-        $stmt = $conn->prepare($meta['query']);
-        $stmt->execute([$start_date, $end_date_exclusive]);
-        $value = $stmt->fetchColumn() ?? 0;
-        if ($meta['format'] === 'currency') {
-            $value = '₹' . number_format($value, 2);
-        } else {
-            $value = number_format($value);
-        }
-        ?>
-        <div class="col-md-3">
-            <div class="card card-stats border-<?php echo $meta['border']; ?> h-100">
-                 <div class="card-body d-flex align-items-center">
-                    <span class="icon text-<?php echo $meta['text']; ?> me-3"><i class="bi <?php echo $meta['icon']; ?>"></i></span>
-                    <div>
-                        <h2 class="display-4"><?php echo $value; ?></h2>
-                        <h6 class="card-title"><?php echo $title; ?></h6>
-                        <!-- <p class="card-text text-muted">In selected period</p> -->
-                    </div>
-                </div>
-            </div>
-        </div>
-    <?php } ?>
-    </div>
+    <!-- Period Specific Stats - This section will be updated by AJAX -->
+    <div id="periodSpecificStats">
+        <h2 class="page-title mt-5 mb-3">Statistics for Selected Period</h2>
+        <div class="row g-3 mb-4" id="periodStatsCardsContainer">
+        <?php
+        $period_queries = [
+            'New Patients' => [
+                'id' => 'new-patients-stat',
+                'icon' => 'bi-person-plus',
+                'border' => 'primary',
+                'text' => 'primary',
+                'value' => $period_stats['new_patients'] ?? 0,
+                'format' => 'number',
+            ],
+            'Completed Reports' => [
+                'id' => 'completed-reports-stat',
+                'icon' => 'bi-file-earmark-check',
+                'border' => 'success',
+                'text' => 'success',
+                'value' => $period_stats['completed_reports'] ?? 0,
+                'format' => 'number',
+            ],
+            'Pending Reports' => [
+                'id' => 'pending-reports-stat',
+                'icon' => 'bi-hourglass-split',
+                'border' => 'warning',
+                'text' => 'warning',
+                'value' => $period_stats['pending_reports'] ?? 0,
+                'format' => 'number',
+            ],
+            'Revenue' => [
+                'id' => 'revenue-stat',
+                'icon' => 'bi-currency-rupee',
+                'border' => 'info',
+                'text' => 'info',
+                'value' => $period_stats['period_revenue'] ?? 0,
+                'format' => 'currency',
+            ],
+        ];
 
-    <!-- Data Tables in Cards -->
-    <div class="row">
-        <!-- Branch Statistics -->
-        <div class="col-md-6 mb-4">
-            <div class="card card-table">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Top Performing Branches</h5>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Branch</th>
-                                    <th>Patients</th>
-                                    <th>Reports</th>
-                                    <th>Revenue</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach($branch_stats as $branch): ?>
-                                    <tr>
-                                        <td><?php echo htmlspecialchars($branch['branch_name']); ?></td>
-                                        <td><?php echo number_format($branch['patient_count']); ?></td>
-                                        <td><?php echo number_format($branch['report_count']); ?></td>
-                                        <td>₹<?php echo number_format($branch['revenue'], 2); ?></td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
+        foreach ($period_queries as $title => $meta) {
+            $value_display = $meta['value'];
+            if ($meta['format'] === 'currency') {
+                $value_display = '₹' . number_format($value_display, 2);
+            } else {
+                $value_display = number_format($value_display);
+            }
+            ?>
+            <div class="col-md-3">
+                <div class="card card-stats border-<?php echo $meta['border']; ?> h-100">
+                    <div class="card-body d-flex align-items-center">
+                        <span class="icon text-<?php echo $meta['text']; ?> me-3"><i class="bi <?php echo $meta['icon']; ?>"></i></span>
+                        <div>
+                            <h2 class="display-4" id="<?php echo $meta['id']; ?>"><?php echo $value_display; ?></h2>
+                            <h6 class="card-title"><?php echo $title; ?></h6>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-
-        <!-- Test Category Statistics -->
-        <div class="col-md-6 mb-4">
-            <div class="card card-table">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Test Categories Overview</h5>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Category</th>
-                                    <th>Tests</th>
-                                    <th>Reports</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach($category_stats as $category): ?>
-                                    <tr>
-                                        <td><?php echo htmlspecialchars($category['category_name']); ?></td>
-                                        <td><?php echo number_format($category['test_count']); ?></td>
-                                        <td><?php echo number_format($category['report_count']); ?></td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
+        <?php } ?>
         </div>
     </div>
 
-    <div class="row">
+    <!-- Data Tables in Cards - These sections will be updated by AJAX -->
+    <div class="row" id="dataTablesSection">
         <!-- Recent Payments -->
         <div class="col-md-6 mb-4">
             <div class="card card-table">
@@ -442,7 +379,7 @@ include '../inc/header.php';
                                     <th>Date</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="recentPaymentsTableBody">
                                 <?php if(empty($recent_payments)): ?>
                                     <tr>
                                         <td colspan="4" class="text-center">No recent payments</td>
@@ -480,7 +417,7 @@ include '../inc/header.php';
                                     <th>Date</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="recentActivitiesTableBody">
                                 <?php if(empty($activities)): ?>
                                     <tr>
                                         <td colspan="3" class="text-center">No recent activities</td>
@@ -502,7 +439,7 @@ include '../inc/header.php';
         </div>
     </div>
 
-    <!-- Small Quick Stats Cards Row -->
+    <!-- Small Quick Stats Cards Row (These are not updated by AJAX in this example) -->
     <h2 class="page-title mt-4 mb-3">Quick Overview (Overall)</h2>
     <div class="dashboard-cards-row-small">
     <?php
@@ -550,18 +487,117 @@ include '../inc/header.php';
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const dateRange = document.getElementById('date_range');
+    const dateRangeSelect = document.getElementById('date_range');
     const dateInputs = document.querySelectorAll('.date-inputs');
-    
-    function toggleDateInputs() {
-        const isCustom = dateRange.value === 'custom';
+    const filterForm = document.getElementById('filterForm');
+
+    function toggleDateInputsVisibility() {
+        const isCustom = dateRangeSelect.value === 'custom';
         dateInputs.forEach(input => {
             input.style.display = isCustom ? 'block' : 'none';
         });
     }
-    
-    dateRange.addEventListener('change', toggleDateInputs);
-    toggleDateInputs();
+
+    dateRangeSelect.addEventListener('change', toggleDateInputsVisibility);
+    toggleDateInputsVisibility(); // Initial call
+
+    filterForm.addEventListener('submit', function(event) {
+        event.preventDefault(); // Prevent default form submission
+
+        const formData = new FormData(filterForm);
+        const submitButton = filterForm.querySelector('button[type="submit"]');
+        const originalButtonText = submitButton.innerHTML;
+        submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Loading...';
+        submitButton.disabled = true;
+
+        fetch('ajax/get_dashboard_data.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                console.error('Error from server:', data.error);
+                alert('Error loading data: ' + data.error);
+                return;
+            }
+            updateDashboardUI(data);
+        })
+        .catch(error => {
+            console.error('Error fetching dashboard data:', error);
+            alert('An error occurred while updating the dashboard.');
+        })
+        .finally(() => {
+            submitButton.innerHTML = originalButtonText;
+            submitButton.disabled = false;
+        });
+    });
+
+    function updateDashboardUI(data) {
+        // Update Period Specific Stats
+        if (data.period_stats) {
+            document.getElementById('new-patients-stat').textContent = formatNumber(data.period_stats.new_patients);
+            document.getElementById('completed-reports-stat').textContent = formatNumber(data.period_stats.completed_reports);
+            document.getElementById('pending-reports-stat').textContent = formatNumber(data.period_stats.pending_reports);
+            document.getElementById('revenue-stat').textContent = formatCurrency(data.period_stats.period_revenue);
+        }
+
+        // Update Recent Payments Table
+        const paymentsTableBody = document.getElementById('recentPaymentsTableBody');
+        paymentsTableBody.innerHTML = ''; // Clear existing rows
+        if (data.recent_payments && data.recent_payments.length > 0) {
+            data.recent_payments.forEach(payment => {
+                const row = paymentsTableBody.insertRow();
+                row.insertCell().textContent = payment.patient_name || 'N/A';
+                row.insertCell().textContent = payment.test_name || 'N/A';
+                row.insertCell().textContent = formatCurrency(payment.paid_amount);
+                row.insertCell().textContent = formatDate(payment.created_at);
+            });
+        } else {
+            const row = paymentsTableBody.insertRow();
+            const cell = row.insertCell();
+            cell.colSpan = 4;
+            cell.className = 'text-center';
+            cell.textContent = 'No recent payments in this period';
+        }
+
+        // Update Recent Activities Table
+        const activitiesTableBody = document.getElementById('recentActivitiesTableBody');
+        activitiesTableBody.innerHTML = ''; // Clear existing rows
+        if (data.activities && data.activities.length > 0) {
+            data.activities.forEach(activity => {
+                const row = activitiesTableBody.insertRow();
+                row.insertCell().textContent = activity.description;
+                row.insertCell().textContent = activity.user_name || 'Unknown User';
+                row.insertCell().textContent = formatDate(activity.created_at);
+            });
+        } else {
+            const row = activitiesTableBody.insertRow();
+            const cell = row.insertCell();
+            cell.colSpan = 3;
+            cell.className = 'text-center';
+            cell.textContent = 'No recent activities in this period';
+        }
+    }
+
+    // Helper functions for formatting
+    function formatNumber(num) {
+        return Number(num).toLocaleString();
+    }
+
+    function formatCurrency(num) {
+        return '₹' + Number(num).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function formatDate(dateString) {
+        if (!dateString) return 'N/A';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-CA') + ' ' + date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }); // YYYY-MM-DD HH:MM
+    }
+
+     // Initial load for period stats if needed, or rely on PHP for first paint
+     // To make it fully AJAX on first load as well, you could trigger the form submit here, 
+     // or have a separate function to load initial data.
 });
 </script>
 
