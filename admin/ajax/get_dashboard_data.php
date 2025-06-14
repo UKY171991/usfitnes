@@ -91,17 +91,11 @@ try {
 } catch (PDOException $e) {
     http_response_code(500);
     // Log to server error log
-    error_log("PDOException in get_dashboard_data.php: " . $e->getMessage() . " in " . $e->getFile() . " on line " . $e->getLine() . "\\nTrace: " . $e->getTraceAsString());
+    error_log("PDOException in get_dashboard_data.php: " . $e->getMessage() . " in " . $e->getFile() . " on line " . $e->getLine() . "\\\\nTrace: " . $e->getTraceAsString());
     
-    // Temporarily send detailed error to client for debugging
-    $response_data['error'] = 'Database Error: ' . $e->getMessage();
-    // Optionally, add more details, but be cautious in production
-    $response_data['error_details'] = [
-        'message' => $e->getMessage(),
-        'file' => $e->getFile(),
-        'line' => $e->getLine()
-        // 'trace' => $e->getTraceAsString() // Avoid sending full trace to client in production
-    ];
+    // Send generic error to client
+    $response_data['error'] = 'Database operation failed. Check server logs for details.';
+    // $response_data['debug_error'] = $e->getMessage(); // Keep this commented out for production
     
 } catch (Exception $e) {
     // Catch any other general exceptions
