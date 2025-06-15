@@ -24,9 +24,15 @@ switch($date_range) {
         $start_date = $custom_start;
         $end_date = $custom_end;
         break;
-    default: // today
-        $start_date = date('Y-m-d');
-        $end_date = date('Y-m-d');
+    default: // today or other (e.g., X_months)
+        if (preg_match('/^(\\d+)_months?$/', $date_range, $matches)) {
+            $num_months = (int)$matches[1];
+            $start_date = date('Y-m-d', strtotime("-$num_months months"));
+            $end_date = date('Y-m-d');
+        } else { // Default to today if no match
+            $start_date = date('Y-m-d');
+            $end_date = date('Y-m-d');
+        }
 }
 
 $response_data = [];

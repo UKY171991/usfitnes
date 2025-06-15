@@ -171,6 +171,11 @@ include '../inc/header.php';
                         <option value="today" <?php echo ($date_range == 'today') ? 'selected' : ''; ?>>Today</option>
                         <option value="week" <?php echo ($date_range == 'week') ? 'selected' : ''; ?>>Last 7 Days</option>
                         <option value="month" <?php echo ($date_range == 'month') ? 'selected' : ''; ?>>This Month</option>
+                        <?php for ($i = 1; $i <= 24; $i++): ?>
+                            <option value="<?php echo $i; ?>_month<?php echo ($i > 1) ? 's' : ''; ?>" <?php echo ($date_range == $i . ($i > 1 ? '_months' : '_month')) ? 'selected' : ''; ?>>
+                                Last <?php echo $i; ?> Month<?php echo ($i > 1) ? 's' : ''; ?>
+                            </option>
+                        <?php endfor; ?>
                         <option value="custom" <?php echo ($date_range == 'custom') ? 'selected' : ''; ?>>Custom Range</option>
                     </select>
                 </div>
