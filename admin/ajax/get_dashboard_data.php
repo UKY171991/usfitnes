@@ -62,13 +62,16 @@ try {
             p.payment_mode,
             p.created_at,
             pt.name as patient_name,
-            t.test_name,
+            (SELECT t_sub.test_name 
+             FROM tests t_sub 
+             JOIN reports r_sub ON t_sub.id = r_sub.test_id 
+             WHERE r_sub.patient_id = p.patient_id 
+             ORDER BY r_sub.created_at DESC 
+             LIMIT 1) as test_name,
             b.branch_name
         FROM payments p
         LEFT JOIN patients pt ON p.patient_id = pt.id
         LEFT JOIN branches b ON p.branch_id = b.id
-        LEFT JOIN reports r ON r.payment_id = p.id
-        LEFT JOIN tests t ON r.test_id = t.id
         WHERE DATE(p.created_at) BETWEEN ? AND ?
         ORDER BY p.created_at DESC
         LIMIT 5
