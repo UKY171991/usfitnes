@@ -189,110 +189,40 @@ include '../inc/header.php';
         </div>
     </form>
 
-    <!-- Overall Stats Cards (These are not updated by AJAX in this example as they are overall) -->
-    <div class="dashboard-cards-row">
+    <!-- Overall Stats Cards - This section will be updated by AJAX -->
+    <div class="dashboard-cards-row" id="overallStatsCardsContainer">
     <?php
-    $overall_queries = [
-        [
-            'label' => 'Total Branches',
-            'query' => "SELECT COUNT(*) FROM branches",
-            'icon' => 'bi-diagram-3',
-            'border' => 'border-primary',
-            'footer' => 'More info <i class=\"bi bi-arrow-right-circle\"></i>',
-            'footer_link' => 'branches.php',
-            'format' => 'number',
-        ],
-        [
-            'label' => 'Test Categories',
-            'query' => "SELECT COUNT(*) FROM test_categories",
-            'icon' => 'bi-tags',
-            'border' => 'border-dark',
-            'footer' => 'More info <i class=\"bi bi-arrow-right-circle\"></i>',
-            'footer_link' => 'test-categories.php',
-            'format' => 'number',
-        ],
-        [
-            'label' => 'Active Users',
-            'query' => "SELECT COUNT(*) FROM users WHERE status = 1",
-            'icon' => 'bi-people',
-            'border' => 'border-success',
-            'footer' => 'More info <i class=\"bi bi-arrow-right-circle\"></i>',
-            'footer_link' => 'users.php',
-            'format' => 'number',
-        ],
-        [
-            'label' => 'Total Patients',
-            'query' => "SELECT COUNT(*) FROM patients",
-            'icon' => 'bi-person',
-            'border' => 'border-info',
-            'footer' => 'More info <i class=\"bi bi-arrow-right-circle\"></i>',
-            'footer_link' => 'patients.php',
-            'format' => 'number',
-        ],
-        [
-            'label' => 'Test Master (All)',
-            'query' => "SELECT COUNT(*) FROM tests", // Counts all tests
-            'icon' => 'bi-archive', // Different icon
-            'border' => 'border-info', // Different border color
-            'footer' => 'Manage All Tests <i class="bi bi-arrow-right-circle"></i>',
-            'footer_link' => 'test-master.php',
-            'format' => 'number',
-        ],
-        [
-            'label' => 'Available Tests',
-            'query' => "SELECT COUNT(*) FROM tests WHERE status = 1",
-            'icon' => 'bi-clipboard-data',
-            'border' => 'border-warning',
-            'footer' => 'More info <i class=\"bi bi-arrow-right-circle\"></i>',
-            'footer_link' => 'test-master.php',
-            'format' => 'number',
-        ],
-        [
-            'label' => 'Test Parameters',
-            'query' => "SELECT COUNT(*) FROM test_parameters",
-            'icon' => 'bi-sliders',
-            'border' => 'border-primary',
-            'footer' => 'Manage Parameters <i class="bi bi-arrow-right-circle"></i>',
-            'footer_link' => 'test-parameters.php',
-            'format' => 'number',
-        ],
-        [
-            'label' => 'Total Reports',
-            'query' => "SELECT COUNT(*) FROM reports",
-            'icon' => 'bi-file-earmark-text',
-            'border' => 'border-danger',
-            'footer' => 'More info <i class=\"bi bi-arrow-right-circle\"></i>',
-            'footer_link' => 'reports.php',
-            'format' => 'number',
-        ],
-        [
-            'label' => 'Total Revenue',
-            'query' => "SELECT COALESCE(SUM(paid_amount), 0) FROM payments",
-            'icon' => 'bi-cash-coin',
-            'border' => 'border-secondary',
-            'footer' => 'More info <i class=\"bi bi-arrow-right-circle\"></i>',
-            'footer_link' => '#',
-            'format' => 'currency',
-        ],
+    // Initial load for overall_queries - these will be updated by AJAX too
+    // The structure of $overall_queries remains the same, but their rendering will be handled by JS
+    // We can still render them initially with PHP if needed, or let JS handle the first load.
+    // For simplicity, let's assume JS will populate this on first load and on filter.
+    // We need placeholders for these cards if JS is to populate them.
+
+    $overall_card_placeholders = [
+        ['id' => 'total-branches-card', 'label' => 'Total Branches', 'icon' => 'bi-diagram-3', 'border' => 'border-primary', 'footer_link' => 'branches.php', 'footer_text' => 'More info'],
+        ['id' => 'test-categories-card', 'label' => 'Test Categories', 'icon' => 'bi-tags', 'border' => 'border-dark', 'footer_link' => 'test-categories.php', 'footer_text' => 'More info'],
+        ['id' => 'active-users-card', 'label' => 'Active Users', 'icon' => 'bi-people', 'border' => 'border-success', 'footer_link' => 'users.php', 'footer_text' => 'More info'],
+        ['id' => 'total-patients-card', 'label' => 'Total Patients', 'icon' => 'bi-person', 'border' => 'border-info', 'footer_link' => 'patients.php', 'footer_text' => 'More info'],
+        ['id' => 'test-master-all-card', 'label' => 'Test Master (All)', 'icon' => 'bi-archive', 'border' => 'border-info', 'footer_link' => 'test-master.php', 'footer_text' => 'Manage All Tests'],
+        ['id' => 'available-tests-card', 'label' => 'Available Tests', 'icon' => 'bi-clipboard-data', 'border' => 'border-warning', 'footer_link' => 'test-master.php', 'footer_text' => 'More info'],
+        ['id' => 'test-parameters-card', 'label' => 'Test Parameters', 'icon' => 'bi-sliders', 'border' => 'border-primary', 'footer_link' => 'test-parameters.php', 'footer_text' => 'Manage Parameters'],
+        ['id' => 'total-reports-card', 'label' => 'Total Reports', 'icon' => 'bi-file-earmark-text', 'border' => 'border-danger', 'footer_link' => 'reports.php', 'footer_text' => 'More info'],
+        ['id' => 'total-revenue-card', 'label' => 'Total Revenue', 'icon' => 'bi-cash-coin', 'border' => 'border-secondary', 'footer_link' => '#', 'footer_text' => 'More info'],
     ];
-    foreach ($overall_queries as $meta) {
-        $stmt = $conn->query($meta['query']);
-        $value = $stmt->fetchColumn() ?? 0;
-        if ($meta['format'] === 'currency') {
-            $value = '₹' . number_format($value, 2);
-        } else {
-            $value = number_format($value);
-        }
-        ?>
-        <div class="dashboard-card <?php echo $meta['border']; ?>">
+
+    foreach ($overall_card_placeholders as $card) {
+    ?>
+        <div class="dashboard-card <?php echo $card['border']; ?>" id="<?php echo $card['id']; ?>">
             <div class="card-content">
                 <div class="card-text-content">
-                    <div class="card-value"><?php echo $value; ?></div>
-                    <div class="card-label"><?php echo $meta['label']; ?></div>
+                    <div class="card-value">
+                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                    </div>
+                    <div class="card-label"><?php echo $card['label']; ?></div>
                 </div>
-                <span class="card-icon"><i class="bi <?php echo $meta['icon']; ?>"></i></span>
+                <span class="card-icon"><i class="bi <?php echo $card['icon']; ?>"></i></span>
             </div>
-            <a class="card-footer" href="<?php echo $meta['footer_link']; ?>"><?php echo $meta['footer']; ?></a>
+            <a class="card-footer" href="<?php echo $card['footer_link']; ?>"><?php echo $card['footer_text']; ?> <i class="bi bi-arrow-right-circle"></i></a>
         </div>
     <?php } ?>
     </div>
@@ -551,6 +481,8 @@ document.addEventListener('DOMContentLoaded', function() {
             updateRecentPaymentsTable(data.recent_payments);
             // Update recent activities table
             updateRecentActivitiesTable(data.activities);
+            // Update overall stats cards
+            updateOverallStatsCards(data.overall_stats); // New function call
         })
         .catch(error => {
             console.error('Fetch error:', error);
@@ -634,10 +566,45 @@ document.addEventListener('DOMContentLoaded', function() {
         tbody.innerHTML = '<tr><td colspan="3" class="text-center">Error loading activities.</td></tr>';
     }
 
-    // Trigger initial data load for "Today" when page loads, if desired,
-    // or ensure the PHP part correctly loads initial data for "Today".
-    // For a full AJAX driven approach, you might trigger a click or directly call fetch here.
-    // Example: filterForm.dispatchEvent(new Event('submit')); // If you want to load via AJAX on page load
+    function updateOverallStatsCards(stats) {
+        if (!stats) {
+            // Handle error case for overall stats, e.g., show 'Error' or 'N/A'
+            document.querySelectorAll('#overallStatsCardsContainer .card-value').forEach(el => el.textContent = 'Error');
+            return;
+        }
+
+        const cardMappings = {
+            'total-branches-card': stats.branches,
+            'test-categories-card': stats.test_categories,
+            'active-users-card': stats.active_users,
+            'total-patients-card': stats.total_patients,
+            'test-master-all-card': stats.test_master_all,
+            'available-tests-card': stats.available_tests,
+            'test-parameters-card': stats.test_parameters,
+            'total-reports-card': stats.total_reports,
+            'total-revenue-card': stats.total_revenue,
+        };
+
+        for (const [cardId, statValue] of Object.entries(cardMappings)) {
+            const cardElement = document.getElementById(cardId);
+            if (cardElement) {
+                const valueElement = cardElement.querySelector('.card-value');
+                if (valueElement) {
+                    if (statValue === undefined || statValue === null) {
+                        valueElement.textContent = 'N/A';
+                    } else if (cardId === 'total-revenue-card') {
+                        valueElement.textContent = '₹' + Number(statValue).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    } else {
+                        valueElement.textContent = Number(statValue).toLocaleString();
+                    }
+                }
+            }
+        }
+    }
+
+    // Trigger initial data load for "Today" when page loads
+    // This will populate all sections including the overall cards
+    filterForm.dispatchEvent(new Event('submit'));
 });
 </script>
 
