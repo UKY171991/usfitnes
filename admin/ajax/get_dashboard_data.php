@@ -58,22 +58,35 @@ try {
     // For this implementation, we will calculate them based on the selected date range as well.
     // If they should always be true totals, the WHERE clauses related to dates should be removed from these specific queries.
     $overall_stats = [];
-    $overall_stats['branches'] = $conn->query("SELECT COUNT(*) FROM branches WHERE status = 1")->fetchColumn() ?? 0; // Assuming branches are not date-specific for this count
-    $overall_stats['test_categories'] = $conn->query("SELECT COUNT(*) FROM test_categories WHERE status = 1")->fetchColumn() ?? 0; // Assuming categories are not date-specific
-    $overall_stats['active_users'] = $conn->query("SELECT COUNT(*) FROM users WHERE status = 1")->fetchColumn() ?? 0; // Assuming active users are not date-specific
+
+    // Filter all overall stats by the selected date range where applicable
+    $stmt_branches = $conn->prepare("SELECT COUNT(*) FROM branches WHERE status = 1 AND created_at >= ? AND created_at < ?");
+    $stmt_branches->execute([$start_date, $end_date_exclusive]);
+    $overall_stats['branches'] = $stmt_branches->fetchColumn() ?? 0;
+
+    $stmt_test_categories = $conn->prepare("SELECT COUNT(*) FROM test_categories WHERE status = 1 AND created_at >= ? AND created_at < ?");
+    $stmt_test_categories->execute([$start_date, $end_date_exclusive]);
+    $overall_stats['test_categories'] = $stmt_test_categories->fetchColumn() ?? 0;
+
+    $stmt_active_users = $conn->prepare("SELECT COUNT(*) FROM users WHERE status = 1 AND created_at >= ? AND created_at < ?");
+    $stmt_active_users->execute([$start_date, $end_date_exclusive]);
+    $overall_stats['active_users'] = $stmt_active_users->fetchColumn() ?? 0;
     
-    // The following stats will be filtered by the selected date range
     $stmt_total_patients = $conn->prepare("SELECT COUNT(*) FROM patients WHERE created_at >= ? AND created_at < ?");
     $stmt_total_patients->execute([$start_date, $end_date_exclusive]);
     $overall_stats['total_patients'] = $stmt_total_patients->fetchColumn() ?? 0;
 
-    // Corrected: Use query() for consistency and to ensure execution
-    $overall_stats['test_master_all'] = $conn->query("SELECT COUNT(*) FROM tests")->fetchColumn() ?? 0;
+    $stmt_test_master_all = $conn->prepare("SELECT COUNT(*) FROM tests WHERE created_at >= ? AND created_at < ?");
+    $stmt_test_master_all->execute([$start_date, $end_date_exclusive]);
+    $overall_stats['test_master_all'] = $stmt_test_master_all->fetchColumn() ?? 0;
 
-    // Corrected: Use query() for consistency and to ensure execution
-    $overall_stats['available_tests'] = $conn->query("SELECT COUNT(*) FROM tests WHERE status = 1")->fetchColumn() ?? 0;
+    $stmt_available_tests = $conn->prepare("SELECT COUNT(*) FROM tests WHERE status = 1 AND created_at >= ? AND created_at < ?");
+    $stmt_available_tests->execute([$start_date, $end_date_exclusive]);
+    $overall_stats['available_tests'] = $stmt_available_tests->fetchColumn() ?? 0;
 
-    $overall_stats['test_parameters'] = $conn->query("SELECT COUNT(*) FROM test_parameters")->fetchColumn() ?? 0; // Assuming parameters are not date-specific
+    // Test parameters typically don't have a created_at for this kind of period filtering.
+    // If it does, this query should be changed.
+    $overall_stats['test_parameters'] = $conn->query("SELECT COUNT(*) FROM test_parameters")->fetchColumn() ?? 0;
 
     $stmt_total_reports = $conn->prepare("SELECT COUNT(*) FROM reports WHERE created_at >= ? AND created_at < ?");
     $stmt_total_reports->execute([$start_date, $end_date_exclusive]);
