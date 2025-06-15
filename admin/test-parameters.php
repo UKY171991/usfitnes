@@ -468,13 +468,27 @@ document.addEventListener('DOMContentLoaded', function() {
         // Handle Save (Update) Parameter
         if (target.closest('.save-param-btn')) {
             event.preventDefault();
-            const form = target.closest('form.updateParameterForm'); // Ensure we target the correct form
+            const form = target.closest('form.updateParameterForm'); 
             if (!form) return;
+
+            // Correctly get parameter_id from the form\'s hidden input
+            const paramIdFromForm = form.querySelector('input[name="parameter_id"]').value;
+            if (!paramIdFromForm) {
+                displayMessage('Could not find parameter ID for update.', 'danger');
+                return;
+            }
 
             const formData = new FormData(form);
             formData.append('action', 'update_parameter');
-            // parameter_id is already in the form as a hidden input
+            // Ensure parameter_id is part of formData if not already (it should be from hidden input)
+            if (!formData.has('parameter_id')) { // Should not happen if HTML is correct
+                 formData.append('parameter_id', paramIdFromForm);
+            }
             
+            // Use the correct field names as expected by the backend
+            // FormData(form) should already capture these with names:
+            // edit_parameter_name, edit_reference_range, edit_unit, edit_price, edit_description
+
             clearMessages();
 
             fetch('ajax/handle_test_parameters.php', {
@@ -484,20 +498,15 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    displayMessage('Parameter updated successfully!', 'success');
-                    if (data.data && data.data.parameter) {
-                        // Optionally, update just the row if you implement that
-                        // updateParameterInTable(data.data.parameter);
-                        // For now, reload all for simplicity and to reflect changes
-                        loadParameters(testSelect.value);
-                    }
-                } else {
-                    // Check for specific "no changes" message from backend
-                    if (data.message && data.message.toLowerCase().includes('no changes made')) {
-                        displayMessage(data.message, 'info'); // Show as info toast
+                    if (data.data && data.data.no_changes) {
+                        displayMessage(data.message || 'No changes were made.', 'info');
                     } else {
-                        displayMessage(`Error: ${data.message || 'Could not update parameter.'}`, 'danger');
+                        displayMessage(data.message || 'Parameter updated successfully!', 'success');
                     }
+                    // Always reload parameters to reflect the current state from the DB
+                    loadParameters(testSelect.value); 
+                } else {
+                    displayMessage(`Error: ${data.message || 'Could not update parameter.'}`, 'danger');
                 }
             })
             .catch(error => {

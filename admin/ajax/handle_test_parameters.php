@@ -66,34 +66,48 @@ try {
         }
     } elseif ($action === 'update_parameter') {
         $parameter_id = $_POST['parameter_id'] ?? null;
-        $parameter_name = $_POST['parameter_name'] ?? null;
-        $reference_range = $_POST['reference_range'] ?? null;
-        $unit = $_POST['unit'] ?? null;
-        $price = $_POST['price'] ?? null;
-        $description = $_POST['description'] ?? null;
+        // Use edit_parameter_name etc. to match the form fields
+        $parameter_name = $_POST['edit_parameter_name'] ?? null;
+        $reference_range = $_POST['edit_reference_range'] ?? null;
+        $unit = $_POST['edit_unit'] ?? null;
+        $price = $_POST['edit_price'] ?? null;
+        $description = $_POST['edit_description'] ?? null;
 
-        if (!$parameter_id || !$parameter_name || $reference_range === null || $unit === null || $price === null) {
+        // Validate that parameter_id is provided
+        if (!$parameter_id) {
             $response['success'] = false;
-            $response['message'] = 'Missing required fields for update (parameter_id, parameter_name, reference_range, unit, price).';
+            $response['message'] = 'Parameter ID is required for update.';
+        } elseif ($parameter_name === null || $reference_range === null || $unit === null || $price === null || $description === null) {
+            // Check if any of the editable fields are missing, which might indicate an issue if they are expected
+            // However, an empty string is a valid value for some fields.
+            // For simplicity, we'll assume that if parameter_id is present, the user intends to update.
+            // More robust validation could be added here if certain fields become mandatory for update.
+            $response['success'] = false;
+            $response['message'] = 'Missing some parameter fields for update. Ensure all fields are submitted.';
         } else {
             $stmt = $conn->prepare("UPDATE test_parameters SET parameter_name = ?, reference_range = ?, unit = ?, price = ?, description = ? WHERE id = ?");
             if ($stmt->execute([$parameter_name, $reference_range, $unit, $price, $description, $parameter_id])) {
+                $response['success'] = true; // Operation was successful
                 if ($stmt->rowCount() > 0) {
                     // Fetch the updated parameter to return it
                     $fetch_stmt = $conn->prepare("SELECT id, parameter_name, reference_range, unit, price, description FROM test_parameters WHERE id = ?");
                     $fetch_stmt->execute([$parameter_id]);
                     $updated_parameter = $fetch_stmt->fetch(PDO::FETCH_ASSOC);
-                    $response['success'] = true;
                     $response['message'] = 'Parameter updated successfully.';
                     $response['data'] = ['parameter' => $updated_parameter];
                 } else {
-                    $response['success'] = false;
-                    $response['message'] = 'No changes made or parameter not found.';
+                    // No rows affected, but the query itself was successful
+                    $response['message'] = 'No changes were made to the parameter.'; 
+                    // Optionally, fetch and return the current state of the parameter
+                    $fetch_stmt = $conn->prepare("SELECT id, parameter_name, reference_range, unit, price, description FROM test_parameters WHERE id = ?");
+                    $fetch_stmt->execute([$parameter_id]);
+                    $current_parameter = $fetch_stmt->fetch(PDO::FETCH_ASSOC);
+                    $response['data'] = ['parameter' => $current_parameter, 'no_changes' => true];
                 }
             } else {
                 $response['success'] = false;
                 $response['message'] = 'Database error: Could not update parameter.';
-                error_log("Error updating parameter: Statement execution failed.");
+                error_log("Error updating parameter: Statement execution failed. ID: {$parameter_id}");
             }
         }
     } elseif ($action === 'delete_parameter') {
