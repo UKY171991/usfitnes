@@ -67,13 +67,11 @@ try {
     $stmt_total_patients->execute([$start_date, $end_date_exclusive]);
     $overall_stats['total_patients'] = $stmt_total_patients->fetchColumn() ?? 0;
 
-    $stmt_test_master_all = $conn->prepare("SELECT COUNT(*) FROM tests"); // This usually means all tests ever, not date filtered.
-    // If tests also need to be date filtered (e.g., tests created in period), add WHERE clause.
-    // For now, let's assume it's all tests regardless of date.
-    $overall_stats['test_master_all'] = $stmt_test_master_all->fetchColumn() ?? 0;
+    // Corrected: Use query() for consistency and to ensure execution
+    $overall_stats['test_master_all'] = $conn->query("SELECT COUNT(*) FROM tests")->fetchColumn() ?? 0;
 
-    $stmt_available_tests = $conn->prepare("SELECT COUNT(*) FROM tests WHERE status = 1"); // Similar to above, usually not date filtered for 'available'.
-    $overall_stats['available_tests'] = $stmt_available_tests->fetchColumn() ?? 0;
+    // Corrected: Use query() for consistency and to ensure execution
+    $overall_stats['available_tests'] = $conn->query("SELECT COUNT(*) FROM tests WHERE status = 1")->fetchColumn() ?? 0;
 
     $overall_stats['test_parameters'] = $conn->query("SELECT COUNT(*) FROM test_parameters")->fetchColumn() ?? 0; // Assuming parameters are not date-specific
 
