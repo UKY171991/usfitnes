@@ -344,7 +344,7 @@ include '../inc/header.php';
 
 <!-- Edit User Modal -->
 <div class="modal fade" id="editUserModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Edit User</h5>
@@ -354,58 +354,82 @@ include '../inc/header.php';
                 <input type="hidden" name="edit_user" value="1">
                 <input type="hidden" name="user_id" id="edit_user_id">
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="edit_username" class="form-label">Username *</label>
-                        <input type="text" class="form-control" id="edit_username" name="username" required readonly>
-                        <div class="form-text">Username cannot be changed</div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edit_username" class="form-label">Username *</label>
+                                <input type="text" class="form-control" id="edit_username" name="username" required readonly>
+                                <div class="form-text">Username cannot be changed</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edit_password" class="form-label">New Password</label>
+                                <input type="password" class="form-control" id="edit_password" name="password">
+                                <div class="form-text">Leave blank to keep current password</div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label for="edit_password" class="form-label">New Password</label>
-                        <input type="password" class="form-control" id="edit_password" name="password">
-                        <div class="form-text">Leave blank to keep current password</div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edit_name" class="form-label">Full Name *</label>
+                                <input type="text" class="form-control" id="edit_name" name="name" required>
+                                <div class="invalid-feedback">Please enter full name</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edit_email" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="edit_email" name="email">
+                                <div class="invalid-feedback">Please enter a valid email</div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label for="edit_name" class="form-label">Full Name *</label>
-                        <input type="text" class="form-control" id="edit_name" name="name" required>
-                        <div class="invalid-feedback">Please enter full name</div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edit_phone" class="form-label">Phone</label>
+                                <input type="tel" class="form-control" id="edit_phone" name="phone">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edit_role" class="form-label">Role *</label>
+                                <select class="form-control" id="edit_role" name="role" required>
+                                    <option value="master_admin">Master Admin</option>
+                                    <option value="admin">Admin</option>
+                                    <option value="branch_admin">Branch Admin</option>
+                                    <option value="receptionist">Receptionist</option>
+                                    <option value="technician">Technician</option>
+                                </select>
+                                <div class="invalid-feedback">Please select a role</div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label for="edit_email" class="form-label">Email</label>
-                        <input type="email" class="form-control" id="edit_email" name="email">
-                        <div class="invalid-feedback">Please enter a valid email</div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="edit_phone" class="form-label">Phone</label>
-                        <input type="tel" class="form-control" id="edit_phone" name="phone">
-                    </div>
-                    <div class="mb-3">
-                        <label for="edit_role" class="form-label">Role *</label>
-                        <select class="form-control" id="edit_role" name="role" required>
-                            <option value="master_admin">Master Admin</option>
-                            <option value="admin">Admin</option>
-                            <option value="branch_admin">Branch Admin</option>
-                            <option value="receptionist">Receptionist</option>
-                            <option value="technician">Technician</option>
-                        </select>
-                        <div class="invalid-feedback">Please select a role</div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="edit_branch_id" class="form-label">Branch</label>
-                        <select class="form-control" id="edit_branch_id" name="branch_id">
-                            <option value="">Select Branch</option>
-                            <?php foreach($branches as $branch): ?>
-                                <option value="<?php echo $branch['id']; ?>">
-                                    <?php echo htmlspecialchars($branch['name']); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="edit_status" class="form-label">Status</label>
-                        <select class="form-control" id="edit_status" name="status">
-                            <option value="1">Active</option>
-                            <option value="0">Inactive</option>
-                        </select>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edit_branch_id" class="form-label">Branch</label>
+                                <select class="form-control" id="edit_branch_id" name="branch_id">
+                                    <option value="">Select Branch</option>
+                                    <?php foreach($branches as $branch): ?>
+                                        <option value="<?php echo $branch['id']; ?>">
+                                            <?php echo htmlspecialchars($branch['name']); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edit_status" class="form-label">Status</label>
+                                <select class="form-control" id="edit_status" name="status">
+                                    <option value="1">Active</option>
+                                    <option value="0">Inactive</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
