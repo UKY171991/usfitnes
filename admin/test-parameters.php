@@ -114,18 +114,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_parameter'])) 
     }
 }
 
-// Fetch parameters if a test is selected
+// Fetch parameters if a test is selected (This will be replaced by AJAX)
+/*
 if ($selected_test_id) {
     try {
-        $params_stmt = $conn->prepare("SELECT id, parameter_name, default_unit, price FROM test_parameters WHERE test_id = ? ORDER BY parameter_name ASC");
+        $params_stmt = $conn->prepare(\"SELECT id, parameter_name, default_unit, price FROM test_parameters WHERE test_id = ? ORDER BY parameter_name ASC\");
         $params_stmt->execute([$selected_test_id]);
         $parameters = $params_stmt->fetchAll(PDO::FETCH_ASSOC);
     } catch (PDOException $e) {
         $parameters = [];
-        $message = "Error fetching parameters: " . $e->getMessage();
-        $message_type = 'danger';
+        $message = \"Error fetching parameters: \" . $e->getMessage();
+        $message_type = \'danger\';
     }
 }
+*/
 
 include '../inc/header.php';
 ?>
@@ -152,7 +154,7 @@ include '../inc/header.php';
 
 <div class="card mb-4">
     <div class="card-body">
-        <form method="GET" id="selectTestForm">
+        <form method="GET" id="selectTestForm"> 
             <div class="row align-items-end">
                 <div class="col-md-6">
                     <label for="test_id" class="form-label">Select Test to Manage Parameters</label>
@@ -166,115 +168,132 @@ include '../inc/header.php';
                     </select>
                 </div>
                 <div class="col-md-3">
-                     <button type="submit" class="btn btn-primary">Load Parameters</button>
+                     <button type="button" id="loadParametersBtn" class="btn btn-primary">Load Parameters</button> 
                 </div>
             </div>
         </form>
     </div>
 </div>
 
-<?php if ($selected_test_id): ?>
-<div class="row">
-    <div class="col-md-8">
-        <div class="card mb-4">
-            <div class="card-header">
-                Parameters for: <strong><?php 
-                    $selected_test_name = '';
-                    foreach($all_tests as $t) {
-                        if($t['id'] == $selected_test_id) {
-                            $selected_test_name = $t['test_name'];
-                            break;
-                        }
-                    }
-                    echo htmlspecialchars($selected_test_name); 
-                ?></strong>
-            </div>
-            <div class="card-body">
-                <?php if (empty($parameters)): ?>
-                    <p class="text-muted">No parameters defined for this test yet.</p>
-                <?php else: ?>
-                    <table class="table table-striped table-hover align-middle">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Parameter Name</th>
-                                <th>Default Unit</th>
-                                <th>Price</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($parameters as $param): ?>
-                            <tr>
-                                <form method="POST" action="test-parameters.php?test_id=<?php echo $selected_test_id; ?>">
-                                    <input type="hidden" name="edit_param_id" value="<?php echo $param['id']; ?>">
-                                    <td>
-                                        <input type="text" class="form-control form-control-sm" name="edit_parameter_name" value="<?php echo htmlspecialchars($param['parameter_name']); ?>" required>
-                                    </td>
-                                    <td>
-                                        <input type="text" class="form-control form-control-sm" name="edit_default_unit" value="<?php echo htmlspecialchars($param['default_unit']); ?>">
-                                    </td>
-                                    <td>
-                                        <input type="number" step="0.01" class="form-control form-control-sm" name="edit_price" value="<?php echo htmlspecialchars($param['price']); ?>">
-                                    </td>
-                                    <td>
-                                        <button type="submit" name="update_parameter" class="btn btn-success btn-sm" title="Save"><i class="fas fa-save"></i></button>
-                                        <form method="POST" action="test-parameters.php?test_id=<?php echo $selected_test_id; ?>" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this parameter?');">
-                                            <input type="hidden" name="parameter_id" value="<?php echo $param['id']; ?>">
-                                            <input type="hidden" name="delete_test_id" value="<?php echo $selected_test_id; ?>">
-                                            <button type="submit" name="delete_parameter" class="btn btn-danger btn-sm" title="Delete Parameter">
-                                                <i class="fas fa-trash-alt"></i>
-                                            </button>
-                                        </form>
-                                    </td>
-                                </form>
-                            </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                <?php endif; ?>
+<?php // if ($selected_test_id): // This condition will be handled by JS ?>
+<div id="parametersSection" style="display: none;"> 
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    Parameters for: <strong id="selectedTestNameDisplay"></strong>
+                </div>
+                <div class="card-body">
+                    <div id="parametersTableContainer">
+                        Loading parameters...
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
 
-    <div class="col-md-4">
-        <div class="card mb-4">
-            <div class="card-header">Add New Parameter</div>
-            <div class="card-body">
-                <form method="POST" action="test-parameters.php?test_id=<?php echo $selected_test_id; ?>">
-                     <input type="hidden" name="add_test_id" value="<?php echo $selected_test_id; ?>">
-                    <div class="mb-3">
-                        <label for="parameter_name" class="form-label">Parameter Name <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="parameter_name" name="parameter_name" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="default_unit" class="form-label">Default Unit (Optional)</label>
-                        <input type="text" class="form-control" id="default_unit" name="default_unit">
-                    </div>
-                    <div class="mb-3">
-                        <label for="price" class="form-label">Price (Optional)</label>
-                        <input type="number" step="0.01" class="form-control" id="price" name="price">
-                    </div>
-                    <button type="submit" name="add_parameter" class="btn btn-success">Add Parameter</button>
-                </form>
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header">Add New Parameter</div>
+                <div class="card-body">
+                    <form id="addParameterForm"> 
+                         <input type="hidden" name="add_test_id" id="add_test_id_field" value="<?php echo $selected_test_id; ?>">
+                        <div class="mb-3">
+                            <label for="parameter_name" class="form-label">Parameter Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="parameter_name" name="parameter_name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="default_unit" class="form-label">Default Unit (Optional)</label>
+                            <input type="text" class="form-control" id="default_unit" name="default_unit">
+                        </div>
+                        <div class="mb-3">
+                            <label for="price" class="form-label">Price (Optional)</label>
+                            <input type="number" step="0.01" class="form-control" id="price" name="price">
+                        </div>
+                        <button type="submit" name="add_parameter" class="btn btn-success">Add Parameter</button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
 </div>
-<?php endif; ?>
+<?php // endif; ?>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const selectTestForm = document.getElementById('selectTestForm');
     const testSelect = document.getElementById('test_id');
+    const loadParametersBtn = document.getElementById('loadParametersBtn');
+    const parametersSection = document.getElementById('parametersSection');
+    const parametersTableContainer = document.getElementById('parametersTableContainer');
+    const selectedTestNameDisplay = document.getElementById('selectedTestNameDisplay');
+    const addTestIdField = document.getElementById('add_test_id_field');
 
-    // Optional: Auto-submit the form when the select changes
-    // if (testSelect) {
-    //     testSelect.addEventListener('change', function() {
-    //         if (this.value) { // Only submit if a test is selected
-    //             selectTestForm.submit();
-    //         }
-    //     });
-    // }
+    // Function to load parameters via AJAX
+    function loadParameters(testId) {
+        if (!testId) {
+            parametersSection.style.display = 'none';
+            return;
+        }
+
+        parametersTableContainer.innerHTML = '<div class=\"text-center\"><div class=\"spinner-border\" role=\"status\"><span class=\"visually-hidden\">Loading...</span></div></div>';
+        parametersSection.style.display = 'block';
+        addTestIdField.value = testId; // Set test_id for the add form
+
+        fetch(`ajax/handle_test_parameters.php?action=load_parameters&test_id=${testId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.data) {
+                    selectedTestNameDisplay.textContent = data.data.test_name || 'Selected Test';
+                    renderParametersTable(data.data.parameters);
+                } else {
+                    parametersTableContainer.innerHTML = `<p class=\"text-danger\">Error: ${data.message || 'Could not load parameters.'}</p>`;
+                }
+            })
+            .catch(error => {
+                console.error('Error loading parameters:', error);
+                parametersTableContainer.innerHTML = '<p class=\"text-danger\">An error occurred while loading parameters.</p>';
+            });
+    }
+
+    // Function to render the parameters table
+    function renderParametersTable(parameters) {
+        if (!parameters || parameters.length === 0) {
+            parametersTableContainer.innerHTML = '<p class=\"text-muted\">No parameters defined for this test yet.</p>';
+            return;
+        }
+
+        let tableHtml = '<table class=\"table table-striped table-hover align-middle\">';
+        tableHtml += '<thead class=\"table-light\"><tr><th>Parameter Name</th><th>Default Unit</th><th>Price</th><th>Action</th></tr></thead><tbody>';
+
+        parameters.forEach(param => {
+            tableHtml += `<tr>
+                <form class=\"updateParameterForm\" data-param-id=\"${param.id}\">
+                    <td><input type=\"text\" class=\"form-control form-control-sm\" name=\"edit_parameter_name\" value=\"${param.parameter_name || \'\'}\" required></td>
+                    <td><input type=\"text\" class=\"form-control form-control-sm\" name=\"edit_default_unit\" value=\"${param.default_unit || \'\'}\"></td>
+                    <td><input type=\"number\" step=\"0.01\" class=\"form-control form-control-sm\" name=\"edit_price\" value=\"${param.price || \'\'}\"></td>
+                    <td>
+                        <button type=\"submit\" class=\"btn btn-success btn-sm save-param-btn\" title=\"Save\"><i class=\"fas fa-save\"></i></button>
+                        <button type=\"button\" class=\"btn btn-danger btn-sm delete-param-btn\" data-param-id=\"${param.id}\" title=\"Delete Parameter\"><i class=\"fas fa-trash-alt\"></i></button>
+                    </td>
+                </form>
+            </tr>`;
+        });
+
+        tableHtml += '</tbody></table>';
+        parametersTableContainer.innerHTML = tableHtml;
+    }
+
+    loadParametersBtn.addEventListener('click', function() {
+        const selectedTestId = testSelect.value;
+        loadParameters(selectedTestId);
+    });
+
+    // Load parameters if a test is already selected on page load (e.g., from query param)
+    const initialTestId = testSelect.value;
+    if (initialTestId) {
+        loadParameters(initialTestId);
+    }
+
 });
 </script>
 
