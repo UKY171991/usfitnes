@@ -177,7 +177,7 @@ include '../inc/header.php';
 <?php // if ($selected_test_id): // This condition will be handled by JS ?>
 <div id="parametersSection" style="display: none;"> 
     <div class="row">
-        <div class="col-md-12"> {/* Changed from col-md-8 to col-md-12 for full width */}
+        <div class="col-md-12"> 
             <div class="card mb-4">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <span>Parameters for: <strong id="selectedTestNameDisplay"></strong></span>
