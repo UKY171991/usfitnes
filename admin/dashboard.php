@@ -368,9 +368,11 @@ include '../inc/header.php';
     </div>
 
     <!-- Small Quick Stats Cards Row (These are not updated by AJAX in this example) -->
+    <!-- 
     <h2 class="page-title mt-4 mb-3">Quick Overview (Overall)</h2>
     <div class="dashboard-cards-row-small">
     <?php
+    /*
     $quick_stats = [
         [
             'label' => 'Active Branches',
@@ -408,8 +410,9 @@ include '../inc/header.php';
                 <span class="card-icon"><i class="bi <?php echo $meta['icon']; ?>"></i></span>
             </div>
         </div>
-    <?php } ?>
+    <?php } */ ?>
     </div>
+    -->
 
 </div> <!-- End .container-fluid -->
 
