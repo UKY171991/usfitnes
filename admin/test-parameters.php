@@ -399,7 +399,12 @@ document.addEventListener('DOMContentLoaded', function() {
                         loadParameters(testSelect.value);
                     }
                 } else {
-                    displayMessage(`Error: ${data.message || 'Could not update parameter.'}`, 'danger');
+                    // Check for specific "no changes" message from backend
+                    if (data.message && data.message.toLowerCase().includes('no changes made')) {
+                        displayMessage(data.message, 'info'); // Show as info toast
+                    } else {
+                        displayMessage(`Error: ${data.message || 'Could not update parameter.'}`, 'danger');
+                    }
                 }
             })
             .catch(error => {
