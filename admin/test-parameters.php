@@ -301,20 +301,18 @@ document.addEventListener('DOMContentLoaded', function() {
             const price = param.price !== null ? parseFloat(param.price).toFixed(2) : '';
             const description = param.description || '';
 
+            // Removed the <form> tag from here
             tableHtml += `<tr data-param-id="${param.id}">
-                <form class="updateParameterForm" data-param-id="${param.id}"> 
-                    <td><input type="text" class="form-control form-control-sm" name="edit_parameter_name" value="${paramName}" required></td>
-                    <td><input type="text" class="form-control form-control-sm" name="edit_reference_range" value="${refRange}"></td>
-                    <td><input type="text" class="form-control form-control-sm" name="edit_unit" value="${unit}"></td>
-                    <td><input type="number" step="0.01" class="form-control form-control-sm" name="edit_price" value="${price}"></td>
-                    <td><textarea class="form-control form-control-sm" name="edit_description" rows="1">${description}</textarea></td>
-                    <td>
-                        <input type="hidden" name="parameter_id" value="${param.id}">
-                        <button type="submit" class="btn btn-success btn-sm save-param-btn" title="Save Changes"><i class="fas fa-save"></i></button>
-                        <button type="button" class="btn btn-danger btn-sm delete-param-btn" data-param-id="${param.id}" title="Delete Parameter"><i class="fas fa-trash-alt"></i></button>
-                    </td>
-                </form>
-            </tr>`;
+                <td><input type="text" class="form-control form-control-sm" name="edit_parameter_name" value="${paramName}" required></td>
+                <td><input type="text" class="form-control form-control-sm" name="edit_reference_range" value="${refRange}"></td>
+                <td><input type="text" class="form-control form-control-sm" name="edit_unit" value="${unit}"></td>
+                <td><input type="number" step="0.01" class="form-control form-control-sm" name="edit_price" value="${price}"></td>
+                <td><textarea class="form-control form-control-sm" name="edit_description" rows="1">${description}</textarea></td>
+                <td>
+                    <button type="button" class="btn btn-success btn-sm save-param-btn" title="Save Changes"><i class="fas fa-save"></i></button>
+                    <button type="button" class="btn btn-danger btn-sm delete-param-btn" data-param-id="${param.id}" title="Delete Parameter"><i class="fas fa-trash-alt"></i></button>
+                </td>
+            </tr>`; // Removed </form> tag
         });
 
         tableHtml += '</tbody></table>';
@@ -468,27 +466,54 @@ document.addEventListener('DOMContentLoaded', function() {
         // Handle Save (Update) Parameter
         if (target.closest('.save-param-btn')) {
             event.preventDefault();
-            const form = target.closest('form.updateParameterForm'); 
-            if (!form) return;
+            const saveButton = target.closest('.save-param-btn');
+            const row = saveButton.closest('tr');
+            if (!row) {
+                console.error('Could not find parent row for save button.');
+                displayMessage('An error occurred (could not find row).', 'danger');
+                return;
+            }
 
-            // Correctly get parameter_id from the form\'s hidden input
-            const paramIdFromForm = form.querySelector('input[name="parameter_id"]').value;
-            if (!paramIdFromForm) {
+            const paramId = row.dataset.paramId;
+            if (!paramId) {
                 displayMessage('Could not find parameter ID for update.', 'danger');
                 return;
             }
 
-            const formData = new FormData(form);
+            const formData = new FormData();
             formData.append('action', 'update_parameter');
-            // Ensure parameter_id is part of formData if not already (it should be from hidden input)
-            if (!formData.has('parameter_id')) { // Should not happen if HTML is correct
-                 formData.append('parameter_id', paramIdFromForm);
-            }
-            
-            // Use the correct field names as expected by the backend
-            // FormData(form) should already capture these with names:
-            // edit_parameter_name, edit_reference_range, edit_unit, edit_price, edit_description
+            formData.append('parameter_id', paramId);
 
+            const parameterNameInput = row.querySelector('input[name="edit_parameter_name"]');
+            const referenceRangeInput = row.querySelector('input[name="edit_reference_range"]');
+            const unitInput = row.querySelector('input[name="edit_unit"]');
+            const priceInput = row.querySelector('input[name="edit_price"]');
+            const descriptionInput = row.querySelector('textarea[name="edit_description"]');
+
+            if (!parameterNameInput || !referenceRangeInput || !unitInput || !priceInput || !descriptionInput) {
+                console.error('One or more input fields not found in the row:', row);
+                displayMessage('An error occurred (could not find input fields).', 'danger');
+                return;
+            }
+
+            const parameterName = parameterNameInput.value;
+            const referenceRange = referenceRangeInput.value;
+            const unit = unitInput.value;
+            const price = priceInput.value;
+            const description = descriptionInput.value;
+
+            if (parameterName.trim() === '') {
+                displayMessage('Parameter Name is required.', 'danger');
+                parameterNameInput.focus();
+                return;
+            }
+
+            formData.append('edit_parameter_name', parameterName);
+            formData.append('edit_reference_range', referenceRange);
+            formData.append('edit_unit', unit);
+            formData.append('edit_price', price);
+            formData.append('edit_description', description);
+            
             clearMessages();
 
             fetch('ajax/handle_test_parameters.php', {
@@ -503,7 +528,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     } else {
                         displayMessage(data.message || 'Parameter updated successfully!', 'success');
                     }
-                    // Always reload parameters to reflect the current state from the DB
                     loadParameters(testSelect.value); 
                 } else {
                     displayMessage(`Error: ${data.message || 'Could not update parameter.'}`, 'danger');
@@ -538,7 +562,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 body: formData
             })
             .then(response => response.json())
-            .then(data => {
+            .then data => {
                 if (data.success) {
                     displayMessage(data.message || 'Parameter deleted successfully!', 'success');
                     // If backend indicates 'not_found', message will reflect that.
