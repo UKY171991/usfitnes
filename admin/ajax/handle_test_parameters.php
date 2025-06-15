@@ -18,7 +18,8 @@ try {
     if ($action === 'load_parameters') {
         $test_id = $_GET['test_id'] ?? null;
         if ($test_id) {
-            $params_stmt = $conn->prepare("SELECT id, parameter_name, default_unit, price FROM test_parameters WHERE test_id = ? ORDER BY parameter_name ASC");
+            // Corrected SQL to fetch all necessary columns, including reference_range, unit, and description
+            $params_stmt = $conn->prepare("SELECT id, parameter_name, reference_range, unit, price, description FROM test_parameters WHERE test_id = ? ORDER BY parameter_name ASC");
             $params_stmt->execute([$test_id]);
             $parameters = $params_stmt->fetchAll(PDO::FETCH_ASSOC);
             
