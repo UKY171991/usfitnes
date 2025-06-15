@@ -499,105 +499,145 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     dateRangeSelect.addEventListener('change', toggleDateInputsVisibility);
-    toggleDateInputsVisibility(); // Initial call
+
+    // Initial call to set visibility based on pre-selected value (e.g., on page load)
+    toggleDateInputsVisibility();
 
     filterForm.addEventListener('submit', function(event) {
         event.preventDefault(); // Prevent default form submission
 
         const formData = new FormData(filterForm);
-        const submitButton = filterForm.querySelector('button[type="submit"]');
-        const originalButtonText = submitButton.innerHTML;
-        submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Loading...';
-        submitButton.disabled = true;
+        const params = new URLSearchParams();
+
+        for (const pair of formData) {
+            params.append(pair[0], pair[1]);
+        }
+
+        // Show loading indicators or disable form
+        const applyFilterButton = filterForm.querySelector('button[type="submit"]');
+        const originalButtonText = applyFilterButton.innerHTML;
+        applyFilterButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Loading...';
+        applyFilterButton.disabled = true;
 
         fetch('ajax/get_dashboard_data.php', {
             method: 'POST',
-            body: formData
+            body: formData // Send form data directly
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                // Try to get error message from response if available
+                return response.json().then(errData => {
+                    throw new Error(errData.error || `HTTP error! status: ${response.status}`);
+                }).catch(() => {
+                    // Fallback if response is not JSON or no error message
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                });
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.error) {
                 console.error('Error from server:', data.error);
-                alert('Error loading data: ' + data.error);
+                alert('Error loading data: ' + data.error + (data.debug_error ? '\\nDebug: ' + data.debug_error : ''));
+                // Optionally update UI to show error message
+                updatePeriodStatsOnError();
+                updateRecentPaymentsOnError();
+                updateRecentActivitiesOnError();
                 return;
             }
-            updateDashboardUI(data);
+            // Update period-specific stats cards
+            updatePeriodStats(data.period_stats);
+            // Update recent payments table
+            updateRecentPaymentsTable(data.recent_payments);
+            // Update recent activities table
+            updateRecentActivitiesTable(data.activities);
         })
         .catch(error => {
-            console.error('Error fetching dashboard data:', error);
-            alert('An error occurred while updating the dashboard.');
+            console.error('Fetch error:', error);
+            alert('Failed to load dashboard data. Please check the console for more details. Error: ' + error.message);
+            // Update UI to show a generic error or clear data
+            updatePeriodStatsOnError();
+            updateRecentPaymentsOnError();
+            updateRecentActivitiesOnError();
         })
         .finally(() => {
-            submitButton.innerHTML = originalButtonText;
-            submitButton.disabled = false;
+            // Re-enable button and restore text
+            applyFilterButton.innerHTML = originalButtonText;
+            applyFilterButton.disabled = false;
         });
     });
 
-    function updateDashboardUI(data) {
-        // Update Period Specific Stats
-        if (data.period_stats) {
-            document.getElementById('new-patients-stat').textContent = formatNumber(data.period_stats.new_patients);
-            document.getElementById('completed-reports-stat').textContent = formatNumber(data.period_stats.completed_reports);
-            document.getElementById('pending-reports-stat').textContent = formatNumber(data.period_stats.pending_reports);
-            document.getElementById('revenue-stat').textContent = formatCurrency(data.period_stats.period_revenue);
+    function updatePeriodStats(stats) {
+        if (!stats) {
+            updatePeriodStatsOnError();
+            return;
         }
+        document.getElementById('new-patients-stat').textContent = stats.new_patients !== undefined ? Number(stats.new_patients).toLocaleString() : 'N/A';
+        document.getElementById('completed-reports-stat').textContent = stats.completed_reports !== undefined ? Number(stats.completed_reports).toLocaleString() : 'N/A';
+        document.getElementById('pending-reports-stat').textContent = stats.pending_reports !== undefined ? Number(stats.pending_reports).toLocaleString() : 'N/A';
+        document.getElementById('revenue-stat').textContent = stats.period_revenue !== undefined ? '₹' + Number(stats.period_revenue).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'N/A';
+    }
 
-        // Update Recent Payments Table
-        const paymentsTableBody = document.getElementById('recentPaymentsTableBody');
-        paymentsTableBody.innerHTML = ''; // Clear existing rows
-        if (data.recent_payments && data.recent_payments.length > 0) {
-            data.recent_payments.forEach(payment => {
-                const row = paymentsTableBody.insertRow();
+    function updateRecentPaymentsTable(payments) {
+        const tbody = document.getElementById('recentPaymentsTableBody');
+        tbody.innerHTML = ''; // Clear existing rows
+        if (payments && payments.length > 0) {
+            payments.forEach(payment => {
+                const row = tbody.insertRow();
                 row.insertCell().textContent = payment.patient_name || 'N/A';
                 row.insertCell().textContent = payment.test_name || 'N/A';
-                row.insertCell().textContent = formatCurrency(payment.paid_amount);
-                row.insertCell().textContent = formatDate(payment.created_at);
+                row.insertCell().textContent = payment.paid_amount ? '₹' + Number(payment.paid_amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'N/A';
+                row.insertCell().textContent = payment.created_at ? new Date(payment.created_at).toLocaleString() : 'N/A';
             });
         } else {
-            const row = paymentsTableBody.insertRow();
+            const row = tbody.insertRow();
             const cell = row.insertCell();
             cell.colSpan = 4;
-            cell.className = 'text-center';
-            cell.textContent = 'No recent payments in this period';
+            cell.textContent = 'No recent payments for the selected period.';
+            cell.classList.add('text-center');
         }
+    }
 
-        // Update Recent Activities Table
-        const activitiesTableBody = document.getElementById('recentActivitiesTableBody');
-        activitiesTableBody.innerHTML = ''; // Clear existing rows
-        if (data.activities && data.activities.length > 0) {
-            data.activities.forEach(activity => {
-                const row = activitiesTableBody.insertRow();
-                row.insertCell().textContent = activity.description;
+    function updateRecentActivitiesTable(activities) {
+        const tbody = document.getElementById('recentActivitiesTableBody');
+        tbody.innerHTML = ''; // Clear existing rows
+        if (activities && activities.length > 0) {
+            activities.forEach(activity => {
+                const row = tbody.insertRow();
+                row.insertCell().textContent = activity.description || 'N/A';
                 row.insertCell().textContent = activity.user_name || 'Unknown User';
-                row.insertCell().textContent = formatDate(activity.created_at);
+                row.insertCell().textContent = activity.created_at ? new Date(activity.created_at).toLocaleString() : 'N/A';
             });
         } else {
-            const row = activitiesTableBody.insertRow();
+            const row = tbody.insertRow();
             const cell = row.insertCell();
             cell.colSpan = 3;
-            cell.className = 'text-center';
-            cell.textContent = 'No recent activities in this period';
+            cell.textContent = 'No recent activities for the selected period.';
+            cell.classList.add('text-center');
         }
     }
 
-    // Helper functions for formatting
-    function formatNumber(num) {
-        return Number(num).toLocaleString();
+    function updatePeriodStatsOnError() {
+        document.getElementById('new-patients-stat').textContent = 'Error';
+        document.getElementById('completed-reports-stat').textContent = 'Error';
+        document.getElementById('pending-reports-stat').textContent = 'Error';
+        document.getElementById('revenue-stat').textContent = 'Error';
     }
 
-    function formatCurrency(num) {
-        return '₹' + Number(num).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    function updateRecentPaymentsOnError() {
+        const tbody = document.getElementById('recentPaymentsTableBody');
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center">Error loading payments.</td></tr>';
     }
 
-    function formatDate(dateString) {
-        if (!dateString) return 'N/A';
-        const date = new Date(dateString);
-        return date.toLocaleDateString('en-CA') + ' ' + date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }); // YYYY-MM-DD HH:MM
+    function updateRecentActivitiesOnError() {
+        const tbody = document.getElementById('recentActivitiesTableBody');
+        tbody.innerHTML = '<tr><td colspan="3" class="text-center">Error loading activities.</td></tr>';
     }
 
-     // Initial load for period stats if needed, or rely on PHP for first paint
-     // To make it fully AJAX on first load as well, you could trigger the form submit here, 
-     // or have a separate function to load initial data.
+    // Trigger initial data load for "Today" when page loads, if desired,
+    // or ensure the PHP part correctly loads initial data for "Today".
+    // For a full AJAX driven approach, you might trigger a click or directly call fetch here.
+    // Example: filterForm.dispatchEvent(new Event('submit')); // If you want to load via AJAX on page load
 });
 </script>
 
