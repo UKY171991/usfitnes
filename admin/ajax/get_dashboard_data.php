@@ -59,16 +59,16 @@ try {
         SELECT 
             p.id,
             p.paid_amount,
-            p.payment_mode, // Corrected column name from p.payment_method
+            p.payment_mode,
             p.created_at,
             pt.name as patient_name,
             t.test_name,
             b.branch_name
         FROM payments p
-        LEFT JOIN reports r ON p.report_id = r.id
-        LEFT JOIN patients pt ON r.patient_id = pt.id
+        LEFT JOIN patients pt ON p.patient_id = pt.id
+        LEFT JOIN branches b ON p.branch_id = b.id
+        LEFT JOIN reports r ON r.payment_id = p.id
         LEFT JOIN tests t ON r.test_id = t.id
-        LEFT JOIN branches b ON pt.branch_id = b.id
         WHERE DATE(p.created_at) BETWEEN ? AND ?
         ORDER BY p.created_at DESC
         LIMIT 5
