@@ -149,12 +149,7 @@ include '../inc/header.php';
     </div>
 </div>
 
-<?php if ($message): ?>
-<div class="alert alert-<?php echo $message_type === 'success' ? 'success' : ($message_type === 'warning' ? 'warning' : 'danger'); ?> alert-dismissible fade show" role="alert">
-    <?php echo htmlspecialchars($message); ?>
-    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-</div>
-<?php endif; ?>
+<?php // Static messages container removed, will rely on dynamic toasts ?>
 
 <div class="card mb-4">
     <div class="card-body">
@@ -182,10 +177,13 @@ include '../inc/header.php';
 <?php // if ($selected_test_id): // This condition will be handled by JS ?>
 <div id="parametersSection" style="display: none;"> 
     <div class="row">
-        <div class="col-md-8">
+        <div class="col-md-12"> {/* Changed from col-md-8 to col-md-12 for full width */}
             <div class="card mb-4">
-                <div class="card-header">
-                    Parameters for: <strong id="selectedTestNameDisplay"></strong>
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>Parameters for: <strong id="selectedTestNameDisplay"></strong></span>
+                    <button type="button" id="showAddParameterRowBtn" class="btn btn-primary btn-sm">
+                        <i class="fas fa-plus"></i> Add New Parameter
+                    </button>
                 </div>
                 <div class="card-body">
                     <div id="parametersTableContainer">
@@ -195,6 +193,7 @@ include '../inc/header.php';
             </div>
         </div>
 
+        <?php /* Removed the col-md-4 for the "Add New Parameter" form 
         <div class="col-md-4">
             <div class="card mb-4">
                 <div class="card-header">Add New Parameter</div>
@@ -226,6 +225,7 @@ include '../inc/header.php';
                 </div>
             </div>
         </div>
+        */ ?>
     </div>
 </div>
 <?php // endif; ?>
@@ -238,7 +238,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const parametersSection = document.getElementById('parametersSection');
     const parametersTableContainer = document.getElementById('parametersTableContainer');
     const selectedTestNameDisplay = document.getElementById('selectedTestNameDisplay');
-    const addTestIdField = document.getElementById('add_test_id_field');
+    // const addTestIdField = document.getElementById('add_test_id_field'); // No longer exists
+    const showAddParameterRowBtn = document.getElementById('showAddParameterRowBtn');
 
     // Function to load parameters via AJAX
     function loadParameters(testId) {
@@ -249,7 +250,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         parametersTableContainer.innerHTML = '<div class=\"text-center\"><div class=\"spinner-border\" role=\"status\"><span class=\"visually-hidden\">Loading...</span></div></div>';
         parametersSection.style.display = 'block';
-        addTestIdField.value = testId; // Set test_id for the add form
+        // addTestIdField.value = testId; // Set test_id for the add form - no longer needed as field removed
 
         fetch(`ajax/handle_test_parameters.php?action=load_parameters&test_id=${testId}`)
             .then(response => response.json())
@@ -271,11 +272,19 @@ document.addEventListener('DOMContentLoaded', function() {
     // Function to render the parameters table
     function renderParametersTable(parameters) {
         if (!parameters || parameters.length === 0) {
-            parametersTableContainer.innerHTML = '<p class=\"text-muted\">No parameters defined for this test yet.</p>';
+            parametersTableContainer.innerHTML = '<p class="text-muted">No parameters defined for this test yet. Click "Add New Parameter" to begin.</p>';
+            // Ensure the "Add New Parameter" button is visible even if table is empty, if a test is selected
+            if(testSelect.value){
+                 showAddParameterRowBtn.style.display = 'block'; // Or 'inline-block'
+            } else {
+                 showAddParameterRowBtn.style.display = 'none';
+            }
             return;
         }
+        showAddParameterRowBtn.style.display = 'block'; // Or 'inline-block'
 
-        let tableHtml = '<table class=\"table table-striped table-hover align-middle\">';
+
+        let tableHtml = '<table class="table table-striped table-hover align-middle" id="parametersEditableTable">';
         tableHtml += '<thead class="table-light"><tr><th>Parameter Name</th><th>Reference Range</th><th>Unit</th><th>Price</th><th>Description</th><th>Action</th></tr></thead><tbody>';
 
         parameters.forEach(param => {
@@ -317,55 +326,63 @@ document.addEventListener('DOMContentLoaded', function() {
         loadParameters(initialTestId);
     }
 
-    // Create a container for toast messages
-    const toastContainer = document.createElement('div');
-    toastContainer.id = 'toastContainer';
-    toastContainer.style.position = 'fixed';
-    toastContainer.style.top = '20px';
-    toastContainer.style.right = '20px';
-    toastContainer.style.zIndex = '1055'; // Ensure it's above other elements
-    document.body.appendChild(toastContainer);
-
-    // Handle Add Parameter Form Submission
+    // REMOVE Handle Add Parameter Form Submission for the old form
+    /*
     const addParameterForm = document.getElementById('addParameterForm');
     addParameterForm.addEventListener('submit', function(event) {
         event.preventDefault();
-        const formData = new FormData(addParameterForm);
-        formData.append('action', 'add_parameter');
-        const testId = document.getElementById('add_test_id_field').value;
-        formData.set('test_id', testId); // Ensure test_id is correctly set from the hidden field
+        // ... old logic ...
+    });
+    */
 
-        // Clear previous messages
-        clearMessages(); 
-
-        fetch('ajax/handle_test_parameters.php', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                displayMessage('Parameter added successfully!', 'success');
-                addParameterForm.reset();
-                if (data.data && data.data.parameter) {
-                    // Option 1: Reload all parameters for simplicity
-                    loadParameters(testId);
-                    // Option 2: Or dynamically add the new row (more complex)
-                    // appendParameterToTable(data.data.parameter);
-                } else {
-                     loadParameters(testId); // Fallback if specific parameter data not returned
-                }
-            } else {
-                displayMessage(`Error: ${data.message || 'Could not add parameter.'}`, 'danger');
-            }
-        })
-        .catch(error => {
-            console.error('Error adding parameter:', error);
-            displayMessage('An AJAX error occurred while adding the parameter.', 'danger');
-        });
+    // Event listener for the "Add New Parameter" button (to add a row)
+    showAddParameterRowBtn.addEventListener('click', function() {
+        insertNewEditableParameterRow();
     });
 
-    // Event Delegation for Update and Delete buttons
+    function insertNewEditableParameterRow() {
+        const table = document.getElementById('parametersEditableTable');
+        if (!table) {
+            // If table doesn't exist (e.g. no params yet), create it first.
+            // This case should ideally be handled by renderParametersTable creating an empty table structure.
+            // For now, let's assume renderParametersTable creates at least <table><thead></thead><tbody></tbody>
+            if(parametersTableContainer.querySelector('table') === null){
+                 parametersTableContainer.innerHTML = '<table class="table table-striped table-hover align-middle" id="parametersEditableTable"><thead class="table-light"><tr><th>Parameter Name</th><th>Reference Range</th><th>Unit</th><th>Price</th><th>Description</th><th>Action</th></tr></thead><tbody></tbody></table>';
+            }
+        }
+        
+        const tbody = parametersTableContainer.querySelector('#parametersEditableTable tbody');
+        if (!tbody) {
+            console.error("Table body not found for adding new row.");
+            return;
+        }
+
+        // Check if an "add new" row already exists
+        if (tbody.querySelector('.new-parameter-row')) {
+            displayMessage('Please save or cancel the current new parameter first.', 'warning');
+            tbody.querySelector('.new-parameter-row input[name="new_parameter_name"]').focus();
+            return;
+        }
+
+        const newRow = tbody.insertRow(0); // Insert at the top
+        newRow.className = 'new-parameter-row table-info'; // Add class for styling and identification
+
+        newRow.innerHTML = `
+            <td><input type="text" class="form-control form-control-sm" name="new_parameter_name" placeholder="Parameter Name *" required></td>
+            <td><input type="text" class="form-control form-control-sm" name="new_reference_range" placeholder="Reference Range"></td>
+            <td><input type="text" class="form-control form-control-sm" name="new_unit" placeholder="Unit"></td>
+            <td><input type="number" step="0.01" class="form-control form-control-sm" name="new_price" placeholder="Price"></td>
+            <td><textarea class="form-control form-control-sm" name="new_description" rows="1" placeholder="Description"></textarea></td>
+            <td>
+                <button type="button" class="btn btn-success btn-sm save-new-param-btn" title="Save New Parameter"><i class="fas fa-check"></i></button>
+                <button type="button" class="btn btn-warning btn-sm cancel-new-param-btn" title="Cancel Add"><i class="fas fa-times"></i></button>
+            </td>
+        `;
+        newRow.querySelector('input[name="new_parameter_name"]').focus();
+    }
+
+
+    // Event Delegation for Update, Delete, AND NEW Save/Cancel buttons
     parametersTableContainer.addEventListener('click', function(event) {
         const target = event.target;
         const paramId = target.closest('tr')?.dataset.paramId; // Get paramId from parent <tr>
@@ -375,7 +392,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Handle Save (Update) Parameter
         if (target.closest('.save-param-btn')) {
             event.preventDefault();
-            const form = target.closest('.updateParameterForm');
+            const form = target.closest('form.updateParameterForm'); // Ensure we target the correct form
             if (!form) return;
 
             const formData = new FormData(form);
@@ -444,6 +461,69 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.error('Error deleting parameter:', error);
                 displayMessage('An AJAX error occurred while deleting the parameter.', 'danger');
             });
+        }
+
+        // Handle Save New Parameter (from the dynamically added row)
+        if (target.closest('.save-new-param-btn')) {
+            event.preventDefault();
+            const newRow = target.closest('.new-parameter-row');
+            if (!newRow) return;
+
+            const parameterName = newRow.querySelector('input[name="new_parameter_name"]').value.trim();
+            const referenceRange = newRow.querySelector('input[name="new_reference_range"]').value.trim();
+            const unit = newRow.querySelector('input[name="new_unit"]').value.trim();
+            const price = newRow.querySelector('input[name="new_price"]').value;
+            const description = newRow.querySelector('textarea[name="new_description"]').value.trim();
+            const currentTestId = testSelect.value;
+
+            if (!parameterName) {
+                displayMessage('Parameter Name is required.', 'danger');
+                newRow.querySelector('input[name="new_parameter_name"]').focus();
+                return;
+            }
+            if (!currentTestId) {
+                displayMessage('No test selected. Please select a test first.', 'danger');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('action', 'add_parameter');
+            formData.append('test_id', currentTestId);
+            formData.append('parameter_name', parameterName);
+            formData.append('reference_range', referenceRange);
+            formData.append('unit', unit);
+            formData.append('price', price);
+            formData.append('description', description);
+            
+            clearMessages();
+
+            fetch('ajax/handle_test_parameters.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    displayMessage('Parameter added successfully!', 'success');
+                    loadParameters(currentTestId); // Reload to show the new parameter and remove temp row
+                } else {
+                    displayMessage(`Error: ${data.message || 'Could not add parameter.'}`, 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error adding new parameter:', error);
+                displayMessage('An AJAX error occurred while adding the parameter.', 'danger');
+            });
+        }
+
+        // Handle Cancel New Parameter
+        if (target.closest('.cancel-new-param-btn')) {
+            event.preventDefault();
+            const newRow = target.closest('.new-parameter-row');
+            if (newRow) {
+                newRow.remove();
+                displayMessage('Add parameter cancelled.', 'info');
+            }
         }
     });
 
