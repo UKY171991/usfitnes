@@ -24,8 +24,10 @@ try {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_parameter'])) {
     $add_test_id = $_POST['add_test_id'] ?? null;
     $parameter_name = trim($_POST['parameter_name'] ?? '');
-    $default_unit = trim($_POST['default_unit'] ?? '');
+    $reference_range = trim($_POST['reference_range'] ?? '');
+    $unit = trim($_POST['unit'] ?? '');
     $price = trim($_POST['price'] ?? '');
+    $description = trim($_POST['description'] ?? '');
 
     if ($add_test_id && !empty($parameter_name)) {
         try {
@@ -36,8 +38,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_parameter'])) {
                 $message = "Parameter '" . htmlspecialchars($parameter_name) . "' already exists for this test.";
                 $message_type = 'warning'; // Use warning for existing
             } else {
-                $insert_stmt = $conn->prepare("INSERT INTO test_parameters (test_id, parameter_name, default_unit, price) VALUES (?, ?, ?, ?)");
-                if ($insert_stmt->execute([$add_test_id, $parameter_name, $default_unit, $price])) {
+                $insert_stmt = $conn->prepare("INSERT INTO test_parameters (test_id, parameter_name, reference_range, unit, price, description) VALUES (?, ?, ?, ?, ?, ?)");
+                if ($insert_stmt->execute([$add_test_id, $parameter_name, $reference_range, $unit, $price, $description])) {
                     $message = "Parameter '" . htmlspecialchars($parameter_name) . "' added successfully.";
                     $message_type = 'success';
                     // Keep the same test selected after adding
@@ -92,12 +94,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_parameter'])) 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_parameter'])) {
     $edit_param_id = $_POST['edit_param_id'] ?? null;
     $edit_parameter_name = trim($_POST['edit_parameter_name'] ?? '');
-    $edit_default_unit = trim($_POST['edit_default_unit'] ?? '');
+    $edit_reference_range = trim($_POST['edit_reference_range'] ?? '');
+    $edit_unit = trim($_POST['edit_unit'] ?? '');
     $edit_price = trim($_POST['edit_price'] ?? '');
+    $edit_description = trim($_POST['edit_description'] ?? '');
     if ($edit_param_id && $edit_parameter_name !== '') {
         try {
-            $update_stmt = $conn->prepare("UPDATE test_parameters SET parameter_name = ?, default_unit = ?, price = ? WHERE id = ?");
-            if ($update_stmt->execute([$edit_parameter_name, $edit_default_unit, $edit_price, $edit_param_id])) {
+            $update_stmt = $conn->prepare("UPDATE test_parameters SET parameter_name = ?, reference_range = ?, unit = ?, price = ?, description = ? WHERE id = ?");
+            if ($update_stmt->execute([$edit_parameter_name, $edit_reference_range, $edit_unit, $edit_price, $edit_description, $edit_param_id])) {
                 $message = "Parameter updated successfully.";
                 $message_type = 'success';
             } else {
@@ -202,14 +206,22 @@ include '../inc/header.php';
                             <input type="text" class="form-control" id="parameter_name" name="parameter_name" required>
                         </div>
                         <div class="mb-3">
-                            <label for="default_unit" class="form-label">Default Unit (Optional)</label>
-                            <input type="text" class="form-control" id="default_unit" name="default_unit">
+                            <label for="reference_range" class="form-label">Reference Range (Optional)</label>
+                            <input type="text" class="form-control" id="reference_range" name="reference_range">
+                        </div>
+                        <div class="mb-3">
+                            <label for="unit" class="form-label">Unit (Optional)</label> 
+                            <input type="text" class="form-control" id="unit" name="unit">
                         </div>
                         <div class="mb-3">
                             <label for="price" class="form-label">Price (Optional)</label>
                             <input type="number" step="0.01" class="form-control" id="price" name="price">
                         </div>
-                        <button type="submit" name="add_parameter" class="btn btn-success">Add Parameter</button>
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description (Optional)</label>
+                            <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-success">Add Parameter</button>
                     </form>
                 </div>
             </div>
@@ -246,7 +258,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     selectedTestNameDisplay.textContent = data.data.test_name || 'Selected Test';
                     renderParametersTable(data.data.parameters);
                 } else {
-                    parametersTableContainer.innerHTML = `<p class=\"text-danger\">Error: ${data.message || 'Could not load parameters.'}</p>`;
+                    parametersTableContainer.innerHTML = `<p class="text-danger">Error: ${data.message || 'Could not load parameters.'}</p>`;
+                    selectedTestNameDisplay.textContent = 'Error'; // Clear or set to error
                 }
             })
             .catch(error => {
@@ -263,17 +276,27 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         let tableHtml = '<table class=\"table table-striped table-hover align-middle\">';
-        tableHtml += '<thead class=\"table-light\"><tr><th>Parameter Name</th><th>Default Unit</th><th>Price</th><th>Action</th></tr></thead><tbody>';
+        tableHtml += '<thead class="table-light"><tr><th>Parameter Name</th><th>Reference Range</th><th>Unit</th><th>Price</th><th>Description</th><th>Action</th></tr></thead><tbody>';
 
         parameters.forEach(param => {
-            tableHtml += `<tr>
-                <form class=\"updateParameterForm\" data-param-id=\"${param.id}\">
-                    <td><input type=\"text\" class=\"form-control form-control-sm\" name=\"edit_parameter_name\" value=\"${param.parameter_name || \'\'}\" required></td>
-                    <td><input type=\"text\" class=\"form-control form-control-sm\" name=\"edit_default_unit\" value=\"${param.default_unit || \'\'}\"></td>
-                    <td><input type=\"number\" step=\"0.01\" class=\"form-control form-control-sm\" name=\"edit_price\" value=\"${param.price || \'\'}\"></td>
+            // Ensure values are not null before assigning to value attribute
+            const paramName = param.parameter_name || '';
+            const refRange = param.reference_range || '';
+            const unit = param.unit || ''; // Changed from default_unit
+            const price = param.price !== null ? parseFloat(param.price).toFixed(2) : '';
+            const description = param.description || '';
+
+            tableHtml += `<tr data-param-id="${param.id}">
+                <form class="updateParameterForm" data-param-id="${param.id}"> 
+                    <td><input type="text" class="form-control form-control-sm" name="edit_parameter_name" value="${paramName}" required></td>
+                    <td><input type="text" class="form-control form-control-sm" name="edit_reference_range" value="${refRange}"></td>
+                    <td><input type="text" class="form-control form-control-sm" name="edit_unit" value="${unit}"></td>
+                    <td><input type="number" step="0.01" class="form-control form-control-sm" name="edit_price" value="${price}"></td>
+                    <td><textarea class="form-control form-control-sm" name="edit_description" rows="1">${description}</textarea></td>
                     <td>
-                        <button type=\"submit\" class=\"btn btn-success btn-sm save-param-btn\" title=\"Save\"><i class=\"fas fa-save\"></i></button>
-                        <button type=\"button\" class=\"btn btn-danger btn-sm delete-param-btn\" data-param-id=\"${param.id}\" title=\"Delete Parameter\"><i class=\"fas fa-trash-alt\"></i></button>
+                        <input type="hidden" name="parameter_id" value="${param.id}">
+                        <button type="submit" class="btn btn-success btn-sm save-param-btn" title="Save Changes"><i class="fas fa-save"></i></button>
+                        <button type="button" class="btn btn-danger btn-sm delete-param-btn" data-param-id="${param.id}" title="Delete Parameter"><i class="fas fa-trash-alt"></i></button>
                     </td>
                 </form>
             </tr>`;
@@ -292,6 +315,149 @@ document.addEventListener('DOMContentLoaded', function() {
     const initialTestId = testSelect.value;
     if (initialTestId) {
         loadParameters(initialTestId);
+    }
+
+    // Handle Add Parameter Form Submission
+    const addParameterForm = document.getElementById('addParameterForm');
+    addParameterForm.addEventListener('submit', function(event) {
+        event.preventDefault();
+        const formData = new FormData(addParameterForm);
+        formData.append('action', 'add_parameter');
+        const testId = document.getElementById('add_test_id_field').value;
+        formData.set('test_id', testId); // Ensure test_id is correctly set from the hidden field
+
+        // Clear previous messages
+        clearMessages(); 
+
+        fetch('ajax/handle_test_parameters.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                displayMessage('Parameter added successfully!', 'success');
+                addParameterForm.reset();
+                if (data.data && data.data.parameter) {
+                    // Option 1: Reload all parameters for simplicity
+                    loadParameters(testId);
+                    // Option 2: Or dynamically add the new row (more complex)
+                    // appendParameterToTable(data.data.parameter);
+                } else {
+                     loadParameters(testId); // Fallback if specific parameter data not returned
+                }
+            } else {
+                displayMessage(`Error: ${data.message || 'Could not add parameter.'}`, 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error adding parameter:', error);
+            displayMessage('An AJAX error occurred while adding the parameter.', 'danger');
+        });
+    });
+
+    // Event Delegation for Update and Delete buttons
+    parametersTableContainer.addEventListener('click', function(event) {
+        const target = event.target;
+        const paramId = target.closest('tr')?.dataset.paramId; // Get paramId from parent <tr>
+
+        if (!paramId) return; // Click was not on a relevant element within a row
+
+        // Handle Save (Update) Parameter
+        if (target.closest('.save-param-btn')) {
+            event.preventDefault();
+            const form = target.closest('.updateParameterForm');
+            if (!form) return;
+
+            const formData = new FormData(form);
+            formData.append('action', 'update_parameter');
+            // parameter_id is already in the form as a hidden input
+            
+            clearMessages();
+
+            fetch('ajax/handle_test_parameters.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    displayMessage('Parameter updated successfully!', 'success');
+                    if (data.data && data.data.parameter) {
+                        // Optionally, update just the row if you implement that
+                        // updateParameterInTable(data.data.parameter);
+                        // For now, reload all for simplicity and to reflect changes
+                        loadParameters(testSelect.value);
+                    }
+                } else {
+                    displayMessage(`Error: ${data.message || 'Could not update parameter.'}`, 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error updating parameter:', error);
+                displayMessage('An AJAX error occurred while updating the parameter.', 'danger');
+            });
+        }
+
+        // Handle Delete Parameter
+        if (target.closest('.delete-param-btn')) {
+            event.preventDefault();
+            if (!confirm('Are you sure you want to delete this parameter?')) {
+                return;
+            }
+            clearMessages();
+
+            const formData = new FormData();
+            formData.append('action', 'delete_parameter');
+            formData.append('parameter_id', paramId);
+
+            fetch('ajax/handle_test_parameters.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    displayMessage('Parameter deleted successfully!', 'success');
+                    // Remove the row from the table or reload
+                    // document.querySelector(`tr[data-param-id=\"${paramId}\"]`).remove(); 
+                    loadParameters(testSelect.value); // Reload for simplicity
+                } else {
+                    displayMessage(`Error: ${data.message || 'Could not delete parameter.'}`, 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting parameter:', error);
+                displayMessage('An AJAX error occurred while deleting the parameter.', 'danger');
+            });
+        }
+    });
+
+    // Helper function to display messages
+    const messageContainer = document.createElement('div');
+    messageContainer.id = 'dynamicMessageContainer';
+    // Insert message container after the main heading or breadcrumbs
+    const mainHeading = document.querySelector('.d-flex.justify-content-between');
+    if (mainHeading) {
+        mainHeading.parentNode.insertBefore(messageContainer, mainHeading.nextSibling);
+    }
+
+    function displayMessage(message, type = 'info') {
+        messageContainer.innerHTML = `
+            <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        `;
+    }
+
+    function clearMessages() {
+        messageContainer.innerHTML = '';
+        // Also clear any static message if it exists
+        const staticMessage = document.querySelector('.alert.alert-dismissible');
+        if (staticMessage && !staticMessage.closest('#dynamicMessageContainer')) {
+            staticMessage.remove();
+        }
     }
 
 });

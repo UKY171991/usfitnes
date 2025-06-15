@@ -35,40 +35,92 @@ try {
     } elseif ($action === 'add_parameter') {
         $test_id = $_POST['test_id'] ?? null;
         $parameter_name = $_POST['parameter_name'] ?? null;
+        $reference_range = $_POST['reference_range'] ?? null; // Assuming this column exists
+        $unit = $_POST['unit'] ?? null; // Assuming this column is 'unit', not 'default_unit' for new entries
+        $price = $_POST['price'] ?? null;
+        $description = $_POST['description'] ?? null;
+
+        if (!$test_id || !$parameter_name || $reference_range === null || $unit === null || $price === null) {
+            $response['success'] = false;
+            $response['message'] = 'Missing required fields (test_id, parameter_name, reference_range, unit, price).';
+        } else {
+            // The outer try-catch will handle PDOExceptions
+            $stmt = $conn->prepare("INSERT INTO test_parameters (test_id, parameter_name, reference_range, unit, price, description) VALUES (?, ?, ?, ?, ?, ?)");
+            if ($stmt->execute([$test_id, $parameter_name, $reference_range, $unit, $price, $description])) {
+                $new_param_id = $conn->lastInsertId();
+                
+                // Fetch the newly added parameter to return it
+                $fetch_stmt = $conn->prepare("SELECT id, parameter_name, reference_range, unit, price, description FROM test_parameters WHERE id = ?");
+                $fetch_stmt->execute([$new_param_id]);
+                $new_parameter = $fetch_stmt->fetch(PDO::FETCH_ASSOC);
+
+                $response['success'] = true;
+                $response['message'] = 'Parameter added successfully.';
+                $response['data'] = ['parameter' => $new_parameter];
+            } else {
+                $response['success'] = false;
+                $response['message'] = 'Database error: Could not add parameter.';
+                error_log("Error adding parameter: Statement execution failed.");
+            }
+        }
+    } elseif ($action === 'update_parameter') {
+        $parameter_id = $_POST['parameter_id'] ?? null;
+        $parameter_name = $_POST['parameter_name'] ?? null;
         $reference_range = $_POST['reference_range'] ?? null;
         $unit = $_POST['unit'] ?? null;
         $price = $_POST['price'] ?? null;
-        $description = $_POST['description'] ?? null; // Added description
+        $description = $_POST['description'] ?? null;
 
-        if (!$test_id || !$parameter_name || $reference_range === null || $unit === null || $price === null) {
-            $response = ['status' => 'error', 'message' => 'Missing required fields.'];
-            echo json_encode($response);
-            exit;
+        if (!$parameter_id || !$parameter_name || $reference_range === null || $unit === null || $price === null) {
+            $response['success'] = false;
+            $response['message'] = 'Missing required fields for update (parameter_id, parameter_name, reference_range, unit, price).';
+        } else {
+            $stmt = $conn->prepare("UPDATE test_parameters SET parameter_name = ?, reference_range = ?, unit = ?, price = ?, description = ? WHERE id = ?");
+            if ($stmt->execute([$parameter_name, $reference_range, $unit, $price, $description, $parameter_id])) {
+                if ($stmt->rowCount() > 0) {
+                    // Fetch the updated parameter to return it
+                    $fetch_stmt = $conn->prepare("SELECT id, parameter_name, reference_range, unit, price, description FROM test_parameters WHERE id = ?");
+                    $fetch_stmt->execute([$parameter_id]);
+                    $updated_parameter = $fetch_stmt->fetch(PDO::FETCH_ASSOC);
+                    $response['success'] = true;
+                    $response['message'] = 'Parameter updated successfully.';
+                    $response['data'] = ['parameter' => $updated_parameter];
+                } else {
+                    $response['success'] = false;
+                    $response['message'] = 'No changes made or parameter not found.';
+                }
+            } else {
+                $response['success'] = false;
+                $response['message'] = 'Database error: Could not update parameter.';
+                error_log("Error updating parameter: Statement execution failed.");
+            }
         }
+    } elseif ($action === 'delete_parameter') {
+        $parameter_id = $_POST['parameter_id'] ?? null;
 
-        try {
-            $stmt = $conn->prepare("INSERT INTO test_parameters (test_id, parameter_name, reference_range, unit, price, description) VALUES (?, ?, ?, ?, ?, ?)");
-            $stmt->execute([$test_id, $parameter_name, $reference_range, $unit, $price, $description]);
-            $new_param_id = $conn->lastInsertId();
-            
-            // Fetch the newly added parameter to return it (optional, but good for UI updates)
-            $fetch_stmt = $conn->prepare("SELECT * FROM test_parameters WHERE id = ?");
-            $fetch_stmt->execute([$new_param_id]);
-            $new_parameter = $fetch_stmt->fetch(PDO::FETCH_ASSOC);
-
-            $response = ['status' => 'success', 'message' => 'Parameter added successfully.', 'parameter' => $new_parameter];
-        } catch (PDOException $e) {
-            error_log("Error adding parameter: " . $e->getMessage());
-            $response = ['status' => 'error', 'message' => 'Database error: Could not add parameter. ' . $e->getMessage()];
+        if (!$parameter_id) {
+            $response['success'] = false;
+            $response['message'] = 'Parameter ID is required for deletion.';
+        } else {
+            $stmt = $conn->prepare("DELETE FROM test_parameters WHERE id = ?");
+            if ($stmt->execute([$parameter_id])) {
+                if ($stmt->rowCount() > 0) {
+                    $response['success'] = true;
+                    $response['message'] = 'Parameter deleted successfully.';
+                    $response['data'] = ['parameter_id' => $parameter_id]; // Return the ID of the deleted parameter
+                } else {
+                    $response['success'] = false;
+                    $response['message'] = 'Parameter not found or already deleted.';
+                }
+            } else {
+                $response['success'] = false;
+                $response['message'] = 'Database error: Could not delete parameter.';
+                error_log("Error deleting parameter: Statement execution failed.");
+            }
         }
-        echo json_encode($response);
-        break;
-
-    // Add cases for update_parameter and delete_parameter here later
-
-    default:
+    } else { // Changed from default to else for clarity with if/elseif
         $response['message'] = 'Invalid action specified.';
-        break;
+        // No echo or break here, let the main script handle it
 }
 
 } catch (PDOException $e) {
