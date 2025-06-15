@@ -84,19 +84,10 @@ try {
     $stmt_available_tests->execute([$start_date, $end_date_exclusive]);
     $overall_stats['available_tests'] = $stmt_available_tests->fetchColumn() ?? 0;
 
-    // Test parameters will now also be filtered by the selected date range.
-    $stmt_test_parameters = $conn->prepare("SELECT COUNT(*) FROM test_parameters WHERE created_at >= ? AND created_at < ?");
-    $stmt_test_parameters->execute([$start_date, $end_date_exclusive]);
-    $overall_stats['test_parameters'] = $stmt_test_parameters->fetchColumn() ?? 0;
-
     $stmt_total_reports = $conn->prepare("SELECT COUNT(*) FROM reports WHERE created_at >= ? AND created_at < ?");
     $stmt_total_reports->execute([$start_date, $end_date_exclusive]);
     $overall_stats['total_reports'] = $stmt_total_reports->fetchColumn() ?? 0;
 
-    $stmt_total_revenue = $conn->prepare("SELECT COALESCE(SUM(paid_amount), 0) FROM payments WHERE created_at >= ? AND created_at < ?");
-    $stmt_total_revenue->execute([$start_date, $end_date_exclusive]);
-    $overall_stats['total_revenue'] = $stmt_total_revenue->fetchColumn() ?? 0;
-    
     $response_data['overall_stats'] = $overall_stats;
 
     // Recent payments

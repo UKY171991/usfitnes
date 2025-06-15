@@ -207,7 +207,6 @@ include '../inc/header.php';
         ['id' => 'available-tests-card', 'label' => 'Available Tests', 'icon' => 'bi-clipboard-data', 'border' => 'border-warning', 'footer_link' => 'test-master.php', 'footer_text' => 'More info'],
         ['id' => 'test-parameters-card', 'label' => 'Test Parameters', 'icon' => 'bi-sliders', 'border' => 'border-primary', 'footer_link' => 'test-parameters.php', 'footer_text' => 'Manage Parameters'],
         ['id' => 'total-reports-card', 'label' => 'Total Reports', 'icon' => 'bi-file-earmark-text', 'border' => 'border-danger', 'footer_link' => 'reports.php', 'footer_text' => 'More info'],
-        ['id' => 'total-revenue-card', 'label' => 'Total Revenue', 'icon' => 'bi-cash-coin', 'border' => 'border-secondary', 'footer_link' => '#', 'footer_text' => 'More info'],
     ];
 
     foreach ($overall_card_placeholders as $card) {
@@ -582,7 +581,6 @@ document.addEventListener('DOMContentLoaded', function() {
             'available-tests-card': stats.available_tests,
             'test-parameters-card': stats.test_parameters,
             'total-reports-card': stats.total_reports,
-            'total-revenue-card': stats.total_revenue,
         };
 
         for (const [cardId, statValue] of Object.entries(cardMappings)) {
@@ -592,8 +590,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (valueElement) {
                     if (statValue === undefined || statValue === null) {
                         valueElement.textContent = 'N/A';
-                    } else if (cardId === 'total-revenue-card') {
-                        valueElement.textContent = '₹' + Number(statValue).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                     } else {
                         valueElement.textContent = Number(statValue).toLocaleString();
                     }
