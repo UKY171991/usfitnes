@@ -149,6 +149,12 @@ include '../inc/header.php';
     </div>
 </div>
 
+<!-- Toast container for dynamic messages -->
+<div id="toastContainer" class="position-fixed top-0 end-0 p-3" style="z-index: 1055"> 
+    <!-- Toasts will be appended here by JavaScript -->
+</div>
+
+
 <?php // Static messages container removed, will rely on dynamic toasts ?>
 
 <div class="card mb-4">
@@ -238,8 +244,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const parametersSection = document.getElementById('parametersSection');
     const parametersTableContainer = document.getElementById('parametersTableContainer');
     const selectedTestNameDisplay = document.getElementById('selectedTestNameDisplay');
-    // const addTestIdField = document.getElementById('add_test_id_field'); // No longer exists
     const showAddParameterRowBtn = document.getElementById('showAddParameterRowBtn');
+    const toastContainer = document.getElementById('toastContainer'); // Define toastContainer
 
     // Function to load parameters via AJAX
     function loadParameters(testId) {
@@ -536,6 +542,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Helper function to display messages as toasts
     function displayMessage(message, type = 'info', duration = 5000) {
+        if (!toastContainer) { // Add a guard clause in case toastContainer is still not found
+            console.error('Toast container not found in the DOM.');
+            alert(message); // Fallback to alert
+            return;
+        }
         const toastId = 'toast-' + Date.now();
         const toastElement = document.createElement('div');
         toastElement.id = toastId;
@@ -582,8 +593,17 @@ document.addEventListener('DOMContentLoaded', function() {
     function clearMessages() {
         // This function might not be needed if toasts auto-dismiss and are manually closable.
         // If you want a way to clear all visible toasts:
-        // const toasts = toastContainer.querySelectorAll('.alert');
-        // toasts.forEach(toast => toast.remove());
+        if (toastContainer) { // Check if toastContainer exists
+            const toasts = toastContainer.querySelectorAll('.alert');
+            toasts.forEach(toast => {
+                const bsAlert = bootstrap.Alert.getInstance(toast);
+                if (bsAlert) {
+                    bsAlert.close();
+                } else {
+                    toast.remove();
+                }
+            });
+        }
         
         // Remove the old static message container if it exists and was created by previous versions
         const oldMessageContainer = document.getElementById('dynamicMessageContainer');
