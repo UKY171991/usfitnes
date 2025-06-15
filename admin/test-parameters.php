@@ -433,8 +433,8 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    displayMessage('Parameter added successfully!', 'success');
-                    loadParameters(currentTestId); // Reload to show the new parameter and remove the new row
+                    displayMessage(data.message || 'Parameter added successfully!', 'success');
+                    loadParameters(currentTestId); 
                 } else {
                     displayMessage(`Error: ${data.message || 'Could not add parameter.'}`, 'danger');
                 }
@@ -518,6 +518,12 @@ document.addEventListener('DOMContentLoaded', function() {
         // Handle Delete Parameter
         if (target.closest('.delete-param-btn')) {
             event.preventDefault();
+            const paramIdForDelete = target.closest('tr')?.dataset.paramId; // Get paramId from parent <tr> for delete
+            if (!paramIdForDelete) {
+                 displayMessage('Could not determine parameter to delete.', 'danger');
+                 return;
+            }
+
             if (!confirm('Are you sure you want to delete this parameter?')) {
                 return;
             }
@@ -525,7 +531,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const formData = new FormData();
             formData.append('action', 'delete_parameter');
-            formData.append('parameter_id', paramId);
+            formData.append('parameter_id', paramIdForDelete); // Use the correctly obtained paramId
 
             fetch('ajax/handle_test_parameters.php', {
                 method: 'POST',
@@ -534,10 +540,10 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    displayMessage('Parameter deleted successfully!', 'success');
-                    // Remove the row from the table or reload
-                    // document.querySelector(`tr[data-param-id=\"${paramId}\"]`).remove(); 
-                    loadParameters(testSelect.value); // Reload for simplicity
+                    displayMessage(data.message || 'Parameter deleted successfully!', 'success');
+                    // If backend indicates 'not_found', message will reflect that.
+                    // Reload parameters to update the table in all success cases for delete.
+                    loadParameters(testSelect.value); 
                 } else {
                     displayMessage(`Error: ${data.message || 'Could not delete parameter.'}`, 'danger');
                 }
