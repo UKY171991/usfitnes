@@ -309,8 +309,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 <td><input type="number" step="0.01" class="form-control form-control-sm" name="edit_price" value="${price}"></td>
                 <td><textarea class="form-control form-control-sm" name="edit_description" rows="1">${description}</textarea></td>
                 <td>
-                    <button type="button" class="btn btn-success btn-sm save-param-btn" title="Save Changes"><i class="fas fa-save"></i></button>
-                    <button type="button" class="btn btn-danger btn-sm delete-param-btn" data-param-id="${param.id}" title="Delete Parameter"><i class="fas fa-trash-alt"></i></button>
+                    <button type="button" class="btn btn-success save-param-btn" title="Save Changes"><i class="fas fa-save"></i></button>
+                    <button type="button" class="btn btn-danger delete-param-btn" data-param-id="${param.id}" title="Delete Parameter"><i class="fas fa-trash-alt"></i></button>
                 </td>
             </tr>`; // Removed </form> tag
         });
