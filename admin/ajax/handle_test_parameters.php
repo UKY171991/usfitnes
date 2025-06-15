@@ -70,30 +70,45 @@ try {
         }
     } elseif ($action === 'update_parameter') {
         $parameter_id = $_POST['parameter_id'] ?? null;
-        // Use edit_parameter_name etc. to match the form fields
-        $parameter_name = $_POST['edit_parameter_name'] ?? null;
-        $reference_range = $_POST['edit_reference_range'] ?? null;
-        $unit = $_POST['edit_unit'] ?? null;
-        $price = $_POST['edit_price'] ?? null;
-        $description = $_POST['edit_description'] ?? null;
+        // Use trim and default to empty string for text fields
+        $parameter_name = trim($_POST['edit_parameter_name'] ?? '');
+        $reference_range = trim($_POST['edit_reference_range'] ?? '');
+        $unit = trim($_POST['edit_unit'] ?? '');
+        $price_input = $_POST['edit_price'] ?? null; // Keep raw price input for validation
+        $description = trim($_POST['edit_description'] ?? '');
 
-        // Validate that parameter_id is provided
-        if (!$parameter_id) {
+        if (empty($parameter_id)) {
             $response['success'] = false;
             $response['message'] = 'Parameter ID is required for update.';
-        } elseif ($parameter_name === null || $reference_range === null || $unit === null || $price === null || $description === null) {
-            // Check if any of the editable fields are missing, which might indicate an issue if they are expected
-            // However, an empty string is a valid value for some fields.
-            // For simplicity, we'll assume that if parameter_id is present, the user intends to update.
-            // More robust validation could be added here if certain fields become mandatory for update.
+        } elseif (empty($parameter_name)) { // Parameter name is required
             $response['success'] = false;
-            $response['message'] = 'Missing some parameter fields for update. Ensure all fields are submitted.';
+            $response['message'] = 'Parameter Name cannot be empty.';
         } else {
+            $price_for_db = null; // Default to null for DB
+
+            if ($price_input !== null) { // If price was submitted (could be empty string or a value)
+                if ($price_input === '') {
+                    $price_for_db = null; // Explicitly empty string means NULL for price
+                } else {
+                    // Validate if not an empty string
+                    $validated_price = filter_var($price_input, FILTER_VALIDATE_FLOAT);
+                    if ($validated_price === false) {
+                        $response['success'] = false;
+                        $response['message'] = 'Invalid price format. Price must be a number (e.g., 10.50) or empty.';
+                        header('Content-Type: application/json');
+                        echo json_encode($response);
+                        exit;
+                    }
+                    $price_for_db = $validated_price;
+                }
+            }
+            // If $price_input was null (field not submitted at all), $price_for_db remains null.
+
             $stmt = $conn->prepare("UPDATE test_parameters SET parameter_name = ?, reference_range = ?, unit = ?, price = ?, description = ? WHERE id = ?");
-            if ($stmt->execute([$parameter_name, $reference_range, $unit, $price, $description, $parameter_id])) {
-                $response['success'] = true; // Operation was successful
+            // Use $price_for_db in the execute call
+            if ($stmt->execute([$parameter_name, $reference_range, $unit, $price_for_db, $description, $parameter_id])) {
+                $response['success'] = true;
                 if ($stmt->rowCount() > 0) {
-                    // Fetch the updated parameter to return it
                     $fetch_stmt = $conn->prepare("SELECT id, parameter_name, reference_range, unit, price, description FROM test_parameters WHERE id = ?");
                     $fetch_stmt->execute([$parameter_id]);
                     $updated_parameter = $fetch_stmt->fetch(PDO::FETCH_ASSOC);
@@ -101,17 +116,17 @@ try {
                     $response['data'] = ['parameter' => $updated_parameter];
                 } else {
                     // No rows affected, but the query itself was successful
-                    $response['message'] = 'No changes were made to the parameter.'; 
-                    // Optionally, fetch and return the current state of the parameter
+                    // Fetch and return the current state of the parameter
                     $fetch_stmt = $conn->prepare("SELECT id, parameter_name, reference_range, unit, price, description FROM test_parameters WHERE id = ?");
                     $fetch_stmt->execute([$parameter_id]);
                     $current_parameter = $fetch_stmt->fetch(PDO::FETCH_ASSOC);
+                    $response['message'] = 'No changes were made to the parameter.';
                     $response['data'] = ['parameter' => $current_parameter, 'no_changes' => true];
                 }
             } else {
                 $response['success'] = false;
                 $response['message'] = 'Database error: Could not update parameter.';
-                error_log("Error updating parameter: Statement execution failed. ID: {$parameter_id}");
+                error_log("Error updating parameter: Statement execution failed. ID: {$parameter_id}. Error: " . implode(";", $stmt->errorInfo()));
             }
         }
     } elseif ($action === 'delete_parameter') {
