@@ -385,9 +385,79 @@ document.addEventListener('DOMContentLoaded', function() {
     // Event Delegation for Update, Delete, AND NEW Save/Cancel buttons
     parametersTableContainer.addEventListener('click', function(event) {
         const target = event.target;
-        const paramId = target.closest('tr')?.dataset.paramId; // Get paramId from parent <tr>
 
-        if (!paramId) return; // Click was not on a relevant element within a row
+        // Handle Save New Parameter (from the dynamically added row)
+        if (target.closest('.save-new-param-btn')) {
+            event.preventDefault();
+            const newRow = target.closest('.new-parameter-row');
+            if (!newRow) return;
+
+            const parameterName = newRow.querySelector('input[name="new_parameter_name"]').value.trim();
+            const referenceRange = newRow.querySelector('input[name="new_reference_range"]').value.trim();
+            const unit = newRow.querySelector('input[name="new_unit"]').value.trim();
+            const price = newRow.querySelector('input[name="new_price"]').value;
+            const description = newRow.querySelector('textarea[name="new_description"]').value.trim();
+            const currentTestId = testSelect.value;
+
+            if (!parameterName) {
+                displayMessage('Parameter Name is required.', 'danger');
+                newRow.querySelector('input[name="new_parameter_name"]').focus();
+                return;
+            }
+            if (!currentTestId) {
+                displayMessage('No test selected. Please select a test first.', 'danger');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('action', 'add_parameter');
+            formData.append('test_id', currentTestId);
+            formData.append('parameter_name', parameterName);
+            formData.append('reference_range', referenceRange);
+            formData.append('unit', unit);
+            formData.append('price', price);
+            formData.append('description', description);
+            
+            clearMessages();
+
+            fetch('ajax/handle_test_parameters.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    displayMessage('Parameter added successfully!', 'success');
+                    loadParameters(currentTestId); // Reload to show the new parameter and remove the new row
+                } else {
+                    displayMessage(`Error: ${data.message || 'Could not add parameter.'}`, 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error adding parameter:', error);
+                displayMessage('An AJAX error occurred while adding the parameter.', 'danger');
+            });
+            return; // Important: exit after handling this action
+        }
+
+        // Handle Cancel New Parameter
+        if (target.closest('.cancel-new-param-btn')) {
+            event.preventDefault();
+            const newRow = target.closest('.new-parameter-row');
+            if (newRow) {
+                newRow.remove();
+                displayMessage('Add parameter cancelled.', 'info');
+            }
+            return; // Important: exit after handling this action
+        }
+
+        // For existing rows, we need paramId
+        const paramId = target.closest('tr')?.dataset.paramId; 
+        if (!paramId) {
+            // If it's not a new row action and no paramId, then it's not a relevant click
+            // Or it could be a click on table header/empty space, so we can safely return
+            return; 
+        }
 
         // Handle Save (Update) Parameter
         if (target.closest('.save-param-btn')) {
@@ -461,69 +531,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.error('Error deleting parameter:', error);
                 displayMessage('An AJAX error occurred while deleting the parameter.', 'danger');
             });
-        }
-
-        // Handle Save New Parameter (from the dynamically added row)
-        if (target.closest('.save-new-param-btn')) {
-            event.preventDefault();
-            const newRow = target.closest('.new-parameter-row');
-            if (!newRow) return;
-
-            const parameterName = newRow.querySelector('input[name="new_parameter_name"]').value.trim();
-            const referenceRange = newRow.querySelector('input[name="new_reference_range"]').value.trim();
-            const unit = newRow.querySelector('input[name="new_unit"]').value.trim();
-            const price = newRow.querySelector('input[name="new_price"]').value;
-            const description = newRow.querySelector('textarea[name="new_description"]').value.trim();
-            const currentTestId = testSelect.value;
-
-            if (!parameterName) {
-                displayMessage('Parameter Name is required.', 'danger');
-                newRow.querySelector('input[name="new_parameter_name"]').focus();
-                return;
-            }
-            if (!currentTestId) {
-                displayMessage('No test selected. Please select a test first.', 'danger');
-                return;
-            }
-
-            const formData = new FormData();
-            formData.append('action', 'add_parameter');
-            formData.append('test_id', currentTestId);
-            formData.append('parameter_name', parameterName);
-            formData.append('reference_range', referenceRange);
-            formData.append('unit', unit);
-            formData.append('price', price);
-            formData.append('description', description);
-            
-            clearMessages();
-
-            fetch('ajax/handle_test_parameters.php', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    displayMessage('Parameter added successfully!', 'success');
-                    loadParameters(currentTestId); // Reload to show the new parameter and remove temp row
-                } else {
-                    displayMessage(`Error: ${data.message || 'Could not add parameter.'}`, 'danger');
-                }
-            })
-            .catch(error => {
-                console.error('Error adding new parameter:', error);
-                displayMessage('An AJAX error occurred while adding the parameter.', 'danger');
-            });
-        }
-
-        // Handle Cancel New Parameter
-        if (target.closest('.cancel-new-param-btn')) {
-            event.preventDefault();
-            const newRow = target.closest('.new-parameter-row');
-            if (newRow) {
-                newRow.remove();
-                displayMessage('Add parameter cancelled.', 'info');
-            }
         }
     });
 
