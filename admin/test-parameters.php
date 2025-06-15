@@ -317,6 +317,15 @@ document.addEventListener('DOMContentLoaded', function() {
         loadParameters(initialTestId);
     }
 
+    // Create a container for toast messages
+    const toastContainer = document.createElement('div');
+    toastContainer.id = 'toastContainer';
+    toastContainer.style.position = 'fixed';
+    toastContainer.style.top = '20px';
+    toastContainer.style.right = '20px';
+    toastContainer.style.zIndex = '1055'; // Ensure it's above other elements
+    document.body.appendChild(toastContainer);
+
     // Handle Add Parameter Form Submission
     const addParameterForm = document.getElementById('addParameterForm');
     addParameterForm.addEventListener('submit', function(event) {
@@ -433,29 +442,65 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Helper function to display messages
-    const messageContainer = document.createElement('div');
-    messageContainer.id = 'dynamicMessageContainer';
-    // Insert message container after the main heading or breadcrumbs
-    const mainHeading = document.querySelector('.d-flex.justify-content-between');
-    if (mainHeading) {
-        mainHeading.parentNode.insertBefore(messageContainer, mainHeading.nextSibling);
-    }
+    // Helper function to display messages as toasts
+    function displayMessage(message, type = 'info', duration = 5000) {
+        const toastId = 'toast-' + Date.now();
+        const toastElement = document.createElement('div');
+        toastElement.id = toastId;
+        toastElement.className = `alert alert-${type} alert-dismissible fade show`;
+        toastElement.setAttribute('role', 'alert');
+        toastElement.style.minWidth = '250px'; // Optional: set a min width
+        toastElement.style.marginBottom = '10px'; // Space between toasts
 
-    function displayMessage(message, type = 'info') {
-        messageContainer.innerHTML = `
-            <div class="alert alert-${type} alert-dismissible fade show" role="alert">
-                ${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
+        toastElement.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         `;
+
+        toastContainer.appendChild(toastElement);
+
+        // Auto-dismiss the toast
+        setTimeout(() => {
+            const currentToast = document.getElementById(toastId);
+            if (currentToast) {
+                // Use Bootstrap's alert close method if available, otherwise just remove
+                const bsAlert = bootstrap.Alert.getInstance(currentToast);
+                if (bsAlert) {
+                    bsAlert.close();
+                } else {
+                    currentToast.remove();
+                }
+            }
+        }, duration);
+
+        // Allow manual dismissal
+        toastElement.querySelector('.btn-close').addEventListener('click', () => {
+            const currentToast = document.getElementById(toastId);
+             if (currentToast) {
+                const bsAlert = bootstrap.Alert.getInstance(currentToast);
+                if (bsAlert) {
+                    bsAlert.close();
+                } else {
+                    currentToast.remove();
+                }
+            }
+        });
     }
 
     function clearMessages() {
-        messageContainer.innerHTML = '';
-        // Also clear any static message if it exists
+        // This function might not be needed if toasts auto-dismiss and are manually closable.
+        // If you want a way to clear all visible toasts:
+        // const toasts = toastContainer.querySelectorAll('.alert');
+        // toasts.forEach(toast => toast.remove());
+        
+        // Remove the old static message container if it exists and was created by previous versions
+        const oldMessageContainer = document.getElementById('dynamicMessageContainer');
+        if (oldMessageContainer) {
+            oldMessageContainer.innerHTML = '';
+        }
         const staticMessage = document.querySelector('.alert.alert-dismissible');
-        if (staticMessage && !staticMessage.closest('#dynamicMessageContainer')) {
+        if (staticMessage && !staticMessage.closest('#toastContainer') && !staticMessage.closest('#dynamicMessageContainer')) {
+             // Check if it's not part of a toast or the old dynamic container before removing
             staticMessage.remove();
         }
     }
