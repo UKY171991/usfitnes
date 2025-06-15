@@ -176,6 +176,7 @@ include '../inc/header.php';
                                 Last <?php echo $i; ?> Month<?php echo ($i > 1) ? 's' : ''; ?>
                             </option>
                         <?php endfor; ?>
+                        <option value="all_time" <?php echo ($date_range == 'all_time') ? 'selected' : ''; ?>>All Time</option>
                         <option value="custom" <?php echo ($date_range == 'custom') ? 'selected' : ''; ?>>Custom Range</option>
                     </select>
                 </div>

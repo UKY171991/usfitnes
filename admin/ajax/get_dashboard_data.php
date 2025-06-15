@@ -20,6 +20,10 @@ switch($date_range) {
         $start_date = date('Y-m-01');
         $end_date = date('Y-m-d');
         break;
+    case 'all_time':
+        $start_date = '1970-01-01'; // A very early date to signify all time
+        $end_date = date('Y-m-d'); // Current date
+        break;
     case 'custom':
         $start_date = $custom_start;
         $end_date = $custom_end;
