@@ -562,7 +562,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 body: formData
             })
             .then(response => response.json())
-            .then data => {
+            .then(data => { // Corrected: Added parentheses around data
                 if (data.success) {
                     displayMessage(data.message || 'Parameter deleted successfully!', 'success');
                     // If backend indicates 'not_found', message will reflect that.
