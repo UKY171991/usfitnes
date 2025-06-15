@@ -228,62 +228,61 @@ include '../inc/header.php';
 
     <!-- Period Specific Stats - This section will be updated by AJAX -->
     <div id="periodSpecificStats">
-        <h2 class="page-title mt-5 mb-3">Statistics for Selected Period</h2>
-        <div class="row g-3 mb-4" id="periodStatsCardsContainer">
+        <div class="dashboard-cards-row mt-5 mb-3" id="periodStatsCardsContainer">
         <?php
-        $period_queries = [
-            'New Patients' => [
-                'id' => 'new-patients-stat',
+        // Updated structure to match overall stats cards
+        $period_card_data = [
+            'new_patients' => [
+                'id_base' => 'new-patients',
+                'label' => 'New Patients',
                 'icon' => 'bi-person-plus',
-                'border' => 'primary',
-                'text' => 'primary',
+                'border' => 'border-primary', // Example border, can be customized
                 'value' => $period_stats['new_patients'] ?? 0,
                 'format' => 'number',
             ],
-            'Completed Reports' => [
-                'id' => 'completed-reports-stat',
+            'completed_reports' => [
+                'id_base' => 'completed-reports',
+                'label' => 'Completed Reports',
                 'icon' => 'bi-file-earmark-check',
-                'border' => 'success',
-                'text' => 'success',
+                'border' => 'border-success',
                 'value' => $period_stats['completed_reports'] ?? 0,
                 'format' => 'number',
             ],
-            'Pending Reports' => [
-                'id' => 'pending-reports-stat',
+            'pending_reports' => [
+                'id_base' => 'pending-reports',
+                'label' => 'Pending Reports',
                 'icon' => 'bi-hourglass-split',
-                'border' => 'warning',
-                'text' => 'warning',
+                'border' => 'border-warning',
                 'value' => $period_stats['pending_reports'] ?? 0,
                 'format' => 'number',
             ],
-            'Revenue' => [
-                'id' => 'revenue-stat',
+            'period_revenue' => [
+                'id_base' => 'period-revenue',
+                'label' => 'Revenue',
                 'icon' => 'bi-currency-rupee',
-                'border' => 'info',
-                'text' => 'info',
+                'border' => 'border-info',
                 'value' => $period_stats['period_revenue'] ?? 0,
                 'format' => 'currency',
             ],
         ];
 
-        foreach ($period_queries as $title => $meta) {
-            $value_display = $meta['value'];
-            if ($meta['format'] === 'currency') {
+        foreach ($period_card_data as $key => $card) {
+            $value_display = $card['value'];
+            if ($card['format'] === 'currency') {
                 $value_display = '₹' . number_format($value_display, 2);
             } else {
                 $value_display = number_format($value_display);
             }
             ?>
-            <div class="col-md-3">
-                <div class="card card-stats border-<?php echo $meta['border']; ?> h-100">
-                    <div class="card-body d-flex align-items-center">
-                        <span class="icon text-<?php echo $meta['text']; ?> me-3"><i class="bi <?php echo $meta['icon']; ?>"></i></span>
-                        <div>
-                            <h2 class="display-4" id="<?php echo $meta['id']; ?>"><?php echo $value_display; ?></h2>
-                            <h6 class="card-title"><?php echo $title; ?></h6>
-                        </div>
+            <div class="dashboard-card <?php echo $card['border']; ?>" id="<?php echo $card['id_base']; ?>-card">
+                <div class="card-content">
+                    <div class="card-text-content">
+                        <div class="card-value" id="<?php echo $card['id_base']; ?>-value"><?php echo $value_display; ?></div>
+                        <div class="card-label"><?php echo $card['label']; ?></div>
                     </div>
+                    <span class="card-icon"><i class="bi <?php echo $card['icon']; ?>"></i></span>
                 </div>
+                <!-- No card-footer for these stats cards -->
             </div>
         <?php } ?>
         </div>
@@ -503,10 +502,18 @@ document.addEventListener('DOMContentLoaded', function() {
             updatePeriodStatsOnError();
             return;
         }
-        document.getElementById('new-patients-stat').textContent = stats.new_patients !== undefined ? Number(stats.new_patients).toLocaleString() : 'N/A';
-        document.getElementById('completed-reports-stat').textContent = stats.completed_reports !== undefined ? Number(stats.completed_reports).toLocaleString() : 'N/A';
-        document.getElementById('pending-reports-stat').textContent = stats.pending_reports !== undefined ? Number(stats.pending_reports).toLocaleString() : 'N/A';
-        document.getElementById('revenue-stat').textContent = stats.period_revenue !== undefined ? '₹' + Number(stats.period_revenue).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'N/A';
+        // Adjusted to target new element IDs and structure
+        const newPatientsEl = document.getElementById('new-patients-value');
+        if (newPatientsEl) newPatientsEl.textContent = stats.new_patients !== undefined ? Number(stats.new_patients).toLocaleString() : 'N/A';
+        
+        const completedReportsEl = document.getElementById('completed-reports-value');
+        if (completedReportsEl) completedReportsEl.textContent = stats.completed_reports !== undefined ? Number(stats.completed_reports).toLocaleString() : 'N/A';
+        
+        const pendingReportsEl = document.getElementById('pending-reports-value');
+        if (pendingReportsEl) pendingReportsEl.textContent = stats.pending_reports !== undefined ? Number(stats.pending_reports).toLocaleString() : 'N/A';
+        
+        const revenueEl = document.getElementById('period-revenue-value');
+        if (revenueEl) revenueEl.textContent = stats.period_revenue !== undefined ? '₹' + Number(stats.period_revenue).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'N/A';
     }
 
     function updateRecentPaymentsTable(payments) {
@@ -549,10 +556,18 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function updatePeriodStatsOnError() {
-        document.getElementById('new-patients-stat').textContent = 'Error';
-        document.getElementById('completed-reports-stat').textContent = 'Error';
-        document.getElementById('pending-reports-stat').textContent = 'Error';
-        document.getElementById('revenue-stat').textContent = 'Error';
+        // Adjusted to target new element IDs
+        const newPatientsEl = document.getElementById('new-patients-value');
+        if (newPatientsEl) newPatientsEl.textContent = 'Error';
+
+        const completedReportsEl = document.getElementById('completed-reports-value');
+        if (completedReportsEl) completedReportsEl.textContent = 'Error';
+
+        const pendingReportsEl = document.getElementById('pending-reports-value');
+        if (pendingReportsEl) pendingReportsEl.textContent = 'Error';
+
+        const revenueEl = document.getElementById('period-revenue-value');
+        if (revenueEl) revenueEl.textContent = 'Error';
     }
 
     function updateRecentPaymentsOnError() {
