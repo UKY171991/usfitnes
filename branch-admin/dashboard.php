@@ -475,6 +475,13 @@ document.addEventListener('DOMContentLoaded', function() {
             }).catch(error => {
                 console.error('Error loading dashboard data:', error);
                 showError(`Dashboard data loading failed: ${error.message || 'Unknown error'}`);
+                
+                // Clear loading spinners in case of error
+                document.querySelectorAll('tbody').forEach(tbody => {
+                    if (tbody.querySelector('.spinner-border')) {
+                        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger">Failed to load data. Please try refreshing.</td></tr>';
+                    }
+                });
             })
             .finally(() => {
                 // Hide loading indicators
@@ -554,6 +561,9 @@ document.addEventListener('DOMContentLoaded', function() {
             data.recent_payments.forEach(payment => {
                 const row = document.createElement('tr');
                 const paymentDate = payment.payment_date ? formatDate(payment.payment_date) : formatDateTime(payment.created_at);
+                // Handle both payment_method and payment_mode for backward compatibility
+                const paymentMethod = payment.payment_method || payment.payment_mode || '-';
+                
                 row.innerHTML = `
                     <td>
                         <a href="print-payment.php?id=${payment.id}" class="text-primary" target="_blank">
@@ -566,7 +576,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         ₹${formatNumber(payment.paid_amount, 2)}
                         ${payment.discount > 0 ? `<span class="badge bg-success ms-1">Disc: ₹${formatNumber(payment.discount, 2)}</span>` : ''}
                     </td>
-                    <td>${payment.payment_method ? escapeHtml(payment.payment_method) : '-'}</td>
+                    <td>${escapeHtml(paymentMethod)}</td>
                     <td>${paymentDate}</td>
                 `;
                 recentPaymentsBody.appendChild(row);
@@ -778,10 +788,15 @@ document.addEventListener('DOMContentLoaded', function() {
     function capitalizeFirstLetter(string) {
         if (!string) return '-';
         return string.charAt(0).toUpperCase() + string.slice(1);
-    }
-
-    // Auto-refresh dashboard every 60 seconds
+    }    // Auto-refresh dashboard every 60 seconds
     setInterval(loadDashboardData, 60000);
+    
+    // Add debug button if in development mode
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        const scriptElem = document.createElement('script');
+        scriptElem.src = 'fix_dashboard.js';
+        document.body.appendChild(scriptElem);
+    }
 });
 </script>
 

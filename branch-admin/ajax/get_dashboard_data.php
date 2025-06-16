@@ -81,6 +81,9 @@ try {
     $branch_id = $_SESSION['branch_id'];
     $response = ['success' => true];
 
+    // Log request for debugging
+    error_log("Dashboard data request for branch ID: " . $branch_id);
+
     // Get date range filter
     $date_range = $_GET['date_range'] ?? 'today';
     $custom_start = $_GET['start_date'] ?? '';
@@ -166,7 +169,8 @@ try {
             py.paid_amount,
             py.discount,
             py.total_amount,
-            py.payment_mode as payment_method,
+            py.payment_mode,
+            py.payment_mode as payment_method, -- Using both column names for backward compatibility
             py.transaction_id,
             py.payment_date,
             py.created_at,
@@ -184,10 +188,20 @@ try {
         $params_recent_payments[] = $start_date;
         $params_recent_payments[] = $end_date;
     }
-    $sql_recent_payments .= " ORDER BY py.created_at DESC LIMIT 5";
-    $payment_stmt = $conn->prepare($sql_recent_payments);
-    $payment_stmt->execute($params_recent_payments);
-    $response['recent_payments'] = $payment_stmt->fetchAll(PDO::FETCH_ASSOC);
+    $sql_recent_payments .= " ORDER BY py.created_at DESC LIMIT 5";    $stmt = $conn->prepare($sql_recent_payments);
+    $stmt->execute($params_recent_payments);
+    $recent_payments = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Add backward compatibility for payment_method/payment_mode
+    foreach ($recent_payments as &$payment) {
+        if (isset($payment['payment_mode']) && !isset($payment['payment_method'])) {
+            $payment['payment_method'] = $payment['payment_mode'];
+        } elseif (isset($payment['payment_method']) && !isset($payment['payment_mode'])) {
+            $payment['payment_mode'] = $payment['payment_method'];
+        }
+    }
+    
+    $response['recent_payments'] = $recent_payments;
 
     // Recent reports
     $sql_recent_reports = "
@@ -236,6 +250,10 @@ try {
     echo json_encode($response);
 } catch (Exception $e) {
     http_response_code(500);
+    // Log error details
+    error_log("Dashboard data error: " . $e->getMessage());
+    error_log("Error trace: " . $e->getTraceAsString());
+    
     echo json_encode([
         'success' => false,
         'message' => 'Error: ' . $e->getMessage()
