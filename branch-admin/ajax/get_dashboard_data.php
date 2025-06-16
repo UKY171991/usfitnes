@@ -158,14 +158,12 @@ try {
         LIMIT 5
     ");
     $popular_tests_stmt->execute([$branch_id, $branch_id]);
-    $response['popular_tests'] = $popular_tests_stmt->fetchAll(PDO::FETCH_ASSOC);
-
-    // Recent payments
+    $response['popular_tests'] = $popular_tests_stmt->fetchAll(PDO::FETCH_ASSOC);    // Recent payments
     $sql_recent_payments = "
         SELECT 
             py.id,
             py.paid_amount,
-            py.payment_method,
+            py.payment_mode as payment_method, -- Using the correct column name from the database
             py.created_at,
             p.name as patient_name,
             t.test_name

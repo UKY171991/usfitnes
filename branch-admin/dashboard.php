@@ -538,16 +538,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Update recent payments
         const recentPaymentsBody = document.getElementById('recent-payments-tbody');
-        recentPaymentsBody.innerHTML = '';
-        
-        if (data.recent_payments && data.recent_payments.length > 0) {
+        recentPaymentsBody.innerHTML = '';          if (data.recent_payments && data.recent_payments.length > 0) {
             data.recent_payments.forEach(payment => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td>${escapeHtml(payment.patient_name)}</td>
                     <td>${escapeHtml(payment.test_name)}</td>
                     <td>₹${formatNumber(payment.paid_amount, 2)}</td>
-                    <td>${escapeHtml(payment.payment_method)}</td>
+                    <td>${payment.payment_method ? escapeHtml(payment.payment_method) : '-'}</td>
                     <td>${formatDateTime(payment.created_at)}</td>
                 `;
                 recentPaymentsBody.appendChild(row);

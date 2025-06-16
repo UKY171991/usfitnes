@@ -3,8 +3,8 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1:3306
--- Generation Time: May 17, 2025 at 06:27 AM
--- Server version: 10.11.10-MariaDB
+-- Generation Time: Jun 16, 2025 at 11:24 AM
+-- Server version: 10.11.10-MariaDB-log
 -- PHP Version: 7.2.34
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
@@ -115,7 +115,46 @@ INSERT INTO `activities` (`id`, `user_id`, `description`, `created_at`) VALUES
 (76, 8, 'User logged in: uky171992@gmail.com', '2025-05-12 12:11:48'),
 (77, 4, 'User logged in: uky171991@gmail.com', '2025-05-15 04:52:51'),
 (78, 4, 'User logged in: uky171991@gmail.com', '2025-05-16 10:25:25'),
-(79, 4, 'User logged in: uky171991@gmail.com', '2025-05-17 05:23:46');
+(79, 4, 'User logged in: uky171991@gmail.com', '2025-05-17 05:23:46'),
+(80, 4, 'New test category added: Allergy', '2025-05-17 07:51:28'),
+(81, 4, 'Updated branch: Camden Berger', '2025-05-17 07:56:44'),
+(82, 4, 'User logged out: uky171991@gmail.com', '2025-05-17 09:21:35'),
+(83, 4, 'User logged in: uky171991@gmail.com', '2025-05-17 09:21:37'),
+(84, 4, 'User logged out: uky171991@gmail.com', '2025-05-17 09:24:04'),
+(85, 4, 'User logged in: uky171991@gmail.com', '2025-05-17 09:38:40'),
+(86, 4, 'User logged in: uky171991@gmail.com', '2025-05-17 12:08:36'),
+(87, 4, 'Updated branch: Camden Berger', '2025-05-17 12:35:26'),
+(88, 4, 'User logged out: uky171991@gmail.com', '2025-05-17 13:00:09'),
+(89, 8, 'User logged in: uky171992@gmail.com', '2025-05-17 13:00:15'),
+(90, 4, 'User logged in: uky171991@gmail.com', '2025-05-18 05:30:33'),
+(91, 4, 'User updated: ID 10', '2025-05-18 05:30:50'),
+(92, 4, 'User updated: ID 10', '2025-05-18 05:31:00'),
+(93, 4, 'Updated branch: Camden Berger', '2025-05-18 05:37:56'),
+(94, 4, 'Updated branch: Camden Berger', '2025-05-18 05:38:06'),
+(95, 4, 'New test category added: Allergy', '2025-05-18 05:38:18'),
+(96, 4, 'Test category updated: Allergy', '2025-05-18 05:47:24'),
+(97, 4, 'Test category updated: Allergy', '2025-05-18 05:47:30'),
+(98, 4, 'Test category updated: Allergy', '2025-05-18 05:47:38'),
+(99, 4, 'Test category updated: Allergy', '2025-05-18 05:47:43'),
+(100, 4, 'Test category updated: Biochemistry', '2025-05-18 05:47:49'),
+(101, 4, 'Test updated: Complete Blood Count', '2025-05-18 05:48:01'),
+(102, 4, 'Test updated: Complete Blood Count', '2025-05-18 05:48:08'),
+(103, 4, 'User logged in: uky171991@gmail.com', '2025-05-19 09:48:40'),
+(104, 4, 'User logged out: uky171991@gmail.com', '2025-05-19 09:50:48'),
+(105, 4, 'User logged in: uky171991@gmail.com', '2025-05-23 07:25:13'),
+(106, 4, 'User logged in: uky171991@gmail.com', '2025-05-29 05:36:44'),
+(107, 4, 'User logged in: uky171991@gmail.com', '2025-06-07 06:29:49'),
+(108, 4, 'User logged in: uky171991@gmail.com', '2025-06-10 05:48:49'),
+(109, 4, 'User logged in: uky171991@gmail.com', '2025-06-14 03:36:47'),
+(110, 4, 'User logged in: uky171991@gmail.com', '2025-06-15 07:53:57'),
+(111, 4, 'User updated: ID 10', '2025-06-15 08:26:41'),
+(112, 4, 'User logged out: uky171991@gmail.com', '2025-06-15 10:42:58'),
+(113, 4, 'User logged in: uky171991@gmail.com', '2025-06-15 10:43:01'),
+(114, 4, 'User updated: ID 10', '2025-06-15 10:48:09'),
+(115, 4, 'User updated: ID 10', '2025-06-15 10:50:52'),
+(116, 4, 'User logged in: uky171991@gmail.com', '2025-06-16 11:01:17'),
+(117, 4, 'User logged out: uky171991@gmail.com', '2025-06-16 11:02:42'),
+(118, 8, 'User logged in: uky171992@gmail.com', '2025-06-16 11:02:48');
 
 -- --------------------------------------------------------
 
@@ -145,7 +184,7 @@ INSERT INTO `branches` (`id`, `branch_code`, `branch_name`, `address`, `city`, `
 (1, 'BR005', 'Umakant Yadav', 'Jaunpur Rd', NULL, NULL, NULL, '345678', NULL, 1, '2025-04-19 09:45:52'),
 (3, 'BR004', 'UMAKANT YADAV', 'Village Newada\r\nPost Marhat', NULL, NULL, NULL, '02425342424', NULL, 1, '2025-04-19 09:48:19'),
 (4, 'BR003', 'Main Branch', 'Main Address', NULL, NULL, NULL, '1234567890', NULL, 1, '2025-04-19 09:51:32'),
-(6, 'BR001', 'Camden Berger', 'Exercitation vel lab', 'In unde in sequi quos est iure est eaque', 'Quas ut consequatur Ut et suscipit assumenda error', 'Duis volup', '+1 (565) 788-21', 'cityjufab@mailinator.com', 1, '2025-04-20 18:58:03'),
+(6, 'BR001', 'Camden Berger', 'Exercitation vel lab', 'In unde in sequi quos est iure est eaque', 'Quas ut consequatur Ut et suscipit assumenda error', '343434', '+1 (565) 788-21', 'cityjufab@mailinator.com', 1, '2025-04-20 18:58:03'),
 (7, 'BR002', 'Melyssa Finch', 'Quidem anim quia mag', 'Anim molestias cillum in aut', 'Laboriosam laboris ratione mollit proident', 'Laboriosam', '+1 (651) 206-36', 'vinobeneli@mailinator.com', 1, '2025-04-20 18:58:25');
 
 -- --------------------------------------------------------
@@ -215,6 +254,7 @@ CREATE TABLE `payments` (
   `id` int(11) NOT NULL,
   `invoice_no` varchar(50) DEFAULT NULL,
   `patient_id` int(11) DEFAULT NULL,
+  `report_id` int(11) DEFAULT NULL,
   `total_amount` decimal(10,2) DEFAULT NULL,
   `discount` decimal(10,2) DEFAULT NULL,
   `paid_amount` decimal(10,2) DEFAULT NULL,
@@ -232,12 +272,12 @@ CREATE TABLE `payments` (
 -- Dumping data for table `payments`
 --
 
-INSERT INTO `payments` (`id`, `invoice_no`, `patient_id`, `total_amount`, `discount`, `paid_amount`, `due_amount`, `payment_mode`, `transaction_id`, `payment_date`, `branch_id`, `created_by`, `created_at`, `updated_at`) VALUES
-(3, 'INV-000005', 3, 1200.00, NULL, 1200.00, 0.00, 'cash', '', '2025-04-21', 4, 8, '2025-04-20 19:40:30', '2025-04-20 20:52:24'),
-(4, 'INV-000006', 3, 1100.00, NULL, 1000.00, 100.00, 'cash', '', '2025-04-21', 4, 8, '2025-04-20 20:39:59', '2025-04-20 20:39:59'),
-(5, 'INV-000007', 4, 1200.00, NULL, 55.00, 1145.00, 'upi', 'Et quasi nostrum qui', '2025-04-21', 4, 8, '2025-04-20 20:49:10', '2025-04-20 20:49:10'),
-(6, 'INV-000008', 4, 1100.00, NULL, 30.00, 1070.00, 'netbanking', 'Sit eos fugit earum', '2025-04-21', 4, 8, '2025-04-20 20:50:14', '2025-04-20 20:50:14'),
-(7, 'INV-000009', 3, 1100.00, NULL, 47.00, 1053.00, 'netbanking', 'Corporis fuga Enim ', '2025-04-21', 4, 8, '2025-04-20 21:02:34', '2025-04-20 21:02:34');
+INSERT INTO `payments` (`id`, `invoice_no`, `patient_id`, `report_id`, `total_amount`, `discount`, `paid_amount`, `due_amount`, `payment_mode`, `transaction_id`, `payment_date`, `branch_id`, `created_by`, `created_at`, `updated_at`) VALUES
+(3, 'INV-000005', 3, NULL, 1200.00, NULL, 1200.00, 0.00, 'cash', '', '2025-04-21', 4, 8, '2025-04-20 19:40:30', '2025-04-20 20:52:24'),
+(4, 'INV-000006', 3, NULL, 1100.00, NULL, 1000.00, 100.00, 'cash', '', '2025-04-21', 4, 8, '2025-04-20 20:39:59', '2025-04-20 20:39:59'),
+(5, 'INV-000007', 4, NULL, 1200.00, NULL, 55.00, 1145.00, 'upi', 'Et quasi nostrum qui', '2025-04-21', 4, 8, '2025-04-20 20:49:10', '2025-04-20 20:49:10'),
+(6, 'INV-000008', 4, NULL, 1100.00, NULL, 30.00, 1070.00, 'netbanking', 'Sit eos fugit earum', '2025-04-21', 4, 8, '2025-04-20 20:50:14', '2025-04-20 20:50:14'),
+(7, 'INV-000009', 3, NULL, 1100.00, NULL, 47.00, 1053.00, 'netbanking', 'Corporis fuga Enim ', '2025-04-21', 4, 8, '2025-04-20 21:02:34', '2025-04-20 21:02:34');
 
 -- --------------------------------------------------------
 
@@ -277,7 +317,8 @@ CREATE TABLE `settings` (
   `id` int(11) NOT NULL,
   `branch_id` int(11) DEFAULT NULL,
   `setting_key` varchar(100) DEFAULT NULL,
-  `setting_value` text DEFAULT NULL
+  `setting_value` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -341,27 +382,30 @@ CREATE TABLE `test_categories` (
   `id` int(11) NOT NULL,
   `category_name` varchar(100) DEFAULT NULL,
   `description` text DEFAULT NULL,
-  `created_at` timestamp NULL DEFAULT current_timestamp()
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `status` tinyint(1) DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `test_categories`
 --
 
-INSERT INTO `test_categories` (`id`, `category_name`, `description`, `created_at`) VALUES
-(1, 'Blood Test', 'dcv', '2025-04-19 10:03:09'),
-(2, 'Blood Tests', 'Various blood test categories', '2025-04-20 18:27:16'),
-(3, 'Urine Tests', 'Various urine test categories', '2025-04-20 18:27:16'),
-(4, 'Hematology', 'Blood cell counts and related tests', '2025-04-20 19:02:30'),
-(5, 'Biochemistry', 'Tests for various chemical substances in blood', '2025-04-20 19:02:30'),
-(6, 'Hormone', 'Endocrine system and hormone level tests', '2025-04-20 19:02:30'),
-(7, 'Cardiac', 'Heart and cardiovascular system tests', '2025-04-20 19:02:30'),
-(8, 'Diabetes', 'Blood sugar and diabetes-related tests', '2025-04-20 19:02:30'),
-(9, 'Thyroid', 'Thyroid function tests', '2025-04-20 19:02:30'),
-(10, 'Liver', 'Liver function tests', '2025-04-20 19:02:30'),
-(11, 'Kidney', 'Kidney function tests', '2025-04-20 19:02:30'),
-(12, 'Vitamin', 'Vitamin level tests', '2025-04-20 19:02:30'),
-(13, 'Allergy', 'Allergy and immunology tests', '2025-04-20 19:02:30');
+INSERT INTO `test_categories` (`id`, `category_name`, `description`, `created_at`, `status`) VALUES
+(1, 'Blood Test', 'dcv', '2025-04-19 10:03:09', 0),
+(2, 'Blood Tests', 'Various blood test categories', '2025-04-20 18:27:16', 0),
+(3, 'Urine Tests', 'Various urine test categories', '2025-04-20 18:27:16', 0),
+(4, 'Hematology', 'Blood cell counts and related tests', '2025-04-20 19:02:30', 0),
+(5, 'Biochemistry', 'Tests for various chemical substances in blood', '2025-04-20 19:02:30', 1),
+(6, 'Hormone', 'Endocrine system and hormone level tests', '2025-04-20 19:02:30', 0),
+(7, 'Cardiac', 'Heart and cardiovascular system tests', '2025-04-20 19:02:30', 0),
+(8, 'Diabetes', 'Blood sugar and diabetes-related tests', '2025-04-20 19:02:30', 0),
+(9, 'Thyroid', 'Thyroid function tests', '2025-04-20 19:02:30', 0),
+(10, 'Liver', 'Liver function tests', '2025-04-20 19:02:30', 0),
+(11, 'Kidney', 'Kidney function tests', '2025-04-20 19:02:30', 0),
+(12, 'Vitamin', 'Vitamin level tests', '2025-04-20 19:02:30', 0),
+(13, 'Allergy', 'Allergy and immunology tests', '2025-04-20 19:02:30', 1),
+(14, 'Allergy', 'Allergy and immunology tests', '2025-05-17 07:51:28', 1),
+(15, 'Allergy', 'Allergy and immunology tests', '2025-05-18 05:38:18', 1);
 
 -- --------------------------------------------------------
 
@@ -373,11 +417,22 @@ CREATE TABLE `test_parameters` (
   `id` int(11) NOT NULL,
   `test_id` int(11) NOT NULL,
   `parameter_name` varchar(255) NOT NULL,
+  `reference_range` varchar(255) DEFAULT NULL COMMENT 'Reference range for the parameter',
+  `unit` varchar(50) DEFAULT NULL COMMENT 'Unit for the parameter value',
   `default_unit` varchar(100) DEFAULT NULL,
   `price` decimal(10,2) DEFAULT NULL,
+  `description` text DEFAULT NULL COMMENT 'Description of the test parameter',
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `test_parameters`
+--
+
+INSERT INTO `test_parameters` (`id`, `test_id`, `parameter_name`, `reference_range`, `unit`, `default_unit`, `price`, `description`, `created_at`, `updated_at`) VALUES
+(1, 11, 'sdf', NULL, NULL, 'rtgh', 100.00, NULL, '2025-05-18 05:48:24', '2025-05-18 05:48:24'),
+(6, 24, 'asd', 'qwe', 'qwe', NULL, 44.00, 'uu', '2025-06-15 10:22:36', '2025-06-15 10:39:37');
 
 -- --------------------------------------------------------
 
@@ -429,7 +484,7 @@ INSERT INTO `users` (`id`, `name`, `username`, `password`, `phone`, `email`, `ro
 (6, 'Garrett Webster', 'gydodapyxa', '$2y$10$ydvj.rB9BsBXizOLwzoi9ORm5Vx7bJDOxDrRbmHPyxJq1P7vBRkRC', '+1 (112) 408-16', 'rycazosype@mailinator.com', 'admin', 4, NULL, 1, '2025-04-19 09:56:18'),
 (8, 'Umakant Yadav', 'uky171992@gmail.com', '$2y$10$FOIJmXlGLuWA8p8V/Ox5zu43hNxt7mDY3KDEx/kgLldZo25jAHxZm', '09453619260', 'uky171992@gmail.com', 'branch_admin', 4, NULL, 1, '2025-04-20 18:15:41'),
 (9, 'weq qw', 'admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '02425342424', 'admin@example.com', 'admin', 4, NULL, 1, '2025-04-20 18:27:16'),
-(10, 'Branch Admin', 'branch_admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', NULL, NULL, 'branch_admin', 1, NULL, 1, '2025-04-20 18:27:16');
+(10, 'yyy', 'branch_admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '09453619260', 'admin@hospital.com', 'branch_admin', 1, NULL, 0, '2025-04-20 18:27:16');
 
 --
 -- Indexes for dumped tables
@@ -473,7 +528,8 @@ ALTER TABLE `payments`
   ADD UNIQUE KEY `invoice_no` (`invoice_no`),
   ADD KEY `patient_id` (`patient_id`),
   ADD KEY `branch_id` (`branch_id`),
-  ADD KEY `created_by` (`created_by`);
+  ADD KEY `created_by` (`created_by`),
+  ADD KEY `fk_payments_report_id` (`report_id`);
 
 --
 -- Indexes for table `reports`
@@ -535,7 +591,7 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `activities`
 --
 ALTER TABLE `activities`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=80;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=119;
 
 --
 -- AUTO_INCREMENT for table `branches`
@@ -583,13 +639,13 @@ ALTER TABLE `tests`
 -- AUTO_INCREMENT for table `test_categories`
 --
 ALTER TABLE `test_categories`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
 -- AUTO_INCREMENT for table `test_parameters`
 --
 ALTER TABLE `test_parameters`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `test_reports`
@@ -630,6 +686,7 @@ ALTER TABLE `patients`
 -- Constraints for table `payments`
 --
 ALTER TABLE `payments`
+  ADD CONSTRAINT `fk_payments_report_id` FOREIGN KEY (`report_id`) REFERENCES `reports` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
   ADD CONSTRAINT `payments_ibfk_1` FOREIGN KEY (`patient_id`) REFERENCES `patients` (`id`),
   ADD CONSTRAINT `payments_ibfk_2` FOREIGN KEY (`branch_id`) REFERENCES `branches` (`id`),
   ADD CONSTRAINT `payments_ibfk_3` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
