@@ -46,7 +46,7 @@ include '../inc/branch-header.php';
             ?>
         </p>
     </div>
-    <form class="row g-3 align-items-center" method="GET" id="filter-form">
+    <form class="row g-3 align-items-center" method="GET">
         <div class="col-auto">
             <select class="form-select" name="date_range" id="date_range">
                 <option value="today" <?php echo $date_range === 'today' ? 'selected' : ''; ?>>Today</option>
@@ -70,9 +70,6 @@ include '../inc/branch-header.php';
         </div>
     </form>
 </div>
-
-<!-- Error messages container -->
-<div id="error-container"></div>
 
 <!-- Dashboard loading overlay -->
 <div id="dashboard-loading" class="position-fixed top-0 start-0 w-100 h-100 bg-white bg-opacity-75 d-flex justify-content-center align-items-center" style="z-index: 1050; display: none;">
@@ -408,7 +405,7 @@ include '../inc/branch-header.php';
 document.addEventListener('DOMContentLoaded', function() {
     const dateRange = document.getElementById('date_range');
     const dateInputs = document.querySelectorAll('.date-inputs');
-    const filterForm = document.getElementById('filter-form');
+    const filterForm = document.querySelector('form');
     
     // Initialize dashboard data
     loadDashboardData();
@@ -434,9 +431,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const params = new URLSearchParams(formData);
         const newUrl = window.location.pathname + '?' + params.toString();
         window.history.pushState({}, '', newUrl);
-    });
-    
-    // Function to load dashboard data via AJAX
+    });    // Function to load dashboard data via AJAX
     function loadDashboardData() {
         const formData = new FormData(filterForm);
         const params = new URLSearchParams(formData);
@@ -468,9 +463,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('dashboard-loading').style.display = 'none';
                 document.getElementById('filter-spinner').classList.add('d-none');
             });
-    }
-
-    // Function to update dashboard with received data
+    }    // Function to update dashboard with received data
     function updateDashboard(data) {
         // Update branch info
         if (data.branch && data.branch.branch_name) {
@@ -702,9 +695,9 @@ document.addEventListener('DOMContentLoaded', function() {
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         `;
         
-        // Insert at the error container
-        const errorContainer = document.getElementById('error-container');
-        errorContainer.appendChild(errorDiv);
+        // Insert at top of page content
+        const content = document.querySelector('.d-flex.justify-content-between');
+        content.parentNode.insertBefore(errorDiv, content.nextSibling);
         
         // Auto remove after 5 seconds
         setTimeout(() => {
