@@ -34,8 +34,12 @@ include '../inc/branch-header.php';
 ?>
 
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-    <div>
-        <h1 class="h2">Branch Dashboard</h1>
+    <div>        <div class="d-flex align-items-center">
+            <h1 class="h2">Branch Dashboard</h1>
+            <button type="button" class="btn btn-sm btn-outline-secondary ms-2" id="refresh-dashboard" title="Refresh Dashboard">
+                <i class="fas fa-sync"></i>
+            </button>
+        </div>
         <p class="text-muted">
             <?php
             if (isset($branch['branch_name'])) {
@@ -118,8 +122,7 @@ include '../inc/branch-header.php';
                         <i class="fas fa-user-plus fa-2x text-primary"></i>
                     </div>
                     <div>
-                        <h6 class="card-subtitle mb-2 text-muted">New Patients</h6>
-                        <h2 class="card-title mb-0" id="new-patients-count">
+                        <h6 class="card-subtitle mb-2 text-muted">New Patients</h6>                        <h2 class="card-title mb-0" id="new-patients-count">
                             <div class="spinner-border spinner-border-sm text-primary" role="status">
                                 <span class="visually-hidden">Loading...</span>
                             </div>
@@ -322,8 +325,8 @@ include '../inc/branch-header.php';
             <div class="card-body">
                 <div class="table-responsive">
                     <table class="table">
-                        <thead>
-                            <tr>
+                        <thead>                    <tr>
+                                <th>Invoice</th>
                                 <th>Patient</th>
                                 <th>Test</th>
                                 <th>Amount</th>
@@ -333,7 +336,7 @@ include '../inc/branch-header.php';
                         </thead>
                         <tbody id="recent-payments-tbody">
                             <tr>
-                                <td colspan="5" class="text-center">
+                                <td colspan="6" class="text-center">
                                     <div class="spinner-border text-primary" role="status">
                                         <span class="visually-hidden">Loading...</span>
                                     </div>
@@ -409,9 +412,20 @@ document.addEventListener('DOMContentLoaded', function() {
     const dateRange = document.getElementById('date_range');
     const dateInputs = document.querySelectorAll('.date-inputs');
     const filterForm = document.getElementById('filter-form');
+    const refreshButton = document.getElementById('refresh-dashboard');
     
     // Initialize dashboard data
     loadDashboardData();
+    
+    // Add event listener for refresh button
+    refreshButton.addEventListener('click', function() {
+        refreshButton.disabled = true;
+        refreshButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+        loadDashboardData().then(() => {
+            refreshButton.disabled = false;
+            refreshButton.innerHTML = '<i class="fas fa-sync"></i>';
+        });
+    });
 
     // Toggle date inputs visibility based on filter selection
     function toggleDateInputs() {
@@ -435,8 +449,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const newUrl = window.location.pathname + '?' + params.toString();
         window.history.pushState({}, '', newUrl);
     });
-    
-    // Function to load dashboard data via AJAX
+      // Function to load dashboard data via AJAX
     function loadDashboardData() {
         const formData = new FormData(filterForm);
         const params = new URLSearchParams(formData);
@@ -445,7 +458,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('dashboard-loading').style.display = 'flex';
         document.getElementById('filter-spinner').classList.remove('d-none');
         
-        fetch(`ajax/get_dashboard_data.php?${params.toString()}`)
+        return fetch(`ajax/get_dashboard_data.php?${params.toString()}`)
             .then(response => {
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -458,10 +471,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else {
                     showError(data.message || 'An error occurred while loading dashboard data.');
                 }
-            })
-            .catch(error => {
+                return data;
+            }).catch(error => {
                 console.error('Error loading dashboard data:', error);
-                showError('An error occurred while loading dashboard data. Please try again.');
+                showError(`Dashboard data loading failed: ${error.message || 'Unknown error'}`);
             })
             .finally(() => {
                 // Hide loading indicators
@@ -534,24 +547,32 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         } else {
             recentReportsBody.innerHTML = '<tr><td colspan="4" class="text-center">No recent reports</td></tr>';
-        }
-
-        // Update recent payments
+        }        // Update recent payments
         const recentPaymentsBody = document.getElementById('recent-payments-tbody');
-        recentPaymentsBody.innerHTML = '';          if (data.recent_payments && data.recent_payments.length > 0) {
+        recentPaymentsBody.innerHTML = '';
+          if (data.recent_payments && data.recent_payments.length > 0) {
             data.recent_payments.forEach(payment => {
                 const row = document.createElement('tr');
+                const paymentDate = payment.payment_date ? formatDate(payment.payment_date) : formatDateTime(payment.created_at);
                 row.innerHTML = `
+                    <td>
+                        <a href="print-payment.php?id=${payment.id}" class="text-primary" target="_blank">
+                            ${payment.invoice_no ? escapeHtml(payment.invoice_no) : `#${payment.id}`}
+                        </a>
+                    </td>
                     <td>${escapeHtml(payment.patient_name)}</td>
                     <td>${escapeHtml(payment.test_name)}</td>
-                    <td>₹${formatNumber(payment.paid_amount, 2)}</td>
+                    <td>
+                        ₹${formatNumber(payment.paid_amount, 2)}
+                        ${payment.discount > 0 ? `<span class="badge bg-success ms-1">Disc: ₹${formatNumber(payment.discount, 2)}</span>` : ''}
+                    </td>
                     <td>${payment.payment_method ? escapeHtml(payment.payment_method) : '-'}</td>
-                    <td>${formatDateTime(payment.created_at)}</td>
+                    <td>${paymentDate}</td>
                 `;
                 recentPaymentsBody.appendChild(row);
             });
         } else {
-            recentPaymentsBody.innerHTML = '<tr><td colspan="5" class="text-center">No recent payments</td></tr>';
+            recentPaymentsBody.innerHTML = '<tr><td colspan="6" class="text-center">No recent payments</td></tr>';
         }
 
         // Update recent test results

@@ -162,8 +162,13 @@ try {
     $sql_recent_payments = "
         SELECT 
             py.id,
+            py.invoice_no,
             py.paid_amount,
-            py.payment_mode as payment_method, -- Using the correct column name from the database
+            py.discount,
+            py.total_amount,
+            py.payment_mode as payment_method,
+            py.transaction_id,
+            py.payment_date,
             py.created_at,
             p.name as patient_name,
             t.test_name
