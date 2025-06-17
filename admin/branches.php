@@ -68,9 +68,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 }
 
 // Handle branch deletion
-if (isset($_GET['delete'])) {
+if (isset($_POST['delete_branch'])) {
     try {
-        $branch_id = $_GET['delete'];
+        $branch_id = $_POST['branch_id'];
         
         // Check if branch has any associated users
         $stmt = $conn->prepare("SELECT COUNT(*) FROM users WHERE branch_id = ?");
@@ -101,13 +101,13 @@ if (isset($_GET['delete'])) {
     }
 }
 
-// Fetch all branches
-try {
-    $branches = $conn->query("SELECT * FROM branches ORDER BY branch_name")->fetchAll(PDO::FETCH_ASSOC);
-} catch (PDOException $e) {
-    $error_msg = "Error fetching branches: " . $e->getMessage();
-    $branches = [];
-}
+// Fetch all branches (commenting out for AJAX pagination)
+// try {
+//     $branches = $conn->query("SELECT * FROM branches ORDER BY branch_name")->fetchAll(PDO::FETCH_ASSOC);
+// } catch (PDOException $e) {
+//     $error_msg = "Error fetching branches: " . $e->getMessage();
+//     $branches = [];
+// }
 
 include '../inc/header.php';
 ?>
@@ -150,77 +150,16 @@ include '../inc/header.php';
                         <th class="text-end">Actions</th>
                     </tr>
                 </thead>
-                <tbody>
-                    <?php if (empty($branches)): ?>
-                        <tr>
-                            <td colspan="7" class="text-center py-4">
-                                <div class="text-muted">
-                                    <i class="fas fa-hospital fa-2x mb-2"></i>
-                                    <p>No branches found</p>
-                                </div>
-                            </td>
-                        </tr>
-                    <?php else: ?>
-                        <?php $sr = 1; foreach($branches as $branch): ?>
-                            <tr>
-                                <td><?php echo $sr++; ?></td>
-                                <td><?php echo htmlspecialchars($branch['branch_code']); ?></td>
-                                <td><?php echo htmlspecialchars($branch['branch_name']); ?></td>
-                                <td><?php echo htmlspecialchars($branch['phone']); ?><br><?php echo htmlspecialchars($branch['email']); ?></td>
-                                <td><?php echo htmlspecialchars($branch['city']); ?>, <?php echo htmlspecialchars($branch['state']); ?>, <?php echo htmlspecialchars($branch['pincode']); ?></td>
-                                <td>
-                                    <span class="badge bg-<?php echo $branch['status'] == 1 ? 'success' : 'danger'; ?>">
-                                        <?php echo $branch['status'] == 1 ? 'Active' : 'Inactive'; ?>
-                                    </span>
-                                </td>
-                                <td class="text-end">
-                                    <div class="btn-group">
-                                        <button type="button" class="btn btn-sm btn-info view-branch" 
-                                                data-bs-toggle="modal" 
-                                                data-bs-target="#viewBranchModal"
-                                                data-id="<?php echo $branch['id']; ?>"
-                                                data-code="<?php echo htmlspecialchars($branch['branch_code']); ?>"
-                                                data-name="<?php echo htmlspecialchars($branch['branch_name']); ?>"
-                                                data-address="<?php echo htmlspecialchars($branch['address']); ?>"
-                                                data-city="<?php echo htmlspecialchars($branch['city']); ?>"
-                                                data-state="<?php echo htmlspecialchars($branch['state']); ?>"
-                                                data-pincode="<?php echo htmlspecialchars($branch['pincode']); ?>"
-                                                data-phone="<?php echo htmlspecialchars($branch['phone']); ?>"
-                                                data-email="<?php echo htmlspecialchars($branch['email']); ?>"
-                                                data-status="<?php echo $branch['status']; ?>"
-                                                title="View Branch">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                        <button type="button" class="btn btn-sm btn-primary edit-branch" 
-                                                data-bs-toggle="modal" 
-                                                data-bs-target="#branchModal"
-                                                data-id="<?php echo $branch['id']; ?>"
-                                                data-code="<?php echo htmlspecialchars($branch['branch_code']); ?>"
-                                                data-name="<?php echo htmlspecialchars($branch['branch_name']); ?>"
-                                                data-address="<?php echo htmlspecialchars($branch['address']); ?>"
-                                                data-city="<?php echo htmlspecialchars($branch['city']); ?>"
-                                                data-state="<?php echo htmlspecialchars($branch['state']); ?>"
-                                                data-pincode="<?php echo htmlspecialchars($branch['pincode']); ?>"
-                                                data-phone="<?php echo htmlspecialchars($branch['phone']); ?>"
-                                                data-email="<?php echo htmlspecialchars($branch['email']); ?>"
-                                                data-status="<?php echo $branch['status']; ?>"
-                                                title="Edit Branch">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        <a href="?delete=<?php echo $branch['id']; ?>" 
-                                           class="btn btn-sm btn-danger"
-                                           onclick="return confirm('Are you sure you want to delete this branch?')"
-                                           title="Delete Branch">
-                                            <i class="fas fa-trash"></i>
-                                        </a>
-                                    </div>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
+                <tbody id="branches-table-body">
+                    <!-- Table rows will be loaded via AJAX -->
                 </tbody>
             </table>
         </div>
+        <nav aria-label="Page navigation">
+            <ul class="pagination justify-content-center" id="pagination-controls">
+                <!-- Pagination controls will be inserted here by JavaScript -->
+            </ul>
+        </nav>
     </div>
 </div>
 
@@ -358,6 +297,9 @@ include '../inc/header.php';
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    let currentPage = 1;
+    const itemsPerPage = 10;
+
     // Form validation
     const forms = document.querySelectorAll('.needs-validation');
     Array.from(forms).forEach(form => {
@@ -370,44 +312,209 @@ document.addEventListener('DOMContentLoaded', function() {
         }, false);
     });
 
-    // Handle view branch button clicks
-    document.querySelectorAll('.view-branch').forEach(button => {
-        button.addEventListener('click', function() {
-            // Update view modal content
-            document.getElementById('view-branch-code').textContent = this.dataset.code || '-';
-            document.getElementById('view-branch-name').textContent = this.dataset.name || '-';
-            document.getElementById('view-branch-status').innerHTML = `
-                <span class="badge bg-${this.dataset.status == 1 ? 'success' : 'danger'}">
-                    ${this.dataset.status == 1 ? 'Active' : 'Inactive'}
-                </span>
-            `;
-            document.getElementById('view-branch-phone').textContent = this.dataset.phone || '-';
-            document.getElementById('view-branch-email').textContent = this.dataset.email || '-';
-            document.getElementById('view-branch-address').textContent = this.dataset.address || '-';
-            document.getElementById('view-branch-city').textContent = this.dataset.city || '-';
-            document.getElementById('view-branch-state').textContent = this.dataset.state || '-';
-            document.getElementById('view-branch-pincode').textContent = this.dataset.pincode || '-';
-        });
-    });
+    function fetchBranches(page) {
+        fetch(`ajax/get_branches.php?page=${page}&itemsPerPage=${itemsPerPage}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    renderTable(data.branches, (page - 1) * itemsPerPage);
+                    renderPagination(data.totalPages, parseInt(data.currentPage));
+                    currentPage = parseInt(data.currentPage);
+                    attachActionListeners();
+                } else {
+                    console.error('Error fetching branches:', data.message);
+                    document.getElementById('branches-table-body').innerHTML = `<tr><td colspan="7" class="text-center py-4"><div class="text-muted"><i class="fas fa-exclamation-triangle fa-2x mb-2"></i><p>Error loading branches: ${data.message}</p></div></td></tr>`;
+                }
+            })
+            .catch(error => {
+                console.error('Fetch Error:', error);
+                document.getElementById('branches-table-body').innerHTML = `<tr><td colspan="7" class="text-center py-4"><div class="text-muted"><i class="fas fa-exclamation-triangle fa-2x mb-2"></i><p>Could not connect to server.</p></div></td></tr>`;
+            });
+    }
 
-    // Handle edit branch button clicks
-    document.querySelectorAll('.edit-branch').forEach(button => {
-        button.addEventListener('click', function() {
-            const modal = document.getElementById('branchModal');
-            modal.querySelector('.modal-title').textContent = 'Edit Branch';
-            modal.querySelector('#branch_id').value = this.dataset.id;
+    function renderTable(branches, offset) {
+        const tbody = document.getElementById('branches-table-body');
+        tbody.innerHTML = '';
+        if (branches.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4"><div class="text-muted"><i class="fas fa-hospital fa-2x mb-2"></i><p>No branches found</p></div></td></tr>';
+            return;
+        }
+
+        branches.forEach((branch, index) => {
+            const sr_no = offset + index + 1;
+            const statusBadge = branch.status == 1 ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-danger">Inactive</span>';
+            const location = `${escapeHTML(branch.city)}, ${escapeHTML(branch.state)}, ${escapeHTML(branch.pincode)}`;
+            const contact = `${escapeHTML(branch.phone)}<br>${escapeHTML(branch.email)}`;
             
-            // Fill form fields
-            modal.querySelector('#name').value = this.dataset.name;
-            modal.querySelector('#address').value = this.dataset.address;
-            modal.querySelector('#city').value = this.dataset.city;
-            modal.querySelector('#state').value = this.dataset.state;
-            modal.querySelector('#pincode').value = this.dataset.pincode;
-            modal.querySelector('#phone').value = this.dataset.phone;
-            modal.querySelector('#email').value = this.dataset.email;
-            modal.querySelector('#status').value = this.dataset.status;
+            const row = `
+                <tr>
+                    <td>${sr_no}</td>
+                    <td>${escapeHTML(branch.branch_code)}</td>
+                    <td>${escapeHTML(branch.branch_name)}</td>
+                    <td>${contact}</td>
+                    <td>${location}</td>
+                    <td>${statusBadge}</td>
+                    <td class="text-end">
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-sm btn-info view-branch" 
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#viewBranchModal"
+                                    data-id="${branch.id}"
+                                    data-code="${escapeHTML(branch.branch_code)}"
+                                    data-name="${escapeHTML(branch.branch_name)}"
+                                    data-address="${escapeHTML(branch.address)}"
+                                    data-city="${escapeHTML(branch.city)}"
+                                    data-state="${escapeHTML(branch.state)}"
+                                    data-pincode="${escapeHTML(branch.pincode)}"
+                                    data-phone="${escapeHTML(branch.phone)}"
+                                    data-email="${escapeHTML(branch.email)}"
+                                    data-status="${branch.status}"
+                                    title="View Branch">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-primary edit-branch" 
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#branchModal"
+                                    data-id="${branch.id}"
+                                    data-code="${escapeHTML(branch.branch_code)}"
+                                    data-name="${escapeHTML(branch.branch_name)}"
+                                    data-address="${escapeHTML(branch.address)}"
+                                    data-city="${escapeHTML(branch.city)}"
+                                    data-state="${escapeHTML(branch.state)}"
+                                    data-pincode="${escapeHTML(branch.pincode)}"
+                                    data-phone="${escapeHTML(branch.phone)}"
+                                    data-email="${escapeHTML(branch.email)}"
+                                    data-status="${branch.status}"
+                                    title="Edit Branch">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <form method="POST" action="branches.php" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this branch?')">
+                                <input type="hidden" name="delete_branch" value="1">
+                                <input type="hidden" name="branch_id" value="${branch.id}">
+                                <button type="submit" class="btn btn-sm btn-danger" title="Delete Branch">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+            `;
+            tbody.innerHTML += row;
         });
-    });
+    }
+
+    function renderPagination(totalPages, currentPage) {
+        const paginationControls = document.getElementById('pagination-controls');
+        paginationControls.innerHTML = '';
+
+        if (totalPages <= 1) return;
+
+        // Previous button
+        const prevLi = document.createElement('li');
+        prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+        const prevA = document.createElement('a');
+        prevA.className = 'page-link';
+        prevA.href = '#';
+        prevA.textContent = 'Previous';
+        prevA.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (currentPage > 1) fetchBranches(currentPage - 1);
+        });
+        prevLi.appendChild(prevA);
+        paginationControls.appendChild(prevLi);
+
+        // Page numbers
+        for (let i = 1; i <= totalPages; i++) {
+            const li = document.createElement('li');
+            li.className = `page-item ${i === currentPage ? 'active' : ''}`;
+            const a = document.createElement('a');
+            a.className = 'page-link';
+            a.href = '#';
+            a.textContent = i;
+            a.addEventListener('click', (e) => {
+                e.preventDefault();
+                fetchBranches(i);
+            });
+            li.appendChild(a);
+            paginationControls.appendChild(li);
+        }
+
+        // Next button
+        const nextLi = document.createElement('li');
+        nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+        const nextA = document.createElement('a');
+        nextA.className = 'page-link';
+        nextA.href = '#';
+        nextA.textContent = 'Next';
+        nextA.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (currentPage < totalPages) fetchBranches(currentPage + 1);
+        });
+        nextLi.appendChild(nextA);
+        paginationControls.appendChild(nextLi);
+    }
+
+    function escapeHTML(str) {
+        if (str === null || str === undefined) return '';
+        return str.toString().replace(/[&<>\"'`]/g, function (match) {
+            return {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;',
+                '`': '&#x60;'
+            }[match];
+        });
+    }
+
+    function attachActionListeners() {
+        // Handle view branch button clicks
+        document.querySelectorAll('.view-branch').forEach(button => {
+            const newButton = button.cloneNode(true);
+            button.parentNode.replaceChild(newButton, button);
+            
+            newButton.addEventListener('click', function() {
+                document.getElementById('view-branch-code').textContent = this.dataset.code || '-';
+                document.getElementById('view-branch-name').textContent = this.dataset.name || '-';
+                document.getElementById('view-branch-status').innerHTML = `
+                    <span class="badge bg-${this.dataset.status == 1 ? 'success' : 'danger'}">
+                        ${this.dataset.status == 1 ? 'Active' : 'Inactive'}
+                    </span>
+                `;
+                document.getElementById('view-branch-phone').textContent = this.dataset.phone || '-';
+                document.getElementById('view-branch-email').textContent = this.dataset.email || '-';
+                document.getElementById('view-branch-address').textContent = this.dataset.address || '-';
+                document.getElementById('view-branch-city').textContent = this.dataset.city || '-';
+                document.getElementById('view-branch-state').textContent = this.dataset.state || '-';
+                document.getElementById('view-branch-pincode').textContent = this.dataset.pincode || '-';
+            });
+        });
+
+        // Handle edit branch button clicks
+        document.querySelectorAll('.edit-branch').forEach(button => {
+            const newButton = button.cloneNode(true);
+            button.parentNode.replaceChild(newButton, button);
+
+            newButton.addEventListener('click', function() {
+                const modal = document.getElementById('branchModal');
+                modal.querySelector('.modal-title').textContent = 'Edit Branch';
+                modal.querySelector('#branch_id').value = this.dataset.id;
+                
+                modal.querySelector('#name').value = this.dataset.name;
+                modal.querySelector('#address').value = this.dataset.address;
+                modal.querySelector('#city').value = this.dataset.city;
+                modal.querySelector('#state').value = this.dataset.state;
+                modal.querySelector('#pincode').value = this.dataset.pincode;
+                modal.querySelector('#phone').value = this.dataset.phone;
+                modal.querySelector('#email').value = this.dataset.email;
+                modal.querySelector('#status').value = this.dataset.status;
+            });
+        });
+    }
+
+    // Initial fetch
+    fetchBranches(currentPage);
 
     // Reset form when adding new branch
     document.querySelector('[data-bs-target="#branchModal"]').addEventListener('click', function() {
