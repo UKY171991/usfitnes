@@ -533,7 +533,19 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('view-user-phone').textContent = this.dataset.phone || '-';
             document.getElementById('view-user-email').textContent = this.dataset.email || '-';
             document.getElementById('view-user-branch').textContent = this.dataset.branch || '-';
-            document.getElementById('view-user-last-login').textContent = this.dataset.lastLogin || 'Never';
+            // document.getElementById('view-user-last-login').textContent = this.dataset.lastLogin || 'Never';
+            const lastLoginDate = this.dataset.lastLogin;
+            if (lastLoginDate && lastLoginDate !== '0000-00-00 00:00:00' && lastLoginDate !== 'Never') {
+                const date = new Date(lastLoginDate);
+                const formattedDate = date.getFullYear() + '-' +
+                                  ('0' + (date.getMonth() + 1)).slice(-2) + '-' +
+                                  ('0' + date.getDate()).slice(-2) + ' ' +
+                                  ('0' + date.getHours()).slice(-2) + ':' +
+                                  ('0' + date.getMinutes()).slice(-2);
+                document.getElementById('view-user-last-login').textContent = formattedDate;
+            } else {
+                document.getElementById('view-user-last-login').textContent = 'Never';
+            }
         });
     });
 
