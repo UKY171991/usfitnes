@@ -502,7 +502,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <td>${user.created_formatted}</td>
                     <td class="text-end">
                         <div class="btn-group">
-                            <button type="button" class="btn btn-sm btn-info view-user" 
+                            <button type="button" class="btn btn-sm btn-outline-info view-user" 
                                     data-bs-toggle="modal" 
                                     data-bs-target="#viewUserModal"
                                     data-id="${user.id}"
@@ -518,7 +518,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     title="View User">
                                 <i class="fas fa-eye"></i>
                             </button>
-                            <button type="button" class="btn btn-sm btn-primary edit-user" 
+                            <button type="button" class="btn btn-sm btn-outline-primary edit-user" 
                                     data-bs-toggle="modal" 
                                     data-bs-target="#editUserModal"
                                     data-id="${user.id}"
@@ -536,7 +536,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <form method="POST" action="users.php" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this user?')">
                                 <input type="hidden" name="delete_user" value="1">
                                 <input type="hidden" name="user_id" value="${user.id}">
-                                <button type="submit" class="btn btn-sm btn-danger" title="Delete User">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete User">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </form>
