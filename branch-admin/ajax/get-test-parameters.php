@@ -4,7 +4,9 @@ ini_set('display_errors', 0);
 ini_set('log_errors', 1);
 ini_set('error_log', __DIR__ . '/error_log.txt');
 
-require_once '../../inc/db.php';
+require_once '../../inc/config.php';
+require_once '../../inc/db.php'; // Corrected path
+require_once '../../auth/branch-admin-check.php';
 
 header('Content-Type: application/json');
 
