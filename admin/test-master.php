@@ -105,14 +105,6 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_POST['edit_test']) && !isset
     }
 }
 
-// Get all tests with category names
-$tests = $conn->query("
-    SELECT t.*, c.category_name as category_name 
-    FROM tests t 
-    LEFT JOIN test_categories c ON t.category_id = c.id 
-    ORDER BY t.test_name
-")->fetchAll(PDO::FETCH_ASSOC);
-
 // Get all categories for dropdown
 $categories = $conn->query("SELECT id, category_name FROM test_categories ORDER BY category_name")->fetchAll(PDO::FETCH_ASSOC);
 
@@ -165,8 +157,8 @@ include '../inc/header.php';
                         <th class="text-end">Actions</th>
                     </tr>
                 </thead>
-                <tbody>
-                    <?php if (empty($tests)): ?>
+                <tbody id="tests-table-body">
+                    <?php /* if (empty($tests)): ?>
                         <tr>
                             <td colspan="7" class="text-center py-4">
                                 <div class="text-muted">
@@ -225,10 +217,15 @@ include '../inc/header.php';
                                 </td>
                             </tr>
                         <?php endforeach; ?>
-                    <?php endif; ?>
+                    <?php endif; */ ?>
                 </tbody>
             </table>
         </div>
+        <nav aria-label="Page navigation">
+            <ul class="pagination justify-content-center" id="pagination-controls">
+                <!-- Pagination controls will be inserted here by JavaScript -->
+            </ul>
+        </nav>
     </div>
 </div>
 
@@ -443,7 +440,203 @@ document.addEventListener('DOMContentLoaded', function() {
     const editTestModal = new bootstrap.Modal(editTestModalEl);
     const viewTestModal = new bootstrap.Modal(viewTestModalEl);
 
-    // Form Validation
+    let currentPage = 1;
+    const itemsPerPage = 10; // Or get from a select input
+
+    function fetchTests(page) {
+        fetch(`ajax/get_tests.php?page=${page}&itemsPerPage=${itemsPerPage}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    renderTable(data.tests, (page - 1) * itemsPerPage);
+                    renderPagination(data.totalPages, parseInt(data.currentPage));
+                    currentPage = parseInt(data.currentPage);
+                    attachActionListeners(); // Re-attach event listeners
+                } else {
+                    console.error('Error fetching tests:', data.message);
+                    document.getElementById('tests-table-body').innerHTML = `<tr><td colspan="7" class="text-center py-4"><div class="text-muted"><i class="fas fa-exclamation-triangle fa-2x mb-2"></i><p>Error loading tests: ${data.message}</p></div></td></tr>`;
+                }
+            })
+            .catch(error => {
+                console.error('Fetch Error:', error);
+                document.getElementById('tests-table-body').innerHTML = `<tr><td colspan="7" class="text-center py-4"><div class="text-muted"><i class="fas fa-exclamation-triangle fa-2x mb-2"></i><p>Could not connect to server.</p></div></td></tr>`;
+            });
+    }
+
+    function renderTable(tests, offset) {
+        const tbody = document.getElementById('tests-table-body');
+        tbody.innerHTML = ''; // Clear existing rows
+        if (tests.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4"><div class="text-muted"><i class="fas fa-vial fa-2x mb-2"></i><p>No tests found</p></div></td></tr>';
+            return;
+        }
+
+        tests.forEach((test, index) => {
+            const sr_no = offset + index + 1;
+            const status = test.status ?? 1;
+            const statusBadge = status == 1 ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-danger">Inactive</span>';
+            const priceFormatted = test.price ? `₹${parseFloat(test.price).toFixed(2)}` : '-';
+            const row = `
+                <tr>
+                    <td><span class="badge bg-secondary">${sr_no}</span></td>
+                    <td>
+                        <div class="fw-bold">${escapeHTML(test.test_name)}</div>
+                        <small class="text-muted">${escapeHTML(test.category_name)}</small>
+                    </td>
+                    <td>${priceFormatted}</td>
+                    <td>${escapeHTML(test.sample_type || '-')}</td>
+                    <td>${escapeHTML(test.reporting_time || '-')}</td>
+                    <td>${statusBadge}</td>
+                    <td class="text-end">
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-sm btn-info view-test" 
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#viewTestModal"
+                                    data-test='${escapeHTML(JSON.stringify(test))}'
+                                    title="View Test">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-primary edit-test" 
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#editTestModal"
+                                    data-test='${escapeHTML(JSON.stringify(test))}'
+                                    title="Edit Test">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <form method="POST" action="test-master.php" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this test?')">
+                                <input type="hidden" name="test_id" value="${test.id}">
+                                <input type="hidden" name="delete_test" value="1">
+                                <button type="submit" class="btn btn-sm btn-danger" title="Delete Test">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+            `;
+            tbody.innerHTML += row;
+        });
+    }
+
+    function renderPagination(totalPages, currentPage) {
+        const paginationControls = document.getElementById('pagination-controls');
+        paginationControls.innerHTML = '';
+
+        if (totalPages <= 1) return;
+
+        // Previous button
+        const prevLi = document.createElement('li');
+        prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+        const prevA = document.createElement('a');
+        prevA.className = 'page-link';
+        prevA.href = '#';
+        prevA.textContent = 'Previous';
+        prevA.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (currentPage > 1) fetchTests(currentPage - 1);
+        });
+        prevLi.appendChild(prevA);
+        paginationControls.appendChild(prevLi);
+
+        // Page numbers
+        for (let i = 1; i <= totalPages; i++) {
+            const li = document.createElement('li');
+            li.className = `page-item ${i === currentPage ? 'active' : ''}`;
+            const a = document.createElement('a');
+            a.className = 'page-link';
+            a.href = '#';
+            a.textContent = i;
+            a.addEventListener('click', (e) => {
+                e.preventDefault();
+                fetchTests(i);
+            });
+            li.appendChild(a);
+            paginationControls.appendChild(li);
+        }
+
+        // Next button
+        const nextLi = document.createElement('li');
+        nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+        const nextA = document.createElement('a');
+        nextA.className = 'page-link';
+        nextA.href = '#';
+        nextA.textContent = 'Next';
+        nextA.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (currentPage < totalPages) fetchTests(currentPage + 1);
+        });
+        nextLi.appendChild(nextA);
+        paginationControls.appendChild(nextLi);
+    }
+
+    function escapeHTML(str) {
+        if (str === null || str === undefined) return '';
+        return str.toString().replace(/[&<>\"\'`]/g, function (match) {
+            return {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;', // Escaping single quote for HTML attributes
+                '`': '&#x60;'  // Escaping backtick
+            }[match];
+        });
+    }
+
+    function attachActionListeners() {
+        // Handle View Button Clicks
+        document.querySelectorAll('.view-test').forEach(button => {
+            const newButton = button.cloneNode(true);
+            button.parentNode.replaceChild(newButton, button);
+            newButton.addEventListener('click', function() {
+                const testData = JSON.parse(this.dataset.test);
+                const status = testData.status ?? 1;
+                document.getElementById('view-test-name').textContent = testData.test_name || '-';
+                document.getElementById('view-test-category').textContent = testData.category_name || '-';
+                document.getElementById('view-test-price').textContent = testData.price ? `₹${parseFloat(testData.price).toFixed(2)}` : '-';
+                document.getElementById('view-test-status').innerHTML = `<span class="badge bg-${status == 1 ? 'success' : 'danger'}">${status == 1 ? 'Active' : 'Inactive'}</span>`;
+                document.getElementById('view-test-sample').textContent = testData.sample_type || '-';
+                document.getElementById('view-test-range').textContent = testData.normal_range || '-';
+                document.getElementById('view-test-reporting').textContent = testData.reporting_time || '-';
+                document.getElementById('view-test-description').textContent = testData.description || '-';
+                document.getElementById('view-test-preparation').textContent = testData.preparation || '-';
+                viewTestModal.show();
+            });
+        });
+
+        // Handle Edit Button Clicks
+        document.querySelectorAll('.edit-test').forEach(button => {
+            const newButton = button.cloneNode(true);
+            button.parentNode.replaceChild(newButton, button);
+            newButton.addEventListener('click', function() {
+                const testData = JSON.parse(this.dataset.test);
+                const status = testData.status ?? 1;
+                
+                // Populate edit form
+                document.getElementById('edit_test_id').value = testData.id;
+                document.getElementById('edit_test_name').value = testData.test_name || '';
+                document.getElementById('edit_category_id').value = testData.category_id || '';
+                document.getElementById('edit_price').value = testData.price || '';
+                document.getElementById('edit_description').value = testData.description || '';
+                document.getElementById('edit_normal_range').value = testData.normal_range || '';
+                document.getElementById('edit_sample_type').value = testData.sample_type || '';
+                document.getElementById('edit_preparation').value = testData.preparation || '';
+                document.getElementById('edit_reporting_time').value = testData.reporting_time || '';
+                document.getElementById('edit_status').value = status; // Set status value
+                
+                // Reset validation state if needed
+                const form = editTestModalEl.querySelector('form');
+                form.classList.remove('was-validated');
+                
+                editTestModal.show();
+            });
+        });
+    }
+
+    // Initial fetch
+    fetchTests(currentPage);
+
+    // Form Validation (already present, ensure it works with dynamic content if needed)
     const forms = document.querySelectorAll('.needs-validation');
     Array.from(forms).forEach(form => {
         form.addEventListener('submit', event => {
@@ -460,50 +653,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const form = addTestModalEl.querySelector('form');
         form.reset();
         form.classList.remove('was-validated');
-    });
-
-    // Handle View Button Clicks
-    document.querySelectorAll('.view-test').forEach(button => {
-        button.addEventListener('click', function() {
-            const testData = JSON.parse(this.dataset.test);
-            const status = testData.status ?? 1;
-            document.getElementById('view-test-name').textContent = testData.test_name || '-';
-            document.getElementById('view-test-category').textContent = testData.category_name || '-';
-            document.getElementById('view-test-price').textContent = testData.price ? `₹${parseFloat(testData.price).toFixed(2)}` : '-';
-            document.getElementById('view-test-status').innerHTML = `<span class="badge bg-${status == 1 ? 'success' : 'danger'}">${status == 1 ? 'Active' : 'Inactive'}</span>`;
-            document.getElementById('view-test-sample').textContent = testData.sample_type || '-';
-            document.getElementById('view-test-range').textContent = testData.normal_range || '-';
-            document.getElementById('view-test-reporting').textContent = testData.reporting_time || '-';
-            document.getElementById('view-test-description').textContent = testData.description || '-';
-            document.getElementById('view-test-preparation').textContent = testData.preparation || '-';
-            // viewTestModal.show(); // Modal is shown via data-bs-toggle
-        });
-    });
-
-    // Handle Edit Button Clicks
-    document.querySelectorAll('.edit-test').forEach(button => {
-        button.addEventListener('click', function() {
-            const testData = JSON.parse(this.dataset.test);
-            const status = testData.status ?? 1;
-            
-            // Populate edit form
-            document.getElementById('edit_test_id').value = testData.id;
-            document.getElementById('edit_test_name').value = testData.test_name || '';
-            document.getElementById('edit_category_id').value = testData.category_id || '';
-            document.getElementById('edit_price').value = testData.price || '';
-            document.getElementById('edit_description').value = testData.description || '';
-            document.getElementById('edit_normal_range').value = testData.normal_range || '';
-            document.getElementById('edit_sample_type').value = testData.sample_type || '';
-            document.getElementById('edit_preparation').value = testData.preparation || '';
-            document.getElementById('edit_reporting_time').value = testData.reporting_time || '';
-            document.getElementById('edit_status').value = status; // Set status value
-            
-            // Reset validation state if needed
-            const form = editTestModalEl.querySelector('form');
-            form.classList.remove('was-validated');
-            
-            // editTestModal.show(); // Modal is shown via data-bs-toggle
-        });
     });
 });
 </script>
