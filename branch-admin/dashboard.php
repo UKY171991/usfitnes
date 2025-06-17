@@ -79,7 +79,7 @@ include '../inc/branch-header.php';
 <div id="error-container"></div>
 
 <!-- Dashboard loading overlay -->
-<div id="dashboard-loading" class="position-fixed top-0 start-0 w-100 h-100 bg-white bg-opacity-75 d-flex justify-content-center align-items-center" style="z-index: 1050; display: none;">
+<div id="dashboard-loading" class="position-fixed top-0 start-0 w-100 h-100 bg-white bg-opacity-75 d-flex justify-content-center align-items-center d-none" style="z-index: 1050;">
     <div class="text-center">
         <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status">
             <span class="visually-hidden">Loading...</span>
