@@ -1,0 +1,202 @@
+/* Custom CSS for add-report.php */
+body {
+    font-family: Arial, sans-serif;
+    font-size: 12px; /* Matching the typical dense UI font size */
+}
+
+.report-container {
+    max-width: 100%;
+    margin: 10px;
+    padding: 0;
+    border: 1px solid #ccc;
+    background-color: #f0f0f0; /* Overall background, can be overridden */
+}
+
+.form-section-left {
+    background-color: #e0f2f7; /* Light blue background for left panel sections */
+    padding: 10px;
+    border: 1px solid #b0c4de; /* Light steel blue border */
+}
+
+.form-section-right {
+    background-color: #e6ffe6; /* Light green background for right panel sections */
+    padding: 10px;
+    border: 1px solid #b2d8b2; /* Pale green border */
+}
+
+.form-section-left .form-label,
+.form-section-right .form-label {
+    font-weight: bold;
+    margin-bottom: 2px;
+    display: block;
+}
+
+.form-section-left .form-control,
+.form-section-right .form-control,
+.form-section-left .form-select,
+.form-section-right .form-select {
+    font-size: 12px;
+    padding: 3px 6px;
+    height: auto;
+    margin-bottom: 5px; /* Reduced margin */
+}
+
+.input-group-text {
+    font-size: 12px;
+    padding: 3px 6px;
+}
+
+.table-report-parameters {
+    font-size: 12px;
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+.table-report-parameters th,
+.table-report-parameters td {
+    padding: 4px;
+    border: 1px solid #ccc;
+    vertical-align: middle;
+}
+
+.table-report-parameters th {
+    background-color: #007bff; /* Blue header like screenshot */
+    color: white;
+    text-align: center;
+}
+
+.table-report-parameters input[type="text"],
+.table-report-parameters input[type="checkbox"] {
+    font-size: 12px;
+    padding: 2px 4px;
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid #ccc;
+}
+.table-report-parameters input[type="checkbox"] {
+    width: auto;
+    margin: auto;
+    display: block;
+}
+
+
+.action-buttons-left,
+.action-buttons-bottom-left,
+.action-buttons-bottom-right {
+    padding: 10px;
+    background-color: #d3d3d3; /* Light grey for button panels */
+    border: 1px solid #ababab;
+}
+
+.action-buttons-left .btn,
+.action-buttons-bottom-left .btn,
+.action-buttons-bottom-right .btn {
+    font-size: 12px;
+    padding: 4px 8px;
+    margin-right: 5px;
+    margin-bottom: 5px; /* For wrapping */
+}
+
+.billing-details {
+    padding: 10px;
+    background-color: #e0f2f7; /* Light blue */
+}
+
+.billing-details .row {
+    margin-bottom: 3px; /* Tighter spacing for billing */
+}
+
+.billing-details .col-form-label {
+    font-size: 12px;
+    padding-top: 4px; /* Align with input */
+    padding-bottom: 4px;
+    text-align: right;
+}
+
+.billing-details .form-control {
+    text-align: right;
+}
+
+.required-asterisk {
+    color: red;
+}
+
+/* Specific field styling */
+#s_no {
+    background-color: #ffffcc; /* Light yellow for S.No */
+}
+#date_display {
+     background-color: #ffffcc; /* Light yellow for Date */
+}
+#uhid_display {
+    background-color: #ffffcc; /* Light yellow for UHID */
+}
+
+.patient-info-group {
+    margin-bottom: 10px;
+}
+.test-selection-group {
+     margin-bottom: 10px;
+}
+
+.button-bar-top {
+    background-color: #007bff; /* Blue bar */
+    padding: 8px;
+    margin-bottom: 10px;
+}
+.button-bar-top .btn {
+    color: white;
+    border: 1px solid white;
+}
+.button-bar-top .btn:hover {
+    background-color: white;
+    color: #007bff;
+}
+
+.form-control:disabled, .form-control[readonly] {
+    background-color: #e9ecef; /* Standard disabled look */
+    opacity: 1;
+}
+
+.form-check-input {
+    width: 1em;
+    height: 1em;
+    margin-top: 0.25em;
+}
+.form-check-label {
+    font-size: 12px;
+    margin-left: 0.25rem;
+}
+
+/* Ensure columns have no default padding if sections handle it */
+.row > [class^="col-"] {
+    padding-right: 5px;
+    padding-left: 5px;
+}
+.report-container .row {
+    margin-right: -5px;
+    margin-left: -5px;
+}
+
+.header-title {
+    background-color: #d3d3d3;
+    padding: 5px;
+    font-weight: bold;
+    border-bottom: 1px solid #ababab;
+    margin-bottom: 5px;
+}
+
+#reporting_date_display {
+    background-color: #e6ffe6; /* Light green to blend with right panel */
+}
+
+/* Make select elements also small */
+select.form-control {
+    height: calc(1.5em + .5rem + 2px); /* Bootstrap's sm select height */
+}
+
+/* Align checkboxes in table cells */
+.table-report-parameters td.checkbox-cell {
+    text-align: center;
+}
+
