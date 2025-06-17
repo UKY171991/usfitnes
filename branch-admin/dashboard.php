@@ -409,251 +409,32 @@ include '../inc/branch-header.php';
 <!-- JavaScript for Dashboard Functions -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const dateRange = document.getElementById('date_range');
+    const dateRangeSelect = document.getElementById('date_range');
     const dateInputs = document.querySelectorAll('.date-inputs');
     const filterForm = document.getElementById('filter-form');
     const refreshButton = document.getElementById('refresh-dashboard');
-    
-    // Initialize dashboard data
-    loadDashboardData();
-    
-    // Add event listener for refresh button
-    refreshButton.addEventListener('click', function() {
-        refreshButton.disabled = true;
-        refreshButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
-        loadDashboardData().then(() => {
-            refreshButton.disabled = false;
-            refreshButton.innerHTML = '<i class="fas fa-sync"></i>';
-        });
-    });
+    const dashboardLoadingOverlay = document.getElementById('dashboard-loading');
+    const filterSpinner = document.getElementById('filter-spinner');
+    const errorContainer = document.getElementById('error-container');
 
-    // Toggle date inputs visibility based on filter selection
-    function toggleDateInputs() {
-        const isCustom = dateRange.value === 'custom';
-        dateInputs.forEach(input => {
-            input.style.display = isCustom ? 'block' : 'none';
-        });
-    }
-    
-    dateRange.addEventListener('change', toggleDateInputs);
-    toggleDateInputs();
+    const statElements = {
+        newPatients: document.getElementById('new-patients-count'),
+        completedReports: document.getElementById('completed-reports-count'),
+        pendingReports: document.getElementById('pending-reports-count'),
+        periodRevenue: document.getElementById('period-revenue-count'),
+        totalPatients: document.getElementById('total-patients-count'),
+        totalReports: document.getElementById('total-reports-count'),
+        availableTests: document.getElementById('available-tests-count'),
+        totalRevenue: document.getElementById('total-revenue-count')
+    };
 
-    // Handle filter form submission with AJAX
-    filterForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        loadDashboardData();
-        
-        // Update URL with filter params for better UX
-        const formData = new FormData(filterForm);
-        const params = new URLSearchParams(formData);
-        const newUrl = window.location.pathname + '?' + params.toString();
-        window.history.pushState({}, '', newUrl);
-    });
-      // Function to load dashboard data via AJAX
-    function loadDashboardData() {
-        const formData = new FormData(filterForm);
-        const params = new URLSearchParams(formData);
-        
-        // Show loading indicators
-        document.getElementById('dashboard-loading').style.display = 'flex';
-        document.getElementById('filter-spinner').classList.remove('d-none');
-        
-        return fetch(`ajax/get_dashboard_data.php?${params.toString()}`)
-            .then(response => {
-                if (!response.ok) {
-                    // Try to get text for more detailed error, then throw
-                    return response.text().then(text => {
-                        console.error('Server response (text):', text);
-                        throw new Error(`HTTP error! status: ${response.status}, body: ${text.substring(0, 500)}`);
-                    });
-                }
-                return response.json().catch(jsonError => {
-                    console.error('Failed to parse JSON:', jsonError);
-                    // If JSON parsing fails, try to get original text response
-                    return response.text().then(text => {
-                        console.error('Server response (text) that failed JSON parsing:', text);
-                        throw new Error('Failed to parse JSON response from server. Body: ' + text.substring(0,500));
-                    });
-                });
-            })
-            .then(data => {
-                if (!data) {
-                    showError('Received no data or invalid data structure from server.');
-                    console.error('Received no data or invalid data structure:', data);
-                    return; 
-                }
-                if (data.success) {
-                    updateDashboard(data);
-                } else {
-                    showError(data.message || 'An error occurred while loading dashboard data.');
-                    console.error('Server returned success=false:', data.message);
-                }
-            }).catch(error => {
-                console.error('Error loading dashboard data:', error);
-                const errorMessage = (error && error.message) ? String(error.message) : 'Unknown error during fetch';
-                showError(`Dashboard data loading failed: ${errorMessage}`);
-                
-                // Clear loading spinners in tables in case of error
-                document.querySelectorAll('tbody').forEach(tbody => {
-                    const spinner = tbody.querySelector('.spinner-border');
-                    if (spinner) {
-                        const colspan = spinner.closest('td')?.colSpan || 6; // Default colspan
-                        tbody.innerHTML = `<tr><td colspan="${colspan}" class="text-center text-danger">Failed to load data. Please try refreshing.</td></tr>`;
-                    }
-                });
-            })
-            .finally(() => {
-                console.log('Finally block executing: Attempting to hide loading indicators.');
-                const loadingOverlay = document.getElementById('dashboard-loading');
-                if (loadingOverlay) {
-                    loadingOverlay.style.display = 'none';
-                    console.log('Main dashboard loading overlay hidden.');
-                } else {
-                    console.error('Main dashboard loading overlay (dashboard-loading) not found in finally block!');
-                }
-                
-                const filterSpinner = document.getElementById('filter-spinner');
-                if (filterSpinner) {
-                    filterSpinner.classList.add('d-none');
-                    console.log('Filter button spinner hidden.');
-                } else {
-                    console.error('Filter button spinner (filter-spinner) not found in finally block!');
-                }
-            });
-    }
+    const tableBodyElements = {
+        popularTests: document.getElementById('popular-tests-tbody'),
+        recentReports: document.getElementById('recent-reports-tbody'),
+        recentPayments: document.getElementById('recent-payments-tbody'),
+        recentResults: document.getElementById('recent-results-tbody')
+    };
 
-    // Function to update dashboard with received data
-    function updateDashboard(data) {
-        console.log('Updating dashboard with data:', data); // Log received data
-        // Update branch info
-        if (data.branch && data.branch.branch_name) {
-            const branchNameElement = document.querySelector('p.text-muted > span#branch-name-loading') 
-                                   || document.querySelector('p.text-muted'); // Handle both initial and updated states
-            if (branchNameElement) {
-                branchNameElement.textContent = data.branch.branch_name;
-                if(branchNameElement.id === 'branch-name-loading') branchNameElement.id = 'branch-name-display'; // Optional: change id after loading
-            }
-        } else {
-            const branchNameElement = document.querySelector('p.text-muted > span#branch-name-loading') 
-                                   || document.querySelector('p.text-muted');
-            if (branchNameElement) {
-                branchNameElement.innerHTML = '<span class="text-danger">Branch information not available.</span>';
-            }
-        }
-
-        // Update period stats
-        const periodStats = data.period_stats || {};
-        const newPatientsEl = document.getElementById('new-patients-count');
-        if (newPatientsEl) newPatientsEl.innerHTML = periodStats.new_patients ?? '0';
-        
-        const completedReportsEl = document.getElementById('completed-reports-count');
-        if (completedReportsEl) {
-            const completedReportsValue = periodStats.completed_reports;
-            console.log('[DEBUG] Raw value for periodStats.completed_reports:', completedReportsValue);
-            if (typeof completedReportsValue === 'number' || (typeof completedReportsValue === 'string' && !isNaN(parseFloat(completedReportsValue)))) {
-                completedReportsEl.innerHTML = Number(completedReportsValue);
-            } else {
-                console.warn('Unexpected value for completed_reports. Expected a number, got:', completedReportsValue, '- Defaulting to 0.');
-                completedReportsEl.innerHTML = '0'; 
-            }
-        }
-        
-        const pendingReportsEl = document.getElementById('pending-reports-count');
-        if (pendingReportsEl) pendingReportsEl.innerHTML = periodStats.pending_reports ?? '0';
-        
-        const periodRevenueEl = document.getElementById('period-revenue-count');
-        if (periodRevenueEl) periodRevenueEl.innerHTML = `Rs ${parseFloat(periodStats.period_revenue ?? 0).toFixed(2)}`;
-
-        // Update overall stats
-        const stats = data.stats || {};
-        const totalPatientsEl = document.getElementById('total-patients-count');
-        if (totalPatientsEl) totalPatientsEl.innerHTML = stats.total_patients ?? '0';
-
-        const totalReportsEl = document.getElementById('total-reports-count');
-        if (totalReportsEl) totalReportsEl.innerHTML = stats.total_reports ?? '0';
-
-        const availableTestsEl = document.getElementById('available-tests-count');
-        if (availableTestsEl) availableTestsEl.innerHTML = stats.available_tests ?? '0';
-
-        const totalRevenueEl = document.getElementById('total-revenue-count');
-        if (totalRevenueEl) totalRevenueEl.innerHTML = `Rs ${parseFloat(stats.total_revenue ?? 0).toFixed(2)}`;
-
-        // Update popular tests table
-        const popularTestsTbody = document.getElementById('popular-tests-tbody');
-        if (popularTestsTbody) {
-            if (data.popular_tests && data.popular_tests.length > 0) {
-                popularTestsTbody.innerHTML = data.popular_tests.map(test => `
-                    <tr>
-                        <td>${escapeHtml(test.test_name)}</td>
-                        <td>${test.report_count}</td>
-                        <td>Rs ${parseFloat(test.revenue).toFixed(2)}</td>
-                    </tr>
-                `).join('');
-            } else {
-                popularTestsTbody.innerHTML = '<tr><td colspan="3" class="text-center">No popular tests data available.</td></tr>';
-            }
-        }
-
-        // Update recent reports table
-        const recentReportsTbody = document.getElementById('recent-reports-tbody');
-        if (recentReportsTbody) {
-            if (data.recent_reports && data.recent_reports.length > 0) {
-                recentReportsTbody.innerHTML = data.recent_reports.map(report => `
-                    <tr>
-                        <td>${escapeHtml(report.patient_name)}</td>
-                        <td>${escapeHtml(report.test_name)}</td>
-                        <td><span class="badge bg-${getReportStatusClass(report.status)}">${escapeHtml(report.status)}</span></td>
-                        <td>${new Date(report.created_at).toLocaleDateString()}</td>
-                    </tr>
-                `).join('');
-            } else {
-                recentReportsTbody.innerHTML = '<tr><td colspan="4" class="text-center">No recent reports available.</td></tr>';
-            }
-        }
-        
-        // Update recent payments table
-        const recentPaymentsTbody = document.getElementById('recent-payments-tbody');
-        if (recentPaymentsTbody) {
-            if (data.recent_payments && data.recent_payments.length > 0) {
-                recentPaymentsTbody.innerHTML = data.recent_payments.map(payment => `
-                    <tr>
-                        <td>${escapeHtml(payment.invoice_no)}</td>
-                        <td>${escapeHtml(payment.patient_name)}</td>
-                        <td>${escapeHtml(payment.test_name)}</td>
-                        <td>Rs ${parseFloat(payment.paid_amount).toFixed(2)}</td>
-                        <td>${escapeHtml(payment.payment_method || payment.payment_mode)}</td>
-                        <td>${new Date(payment.created_at).toLocaleDateString()}</td>
-                    </tr>
-                `).join('');
-            } else {
-                recentPaymentsTbody.innerHTML = '<tr><td colspan="6" class="text-center">No recent payments available.</td></tr>';
-            }
-        }
-
-        // Update recent test results table
-        const recentResultsTbody = document.getElementById('recent-results-tbody');
-        if (recentResultsTbody) {
-            if (data.recent_results && data.recent_results.length > 0) {
-                recentResultsTbody.innerHTML = data.recent_results.map(result => `
-                    <tr>
-                        <td>${escapeHtml(result.id)}</td>
-                        <td>${escapeHtml(result.patient_name)}</td>
-                        <td>${escapeHtml(result.test_name)}</td>
-                        <td>${escapeHtml(result.result) || 'N/A'}</td>
-                        <td>${new Date(result.created_at).toLocaleDateString()}</td>
-                        <td>
-                            <button class="btn btn-sm btn-info view-report-btn" data-report-id="${result.id}">View</button>
-                        </td>
-                    </tr>
-                `).join('');
-            } else {
-                recentResultsTbody.innerHTML = '<tr><td colspan="6" class="text-center">No recent test results available.</td></tr>';
-            }
-        }
-        console.log('Dashboard update complete.');
-    }
-
-    // Helper function to escape HTML to prevent XSS
     function escapeHtml(unsafe) {
         if (unsafe === null || typeof unsafe === 'undefined') return '';
         return String(unsafe)
@@ -664,7 +445,6 @@ document.addEventListener('DOMContentLoaded', function() {
              .replace(/'/g, "&#039;");
     }
 
-    // Helper function to get bootstrap class based on report status
     function getReportStatusClass(status) {
         switch (status ? status.toLowerCase() : '') {
             case 'completed': return 'success';
@@ -674,37 +454,275 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    function showError(message) {
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'alert alert-danger alert-dismissible fade show';
-        errorDiv.innerHTML = `
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        `;
-        
-        // Insert at the error container
-        const errorContainer = document.getElementById('error-container');
-        errorContainer.appendChild(errorDiv);
-        
-        // Auto remove after 5 seconds
-        setTimeout(() => {
-            errorDiv.remove();
-        }, 5000);
+    function showGlobalError(message) {
+        if (errorContainer) {
+            errorContainer.innerHTML = `<div class="alert alert-danger alert-dismissible fade show" role="alert">
+                ${escapeHtml(message)}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>`;
+        }
+        console.error("Global error displayed:", message);
     }
 
-    // Function to view report details
+    function setElementText(element, text, isCurrency = false) {
+        if (element) {
+            let displayText = text;
+            if (text === null || typeof text === 'undefined') {
+                displayText = '<span class="text-muted small">N/A</span>';
+            } else if (isCurrency) {
+                displayText = `Rs ${parseFloat(text).toFixed(2)}`;
+            }
+            element.innerHTML = displayText;
+        }
+    }
+    
+    function setTableError(tbodyElement, colspan, message = "Failed to load data.") {
+        if (tbodyElement) {
+            tbodyElement.innerHTML = `<tr><td colspan="${colspan}" class="text-center text-danger">${escapeHtml(message)}</td></tr>`;
+        }
+    }
+
+    function clearAllSpinnersAndSetErrorState(errorMessage) {
+        console.warn("Clearing all spinners and setting error state:", errorMessage);
+        showGlobalError(errorMessage);
+
+        setElementText(statElements.newPatients, null);
+        setElementText(statElements.completedReports, null);
+        setElementText(statElements.pendingReports, null);
+        setElementText(statElements.periodRevenue, null);
+        setElementText(statElements.totalPatients, null);
+        setElementText(statElements.totalReports, null);
+        setElementText(statElements.availableTests, null);
+        setElementText(statElements.totalRevenue, null);
+
+        setTableError(tableBodyElements.popularTests, 3, errorMessage);
+        setTableError(tableBodyElements.recentReports, 4, errorMessage);
+        setTableError(tableBodyElements.recentPayments, 6, errorMessage);
+        setTableError(tableBodyElements.recentResults, 6, errorMessage);
+        
+        // Also update branch name if it was loading
+        const branchNameLoadingEl = document.getElementById('branch-name-loading');
+        if (branchNameLoadingEl) {
+            branchNameLoadingEl.innerHTML = '<span class="text-danger">Error loading branch</span>';
+        }
+    }
+
+    function updateDashboardUI(data) {
+        console.log('Updating dashboard UI with data:', data);
+
+        // Update branch info
+        const branchNameContainer = document.querySelector('p.text-muted');
+        if (branchNameContainer) {
+            if (data.branch && data.branch.branch_name) {
+                // If the loading span exists, replace its content, otherwise set the container's content
+                const branchNameLoadingEl = document.getElementById('branch-name-loading');
+                if (branchNameLoadingEl) {
+                    branchNameLoadingEl.textContent = escapeHtml(data.branch.branch_name);
+                    branchNameLoadingEl.id = 'branch-name-display'; // Change ID after loading
+                } else {
+                     branchNameContainer.textContent = escapeHtml(data.branch.branch_name);
+                }
+            } else {
+                 branchNameContainer.innerHTML = '<span class="text-danger">Branch information not available.</span>';
+            }
+        }
+
+
+        // Update period stats
+        const periodStats = data.period_stats || {};
+        setElementText(statElements.newPatients, periodStats.new_patients);
+        setElementText(statElements.completedReports, periodStats.completed_reports);
+        setElementText(statElements.pendingReports, periodStats.pending_reports);
+        setElementText(statElements.periodRevenue, periodStats.period_revenue, true);
+
+        // Update overall stats
+        const stats = data.stats || {};
+        setElementText(statElements.totalPatients, stats.total_patients);
+        setElementText(statElements.totalReports, stats.total_reports);
+        setElementText(statElements.availableTests, stats.available_tests);
+        setElementText(statElements.totalRevenue, stats.total_revenue, true);
+
+        // Update popular tests table
+        if (tableBodyElements.popularTests) {
+            if (data.popular_tests && data.popular_tests.length > 0) {
+                tableBodyElements.popularTests.innerHTML = data.popular_tests.map(test => `
+                    <tr>
+                        <td>${escapeHtml(test.test_name)}</td>
+                        <td>${escapeHtml(test.report_count)}</td>
+                        <td>Rs ${parseFloat(test.revenue || 0).toFixed(2)}</td>
+                    </tr>
+                `).join('');
+            } else {
+                tableBodyElements.popularTests.innerHTML = '<tr><td colspan="3" class="text-center text-muted small">No popular tests data available for this period.</td></tr>';
+            }
+        }
+
+        // Update recent reports table
+        if (tableBodyElements.recentReports) {
+            if (data.recent_reports && data.recent_reports.length > 0) {
+                tableBodyElements.recentReports.innerHTML = data.recent_reports.map(report => `
+                    <tr>
+                        <td>${escapeHtml(report.patient_name)}</td>
+                        <td>${escapeHtml(report.test_name)}</td>
+                        <td><span class="badge bg-${getReportStatusClass(report.status)}">${escapeHtml(report.status)}</span></td>
+                        <td>${new Date(report.created_at).toLocaleDateString()}</td>
+                    </tr>
+                `).join('');
+            } else {
+                tableBodyElements.recentReports.innerHTML = '<tr><td colspan="4" class="text-center text-muted small">No recent reports available for this period.</td></tr>';
+            }
+        }
+        
+        // Update recent payments table
+        if (tableBodyElements.recentPayments) {
+            if (data.recent_payments && data.recent_payments.length > 0) {
+                tableBodyElements.recentPayments.innerHTML = data.recent_payments.map(payment => `
+                    <tr>
+                        <td>${escapeHtml(payment.invoice_no)}</td>
+                        <td>${escapeHtml(payment.patient_name)}</td>
+                        <td>${escapeHtml(payment.test_name)}</td>
+                        <td>Rs ${parseFloat(payment.paid_amount || 0).toFixed(2)}</td>
+                        <td>${escapeHtml(payment.payment_method || payment.payment_mode)}</td>
+                        <td>${new Date(payment.created_at).toLocaleDateString()}</td>
+                    </tr>
+                `).join('');
+            } else {
+                tableBodyElements.recentPayments.innerHTML = '<tr><td colspan="6" class="text-center text-muted small">No recent payments available for this period.</td></tr>';
+            }
+        }
+
+        // Update recent test results table
+        if (tableBodyElements.recentResults) {
+            if (data.recent_results && data.recent_results.length > 0) {
+                tableBodyElements.recentResults.innerHTML = data.recent_results.map(result => `
+                    <tr>
+                        <td>${escapeHtml(result.id)}</td>
+                        <td>${escapeHtml(result.patient_name)}</td>
+                        <td>${escapeHtml(result.test_name)}</td>
+                        <td>${escapeHtml(result.result) || '<span class="text-muted small">N/A</span>'}</td>
+                        <td>${new Date(result.created_at).toLocaleDateString()}</td>
+                        <td>
+                            <button class="btn btn-sm btn-info view-report-btn" data-report-id="${result.id}">View</button>
+                        </td>
+                    </tr>
+                `).join('');
+            } else {
+                tableBodyElements.recentResults.innerHTML = '<tr><td colspan="6" class="text-center text-muted small">No recent test results available.</td></tr>';
+            }
+        }
+        console.log('Dashboard UI update complete.');
+    }
+
+    function loadDashboardData() {
+        const formData = new FormData(filterForm);
+        const params = new URLSearchParams(formData);
+        
+        if(dashboardLoadingOverlay) dashboardLoadingOverlay.style.display = 'flex';
+        if(filterSpinner) filterSpinner.classList.remove('d-none');
+        if(refreshButton) refreshButton.disabled = true;
+
+
+        // Reset initial state for cards to show individual spinners before new data or error
+        Object.values(statElements).forEach(el => {
+            if(el) el.innerHTML = '<div class="spinner-border spinner-border-sm" role="status"><span class="visually-hidden">Loading...</span></div>';
+        });
+         Object.values(tableBodyElements).forEach(el => {
+            if(el) {
+                const colspan = el.id === 'popular-tests-tbody' ? 3 : el.id === 'recent-reports-tbody' ? 4 : 6;
+                el.innerHTML = `<tr><td colspan="${colspan}" class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></td></tr>`;
+            }
+        });
+
+
+        return fetch(`ajax/get_dashboard_data.php?${params.toString()}`)
+            .then(response => {
+                if (!response.ok) {
+                    return response.text().then(text => {
+                        console.error('Server error response (text):', text);
+                        throw new Error(`HTTP error! Status: ${response.status}. Response: ${text.substring(0, 500)}`);
+                    });
+                }
+                return response.json().catch(jsonError => {
+                    console.error('Failed to parse JSON:', jsonError);
+                    // Attempt to get the raw response text to understand why JSON parsing failed
+                    return response.text().then(text => {
+                         console.error('Server response (text) that failed JSON parsing:', text);
+                         throw new Error('Failed to parse JSON response from server. Body: ' + text.substring(0,500));
+                    });
+                });
+            })
+            .then(data => {
+                if (data && data.success) {
+                    updateDashboardUI(data);
+                } else {
+                    const errorMsg = data && data.message ? data.message : 'Received invalid data structure or server indicated an error.';
+                    console.error('Dashboard data error:', errorMsg, 'Data:', data);
+                    clearAllSpinnersAndSetErrorState(errorMsg);
+                }
+            }).catch(error => {
+                console.error('Critical error loading dashboard data:', error);
+                clearAllSpinnersAndSetErrorState(error.message || 'A critical error occurred while fetching dashboard data.');
+            })
+            .finally(() => {
+                if(dashboardLoadingOverlay) dashboardLoadingOverlay.style.display = 'none';
+                if(filterSpinner) filterSpinner.classList.add('d-none');
+                if(refreshButton) {
+                    refreshButton.disabled = false;
+                    refreshButton.innerHTML = '<i class="fas fa-sync"></i>';
+                }
+                console.log('Finished loading attempt. Main overlay and button spinners should be reset.');
+            });
+    }
+    
+    if (refreshButton) {
+        refreshButton.addEventListener('click', function() {
+            refreshButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Refreshing...';
+            loadDashboardData();
+        });
+    }
+
+    function toggleDateInputsVisibility() {
+        const isCustom = dateRangeSelect.value === 'custom';
+        dateInputs.forEach(input => {
+            input.style.display = isCustom ? 'block' : 'none';
+        });
+    }
+    
+    if (dateRangeSelect) {
+        dateRangeSelect.addEventListener('change', toggleDateInputsVisibility);
+        toggleDateInputsVisibility(); // Initial call
+    }
+
+    if (filterForm) {
+        filterForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            loadDashboardData();
+            
+            const formData = new FormData(filterForm);
+            const params = new URLSearchParams(formData);
+            const newUrl = window.location.pathname + '?' + params.toString();
+            window.history.pushState({}, '', newUrl);
+        });
+    }
+    
+    // Initial data load
+    loadDashboardData();
+
+    // --- Modal and Print Logic (from previous version, ensure it's still functional) ---
     function viewReport(reportId) {
         const reportContent = document.getElementById('viewReportContent');
         const printViewedReportBtn = document.getElementById('printViewedReport');
+        if (!reportContent || !printViewedReportBtn) {
+            console.error('Modal elements for viewing report not found.');
+            return;
+        }
         reportContent.innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading report...</span></div></div>';
-        
-        // Store report ID for printing
         printViewedReportBtn.dataset.reportId = reportId;
 
         fetch(`ajax/get-report.php?report_id=${reportId}`)
             .then(response => {
                 if (!response.ok) {
-                    return response.text().then(text => { throw new Error(`HTTP error! Status: ${response.status}, Body: ${text}`); });
+                    return response.text().then(text => { throw new Error(`HTTP error! Status: ${response.status}, Body: ${text.substring(0, 200)}`); });
                 }
                 return response.json();
             })
@@ -712,55 +730,39 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (data.success && data.html) {
                     reportContent.innerHTML = data.html;
                 } else {
-                    reportContent.innerHTML = `<div class="alert alert-danger">${data.message || 'Could not load report details.'}</div>`;
+                    reportContent.innerHTML = `<div class="alert alert-danger">${escapeHtml(data.message || 'Could not load report details.')}</div>`;
                 }
             })
             .catch(error => {
-                console.error('Error fetching report:', error);
-                reportContent.innerHTML = `<div class="alert alert-danger">Error loading report: ${error.message}</div>`;
+                console.error('Error fetching report for modal:', error);
+                reportContent.innerHTML = `<div class="alert alert-danger">Error loading report: ${escapeHtml(error.message)}</div>`;
             });
     }
 
-    // Event delegation for view report buttons (if they are added dynamically)
     document.addEventListener('click', function(event) {
         if (event.target.classList.contains('view-report-btn')) {
             const reportId = event.target.dataset.reportId;
             if (reportId) {
-                const viewReportModal = new bootstrap.Modal(document.getElementById('viewReportModal'));
-                viewReport(reportId);
-                viewReportModal.show();
+                const viewReportModalElement = document.getElementById('viewReportModal');
+                if (viewReportModalElement) {
+                    const viewReportModal = new bootstrap.Modal(viewReportModalElement);
+                    viewReport(reportId);
+                    viewReportModal.show();
+                } else {
+                    console.error('View report modal element not found.');
+                }
             }
         }
     });
 
-    document.getElementById('printViewedReport')?.addEventListener('click', function() {
-        const reportId = this.dataset.reportId;
-        if (reportId) {
-            // Option 1: Open print dialog for the modal content (might not be perfectly formatted)
-            // const reportContent = document.getElementById('viewReportContent').innerHTML;
-            // const printWindow = window.open('', '_blank');
-            // printWindow.document.write('<html><head><title>Print Report</title>');
-            // // Add any necessary stylesheets for printing if available
-            // // printWindow.document.write('<link rel="stylesheet" href="path/to/print.css">');
-            // printWindow.document.write('</head><body>');
-            // printWindow.document.write(reportContent);
-            // printWindow.document.write('</body></html>');
-            // printWindow.document.close();
-            // printWindow.print();
-
-            // Option 2: Redirect to a dedicated print page (better for formatting)
-            window.open(`print-report.php?id=${reportId}`, '_blank');
-        }
-    });
-
-    // Auto-refresh dashboard every 60 seconds
-    setInterval(loadDashboardData, 60000);
-    
-    // Add debug button if in development mode
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        const scriptElem = document.createElement('script');
-        scriptElem.src = 'fix_dashboard.js';
-        document.body.appendChild(scriptElem);
+    const printViewedReportBtn = document.getElementById('printViewedReport');
+    if (printViewedReportBtn) {
+        printViewedReportBtn.addEventListener('click', function() {
+            const reportId = this.dataset.reportId;
+            if (reportId) {
+                window.open(`print-report.php?id=${reportId}`, '_blank');
+            }
+        });
     }
 });
 </script>
