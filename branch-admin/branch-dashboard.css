@@ -1,0 +1,233 @@
+/* Branch Admin Dashboard Specific Styles */
+
+.dashboard-title {
+    font-size: 1.8rem; /* Slightly smaller than admin */
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 1.5rem;
+}
+
+.dashboard-cards-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem; /* Spacing between cards */
+    margin-bottom: 1.5rem;
+}
+
+/* Updated Stat Cards */
+.dashboard-card {
+    background-color: #fff;
+    border: 1px solid #e3e6f0; /* General border, matches admin */
+    border-radius: 1.25rem;    /* Match admin general card radius */
+    box-shadow: 0 2px 12px rgba(44, 62, 80, 0.04); /* Match admin general card shadow */
+    flex: 1 1 calc(25% - 1.5rem); 
+    min-width: 220px; 
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    /* Specific left border color will be applied by .border-* classes */
+}
+
+.dashboard-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 18px rgba(44, 62, 80, 0.08); 
+}
+
+.dashboard-card .card-content {
+    padding: 1.25rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-grow: 1;
+}
+
+.dashboard-card .card-text-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.dashboard-card .card-value {
+    font-size: 2rem; 
+    font-weight: 700;
+    color: #2c3e50;
+    margin-bottom: 0.25rem;
+    line-height: 1.2;
+}
+
+.dashboard-card .card-value .spinner-border {
+    width: 1.5rem; 
+    height: 1.5rem;
+    color: #0d6efd; 
+}
+
+.dashboard-card .card-label {
+    font-size: 0.9rem;
+    color: #6c757d; 
+    font-weight: 500; /* Added font-weight */
+    margin-bottom: 0;
+}
+
+.dashboard-card .card-icon {
+    font-size: 2.5rem; 
+    color: #0d6efd; 
+    opacity: 0.7;
+}
+
+/* Specific stat card border colors (left accent) */
+.dashboard-card.border-primary { border-left: 4px solid var(--bs-primary); }
+.dashboard-card.border-primary .card-icon { color: var(--bs-primary); }
+
+.dashboard-card.border-success { border-left: 4px solid var(--bs-success); }
+.dashboard-card.border-success .card-icon { color: var(--bs-success); }
+
+.dashboard-card.border-info { border-left: 4px solid var(--bs-info); }
+.dashboard-card.border-info .card-icon { color: var(--bs-info); }
+
+.dashboard-card.border-warning { border-left: 4px solid var(--bs-warning); }
+.dashboard-card.border-warning .card-icon { color: var(--bs-warning); }
+
+/* Footer for stat cards */
+.dashboard-card .card-footer {
+    background-color: #f8f9fa; 
+    padding: 0.75rem 1.25rem;
+    text-align: center;
+    border-top: 1px solid #e0e0e0;
+    font-size: 0.85rem;
+    display: block;
+    text-decoration: none;
+    color: #0d6efd;
+    border-bottom-left-radius: calc(1.25rem - 1px); /* Match card radius */
+    border-bottom-right-radius: calc(1.25rem - 1px); /* Match card radius */
+}
+
+.dashboard-card .card-footer:hover {
+    background-color: #e9ecef;
+    color: #0a58ca;
+}
+
+/* General Content Cards (for tables, quick actions, etc.) */
+.content-card {
+    background-color: #fff;
+    border: 1px solid #e3e6f0; /* Match admin */
+    border-radius: 1.25rem;    /* Match admin */
+    box-shadow: 0 2px 12px rgba(44, 62, 80, 0.04); /* Match admin */
+    margin-bottom: 1.5rem; /* Default spacing, aligns with col mb-4 */
+}
+
+.content-card .card-header {
+    background: #f6f8fa; /* Match admin */
+    border-top-left-radius: calc(1.25rem - 1px); 
+    border-top-right-radius: calc(1.25rem - 1px);
+    font-weight: 600;
+    font-size: 1.1rem; /* Match admin */
+    color: #2c3e50;   /* Match admin */
+    border-bottom: 1px solid #e3e6f0; /* Match admin */
+    padding: 0.75rem 1.25rem; 
+}
+
+.content-card .card-header .card-title {
+    font-size: 1.1rem; /* Ensure consistency */
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 0;
+}
+
+/* Table styling within .content-card */
+.content-card .table {
+    margin-bottom: 0; 
+}
+
+.content-card .table thead th {
+    background: #f8f9fa; 
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    color: #2c3e50; 
+    border-bottom-width: 1px;
+    font-size: 0.9rem;
+    padding: 0.75rem;
+    border-top: none; /* Avoid double border with card-header */
+}
+
+.content-card .table tbody tr:hover {
+    background-color: #f1f3f5; 
+    transition: background-color 0.2s;
+}
+
+.content-card .table td {
+    padding: 0.75rem; 
+    font-size: 0.9rem;
+    color: #495057; /* Standard text color for table data */
+}
+
+/* Quick Actions card specific styling */
+.quick-actions-card.content-card .card-body {
+    padding: 1rem; 
+    display: flex; /* Already has d-flex, ensure it works well */
+    flex-wrap: wrap;
+    gap: 0.5rem; /* Control gap via CSS for consistency */
+}
+
+/* General button styling to match admin dashboard */
+.btn-primary, .btn-success, .btn-info, .btn-warning, .btn-danger, .btn-secondary, .btn-light, .btn-dark,
+.btn-outline-primary, .btn-outline-success, .btn-outline-info, .btn-outline-warning, .btn-outline-danger, .btn-outline-secondary, .btn-outline-light, .btn-outline-dark {
+    border-radius: 0.5rem;
+    font-weight: 600;
+    letter-spacing: 0.2px; /* Slightly reduced letter-spacing for better readability */
+    padding: 0.4rem 0.8rem; /* Adjust padding for a slightly more compact button */
+    font-size: 0.9rem;
+}
+
+
+/* Date Filter Form styling (if used, currently form is directly in HTML) */
+.date-filter-form-branch {
+    background-color: #fff;
+    padding: 1.5rem;
+    border-radius: 1.25rem; /* Updated radius */
+    box-shadow: 0 2px 12px rgba(44, 62, 80, 0.04); /* Updated shadow */
+    margin-bottom: 2rem;
+    border: 1px solid #e3e6f0; /* Added border */
+}
+
+/* Responsive adjustments for stat cards */
+@media (max-width: 1200px) {
+    .dashboard-card {
+        flex: 1 1 calc(33.333% - 1.5rem); /* 3 cards per row */
+    }
+}
+
+@media (max-width: 992px) {
+    .dashboard-card {
+        flex: 1 1 calc(50% - 1.5rem); /* 2 cards per row */
+    }
+    .content-card .card-header { /* Adjust header padding on smaller screens */
+        padding: 0.6rem 1rem;
+    }
+    .content-card .card-header .card-title {
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .dashboard-card {
+        flex: 1 1 100%; /* 1 card per row */
+    }
+    .dashboard-cards-row {
+        gap: 1rem;
+    }
+    .content-card .card-header {
+        padding: 0.5rem 0.75rem;
+    }
+    .content-card .card-header .card-title {
+        font-size: 0.95rem;
+    }
+    .content-card .table thead th,
+    .content-card .table td {
+        font-size: 0.85rem; /* Smaller font for tables on very small screens */
+        padding: 0.5rem;
+    }
+    .btn-primary, .btn-success, .btn-info, .btn-warning, .btn-danger, .btn-secondary, .btn-light, .btn-dark,
+    .btn-outline-primary, .btn-outline-success, .btn-outline-info, .btn-outline-warning, .btn-outline-danger, .btn-outline-secondary, .btn-outline-light, .btn-outline-dark {
+        font-size: 0.8rem; /* Smaller buttons */
+        padding: 0.3rem 0.6rem;
+    }
+}
