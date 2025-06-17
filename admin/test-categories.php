@@ -95,16 +95,16 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_POST['edit_category']) && !i
 }
 
 // Get all categories with test counts
-$stmt = $conn->query("
-    SELECT 
-        tc.*, 
-        COUNT(t.id) as test_count 
-    FROM test_categories tc
-    LEFT JOIN tests t ON tc.id = t.category_id
-    GROUP BY tc.id
-    ORDER BY tc.category_name
-");
-$categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
+// $stmt = $conn->query("
+//     SELECT 
+//         tc.*, 
+//         COUNT(t.id) as test_count 
+//     FROM test_categories tc
+//     LEFT JOIN tests t ON tc.id = t.category_id
+//     GROUP BY tc.id
+//     ORDER BY tc.category_name
+// ");
+// $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 include '../inc/header.php';
 ?>
@@ -139,8 +139,8 @@ include '../inc/header.php';
                         <th class="text-end">Actions</th>
                     </tr>
                 </thead>
-                <tbody>
-                    <?php if (empty($categories)): ?>
+                <tbody id="categories-table-body">
+                    <?php /* if (empty($categories)): ?>
                         <tr>
                             <td colspan="5" class="text-center py-4">
                                 <div class="text-muted">
@@ -209,10 +209,15 @@ include '../inc/header.php';
                                 </td>
                             </tr>
                         <?php endforeach; ?>
-                    <?php endif; ?>
+                    <?php endif; */ ?>
                 </tbody>
             </table>
         </div>
+        <nav aria-label="Page navigation">
+            <ul class="pagination justify-content-center" id="pagination-controls">
+                <!-- Pagination controls will be inserted here by JavaScript -->
+            </ul>
+        </nav>
     </div>
 </div>
 
@@ -332,51 +337,219 @@ document.addEventListener('DOMContentLoaded', function() {
     const categoryEditModal = new bootstrap.Modal(categoryEditModalEl);
     const categoryViewModal = new bootstrap.Modal(categoryViewModalEl); // Assuming view modal exists
 
-    // Handle view category button clicks
-    document.querySelectorAll('.view-category').forEach(button => {
-        button.addEventListener('click', function() {
-            // Update view modal content
-            document.getElementById('view-category-name').textContent = this.dataset.name || '-';
-            document.getElementById('view-category-description').textContent = this.dataset.description || '-';
-            document.getElementById('view-category-status').innerHTML = `
-                <span class="badge bg-${this.dataset.status == 'active' ? 'success' : 'danger'}">
-                    ${this.dataset.status == 'active' ? 'Active' : 'Inactive'}
-                </span>
-            `;
-            document.getElementById('view-category-test-count').innerHTML = `
-                <span class="badge bg-info">${this.dataset.testCount || 0} Tests</span>
-            `;
-            // Show view modal if needed (assuming it's separate)
-            // categoryViewModal.show(); 
-        });
-    });
+    let currentPage = 1;
+    const itemsPerPage = 10; // Or get from a select input
 
-    // Handle edit category button clicks
-    document.querySelectorAll('.edit-category').forEach(button => {
-        button.addEventListener('click', function() {
-            // Get references to form elements inside the modal
-            const modalTitle = categoryEditModalEl.querySelector('.modal-title');
-            const categoryIdInput = categoryEditModalEl.querySelector('#category_id');
-            const categoryNameInput = categoryEditModalEl.querySelector('#category_name');
-            const descriptionTextarea = categoryEditModalEl.querySelector('#description');
-            const statusSelect = categoryEditModalEl.querySelector('#status');
+    function fetchCategories(page) {
+        fetch(`ajax/get_test_categories.php?page=${page}&itemsPerPage=${itemsPerPage}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    renderTable(data.categories, (page - 1) * itemsPerPage);
+                    renderPagination(data.totalPages, parseInt(data.currentPage));
+                    currentPage = parseInt(data.currentPage);
+                    // Re-attach event listeners for view/edit buttons if they are dynamically added
+                    attachActionListeners(); 
+                } else {
+                    console.error('Error fetching categories:', data.message);
+                    document.getElementById('categories-table-body').innerHTML = `<tr><td colspan="5" class="text-center py-4"><div class="text-muted"><i class="fas fa-exclamation-triangle fa-2x mb-2"></i><p>Error loading categories: ${data.message}</p></div></td></tr>`;
+                }
+            })
+            .catch(error => {
+                console.error('Fetch Error:', error);
+                document.getElementById('categories-table-body').innerHTML = `<tr><td colspan="5" class="text-center py-4"><div class="text-muted"><i class="fas fa-exclamation-triangle fa-2x mb-2"></i><p>Could not connect to server.</p></div></td></tr>`;
+            });
+    }
 
-            // Set modal title
-            modalTitle.textContent = 'Edit Category';
-            
-            // Fill form fields using data attributes
-            categoryIdInput.value = this.dataset.id || '';
-            categoryNameInput.value = this.dataset.name || '';
-            descriptionTextarea.value = this.dataset.description || '';
-            
-            // Set status dropdown value (map 'active'/'inactive' string to 1/0)
-            const statusValue = (this.dataset.status === 'active') ? '1' : '0';
-            statusSelect.value = statusValue;
-            
-            // Show the modal
-            categoryEditModal.show();
+    function renderTable(categories, offset) {
+        const tbody = document.getElementById('categories-table-body');
+        tbody.innerHTML = ''; // Clear existing rows
+        if (categories.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4"><div class="text-muted"><i class="fas fa-flask fa-2x mb-2"></i><p>No test categories found</p></div></td></tr>';
+            return;
+        }
+
+        categories.forEach((category, index) => {
+            const sr_no = offset + index + 1;
+            const status_string = (category.status == 1) ? 'active' : 'inactive';
+            const test_count = category.test_count || 0;
+            const row = `
+                <tr>
+                    <td><span class="badge bg-secondary">${sr_no}</span></td>
+                    <td>
+                        <div class="fw-bold">${escapeHTML(category.category_name)}</div>
+                        <small class="text-muted">${escapeHTML(category.description || 'No description')}</small>
+                    </td>
+                    <td><span class="badge bg-info">${test_count} Tests</span></td>
+                    <td>
+                        <span class="badge bg-${(category.status == 1) ? 'success' : 'danger'}">
+                            ${(category.status == 1) ? 'Active' : 'Inactive'}
+                        </span>
+                    </td>
+                    <td class="text-end">
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-sm btn-info view-category" 
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#viewCategoryModal"
+                                    data-id="${category.id}"
+                                    data-name="${escapeHTML(category.category_name)}"
+                                    data-description="${escapeHTML(category.description)}"
+                                    data-status="${status_string}"
+                                    data-test-count="${test_count}"
+                                    title="View Category">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-primary edit-category" 
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#categoryModal"
+                                    data-id="${category.id}"
+                                    data-name="${escapeHTML(category.category_name)}"
+                                    data-description="${escapeHTML(category.description)}"
+                                    data-status="${status_string}"
+                                    title="Edit Category">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <form method="POST" action="test-categories.php" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this category? All tests in this category will also be deleted.')">
+                                <input type="hidden" name="delete_category" value="1">
+                                <input type="hidden" name="category_id" value="${category.id}">
+                                <button type="submit" class="btn btn-sm btn-danger" title="Delete Category">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+            `;
+            tbody.innerHTML += row;
         });
-    });
+    }
+
+    function renderPagination(totalPages, currentPage) {
+        const paginationControls = document.getElementById('pagination-controls');
+        paginationControls.innerHTML = '';
+
+        if (totalPages <= 1) return;
+
+        // Previous button
+        const prevLi = document.createElement('li');
+        prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+        const prevA = document.createElement('a');
+        prevA.className = 'page-link';
+        prevA.href = '#';
+        prevA.textContent = 'Previous';
+        prevA.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (currentPage > 1) fetchCategories(currentPage - 1);
+        });
+        prevLi.appendChild(prevA);
+        paginationControls.appendChild(prevLi);
+
+        // Page numbers
+        for (let i = 1; i <= totalPages; i++) {
+            const li = document.createElement('li');
+            li.className = `page-item ${i === currentPage ? 'active' : ''}`;
+            const a = document.createElement('a');
+            a.className = 'page-link';
+            a.href = '#';
+            a.textContent = i;
+            a.addEventListener('click', (e) => {
+                e.preventDefault();
+                fetchCategories(i);
+            });
+            li.appendChild(a);
+            paginationControls.appendChild(li);
+        }
+
+        // Next button
+        const nextLi = document.createElement('li');
+        nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+        const nextA = document.createElement('a');
+        nextA.className = 'page-link';
+        nextA.href = '#';
+        nextA.textContent = 'Next';
+        nextA.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (currentPage < totalPages) fetchCategories(currentPage + 1);
+        });
+        nextLi.appendChild(nextA);
+        paginationControls.appendChild(nextLi);
+    }
+    
+    function escapeHTML(str) {
+        if (str === null || str === undefined) return '';
+        return str.toString().replace(/[&<>\"\'`]/g, function (match) {
+            return {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;',
+                '`': '&#x60;'
+            }[match];
+        });
+    }
+
+    function attachActionListeners() {
+        // Re-attach view category button clicks
+        document.querySelectorAll('.view-category').forEach(button => {
+            // Remove existing listener to prevent multiple attachments if any
+            const newButton = button.cloneNode(true);
+            button.parentNode.replaceChild(newButton, button);
+            
+            newButton.addEventListener('click', function() {
+                document.getElementById('view-category-name').textContent = this.dataset.name || '-';
+                document.getElementById('view-category-description').textContent = this.dataset.description || '-';
+                document.getElementById('view-category-status').innerHTML = `
+                    <span class="badge bg-${this.dataset.status == 'active' ? 'success' : 'danger'}">
+                        ${this.dataset.status == 'active' ? 'Active' : 'Inactive'}
+                    </span>
+                `;
+                document.getElementById('view-category-test-count').innerHTML = `
+                    <span class="badge bg-info">${this.dataset.testCount || 0} Tests</span>
+                `;
+                categoryViewModal.show(); 
+            });
+        });
+
+        // Re-attach edit category button clicks
+        document.querySelectorAll('.edit-category').forEach(button => {
+            // Remove existing listener
+            const newButton = button.cloneNode(true);
+            button.parentNode.replaceChild(newButton, button);
+
+            newButton.addEventListener('click', function() {
+                const modalTitle = categoryEditModalEl.querySelector('.modal-title');
+                const categoryIdInput = categoryEditModalEl.querySelector('#category_id');
+                // Ensure you are selecting the correct category_name input for edit modal
+                const categoryNameInput = categoryEditModalEl.querySelector('form[method="POST"] #category_name'); 
+                const descriptionTextarea = categoryEditModalEl.querySelector('form[method="POST"] #description');
+                const statusSelect = categoryEditModalEl.querySelector('form[method="POST"] #status');
+
+                modalTitle.textContent = 'Edit Category';
+                
+                categoryIdInput.value = this.dataset.id || '';
+                if(categoryNameInput) categoryNameInput.value = this.dataset.name || '';
+                if(descriptionTextarea) descriptionTextarea.value = this.dataset.description || '';
+                
+                const statusValue = (this.dataset.status === 'active') ? '1' : '0';
+                if(statusSelect) statusSelect.value = statusValue;
+                
+                categoryEditModal.show();
+            });
+        });
+    }
+
+    // Initial fetch
+    fetchCategories(currentPage);
+
+    // Handle view category button clicks (Initial setup, will be re-attached in fetchCategories)
+    // ... (keep existing .view-category and .edit-category listeners as they are, 
+    //      but ensure they are either general enough or re-attached after AJAX updates)
+    // It's better to call attachActionListeners after the first render too.
+    // attachActionListeners(); // Call after initial table render if categories were pre-loaded by PHP
+
+    // Handle edit category button clicks (Initial setup)
+    // ... (similar to view-category)
 });
 </script>
 
