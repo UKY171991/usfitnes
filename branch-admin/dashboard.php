@@ -547,7 +547,16 @@ document.addEventListener('DOMContentLoaded', function() {
         if (newPatientsEl) newPatientsEl.innerHTML = periodStats.new_patients ?? '0';
         
         const completedReportsEl = document.getElementById('completed-reports-count');
-        if (completedReportsEl) completedReportsEl.innerHTML = periodStats.completed_reports ?? '0';
+        if (completedReportsEl) {
+            const completedReportsValue = periodStats.completed_reports;
+            console.log('[DEBUG] Raw value for periodStats.completed_reports:', completedReportsValue);
+            if (typeof completedReportsValue === 'number' || (typeof completedReportsValue === 'string' && !isNaN(parseFloat(completedReportsValue)))) {
+                completedReportsEl.innerHTML = Number(completedReportsValue);
+            } else {
+                console.warn('Unexpected value for completed_reports. Expected a number, got:', completedReportsValue, '- Defaulting to 0.');
+                completedReportsEl.innerHTML = '0'; 
+            }
+        }
         
         const pendingReportsEl = document.getElementById('pending-reports-count');
         if (pendingReportsEl) pendingReportsEl.innerHTML = periodStats.pending_reports ?? '0';
