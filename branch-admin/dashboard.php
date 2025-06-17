@@ -461,268 +461,210 @@ document.addEventListener('DOMContentLoaded', function() {
         return fetch(`ajax/get_dashboard_data.php?${params.toString()}`)
             .then(response => {
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    // Try to get text for more detailed error, then throw
+                    return response.text().then(text => {
+                        console.error('Server response (text):', text);
+                        throw new Error(`HTTP error! status: ${response.status}, body: ${text.substring(0, 500)}`);
+                    });
                 }
-                return response.json();
+                return response.json().catch(jsonError => {
+                    console.error('Failed to parse JSON:', jsonError);
+                    // If JSON parsing fails, try to get original text response
+                    return response.text().then(text => {
+                        console.error('Server response (text) that failed JSON parsing:', text);
+                        throw new Error('Failed to parse JSON response from server. Body: ' + text.substring(0,500));
+                    });
+                });
             })
             .then(data => {
+                if (!data) {
+                    showError('Received no data or invalid data structure from server.');
+                    console.error('Received no data or invalid data structure:', data);
+                    return; 
+                }
                 if (data.success) {
                     updateDashboard(data);
                 } else {
                     showError(data.message || 'An error occurred while loading dashboard data.');
+                    console.error('Server returned success=false:', data.message);
                 }
-                return data;
             }).catch(error => {
                 console.error('Error loading dashboard data:', error);
-                showError(`Dashboard data loading failed: ${error.message || 'Unknown error'}`);
+                const errorMessage = (error && error.message) ? String(error.message) : 'Unknown error during fetch';
+                showError(`Dashboard data loading failed: ${errorMessage}`);
                 
-                // Clear loading spinners in case of error
+                // Clear loading spinners in tables in case of error
                 document.querySelectorAll('tbody').forEach(tbody => {
-                    if (tbody.querySelector('.spinner-border')) {
-                        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger">Failed to load data. Please try refreshing.</td></tr>';
+                    const spinner = tbody.querySelector('.spinner-border');
+                    if (spinner) {
+                        const colspan = spinner.closest('td')?.colSpan || 6; // Default colspan
+                        tbody.innerHTML = `<tr><td colspan="${colspan}" class="text-center text-danger">Failed to load data. Please try refreshing.</td></tr>`;
                     }
                 });
             })
             .finally(() => {
-                // Hide loading indicators
-                document.getElementById('dashboard-loading').style.display = 'none';
-                document.getElementById('filter-spinner').classList.add('d-none');
+                console.log('Finally block executing: Attempting to hide loading indicators.');
+                const loadingOverlay = document.getElementById('dashboard-loading');
+                if (loadingOverlay) {
+                    loadingOverlay.style.display = 'none';
+                    console.log('Main dashboard loading overlay hidden.');
+                } else {
+                    console.error('Main dashboard loading overlay (dashboard-loading) not found in finally block!');
+                }
+                
+                const filterSpinner = document.getElementById('filter-spinner');
+                if (filterSpinner) {
+                    filterSpinner.classList.add('d-none');
+                    console.log('Filter button spinner hidden.');
+                } else {
+                    console.error('Filter button spinner (filter-spinner) not found in finally block!');
+                }
             });
     }
 
     // Function to update dashboard with received data
     function updateDashboard(data) {
+        console.log('Updating dashboard with data:', data); // Log received data
         // Update branch info
         if (data.branch && data.branch.branch_name) {
-            document.querySelector('.text-muted').textContent = data.branch.branch_name;
+            const branchNameElement = document.querySelector('p.text-muted > span#branch-name-loading') 
+                                   || document.querySelector('p.text-muted'); // Handle both initial and updated states
+            if (branchNameElement) {
+                branchNameElement.textContent = data.branch.branch_name;
+                if(branchNameElement.id === 'branch-name-loading') branchNameElement.id = 'branch-name-display'; // Optional: change id after loading
+            }
         } else {
-            document.querySelector('.text-muted').innerHTML = '<span class="text-danger">Branch not found</span>';
+            const branchNameElement = document.querySelector('p.text-muted > span#branch-name-loading') 
+                                   || document.querySelector('p.text-muted');
+            if (branchNameElement) {
+                branchNameElement.innerHTML = '<span class="text-danger">Branch information not available.</span>';
+            }
         }
 
         // Update period stats
-        if (data.period_stats) {
-            document.getElementById('new-patients-count').textContent = formatNumber(data.period_stats.new_patients);
-            document.getElementById('completed-reports-count').textContent = formatNumber(data.period_stats.completed_reports);
-            document.getElementById('pending-reports-count').textContent = formatNumber(data.period_stats.pending_reports);
-            document.getElementById('period-revenue-count').textContent = '₹' + formatNumber(data.period_stats.period_revenue, 2);
-        }
+        const periodStats = data.period_stats || {};
+        const newPatientsEl = document.getElementById('new-patients-count');
+        if (newPatientsEl) newPatientsEl.innerHTML = periodStats.new_patients ?? '0';
+        
+        const completedReportsEl = document.getElementById('completed-reports-count');
+        if (completedReportsEl) completedReportsEl.innerHTML = periodStats.completed_reports ?? '0';
+        
+        const pendingReportsEl = document.getElementById('pending-reports-count');
+        if (pendingReportsEl) pendingReportsEl.innerHTML = periodStats.pending_reports ?? '0';
+        
+        const periodRevenueEl = document.getElementById('period-revenue-count');
+        if (periodRevenueEl) periodRevenueEl.innerHTML = `Rs ${parseFloat(periodStats.period_revenue ?? 0).toFixed(2)}`;
 
         // Update overall stats
-        if (data.stats) {
-            document.getElementById('total-patients-count').textContent = formatNumber(data.stats.total_patients);
-            document.getElementById('total-reports-count').textContent = formatNumber(data.stats.total_reports);
-            document.getElementById('available-tests-count').textContent = formatNumber(data.stats.available_tests);
-            document.getElementById('total-revenue-count').textContent = '₹' + formatNumber(data.stats.total_revenue, 2);
-        }
+        const stats = data.stats || {};
+        const totalPatientsEl = document.getElementById('total-patients-count');
+        if (totalPatientsEl) totalPatientsEl.innerHTML = stats.total_patients ?? '0';
 
-        // Update popular tests
-        const popularTestsBody = document.getElementById('popular-tests-tbody');
-        popularTestsBody.innerHTML = '';
-        
-        if (data.popular_tests && data.popular_tests.length > 0) {
-            data.popular_tests.forEach(test => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${escapeHtml(test.test_name)}</td>
-                    <td>${formatNumber(test.report_count)}</td>
-                    <td>₹${formatNumber(test.revenue, 2)}</td>
-                `;
-                popularTestsBody.appendChild(row);
-            });
-        } else {
-            popularTestsBody.innerHTML = '<tr><td colspan="3" class="text-center">No tests found</td></tr>';
-        }
+        const totalReportsEl = document.getElementById('total-reports-count');
+        if (totalReportsEl) totalReportsEl.innerHTML = stats.total_reports ?? '0';
 
-        // Update recent reports
-        const recentReportsBody = document.getElementById('recent-reports-tbody');
-        recentReportsBody.innerHTML = '';
-        
-        if (data.recent_reports && data.recent_reports.length > 0) {
-            data.recent_reports.forEach(report => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${escapeHtml(report.patient_name)}</td>
-                    <td>${escapeHtml(report.test_name)}</td>
-                    <td>
-                        <span class="badge bg-${report.status === 'completed' ? 'success' : 'warning'}">
-                            ${capitalizeFirstLetter(report.status)}
-                        </span>
-                    </td>
-                    <td>${formatDateTime(report.created_at)}</td>
-                `;
-                recentReportsBody.appendChild(row);
-            });
-        } else {
-            recentReportsBody.innerHTML = '<tr><td colspan="4" class="text-center">No recent reports</td></tr>';
-        }        // Update recent payments
-        const recentPaymentsBody = document.getElementById('recent-payments-tbody');
-        recentPaymentsBody.innerHTML = '';
-          if (data.recent_payments && data.recent_payments.length > 0) {
-            data.recent_payments.forEach(payment => {
-                const row = document.createElement('tr');
-                const paymentDate = payment.payment_date ? formatDate(payment.payment_date) : formatDateTime(payment.created_at);
-                // Handle both payment_method and payment_mode for backward compatibility
-                const paymentMethod = payment.payment_method || payment.payment_mode || '-';
-                
-                row.innerHTML = `
-                    <td>
-                        <a href="print-payment.php?id=${payment.id}" class="text-primary" target="_blank">
-                            ${payment.invoice_no ? escapeHtml(payment.invoice_no) : `#${payment.id}`}
-                        </a>
-                    </td>
-                    <td>${escapeHtml(payment.patient_name)}</td>
-                    <td>${escapeHtml(payment.test_name)}</td>
-                    <td>
-                        ₹${formatNumber(payment.paid_amount, 2)}
-                        ${payment.discount > 0 ? `<span class="badge bg-success ms-1">Disc: ₹${formatNumber(payment.discount, 2)}</span>` : ''}
-                    </td>
-                    <td>${escapeHtml(paymentMethod)}</td>
-                    <td>${paymentDate}</td>
-                `;
-                recentPaymentsBody.appendChild(row);
-            });
-        } else {
-            recentPaymentsBody.innerHTML = '<tr><td colspan="6" class="text-center">No recent payments</td></tr>';
-        }
+        const availableTestsEl = document.getElementById('available-tests-count');
+        if (availableTestsEl) availableTestsEl.innerHTML = stats.available_tests ?? '0';
 
-        // Update recent test results
-        const recentResultsBody = document.getElementById('recent-results-tbody');
-        recentResultsBody.innerHTML = '';
-        
-        if (data.recent_results && data.recent_results.length > 0) {
-            data.recent_results.forEach(result => {
-                const resultText = result.result ? 
-                    (result.result.length > 30 ? escapeHtml(result.result.substring(0, 30)) + '...' : escapeHtml(result.result)) : 
-                    '<em>No result yet</em>';
-                
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>#${result.id}</td>
-                    <td>${escapeHtml(result.patient_name)}</td>
-                    <td>${escapeHtml(result.test_name)}</td>
-                    <td>${resultText}</td>
-                    <td>${formatDate(result.created_at)}</td>
-                    <td>
-                        <div class="btn-group btn-group-sm">
-                            <a href="javascript:void(0)" class="btn btn-info view-report" data-report-id="${result.id}" title="View">
-                                <i class="fas fa-eye"></i>
-                            </a>
-                            <a href="javascript:void(0)" class="btn btn-secondary print-report" data-report-id="${result.id}" title="Print">
-                                <i class="fas fa-print"></i>
-                            </a>
-                        </div>
-                    </td>
-                `;
-                recentResultsBody.appendChild(row);
-            });
+        const totalRevenueEl = document.getElementById('total-revenue-count');
+        if (totalRevenueEl) totalRevenueEl.innerHTML = `Rs ${parseFloat(stats.total_revenue ?? 0).toFixed(2)}`;
 
-            // Reattach event listeners for view and print buttons
-            attachReportButtonEvents();
-        } else {
-            recentResultsBody.innerHTML = '<tr><td colspan="6" class="text-center">No completed reports found</td></tr>';
-        }
-    }
-
-    // Function to attach event listeners to view and print report buttons
-    function attachReportButtonEvents() {
-        // For "View Report" buttons
-        document.querySelectorAll('.view-report').forEach(button => {
-            button.addEventListener('click', function() {
-                const reportId = this.getAttribute('data-report-id');
-                viewReport(reportId);
-            });
-        });
-
-        // For "Print Report" buttons
-        document.querySelectorAll('.print-report').forEach(button => {
-            button.addEventListener('click', function() {
-                const reportId = this.getAttribute('data-report-id');
-                printReport(reportId);
-            });
-        });
-    }
-
-    // Print button in view modal
-    document.getElementById('printViewedReport').addEventListener('click', function() {
-        const reportId = this.getAttribute('data-report-id');
-        printReport(reportId);
-    });
-
-    // Function to view report details
-    function viewReport(reportId) {
-        fetch(`ajax/get-report.php?id=${reportId}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const report = data.report;
-                const viewContent = document.getElementById('viewReportContent');
-                document.getElementById('printViewedReport').setAttribute('data-report-id', reportId);
-                
-                let html = `
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <h5>Patient Information</h5>
-                            <p><strong>Name:</strong> ${escapeHtml(report.patient_name)}</p>
-                        </div>
-                        <div class="col-md-6">
-                            <h5>Test Information</h5>
-                            <p><strong>Test:</strong> ${escapeHtml(report.test_name)}</p>
-                            <p><strong>Normal Range:</strong> ${escapeHtml(report.normal_range || 'N/A')}</p>
-                            <p><strong>Unit:</strong> ${escapeHtml(report.unit || 'N/A')}</p>
-                        </div>
-                    </div>
-                    <div class="row mb-3">
-                        <div class="col-md-12">
-                            <h5>Result</h5>
-                            <div class="p-3 bg-light rounded">
-                                ${report.result ? escapeHtml(report.result) : '<em>No result yet</em>'}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-4">
-                            <p><strong>Status:</strong> 
-                                <span class="badge bg-${report.status === 'completed' ? 'success' : 'warning'}">
-                                    ${escapeHtml(report.status.charAt(0).toUpperCase() + report.status.slice(1))}
-                                </span>
-                            </p>
-                        </div>
-                        <div class="col-md-4">
-                            <p><strong>Price:</strong> ₹${parseFloat(report.test_price).toFixed(2)}</p>
-                        </div>
-                        <div class="col-md-4">
-                            <p><strong>Date:</strong> ${new Date(report.created_at).toLocaleDateString()}</p>
-                        </div>
-                    </div>
-                `;
-                viewContent.innerHTML = html;
-                
-                const viewReportModal = new bootstrap.Modal(document.getElementById('viewReportModal'));
-                viewReportModal.show();
+        // Update popular tests table
+        const popularTestsTbody = document.getElementById('popular-tests-tbody');
+        if (popularTestsTbody) {
+            if (data.popular_tests && data.popular_tests.length > 0) {
+                popularTestsTbody.innerHTML = data.popular_tests.map(test => `
+                    <tr>
+                        <td>${escapeHtml(test.test_name)}</td>
+                        <td>${test.report_count}</td>
+                        <td>Rs ${parseFloat(test.revenue).toFixed(2)}</td>
+                    </tr>
+                `).join('');
             } else {
-                showError(data.message || 'Report details not found.');
+                popularTestsTbody.innerHTML = '<tr><td colspan="3" class="text-center">No popular tests data available.</td></tr>';
             }
-        })
-        .catch(error => {
-            console.error('Error loading report details:', error);
-            showError('Error loading report details. Please try again.');
-        });
+        }
+
+        // Update recent reports table
+        const recentReportsTbody = document.getElementById('recent-reports-tbody');
+        if (recentReportsTbody) {
+            if (data.recent_reports && data.recent_reports.length > 0) {
+                recentReportsTbody.innerHTML = data.recent_reports.map(report => `
+                    <tr>
+                        <td>${escapeHtml(report.patient_name)}</td>
+                        <td>${escapeHtml(report.test_name)}</td>
+                        <td><span class="badge bg-${getReportStatusClass(report.status)}">${escapeHtml(report.status)}</span></td>
+                        <td>${new Date(report.created_at).toLocaleDateString()}</td>
+                    </tr>
+                `).join('');
+            } else {
+                recentReportsTbody.innerHTML = '<tr><td colspan="4" class="text-center">No recent reports available.</td></tr>';
+            }
+        }
+        
+        // Update recent payments table
+        const recentPaymentsTbody = document.getElementById('recent-payments-tbody');
+        if (recentPaymentsTbody) {
+            if (data.recent_payments && data.recent_payments.length > 0) {
+                recentPaymentsTbody.innerHTML = data.recent_payments.map(payment => `
+                    <tr>
+                        <td>${escapeHtml(payment.invoice_no)}</td>
+                        <td>${escapeHtml(payment.patient_name)}</td>
+                        <td>${escapeHtml(payment.test_name)}</td>
+                        <td>Rs ${parseFloat(payment.paid_amount).toFixed(2)}</td>
+                        <td>${escapeHtml(payment.payment_method || payment.payment_mode)}</td>
+                        <td>${new Date(payment.created_at).toLocaleDateString()}</td>
+                    </tr>
+                `).join('');
+            } else {
+                recentPaymentsTbody.innerHTML = '<tr><td colspan="6" class="text-center">No recent payments available.</td></tr>';
+            }
+        }
+
+        // Update recent test results table
+        const recentResultsTbody = document.getElementById('recent-results-tbody');
+        if (recentResultsTbody) {
+            if (data.recent_results && data.recent_results.length > 0) {
+                recentResultsTbody.innerHTML = data.recent_results.map(result => `
+                    <tr>
+                        <td>${escapeHtml(result.id)}</td>
+                        <td>${escapeHtml(result.patient_name)}</td>
+                        <td>${escapeHtml(result.test_name)}</td>
+                        <td>${escapeHtml(result.result) || 'N/A'}</td>
+                        <td>${new Date(result.created_at).toLocaleDateString()}</td>
+                        <td>
+                            <button class="btn btn-sm btn-info view-report-btn" data-report-id="${result.id}">View</button>
+                        </td>
+                    </tr>
+                `).join('');
+            } else {
+                recentResultsTbody.innerHTML = '<tr><td colspan="6" class="text-center">No recent test results available.</td></tr>';
+            }
+        }
+        console.log('Dashboard update complete.');
     }
 
-    // Function to print report
-    function printReport(reportId) {
-        const printWindow = window.open(`print-report.php?id=${reportId}`, '_blank', 'width=800,height=600');
-        if (printWindow) {
-            printWindow.focus();
-            printWindow.onload = function() {
-                printWindow.print();
-            };
-        } else {
-            showError('Please allow popups to print the report');
+    // Helper function to escape HTML to prevent XSS
+    function escapeHtml(unsafe) {
+        if (unsafe === null || typeof unsafe === 'undefined') return '';
+        return String(unsafe)
+             .replace(/&/g, "&amp;")
+             .replace(/</g, "&lt;")
+             .replace(/>/g, "&gt;")
+             .replace(/"/g, "&quot;")
+             .replace(/'/g, "&#039;");
+    }
+
+    // Helper function to get bootstrap class based on report status
+    function getReportStatusClass(status) {
+        switch (status ? status.toLowerCase() : '') {
+            case 'completed': return 'success';
+            case 'pending': return 'warning';
+            case 'cancelled': return 'danger';
+            default: return 'secondary';
         }
     }
 
-    // Function to show error message
     function showError(message) {
         const errorDiv = document.createElement('div');
         errorDiv.className = 'alert alert-danger alert-dismissible fade show';
@@ -741,54 +683,68 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 5000);
     }
 
-    // Helper function to escape HTML
-    function escapeHtml(unsafe) {
-        if (unsafe === null || typeof unsafe === 'undefined') return '-';
-        return String(unsafe)
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#039;");
+    // Function to view report details
+    function viewReport(reportId) {
+        const reportContent = document.getElementById('viewReportContent');
+        const printViewedReportBtn = document.getElementById('printViewedReport');
+        reportContent.innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading report...</span></div></div>';
+        
+        // Store report ID for printing
+        printViewedReportBtn.dataset.reportId = reportId;
+
+        fetch(`ajax/get-report.php?report_id=${reportId}`)
+            .then(response => {
+                if (!response.ok) {
+                    return response.text().then(text => { throw new Error(`HTTP error! Status: ${response.status}, Body: ${text}`); });
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success && data.html) {
+                    reportContent.innerHTML = data.html;
+                } else {
+                    reportContent.innerHTML = `<div class="alert alert-danger">${data.message || 'Could not load report details.'}</div>`;
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching report:', error);
+                reportContent.innerHTML = `<div class="alert alert-danger">Error loading report: ${error.message}</div>`;
+            });
     }
 
-    // Helper function to format numbers
-    function formatNumber(number, decimals = 0) {
-        return Number(number).toLocaleString('en-IN', {
-            minimumFractionDigits: decimals,
-            maximumFractionDigits: decimals
-        });
-    }
+    // Event delegation for view report buttons (if they are added dynamically)
+    document.addEventListener('click', function(event) {
+        if (event.target.classList.contains('view-report-btn')) {
+            const reportId = event.target.dataset.reportId;
+            if (reportId) {
+                const viewReportModal = new bootstrap.Modal(document.getElementById('viewReportModal'));
+                viewReport(reportId);
+                viewReportModal.show();
+            }
+        }
+    });
 
-    // Helper function to format date and time
-    function formatDateTime(dateTimeStr) {
-        if (!dateTimeStr) return '-';
-        const date = new Date(dateTimeStr);
-        return date.toLocaleString('en-IN', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    }
+    document.getElementById('printViewedReport')?.addEventListener('click', function() {
+        const reportId = this.dataset.reportId;
+        if (reportId) {
+            // Option 1: Open print dialog for the modal content (might not be perfectly formatted)
+            // const reportContent = document.getElementById('viewReportContent').innerHTML;
+            // const printWindow = window.open('', '_blank');
+            // printWindow.document.write('<html><head><title>Print Report</title>');
+            // // Add any necessary stylesheets for printing if available
+            // // printWindow.document.write('<link rel="stylesheet" href="path/to/print.css">');
+            // printWindow.document.write('</head><body>');
+            // printWindow.document.write(reportContent);
+            // printWindow.document.write('</body></html>');
+            // printWindow.document.close();
+            // printWindow.print();
 
-    // Helper function to format date only
-    function formatDate(dateTimeStr) {
-        if (!dateTimeStr) return '-';
-        const date = new Date(dateTimeStr);
-        return date.toLocaleDateString('en-IN', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric'
-        });
-    }
+            // Option 2: Redirect to a dedicated print page (better for formatting)
+            window.open(`print-report.php?id=${reportId}`, '_blank');
+        }
+    });
 
-    // Helper function to capitalize first letter
-    function capitalizeFirstLetter(string) {
-        if (!string) return '-';
-        return string.charAt(0).toUpperCase() + string.slice(1);
-    }    // Auto-refresh dashboard every 60 seconds
+    // Auto-refresh dashboard every 60 seconds
     setInterval(loadDashboardData, 60000);
     
     // Add debug button if in development mode
