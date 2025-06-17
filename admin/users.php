@@ -112,13 +112,13 @@ if(isset($_POST['username']) && isset($_POST['password']) && isset($_POST['name'
     }
 }
 
-// Get all users with branch names
-$users = $conn->query("
-    SELECT u.*, b.branch_name 
-    FROM users u 
-    LEFT JOIN branches b ON u.branch_id = b.id 
-    ORDER BY u.id DESC
-")->fetchAll(PDO::FETCH_ASSOC);
+// Get all users with branch names (commenting out for AJAX pagination)
+// $users = $conn->query("
+//     SELECT u.*, b.branch_name 
+//     FROM users u 
+//     LEFT JOIN branches b ON u.branch_id = b.id 
+//     ORDER BY u.id DESC
+// ")->fetchAll(PDO::FETCH_ASSOC);
 
 // Get all branches for dropdown
 $branches = $conn->query("SELECT id, branch_name as name FROM branches ORDER BY branch_name")->fetchAll(PDO::FETCH_ASSOC);
@@ -175,78 +175,16 @@ include '../inc/header.php';
                         <th class="text-end">Actions</th>
                     </tr>
                 </thead>
-                <tbody>
-                    <?php if (empty($users)): ?>
-                        <tr>
-                            <td colspan="11" class="text-center py-4">
-                                <div class="text-muted">
-                                    <i class="fas fa-users fa-2x mb-2"></i>
-                                    <p>No users found</p>
-                                </div>
-                            </td>
-                        </tr>
-                    <?php else: ?>
-                        <?php $sr_no = 1; // Initialize serial number ?>
-                        <?php foreach($users as $user): ?>
-                            <tr>
-                                <td><?php echo $sr_no++; ?></td> <?php // Display and increment serial number ?>
-                                <td><?php echo htmlspecialchars($user['name']); ?></td>
-                                <td><?php echo htmlspecialchars($user['username']); ?></td>
-                                <td><?php echo htmlspecialchars($user['phone']); ?></td>
-                                <td><?php echo htmlspecialchars($user['email']); ?></td>
-                                <td><span class="badge bg-<?php echo getRoleBadgeColor($user['role']); ?>"><?php echo formatRole($user['role']); ?></span></td>
-                                <td><?php echo htmlspecialchars($user['branch_name'] ?? '-'); ?></td>
-                                <td><?php echo $user['last_login'] ? date('Y-m-d H:i', strtotime($user['last_login'])) : 'Never'; ?></td>
-                                <td><span class="badge bg-<?php echo $user['status'] ? 'success' : 'danger'; ?>"><?php echo $user['status'] ? 'Active' : 'Inactive'; ?></span></td>
-                                <td><?php echo $user['created_at'] ? date('Y-m-d H:i', strtotime($user['created_at'])) : '-'; ?></td>
-                                <td class="text-end">
-                                    <div class="btn-group">
-                                        <button type="button" class="btn btn-sm btn-info view-user" 
-                                                data-bs-toggle="modal" 
-                                                data-bs-target="#viewUserModal"
-                                                data-id="<?php echo $user['id']; ?>"
-                                                data-name="<?php echo htmlspecialchars($user['name']); ?>"
-                                                data-username="<?php echo htmlspecialchars($user['username']); ?>"
-                                                data-phone="<?php echo htmlspecialchars($user['phone']); ?>"
-                                                data-email="<?php echo htmlspecialchars($user['email']); ?>"
-                                                data-role="<?php echo htmlspecialchars($user['role']); ?>"
-                                                data-branch="<?php echo htmlspecialchars($user['branch_name']); ?>"
-                                                data-status="<?php echo $user['status']; ?>"
-                                                data-last-login="<?php echo $user['last_login']; ?>"
-                                                data-created-at="<?php echo $user['created_at']; ?>"
-                                                title="View User">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                        <button type="button" class="btn btn-sm btn-primary edit-user" 
-                                                data-bs-toggle="modal" 
-                                                data-bs-target="#editUserModal"
-                                                data-id="<?php echo $user['id']; ?>"
-                                                data-name="<?php echo htmlspecialchars($user['name']); ?>"
-                                                data-username="<?php echo htmlspecialchars($user['username']); ?>"
-                                                data-phone="<?php echo htmlspecialchars($user['phone']); ?>"
-                                                data-email="<?php echo htmlspecialchars($user['email']); ?>"
-                                                data-role="<?php echo htmlspecialchars($user['role']); ?>"
-                                                data-branch="<?php echo $user['branch_id']; ?>"
-                                                data-status="<?php echo $user['status']; ?>"
-                                                data-created-at="<?php echo $user['created_at']; ?>"
-                                                title="Edit User">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        <form method="POST" action="" style="display:inline;">
-                                            <input type="hidden" name="delete_user" value="1">
-                                            <input type="hidden" name="user_id" value="<?php echo $user['id']; ?>">
-                                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this user?')" title="Delete User">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
+                <tbody id="users-table-body">
+                    <!-- Table rows will be loaded via AJAX -->
                 </tbody>
             </table>
         </div>
+        <nav aria-label="Page navigation">
+            <ul class="pagination justify-content-center" id="pagination-controls">
+                <!-- Pagination controls will be inserted here by JavaScript -->
+            </ul>
+        </nav>
     </div>
 </div>
 
@@ -502,6 +440,9 @@ include '../inc/header.php';
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    let currentPage = 1;
+    const itemsPerPage = 10;
+
     // Form validation
     const forms = document.querySelectorAll('.needs-validation');
     Array.from(forms).forEach(form => {
@@ -514,67 +455,229 @@ document.addEventListener('DOMContentLoaded', function() {
         }, false);
     });
 
-    // Handle view user button clicks
-    document.querySelectorAll('.view-user').forEach(button => {
-        button.addEventListener('click', function() {
-            // Update view modal content
-            document.getElementById('view-user-name').textContent = this.dataset.name || '-';
-            document.getElementById('view-user-username').textContent = this.dataset.username || '-';
-            document.getElementById('view-user-role').innerHTML = `
-                <span class="badge bg-${getRoleBadgeColor(this.dataset.role)}">
-                    ${formatRole(this.dataset.role)}
-                </span>
-            `;
-            document.getElementById('view-user-status').innerHTML = `
-                <span class="badge bg-${this.dataset.status == 1 ? 'success' : 'danger'}">
-                    ${this.dataset.status == 1 ? 'Active' : 'Inactive'}
-                </span>
-            `;
-            document.getElementById('view-user-phone').textContent = this.dataset.phone || '-';
-            document.getElementById('view-user-email').textContent = this.dataset.email || '-';
-            document.getElementById('view-user-branch').textContent = this.dataset.branch || '-';
-            // document.getElementById('view-user-last-login').textContent = this.dataset.lastLogin || 'Never';
-            const lastLoginDate = this.dataset.lastLogin;
-            if (lastLoginDate && lastLoginDate !== '0000-00-00 00:00:00' && lastLoginDate !== 'Never') {
-                const date = new Date(lastLoginDate);
-                const formattedDate = date.getFullYear() + '-' +
-                                  ('0' + (date.getMonth() + 1)).slice(-2) + '-' +
-                                  ('0' + date.getDate()).slice(-2) + ' ' +
-                                  ('0' + date.getHours()).slice(-2) + ':' +
-                                  ('0' + date.getMinutes()).slice(-2);
-                document.getElementById('view-user-last-login').textContent = formattedDate;
-            } else {
-                document.getElementById('view-user-last-login').textContent = 'Never';
-            }
-        });
-    });
+    function fetchUsers(page) {
+        fetch(`ajax/get_users.php?page=${page}&itemsPerPage=${itemsPerPage}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    renderTable(data.users, (page - 1) * itemsPerPage);
+                    renderPagination(data.totalPages, parseInt(data.currentPage));
+                    currentPage = parseInt(data.currentPage);
+                    attachActionListeners();
+                } else {
+                    console.error('Error fetching users:', data.message);
+                    document.getElementById('users-table-body').innerHTML = `<tr><td colspan="11" class="text-center py-4"><div class="text-muted"><i class="fas fa-exclamation-triangle fa-2x mb-2"></i><p>Error loading users: ${data.message}</p></div></td></tr>`;
+                }
+            })
+            .catch(error => {
+                console.error('Fetch Error:', error);
+                document.getElementById('users-table-body').innerHTML = `<tr><td colspan="11" class="text-center py-4"><div class="text-muted"><i class="fas fa-exclamation-triangle fa-2x mb-2"></i><p>Could not connect to server.</p></div></td></tr>`;
+            });
+    }
 
-    // Handle edit user button clicks
-    document.querySelectorAll('.edit-user').forEach(button => {
-        button.addEventListener('click', function() {
-            const modal = document.getElementById('editUserModal');
-            modal.querySelector('.modal-title').textContent = 'Edit User';
-            
-            // Fill form fields
-            document.getElementById('edit_user_id').value = this.dataset.id;
-            document.getElementById('edit_username').value = this.dataset.username;
-            document.getElementById('edit_name').value = this.dataset.name;
-            document.getElementById('edit_email').value = this.dataset.email || '';
-            document.getElementById('edit_phone').value = this.dataset.phone || '';
-            document.getElementById('edit_role').value = this.dataset.role;
-            document.getElementById('edit_branch_id').value = this.dataset.branch || '';
-            document.getElementById('edit_status').value = this.dataset.status;
-            
-            // Clear password field
-            document.getElementById('edit_password').value = '';
-            
-            // Show the modal
-            const editModal = new bootstrap.Modal(modal);
-            editModal.show();
-        });
-    });
+    function renderTable(users, offset) {
+        const tbody = document.getElementById('users-table-body');
+        tbody.innerHTML = '';
+        if (users.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="11" class="text-center py-4"><div class="text-muted"><i class="fas fa-users fa-2x mb-2"></i><p>No users found</p></div></td></tr>';
+            return;
+        }
 
-    // Helper function to get role badge color
+        users.forEach((user, index) => {
+            const sr_no = offset + index + 1;
+            const statusBadge = user.status ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-danger">Inactive</span>';
+            const roleBadge = `<span class="badge bg-${user.role_badge_color}">${user.role_formatted}</span>`;
+            
+            const row = `
+                <tr>
+                    <td>${sr_no}</td>
+                    <td>${escapeHTML(user.name)}</td>
+                    <td>${escapeHTML(user.username)}</td>
+                    <td>${escapeHTML(user.phone)}</td>
+                    <td>${escapeHTML(user.email)}</td>
+                    <td>${roleBadge}</td>
+                    <td>${escapeHTML(user.branch_name || '-')}</td>
+                    <td>${user.last_login_formatted}</td>
+                    <td>${statusBadge}</td>
+                    <td>${user.created_formatted}</td>
+                    <td class="text-end">
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-sm btn-info view-user" 
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#viewUserModal"
+                                    data-id="${user.id}"
+                                    data-name="${escapeHTML(user.name)}"
+                                    data-username="${escapeHTML(user.username)}"
+                                    data-phone="${escapeHTML(user.phone)}"
+                                    data-email="${escapeHTML(user.email)}"
+                                    data-role="${escapeHTML(user.role)}"
+                                    data-branch="${escapeHTML(user.branch_name)}"
+                                    data-status="${user.status}"
+                                    data-last-login="${user.last_login || ''}"
+                                    data-created-at="${user.created_at || ''}"
+                                    title="View User">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-primary edit-user" 
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#editUserModal"
+                                    data-id="${user.id}"
+                                    data-name="${escapeHTML(user.name)}"
+                                    data-username="${escapeHTML(user.username)}"
+                                    data-phone="${escapeHTML(user.phone)}"
+                                    data-email="${escapeHTML(user.email)}"
+                                    data-role="${escapeHTML(user.role)}"
+                                    data-branch="${user.branch_id || ''}"
+                                    data-status="${user.status}"
+                                    data-created-at="${user.created_at || ''}"
+                                    title="Edit User">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <form method="POST" action="users.php" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this user?')">
+                                <input type="hidden" name="delete_user" value="1">
+                                <input type="hidden" name="user_id" value="${user.id}">
+                                <button type="submit" class="btn btn-sm btn-danger" title="Delete User">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+            `;
+            tbody.innerHTML += row;
+        });
+    }
+
+    function renderPagination(totalPages, currentPage) {
+        const paginationControls = document.getElementById('pagination-controls');
+        paginationControls.innerHTML = '';
+
+        if (totalPages <= 1) return;
+
+        // Previous button
+        const prevLi = document.createElement('li');
+        prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+        const prevA = document.createElement('a');
+        prevA.className = 'page-link';
+        prevA.href = '#';
+        prevA.textContent = 'Previous';
+        prevA.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (currentPage > 1) fetchUsers(currentPage - 1);
+        });
+        prevLi.appendChild(prevA);
+        paginationControls.appendChild(prevLi);
+
+        // Page numbers
+        for (let i = 1; i <= totalPages; i++) {
+            const li = document.createElement('li');
+            li.className = `page-item ${i === currentPage ? 'active' : ''}`;
+            const a = document.createElement('a');
+            a.className = 'page-link';
+            a.href = '#';
+            a.textContent = i;
+            a.addEventListener('click', (e) => {
+                e.preventDefault();
+                fetchUsers(i);
+            });
+            li.appendChild(a);
+            paginationControls.appendChild(li);
+        }
+
+        // Next button
+        const nextLi = document.createElement('li');
+        nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+        const nextA = document.createElement('a');
+        nextA.className = 'page-link';
+        nextA.href = '#';
+        nextA.textContent = 'Next';
+        nextA.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (currentPage < totalPages) fetchUsers(currentPage + 1);
+        });
+        nextLi.appendChild(nextA);
+        paginationControls.appendChild(nextLi);
+    }
+
+    function escapeHTML(str) {
+        if (str === null || str === undefined) return '';
+        return str.toString().replace(/[&<>\"'`]/g, function (match) {
+            return {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;',
+                '`': '&#x60;'
+            }[match];
+        });
+    }
+
+    function attachActionListeners() {
+        // Handle view user button clicks
+        document.querySelectorAll('.view-user').forEach(button => {
+            const newButton = button.cloneNode(true);
+            button.parentNode.replaceChild(newButton, button);
+            
+            newButton.addEventListener('click', function() {
+                document.getElementById('view-user-name').textContent = this.dataset.name || '-';
+                document.getElementById('view-user-username').textContent = this.dataset.username || '-';
+                document.getElementById('view-user-role').innerHTML = `
+                    <span class="badge bg-${getRoleBadgeColor(this.dataset.role)}">
+                        ${formatRole(this.dataset.role)}
+                    </span>
+                `;
+                document.getElementById('view-user-status').innerHTML = `
+                    <span class="badge bg-${this.dataset.status == 1 ? 'success' : 'danger'}">
+                        ${this.dataset.status == 1 ? 'Active' : 'Inactive'}
+                    </span>
+                `;
+                document.getElementById('view-user-phone').textContent = this.dataset.phone || '-';
+                document.getElementById('view-user-email').textContent = this.dataset.email || '-';
+                document.getElementById('view-user-branch').textContent = this.dataset.branch || '-';
+                
+                const lastLoginDate = this.dataset.lastLogin;
+                if (lastLoginDate && lastLoginDate !== '0000-00-00 00:00:00' && lastLoginDate !== 'Never') {
+                    const date = new Date(lastLoginDate);
+                    const formattedDate = date.getFullYear() + '-' +
+                                      ('0' + (date.getMonth() + 1)).slice(-2) + '-' +
+                                      ('0' + date.getDate()).slice(-2) + ' ' +
+                                      ('0' + date.getHours()).slice(-2) + ':' +
+                                      ('0' + date.getMinutes()).slice(-2);
+                    document.getElementById('view-user-last-login').textContent = formattedDate;
+                } else {
+                    document.getElementById('view-user-last-login').textContent = 'Never';
+                }
+            });
+        });
+
+        // Handle edit user button clicks
+        document.querySelectorAll('.edit-user').forEach(button => {
+            const newButton = button.cloneNode(true);
+            button.parentNode.replaceChild(newButton, button);
+
+            newButton.addEventListener('click', function() {
+                const modal = document.getElementById('editUserModal');
+                modal.querySelector('.modal-title').textContent = 'Edit User';
+                
+                document.getElementById('edit_user_id').value = this.dataset.id;
+                document.getElementById('edit_username').value = this.dataset.username;
+                document.getElementById('edit_name').value = this.dataset.name;
+                document.getElementById('edit_email').value = this.dataset.email || '';
+                document.getElementById('edit_phone').value = this.dataset.phone || '';
+                document.getElementById('edit_role').value = this.dataset.role;
+                document.getElementById('edit_branch_id').value = this.dataset.branch || '';
+                document.getElementById('edit_status').value = this.dataset.status;
+                
+                document.getElementById('edit_password').value = '';
+                
+                const editModal = new bootstrap.Modal(modal);
+                editModal.show();
+            });
+        });
+    }
+
+    // Helper functions for role handling
     function getRoleBadgeColor(role) {
         return {
             'master_admin': 'danger',
@@ -585,11 +688,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }[role] || 'secondary';
     }
 
-    // Helper function to format role display name
     function formatRole(role) {
         if (!role) return '-';
-        return role.replace(/_/g, ' ').replace(/\\b\\w/g, l => l.toUpperCase());
+        return role.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
     }
+
+    // Initial fetch
+    fetchUsers(currentPage);
 });
 </script>
 
