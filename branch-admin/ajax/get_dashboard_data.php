@@ -144,24 +144,38 @@ try {
         'period_revenue' => getBranchRevenueForPeriod($conn, $branch_id, $start_date, $end_date, $is_all_time_filter)
     ];
 
-    // Popular tests in this branch
-    $popular_tests_stmt = $conn->prepare("
-        SELECT 
+    // Popular tests in this branch (respecting date filter for report counts and revenue)
+    $sql_popular_tests = "
+        SELECT
             t.test_name,
-            COUNT(r.id) as report_count,
-            COALESCE(SUM(py.paid_amount), 0) as revenue
+            COUNT(DISTINCT r.id) AS report_count,
+            COALESCE(SUM(py.paid_amount), 0) AS revenue
         FROM tests t
-        JOIN branch_tests bt ON t.id = bt.test_id
-        LEFT JOIN reports r ON t.id = r.test_id
-        LEFT JOIN payments py ON r.id = py.report_id
-        LEFT JOIN patients p ON r.patient_id = p.id
-        WHERE bt.branch_id = ? AND p.branch_id = ?
+        INNER JOIN branch_tests bt ON t.id = bt.test_id AND bt.status = 1 -- Active tests in branch
+        LEFT JOIN reports r ON r.test_id = t.id
+    ";
+    // Conditionally add date filter for reports
+    if (!$is_all_time_filter && !empty($start_date) && !empty($end_date)) {
+        $sql_popular_tests .= " AND DATE(r.created_at) BETWEEN :start_date AND :end_date ";
+    }
+    $sql_popular_tests .= "
+        LEFT JOIN patients p ON r.patient_id = p.id AND p.branch_id = bt.branch_id -- Report's patient must be in the same branch
+        LEFT JOIN payments py ON py.report_id = r.id
+        WHERE bt.branch_id = :branch_id
         GROUP BY t.id, t.test_name
-        ORDER BY report_count DESC
+        ORDER BY report_count DESC, revenue DESC
         LIMIT 5
-    ");
-    $popular_tests_stmt->execute([$branch_id, $branch_id]);
-    $response['popular_tests'] = $popular_tests_stmt->fetchAll(PDO::FETCH_ASSOC);    // Recent payments
+    ";
+    $params_popular_tests = [':branch_id' => $branch_id];
+    if (!$is_all_time_filter && !empty($start_date) && !empty($end_date)) {
+        $params_popular_tests[':start_date'] = $start_date;
+        $params_popular_tests[':end_date'] = $end_date;
+    }
+    $popular_tests_stmt = $conn->prepare($sql_popular_tests);
+    $popular_tests_stmt->execute($params_popular_tests);
+    $response['popular_tests'] = $popular_tests_stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Recent payments
     $sql_recent_payments = "
         SELECT 
             py.id,
@@ -227,25 +241,32 @@ try {
     $report_stmt->execute($params_recent_reports);
     $response['recent_reports'] = $report_stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // Recent test results
-    $stmt = $conn->prepare("
-        SELECT 
-            r.id, 
-            r.result, 
+    // Recent test results (respecting date filter)
+    $sql_recent_results = "
+        SELECT
+            r.id,
+            r.result,
             r.created_at,
             p.name as patient_name,
             t.test_name
         FROM reports r
         JOIN patients p ON r.patient_id = p.id
         JOIN tests t ON r.test_id = t.id
-        WHERE p.branch_id = :branch_id 
+        WHERE p.branch_id = :branch_id
         AND r.status = 'completed'
-        ORDER BY r.created_at DESC
-        LIMIT 5
-    ");
-    $stmt->bindParam(':branch_id', $branch_id, PDO::PARAM_INT);
-    $stmt->execute();
-    $response['recent_results'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    ";
+    $params_recent_results = [':branch_id' => $branch_id];
+
+    if (!$is_all_time_filter && !empty($start_date) && !empty($end_date)) {
+        $sql_recent_results .= " AND DATE(r.created_at) BETWEEN :start_date AND :end_date ";
+        $params_recent_results[':start_date'] = $start_date;
+        $params_recent_results[':end_date'] = $end_date;
+    }
+    $sql_recent_results .= " ORDER BY r.created_at DESC LIMIT 5 ";
+
+    $stmt_recent_results = $conn->prepare($sql_recent_results);
+    $stmt_recent_results->execute($params_recent_results);
+    $response['recent_results'] = $stmt_recent_results->fetchAll(PDO::FETCH_ASSOC);
 
     echo json_encode($response);
 } catch (Exception $e) {
