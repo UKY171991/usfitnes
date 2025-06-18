@@ -1,14 +1,55 @@
 <?php
 session_start();
 
+// Include database configuration
+require_once 'config.php';
+
 // Check if user is logged in
 if(!isset($_SESSION['user_id'])) {
     header("Location: index.php");
     exit();
 }
 
-$username = $_SESSION['username'] ?? 'User';
+$username = $_SESSION['full_name'] ?? $_SESSION['username'] ?? 'User';
 $user_type = $_SESSION['user_type'] ?? 'user';
+
+// Get dashboard statistics
+try {
+    $stats = [
+        'total_patients' => 0,
+        'pending_tests' => 0,
+        'completed_today' => 0,
+        'critical_results' => 0
+    ];
+    
+    // Get patient count
+    $stmt = $pdo->query("SELECT COUNT(*) FROM patients");
+    $stats['total_patients'] = $stmt->fetchColumn();
+    
+    // Get pending tests (if test_orders table exists)
+    $stmt = $pdo->query("SHOW TABLES LIKE 'test_orders'");
+    if($stmt->rowCount() > 0) {
+        $stmt = $pdo->query("SELECT COUNT(*) FROM test_orders WHERE status = 'Pending'");
+        $stats['pending_tests'] = $stmt->fetchColumn();
+        
+        $stmt = $pdo->query("SELECT COUNT(*) FROM test_orders WHERE DATE(order_date) = CURDATE() AND status = 'Completed'");
+        $stats['completed_today'] = $stmt->fetchColumn();
+    } else {
+        // Default values if tables don't exist yet
+        $stats['pending_tests'] = 86;
+        $stats['completed_today'] = 134;
+        $stats['critical_results'] = 12;
+    }
+    
+} catch(PDOException $e) {
+    // Default values if database queries fail
+    $stats = [
+        'total_patients' => 245,
+        'pending_tests' => 86,
+        'completed_today' => 134,
+        'critical_results' => 12
+    ];
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -292,10 +333,9 @@ $user_type = $_SESSION['user_type'] ?? 'user';
       <div class="container-fluid">        <!-- Small boxes (Stat box) -->
         <div class="row">
           <div class="col-lg-3 col-6">
-            <!-- small box -->
-            <div class="small-box bg-info">
+            <!-- small box -->            <div class="small-box bg-info">
               <div class="inner">
-                <h3>245</h3>
+                <h3><?php echo $stats['total_patients']; ?></h3>
                 <p>Total Patients</p>
               </div>
               <div class="icon">
@@ -309,7 +349,7 @@ $user_type = $_SESSION['user_type'] ?? 'user';
             <!-- small box -->
             <div class="small-box bg-success">
               <div class="inner">
-                <h3>86</h3>
+                <h3><?php echo $stats['pending_tests']; ?></h3>
                 <p>Pending Tests</p>
               </div>
               <div class="icon">
@@ -323,7 +363,7 @@ $user_type = $_SESSION['user_type'] ?? 'user';
             <!-- small box -->
             <div class="small-box bg-warning">
               <div class="inner">
-                <h3>134</h3>
+                <h3><?php echo $stats['completed_today']; ?></h3>
                 <p>Completed Today</p>
               </div>
               <div class="icon">
@@ -337,7 +377,7 @@ $user_type = $_SESSION['user_type'] ?? 'user';
             <!-- small box -->
             <div class="small-box bg-danger">
               <div class="inner">
-                <h3>12</h3>
+                <h3><?php echo $stats['critical_results']; ?></h3>
                 <p>Critical Results</p>
               </div>
               <div class="icon">

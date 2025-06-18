@@ -1,6 +1,9 @@
 <?php
 session_start();
 
+// Include database configuration
+require_once 'config.php';
+
 // Check if user is already logged in
 if(isset($_SESSION['user_id'])) {
     header("Location: dashboard.php");
@@ -9,18 +12,39 @@ if(isset($_SESSION['user_id'])) {
 
 // Handle registration form submission
 if($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $firstname = $_POST['firstname'] ?? '';
-    $lastname = $_POST['lastname'] ?? '';
-    $email = $_POST['email'] ?? '';
+    $firstname = trim($_POST['firstname'] ?? '');
+    $lastname = trim($_POST['lastname'] ?? '');
+    $email = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
     $confirm_password = $_POST['confirm_password'] ?? '';
+    $username = strtolower($firstname . '.' . $lastname);
     
-    // Simple validation
-    if($password === $confirm_password && !empty($firstname) && !empty($lastname) && !empty($email)) {
-        // In a real application, you would save to database here
-        $success = "Registration successful! You can now login.";
+    // Validation
+    if($password === $confirm_password && !empty($firstname) && !empty($lastname) && !empty($email) && strlen($password) >= 6) {
+        try {
+            // Check if email already exists
+            $stmt = $pdo->prepare("SELECT id FROM users WHERE email = ? OR username = ?");
+            $stmt->execute([$email, $username]);
+            
+            if($stmt->rowCount() > 0) {
+                $error = "Email or username already exists.";
+            } else {
+                // Hash password and insert user
+                $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+                $full_name = $firstname . ' ' . $lastname;
+                
+                $stmt = $pdo->prepare("
+                    INSERT INTO users (username, password, email, full_name, user_type) 
+                    VALUES (?, ?, ?, ?, 'lab_technician')
+                ");
+                $stmt->execute([$username, $hashed_password, $email, $full_name]);
+                $success = "Registration successful! You can now login with username: " . $username;
+            }
+        } catch(PDOException $e) {
+            $error = "Registration failed. Please try again.";
+        }
     } else {
-        $error = "Please fill all fields correctly and ensure passwords match.";
+        $error = "Please fill all fields correctly, ensure passwords match, and password is at least 6 characters.";
     }
 }
 ?>
@@ -29,7 +53,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>USFitness | Registration</title>
+  <title>PathLab Pro | Registration</title>
 
   <!-- Google Font: Source Sans Pro -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">

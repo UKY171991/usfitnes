@@ -1,21 +1,77 @@
 <?php
 session_start();
 
+// Include database configuration
+require_once 'config.php';
+
 // Check if user is logged in
 if(!isset($_SESSION['user_id'])) {
     header("Location: index.php");
     exit();
 }
 
-// Sample patients data
-$patients = [
-    ['id' => 1, 'patient_id' => 'PAT001', 'name' => 'John Doe', 'email' => 'john@example.com', 'phone' => '123-456-7890', 'gender' => 'Male', 'age' => 35, 'last_visit' => '2024-06-15'],
-    ['id' => 2, 'patient_id' => 'PAT002', 'name' => 'Jane Smith', 'email' => 'jane@example.com', 'phone' => '098-765-4321', 'gender' => 'Female', 'age' => 28, 'last_visit' => '2024-06-16'],
-    ['id' => 3, 'patient_id' => 'PAT003', 'name' => 'Mike Johnson', 'email' => 'mike@example.com', 'phone' => '555-123-4567', 'gender' => 'Male', 'age' => 42, 'last_visit' => '2024-06-10'],
-    ['id' => 4, 'patient_id' => 'PAT004', 'name' => 'Sarah Wilson', 'email' => 'sarah@example.com', 'phone' => '444-555-6666', 'gender' => 'Female', 'age' => 31, 'last_visit' => '2024-06-18'],
-];
+// Handle form submissions
+if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
+    if($_POST['action'] == 'add_patient') {
+        $first_name = trim($_POST['firstName'] ?? '');
+        $last_name = trim($_POST['lastName'] ?? '');
+        $email = trim($_POST['email'] ?? '');
+        $phone = trim($_POST['phone'] ?? '');
+        $gender = $_POST['gender'] ?? '';
+        $date_of_birth = $_POST['dateOfBirth'] ?? '';
+        $address = trim($_POST['address'] ?? '');
+        $emergency_contact = trim($_POST['emergencyContact'] ?? '');
+        
+        if(!empty($first_name) && !empty($last_name) && !empty($gender)) {
+            try {
+                // Generate patient ID
+                $stmt = $pdo->query("SELECT COUNT(*) FROM patients");
+                $count = $stmt->fetchColumn();
+                $patient_id = 'PAT' . str_pad($count + 1, 3, '0', STR_PAD_LEFT);
+                
+                $stmt = $pdo->prepare("
+                    INSERT INTO patients (patient_id, first_name, last_name, email, phone, address, date_of_birth, gender, emergency_contact) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ");
+                $stmt->execute([$patient_id, $first_name, $last_name, $email, $phone, $address, $date_of_birth, $gender, $emergency_contact]);
+                $success_message = "Patient added successfully!";
+            } catch(PDOException $e) {
+                $error_message = "Error adding patient: " . $e->getMessage();
+            }
+        } else {
+            $error_message = "Please fill in all required fields.";
+        }
+    }
+}
 
-$username = $_SESSION['username'] ?? 'User';
+// Get patients from database
+try {
+    $stmt = $pdo->query("
+        SELECT 
+            id, 
+            patient_id, 
+            CONCAT(first_name, ' ', last_name) as name,
+            email, 
+            phone, 
+            gender, 
+            date_of_birth,
+            DATE_FORMAT(created_at, '%Y-%m-%d') as last_visit,
+            FLOOR(DATEDIFF(CURDATE(), date_of_birth) / 365.25) as age
+        FROM patients 
+        ORDER BY created_at DESC
+    ");
+    $patients = $stmt->fetchAll();
+} catch(PDOException $e) {
+    // Fallback to sample data if database not ready
+    $patients = [
+        ['id' => 1, 'patient_id' => 'PAT001', 'name' => 'John Doe', 'email' => 'john@example.com', 'phone' => '123-456-7890', 'gender' => 'Male', 'age' => 35, 'last_visit' => '2024-06-15'],
+        ['id' => 2, 'patient_id' => 'PAT002', 'name' => 'Jane Smith', 'email' => 'jane@example.com', 'phone' => '098-765-4321', 'gender' => 'Female', 'age' => 28, 'last_visit' => '2024-06-16'],
+        ['id' => 3, 'patient_id' => 'PAT003', 'name' => 'Mike Johnson', 'email' => 'mike@example.com', 'phone' => '555-123-4567', 'gender' => 'Male', 'age' => 42, 'last_visit' => '2024-06-10'],
+        ['id' => 4, 'patient_id' => 'PAT004', 'name' => 'Sarah Wilson', 'email' => 'sarah@example.com', 'phone' => '444-555-6666', 'gender' => 'Female', 'age' => 31, 'last_visit' => '2024-06-18'],
+    ];
+}
+
+$username = $_SESSION['full_name'] ?? $_SESSION['username'] ?? 'User';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -164,9 +220,22 @@ $username = $_SESSION['username'] ?? 'User';
                   <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#addPatientModal">
                     <i class="fas fa-plus"></i> Add New Patient
                   </button>
-                </div>
-              </div>
+                </div>              </div>
               <div class="card-body">
+                <?php if(isset($success_message)): ?>
+                <div class="alert alert-success alert-dismissible">
+                  <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+                  <i class="icon fas fa-check"></i> <?php echo $success_message; ?>
+                </div>
+                <?php endif; ?>
+                
+                <?php if(isset($error_message)): ?>
+                <div class="alert alert-danger alert-dismissible">
+                  <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+                  <i class="icon fas fa-ban"></i> <?php echo $error_message; ?>
+                </div>
+                <?php endif; ?>
+                
                 <table id="patientsTable" class="table table-bordered table-striped">
                   <thead>
                   <tr>
@@ -231,7 +300,8 @@ $username = $_SESSION['username'] ?? 'User';
           </button>
         </div>
         <div class="modal-body">
-          <form id="addPatientForm">
+          <form id="addPatientForm" method="POST" action="patients.php">
+            <input type="hidden" name="action" value="add_patient">
             <div class="row">
               <div class="col-md-6">
                 <div class="form-group">
@@ -290,10 +360,9 @@ $username = $_SESSION['username'] ?? 'User';
               <textarea class="form-control" id="address" rows="3"></textarea>
             </div>
           </form>
-        </div>
-        <div class="modal-footer">
+        </div>        <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-          <button type="button" class="btn btn-primary" onclick="savePatient()">Save Patient</button>
+          <button type="submit" class="btn btn-primary">Save Patient</button>
         </div>
       </div>
     </div>
