@@ -1,254 +1,179 @@
 <?php
-/**
- * Main Router - US Fitness Lab
- * Clean URL routing for patient interface and API endpoints
- * Follows the new project structure requirements
- */
-
-// Start session
 session_start();
 
-// Load configuration
-require_once __DIR__ . '/config/constants.php';
-require_once __DIR__ . '/config/db.php';
-
-// Load models and helpers
-require_once __DIR__ . '/src/models/Database.php';
-require_once __DIR__ . '/src/models/User.php';
-require_once __DIR__ . '/src/models/Branch.php';
-require_once __DIR__ . '/src/models/Test.php';
-require_once __DIR__ . '/src/models/Booking.php';
-require_once __DIR__ . '/src/models/Report.php';
-require_once __DIR__ . '/src/models/Payment.php';
-
-// Load helpers
-require_once __DIR__ . '/src/helpers/auth.php';
-require_once __DIR__ . '/src/helpers/sanitize.php';
-require_once __DIR__ . '/src/helpers/csrf.php';
-require_once __DIR__ . '/src/helpers/logger.php';
-
-// Load controllers
-require_once __DIR__ . '/src/controllers/BaseController.php';
-require_once __DIR__ . '/src/controllers/UserController.php';
-require_once __DIR__ . '/src/controllers/TestController.php';
-require_once __DIR__ . '/src/controllers/BookingController.php';
-require_once __DIR__ . '/src/controllers/ReportController.php';
-require_once __DIR__ . '/src/controllers/PaymentController.php';
-
-// Initialize CSRF token if not exists
-if (!isset($_SESSION['csrf_token'])) {
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+// Check if user is already logged in
+if(isset($_SESSION['user_id'])) {
+    header("Location: dashboard.php");
+    exit();
 }
 
-// Parse the URL
-$request_uri = $_SERVER['REQUEST_URI'];
-$script_name = $_SERVER['SCRIPT_NAME'];
-$base_path = dirname($script_name);
-$path = str_replace($base_path, '', $request_uri);
-$path = parse_url($path, PHP_URL_PATH);
-$path = trim($path, '/');
-
-// Route the request
-router($path);
-
-/**
- * Main router function
- */
-function router($path) {
-    // Split path into segments
-    $segments = explode('/', $path);
-    $route = $segments[0] ?? '';
+// Handle login form submission
+if($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $username = $_POST['username'] ?? '';
+    $password = $_POST['password'] ?? '';
     
-    // Handle default route
-    if (empty($route)) {
-        // Check if user is logged in
-        if (Auth::isLoggedIn()) {
-            $role = $_SESSION['user_role'] ?? '';
-            switch ($role) {
-                case USER_ROLE_MASTER_ADMIN:
-                    header('Location: ' . BASE_URL . 'admin/dashboard.php');
-                    break;
-                case USER_ROLE_BRANCH_ADMIN:
-                    header('Location: ' . BASE_URL . 'branch-admin/dashboard.php');
-                    break;
-                case USER_ROLE_PATIENT:
-                    header('Location: ' . BASE_URL . 'patient/dashboard');
-                    break;
-                default:
-                    header('Location: ' . BASE_URL . 'patient/login');
-                    break;
-            }
-        } else {
-            header('Location: ' . BASE_URL . 'patient/login');
-        }
-        exit;
+    // Simple authentication (in production, use proper password hashing)
+    if($username === 'admin' && $password === 'password') {
+        $_SESSION['user_id'] = 1;
+        $_SESSION['username'] = $username;
+        $_SESSION['user_type'] = 'admin';
+        header("Location: dashboard.php");
+        exit();
+    } else {
+        $error = "Invalid username or password";
     }
-    
-    // Define routes
-    switch ($route) {
-        case 'patient':
-            handlePatientRoutes($segments);
-            break;
-            
-        case 'api':
-            // API endpoints handled by ajax.php
-            header('Location: ' . BASE_URL . 'ajax.php?' . http_build_query($_GET));
-            break;
-            
-        case 'download-report':
-            handleReportDownload($segments);
-            break;
-            
-        default:
-            // Legacy redirect or 404
-            handleLegacyRedirect($route);
-            break;
-    }
-}
-
-/**
- * Handle patient interface routes
- */
-function handlePatientRoutes($segments) {
-    $action = $segments[1] ?? 'dashboard';
-    $id = $segments[2] ?? null;
-    
-    $controller = new UserController();
-    
-    switch ($action) {
-        case 'register':
-            $controller->register();
-            break;
-            
-        case 'login':
-            $controller->login();
-            break;
-            
-        case 'logout':
-            $controller->logout();
-            break;
-            
-        case 'dashboard':
-            requirePatientAuth();
-            $controller->dashboard();
-            break;
-            
-        case 'book-test':
-            requirePatientAuth();
-            $controller->bookTest();
-            break;
-            
-        case 'bookings':
-            requirePatientAuth();
-            $controller->bookings();
-            break;
-            
-        case 'reports':
-            requirePatientAuth();
-            $controller->reports();
-            break;
-            
-        case 'profile':
-            requirePatientAuth();
-            $controller->profile();
-            break;
-            
-        case 'payment':
-            requirePatientAuth();
-            $paymentController = new PaymentController();
-            if ($id) {
-                $paymentController->processPayment($id);
-            } else {
-                $paymentController->paymentPage();
-            }
-            break;
-            
-        default:
-            show404();
-            break;
-    }
-}
-
-/**
- * Handle secure report downloads
- */
-function handleReportDownload($segments) {
-    $reportId = $segments[1] ?? null;
-    $token = $_GET['token'] ?? null;
-    
-    if (!$reportId || !$token) {
-        http_response_code(400);
-        die('Invalid request');
-    }
-    
-    requirePatientAuth();
-    
-    $reportController = new ReportController();
-    $reportController->downloadReport($reportId, $token);
-}
-
-/**
- * Handle legacy redirects
- */
-function handleLegacyRedirect($route) {
-    $redirects = [
-        'login.php' => 'patient/login',
-        'dashboard.php' => 'patient/dashboard',
-        'patients.php' => 'patient/dashboard',
-        'profile.php' => 'patient/profile',
-    ];
-    
-    if (isset($redirects[$route])) {
-        header('Location: ' . BASE_URL . $redirects[$route]);
-        exit;
-    }
-    
-    show404();
-}
-
-/**
- * Require patient authentication
- */
-function requirePatientAuth() {
-    if (!isLoggedIn() || $_SESSION['user_role'] !== USER_ROLE_PATIENT) {
-        header('Location: ' . BASE_URL . 'patient/login');
-        exit;
-    }
-}
-
-/**
- * Show 404 page
- */
-function show404() {
-    http_response_code(404);
-    $title = '404 - Page Not Found';
-    $content = '
-    <div class="container text-center mt-5">
-        <h1 class="display-1">404</h1>
-        <p class="fs-3"><span class="text-danger">Oops!</span> Page not found.</p>
-        <p class="lead">The page you\'re looking for doesn\'t exist.</p>
-        <a href="' . BASE_URL . '" class="btn btn-primary">Go Home</a>
-    </div>';
-    
-    include __DIR__ . '/templates/layout.php';
-}
-
-/**
- * Render template
- */
-function render($template, $data = []) {
-    extract($data);
-    
-    $templatePath = __DIR__ . '/templates/' . $template . '.php';
-    if (!file_exists($templatePath)) {
-        show404();
-        return;
-    }
-    
-    ob_start();
-    include $templatePath;
-    $content = ob_get_clean();
-    
-    include __DIR__ . '/templates/layout.php';
 }
 ?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">  <title>PathLab Pro | Log in</title>
+
+  <!-- Google Font: Source Sans Pro -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <!-- icheck bootstrap -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/icheck-bootstrap/3.0.1/icheck-bootstrap.min.css">
+  <!-- Theme style -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.2.0/css/adminlte.min.css">
+  
+  <style>
+    body {
+      background: linear-gradient(135deg, #2c5aa0 0%, #1e3c72 100%);
+      min-height: 100vh;
+    }
+    .login-box {
+      margin: 7% auto;
+    }
+    .card {
+      border-radius: 15px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+    .card-header {
+      background: linear-gradient(135deg, #2c5aa0 0%, #1e3c72 100%);
+      border-radius: 15px 15px 0 0;
+    }
+    .login-logo {
+      color: white;
+      font-weight: bold;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #2c5aa0 0%, #1e3c72 100%);
+      border: none;
+      border-radius: 25px;
+    }
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #1e3c72 0%, #2c5aa0 100%);
+    }
+    .form-control {
+      border-radius: 25px;
+      border: 2px solid #e9ecef;
+    }
+    .form-control:focus {
+      border-color: #2c5aa0;
+      box-shadow: 0 0 0 0.2rem rgba(44, 90, 160, 0.25);
+    }
+  </style>
+</head>
+<body class="hold-transition login-page">
+<div class="login-box">  <div class="login-logo">
+    <a href="#" class="login-logo"><b>PathLab</b>Pro</a>
+  </div>
+  <!-- /.login-logo -->
+  <div class="card">
+    <div class="card-header text-center">
+      <h1 class="h4 text-white mb-0">Laboratory Login</h1>
+    </div>
+    <div class="card-body login-card-body">
+      <p class="login-box-msg">Sign in to access laboratory system</p>
+
+      <?php if(isset($error)): ?>
+      <div class="alert alert-danger alert-dismissible">
+        <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+        <i class="icon fas fa-ban"></i> <?php echo $error; ?>
+      </div>
+      <?php endif; ?>
+
+      <form action="index.php" method="post">
+        <div class="input-group mb-3">
+          <input type="text" class="form-control" placeholder="Username" name="username" required>
+          <div class="input-group-append">
+            <div class="input-group-text">
+              <span class="fas fa-user"></span>
+            </div>
+          </div>
+        </div>
+        <div class="input-group mb-3">
+          <input type="password" class="form-control" placeholder="Password" name="password" required>
+          <div class="input-group-append">
+            <div class="input-group-text">
+              <span class="fas fa-lock"></span>
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-8">
+            <div class="icheck-primary">
+              <input type="checkbox" id="remember">
+              <label for="remember">
+                Remember Me
+              </label>
+            </div>
+          </div>
+          <!-- /.col -->
+          <div class="col-4">
+            <button type="submit" class="btn btn-primary btn-block">Sign In</button>
+          </div>
+          <!-- /.col -->
+        </div>
+      </form>
+
+      <div class="social-auth-links text-center mb-3">
+        <p>- OR -</p>
+        <a href="#" class="btn btn-block btn-primary">
+          <i class="fab fa-facebook mr-2"></i> Sign in using Facebook
+        </a>
+        <a href="#" class="btn btn-block btn-danger">
+          <i class="fab fa-google-plus mr-2"></i> Sign in using Google+
+        </a>
+      </div>
+      <!-- /.social-auth-links -->
+
+      <p class="mb-1">
+        <a href="forgot-password.php">I forgot my password</a>
+      </p>
+      <p class="mb-0">
+        <a href="register.php" class="text-center">Register a new membership</a>
+      </p>
+    </div>
+    <!-- /.login-card-body -->
+  </div>
+</div>
+<!-- /.login-box -->
+
+<!-- jQuery -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<!-- Bootstrap 4 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.0/js/bootstrap.bundle.min.js"></script>
+<!-- AdminLTE App -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.2.0/js/adminlte.min.js"></script>
+
+<script>
+// Demo credentials info
+$(document).ready(function() {
+    // Add demo info
+    setTimeout(function() {
+        if(!$('.demo-info').length) {
+            $('.login-card-body').prepend(`                <div class="alert alert-info alert-dismissible demo-info">
+                    <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+                    <i class="icon fas fa-info"></i> Demo Login: Username: <strong>admin</strong>, Password: <strong>password</strong>
+                </div>
+            `);
+        }
+    }, 1000);
+});
+</script>
+</body>
+</html>
