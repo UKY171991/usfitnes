@@ -11,85 +11,14 @@ if(!isset($_SESSION['user_id'])) {
 }
 
 $username = $_SESSION['full_name'] ?? $_SESSION['username'] ?? 'User';
-$message = '';
-$messageType = '';
 
-// Handle form submission for new test order
-if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['add_order'])) {
-    $patient_id = $_POST['patient_id'];
-    $doctor_id = $_POST['doctor_id'];
-    $test_name = $_POST['test_name'];
-    $priority = $_POST['priority'];
-    $sample_type = $_POST['sample_type'] ?? 'Blood';
-    $notes = $_POST['notes'] ?? '';
-    
-    // Generate order ID
-    $order_id = 'ORD' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
-    
-    $stmt = $conn->prepare("INSERT INTO test_orders (order_id, patient_id, doctor_id, test_name, priority, sample_type, notes, order_date, status) VALUES (?, ?, ?, ?, ?, ?, ?, CURDATE(), 'Pending')");
-    $stmt->bind_param("siissss", $order_id, $patient_id, $doctor_id, $test_name, $priority, $sample_type, $notes);
-    
-    if ($stmt->execute()) {
-        $message = "Test order created successfully!";
-        $messageType = "success";
-    } else {
-        $message = "Error creating test order: " . $conn->error;
-        $messageType = "danger";
-    }
-    $stmt->close();
-}
-
-// Handle status update
-if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_status'])) {
-    $order_id = $_POST['order_id'];
-    $new_status = $_POST['new_status'];
-    
-    $stmt = $conn->prepare("UPDATE test_orders SET status = ? WHERE id = ?");
-    $stmt->bind_param("si", $new_status, $order_id);
-    
-    if ($stmt->execute()) {
-        $message = "Order status updated successfully!";
-        $messageType = "success";
-    } else {
-        $message = "Error updating status: " . $conn->error;
-        $messageType = "danger";
-    }
-    $stmt->close();
-}
-
-// Get test orders from database
-$query = "SELECT to.*, p.first_name, p.last_name, d.first_name as doctor_first, d.last_name as doctor_last 
-          FROM test_orders to 
-          LEFT JOIN patients p ON to.patient_id = p.id 
-          LEFT JOIN doctors d ON to.doctor_id = d.id 
-          ORDER BY to.order_date DESC, to.id DESC";
-$result = $conn->query($query);
-$test_orders = [];
-if ($result && $result->num_rows > 0) {
-    while($row = $result->fetch_assoc()) {
-        $test_orders[] = $row;
-    }
-}
-
-// Get patients for dropdown
-$patients_query = "SELECT id, first_name, last_name FROM patients ORDER BY last_name, first_name";
-$patients_result = $conn->query($patients_query);
-$patients = [];
-if ($patients_result && $patients_result->num_rows > 0) {
-    while($row = $patients_result->fetch_assoc()) {
-        $patients[] = $row;
-    }
-}
-
-// Get doctors for dropdown
-$doctors_query = "SELECT id, first_name, last_name FROM doctors ORDER BY last_name, first_name";
-$doctors_result = $conn->query($doctors_query);
-$doctors = [];
-if ($doctors_result && $doctors_result->num_rows > 0) {
-    while($row = $doctors_result->fetch_assoc()) {
-        $doctors[] = $row;
-    }
-}
+// Get test orders (sample data for now)
+$test_orders = [
+    ['id' => 1, 'order_id' => 'ORD001', 'patient_name' => 'John Doe', 'test_name' => 'Complete Blood Count', 'priority' => 'Normal', 'status' => 'Pending', 'order_date' => '2025-06-18'],
+    ['id' => 2, 'order_id' => 'ORD002', 'patient_name' => 'Jane Smith', 'test_name' => 'Liver Function Test', 'priority' => 'Urgent', 'status' => 'Sample_Collected', 'order_date' => '2025-06-18'],
+    ['id' => 3, 'order_id' => 'ORD003', 'patient_name' => 'Mike Johnson', 'test_name' => 'Blood Glucose', 'priority' => 'STAT', 'status' => 'In_Progress', 'order_date' => '2025-06-17'],
+    ['id' => 4, 'order_id' => 'ORD004', 'patient_name' => 'Sarah Wilson', 'test_name' => 'Urine Analysis', 'priority' => 'Normal', 'status' => 'Completed', 'order_date' => '2025-06-17'],
+];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -226,158 +155,296 @@ if ($doctors_result && $doctors_result->num_rows > 0) {
       </div>
     </div>    <section class="content">
       <div class="container-fluid">
-        <?php if($message): ?>
-        <div class="alert alert-<?php echo $messageType; ?> alert-dismissible">
-          <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
-          <?php echo htmlspecialchars($message); ?>
-        </div>
-        <?php endif; ?>
+        <!-- Alert Messages -->
+        <div id="alertContainer"></div>
         
-        <!-- Add New Test Order Card -->
-        <div class="row">
-          <div class="col-12">
-            <div class="card collapsed-card">
-              <div class="card-header">
-                <h3 class="card-title">Add New Test Order</h3>
-                <div class="card-tools">
-                  <button type="button" class="btn btn-tool" data-card-widget="collapse">
-                    <i class="fas fa-plus"></i>
-                  </button>
-                </div>
-              </div>
-              <div class="card-body" style="display: none;">
-                <form method="post">
-                  <div class="row">
-                    <div class="col-md-6">
-                      <div class="form-group">
-                        <label for="patient_id">Patient <span class="text-danger">*</span></label>
-                        <select class="form-control" id="patient_id" name="patient_id" required>
-                          <option value="">Select Patient</option>
-                          <?php foreach($patients as $patient): ?>
-                          <option value="<?php echo $patient['id']; ?>">
-                            <?php echo htmlspecialchars($patient['last_name'] . ', ' . $patient['first_name']); ?>
-                          </option>
-                          <?php endforeach; ?>
-                        </select>
-                      </div>
-                    </div>
-                    <div class="col-md-6">
-                      <div class="form-group">
-                        <label for="doctor_id">Ordering Doctor <span class="text-danger">*</span></label>
-                        <select class="form-control" id="doctor_id" name="doctor_id" required>
-                          <option value="">Select Doctor</option>
-                          <?php foreach($doctors as $doctor): ?>
-                          <option value="<?php echo $doctor['id']; ?>">
-                            Dr. <?php echo htmlspecialchars($doctor['last_name'] . ', ' . $doctor['first_name']); ?>
-                          </option>
-                          <?php endforeach; ?>
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="row">
-                    <div class="col-md-6">
-                      <div class="form-group">
-                        <label for="test_name">Test Name <span class="text-danger">*</span></label>
-                        <select class="form-control" id="test_name" name="test_name" required>
-                          <option value="">Select Test</option>
-                          <option value="Complete Blood Count">Complete Blood Count (CBC)</option>
-                          <option value="Basic Metabolic Panel">Basic Metabolic Panel (BMP)</option>
-                          <option value="Comprehensive Metabolic Panel">Comprehensive Metabolic Panel (CMP)</option>
-                          <option value="Liver Function Test">Liver Function Test (LFT)</option>
-                          <option value="Lipid Panel">Lipid Panel</option>
-                          <option value="Thyroid Function Test">Thyroid Function Test (TFT)</option>
-                          <option value="Hemoglobin A1C">Hemoglobin A1C</option>
-                          <option value="Blood Glucose">Blood Glucose</option>
-                          <option value="Urine Analysis">Urine Analysis</option>
-                          <option value="Blood Culture">Blood Culture</option>
-                          <option value="PT/INR">Prothrombin Time (PT/INR)</option>
-                          <option value="D-Dimer">D-Dimer</option>
-                        </select>
-                      </div>
-                    </div>
-                    <div class="col-md-3">
-                      <div class="form-group">
-                        <label for="priority">Priority <span class="text-danger">*</span></label>
-                        <select class="form-control" id="priority" name="priority" required>
-                          <option value="Normal">Normal</option>
-                          <option value="Urgent">Urgent</option>
-                          <option value="STAT">STAT</option>
-                        </select>
-                      </div>
-                    </div>
-                    <div class="col-md-3">
-                      <div class="form-group">
-                        <label for="sample_type">Sample Type</label>
-                        <select class="form-control" id="sample_type" name="sample_type">
-                          <option value="Blood">Blood</option>
-                          <option value="Urine">Urine</option>
-                          <option value="Stool">Stool</option>
-                          <option value="Swab">Swab</option>
-                          <option value="Tissue">Tissue</option>
-                          <option value="Other">Other</option>
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="row">
-                    <div class="col-12">
-                      <div class="form-group">
-                        <label for="notes">Clinical Notes</label>
-                        <textarea class="form-control" id="notes" name="notes" rows="3" placeholder="Clinical history, symptoms, or special instructions..."></textarea>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="row">
-                    <div class="col-12">
-                      <button type="submit" name="add_order" class="btn btn-primary">
-                        <i class="fas fa-save"></i> Create Test Order
-                      </button>
-                      <button type="button" class="btn btn-secondary" data-card-widget="collapse">
-                        <i class="fas fa-times"></i> Cancel
-                      </button>
-                    </div>
-                  </div>
-                </form>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Test Orders List -->
         <div class="row">
           <div class="col-12">
             <div class="card">
               <div class="card-header">
                 <h3 class="card-title">Laboratory Test Orders</h3>
                 <div class="card-tools">
-                  <span class="badge badge-primary"><?php echo count($test_orders); ?> Total Orders</span>
+                  <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#addOrderModal">
+                    <i class="fas fa-plus"></i> New Test Order
+                  </button>
                 </div>
               </div>
               <div class="card-body">
-                <table id="ordersTable" class="table table-bordered table-striped">
+                <div class="row mb-3">
+                  <div class="col-md-4">
+                    <div class="input-group">
+                      <input type="text" class="form-control" id="searchInput" placeholder="Search orders...">
+                      <div class="input-group-append">
+                        <button class="btn btn-outline-secondary" type="button" id="searchBtn">
+                          <i class="fas fa-search"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-3">
+                    <select class="form-control" id="statusFilter">
+                      <option value="">All Status</option>
+                      <option value="pending">Pending</option>
+                      <option value="in_progress">In Progress</option>
+                      <option value="completed">Completed</option>
+                      <option value="cancelled">Cancelled</option>
+                    </select>
+                  </div>
+                  <div class="col-md-3">
+                    <button class="btn btn-info" id="refreshBtn">
+                      <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                  </div>
+                </div>
+                
+                <div id="loadingIndicator" class="text-center" style="display: none;">
+                  <div class="spinner-border text-primary" role="status">
+                    <span class="sr-only">Loading...</span>
+                  </div>
+                  <p>Loading test orders...</p>
+                </div>
+                
+                <table id="ordersTable" class="table table-bordered table-striped" style="display: none;">
                   <thead>
                   <tr>
                     <th>Order ID</th>
                     <th>Patient Name</th>
-                    <th>Doctor</th>
                     <th>Test Name</th>
+                    <th>Test Type</th>
                     <th>Priority</th>
                     <th>Status</th>
                     <th>Order Date</th>
                     <th>Actions</th>
                   </tr>
                   </thead>
+                  <tbody id="ordersTableBody">
+                  </tbody>
+                </table>
+                
+                <!-- Pagination -->
+                <nav aria-label="Order pagination" id="paginationContainer" style="display: none;">
+                  <ul class="pagination justify-content-center" id="pagination">
+                  </ul>
+                </nav>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Add Test Order Modal -->
+  <div class="modal fade" id="addOrderModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h4 class="modal-title">New Test Order</h4>
+          <button type="button" class="close" data-dismiss="modal">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <form id="addOrderForm">
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="patientSelect">Patient <span class="text-danger">*</span></label>
+                  <select class="form-control" id="patientSelect" name="patient_id" required>
+                    <option value="">Select Patient</option>
+                  </select>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="doctorSelect">Referring Doctor</label>
+                  <select class="form-control" id="doctorSelect" name="doctor_id">
+                    <option value="">Select Doctor</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="testName">Test Name <span class="text-danger">*</span></label>
+                  <input type="text" class="form-control" id="testName" name="test_name" required>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="testType">Test Type <span class="text-danger">*</span></label>
+                  <select class="form-control" id="testType" name="test_type" required>
+                    <option value="">Select Type</option>
+                    <option value="Blood Test">Blood Test</option>
+                    <option value="Urine Test">Urine Test</option>
+                    <option value="Imaging">Imaging</option>
+                    <option value="Biopsy">Biopsy</option>
+                    <option value="Microbiology">Microbiology</option>
+                    <option value="Chemistry">Chemistry</option>
+                    <option value="Immunology">Immunology</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label for="priority">Priority</label>
+                  <select class="form-control" id="priority" name="priority">
+                    <option value="normal">Normal</option>
+                    <option value="urgent">Urgent</option>
+                    <option value="stat">STAT</option>
+                  </select>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label for="testCost">Test Cost</label>
+                  <input type="number" class="form-control" id="testCost" name="test_cost" step="0.01" min="0">
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label for="totalAmount">Total Amount</label>
+                  <input type="number" class="form-control" id="totalAmount" name="total_amount" step="0.01" min="0">
+                </div>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="notes">Notes</label>
+              <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-primary" id="saveOrderBtn">
+            <i class="fas fa-save"></i> Create Order
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Test Order Modal -->
+  <div class="modal fade" id="editOrderModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h4 class="modal-title">Edit Test Order</h4>
+          <button type="button" class="close" data-dismiss="modal">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <form id="editOrderForm">
+            <input type="hidden" id="editOrderId" name="order_id">
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="editPatientSelect">Patient <span class="text-danger">*</span></label>
+                  <select class="form-control" id="editPatientSelect" name="patient_id" required>
+                    <option value="">Select Patient</option>
+                  </select>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="editDoctorSelect">Referring Doctor</label>
+                  <select class="form-control" id="editDoctorSelect" name="doctor_id">
+                    <option value="">Select Doctor</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="editTestName">Test Name <span class="text-danger">*</span></label>
+                  <input type="text" class="form-control" id="editTestName" name="test_name" required>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="editTestType">Test Type <span class="text-danger">*</span></label>
+                  <select class="form-control" id="editTestType" name="test_type" required>
+                    <option value="">Select Type</option>
+                    <option value="Blood Test">Blood Test</option>
+                    <option value="Urine Test">Urine Test</option>
+                    <option value="Imaging">Imaging</option>
+                    <option value="Biopsy">Biopsy</option>
+                    <option value="Microbiology">Microbiology</option>
+                    <option value="Chemistry">Chemistry</option>
+                    <option value="Immunology">Immunology</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label for="editPriority">Priority</label>
+                  <select class="form-control" id="editPriority" name="priority">
+                    <option value="normal">Normal</option>
+                    <option value="urgent">Urgent</option>
+                    <option value="stat">STAT</option>
+                  </select>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label for="editStatus">Status</label>
+                  <select class="form-control" id="editStatus" name="status">
+                    <option value="pending">Pending</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="completed">Completed</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label for="editTestCost">Test Cost</label>
+                  <input type="number" class="form-control" id="editTestCost" name="test_cost" step="0.01" min="0">
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="editTotalAmount">Total Amount</label>
+                  <input type="number" class="form-control" id="editTotalAmount" name="total_amount" step="0.01" min="0">
+                </div>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="editNotes">Notes</label>
+              <textarea class="form-control" id="editNotes" name="notes" rows="3"></textarea>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-primary" id="updateOrderBtn">
+            <i class="fas fa-save"></i> Update Order
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+                    <th>Actions</th>
+                  </tr>
+                  </thead>
                   <tbody>
                   <?php foreach($test_orders as $order): ?>
                   <tr>
-                    <td><span class="badge badge-info"><?php echo htmlspecialchars($order['order_id']); ?></span></td>
-                    <td><?php echo htmlspecialchars(($order['last_name'] ?? '') . ', ' . ($order['first_name'] ?? '')); ?></td>
-                    <td><?php echo htmlspecialchars('Dr. ' . ($order['doctor_last'] ?? '') . ', ' . ($order['doctor_first'] ?? '')); ?></td>
+                    <td><span class="badge badge-info"><?php echo $order['order_id']; ?></span></td>
+                    <td><?php echo htmlspecialchars($order['patient_name']); ?></td>
                     <td><?php echo htmlspecialchars($order['test_name']); ?></td>
                     <td>
                       <span class="badge badge-<?php echo $order['priority'] == 'STAT' ? 'danger' : ($order['priority'] == 'Urgent' ? 'warning' : 'success'); ?>">
-                        <?php echo htmlspecialchars($order['priority']); ?>
+                        <?php echo $order['priority']; ?>
                       </span>
                     </td>
                     <td>
@@ -385,38 +452,20 @@ if ($doctors_result && $doctors_result->num_rows > 0) {
                         echo $order['status'] == 'Completed' ? 'success' : 
                              ($order['status'] == 'In_Progress' ? 'warning' : 
                              ($order['status'] == 'Sample_Collected' ? 'info' : 'secondary')); ?>">
-                        <?php echo str_replace('_', ' ', htmlspecialchars($order['status'])); ?>
+                        <?php echo str_replace('_', ' ', $order['status']); ?>
                       </span>
                     </td>
                     <td><?php echo date('M d, Y', strtotime($order['order_date'])); ?></td>
                     <td>
-                      <div class="btn-group">
-                        <button type="button" class="btn btn-info btn-sm" title="View Details" onclick="viewOrder(<?php echo $order['id']; ?>)">
-                          <i class="fas fa-eye"></i>
-                        </button>
-                        <?php if($order['status'] != 'Completed'): ?>
-                        <div class="btn-group">
-                          <button type="button" class="btn btn-primary btn-sm dropdown-toggle" data-toggle="dropdown" title="Update Status">
-                            <i class="fas fa-edit"></i>
-                          </button>
-                          <div class="dropdown-menu">
-                            <form method="post" style="display: inline;">
-                              <input type="hidden" name="order_id" value="<?php echo $order['id']; ?>">
-                              <button type="submit" name="update_status" value="Sample_Collected" class="dropdown-item">
-                                <i class="fas fa-vial text-info"></i> Sample Collected
-                              </button>
-                              <button type="submit" name="update_status" value="In_Progress" class="dropdown-item">
-                                <i class="fas fa-play text-warning"></i> In Progress
-                              </button>
-                              <button type="submit" name="update_status" value="Completed" class="dropdown-item">
-                                <i class="fas fa-check text-success"></i> Completed
-                              </button>
-                              <input type="hidden" name="new_status" value="">
-                            </form>
-                          </div>
-                        </div>
-                        <?php endif; ?>
-                      </div>
+                      <button class="btn btn-info btn-sm" title="View Details">
+                        <i class="fas fa-eye"></i>
+                      </button>
+                      <button class="btn btn-primary btn-sm" title="Process">
+                        <i class="fas fa-play"></i>
+                      </button>
+                      <button class="btn btn-success btn-sm" title="Complete">
+                        <i class="fas fa-check"></i>
+                      </button>
                     </td>
                   </tr>
                   <?php endforeach; ?>
@@ -448,27 +497,494 @@ if ($doctors_result && $doctors_result->num_rows > 0) {
 <script src="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.2.0/js/adminlte.min.js"></script>
 
 <script>
-$(function () {
-  $("#ordersTable").DataTable({
-    "responsive": true,
-    "lengthChange": false,
-    "autoWidth": false,
-    "order": [[ 6, "desc" ]] // Sort by order date
-  });
-  
-  // Handle status update dropdown
-  $('.dropdown-menu button[name="update_status"]').click(function(e) {
-    e.preventDefault();
-    var form = $(this).closest('form');
-    var status = $(this).val();
-    form.find('input[name="new_status"]').val(status);
-    form.submit();
-  });
+// Global variables
+let currentPage = 1;
+let currentSearch = '';
+let currentStatus = '';
+const recordsPerPage = 10;
+
+$(document).ready(function() {
+    // Initialize page
+    loadTestOrders();
+    loadPatients();
+    loadDoctors();
+    
+    // Event listeners
+    $('#saveOrderBtn').click(saveTestOrder);
+    $('#updateOrderBtn').click(updateTestOrder);
+    $('#searchBtn').click(searchOrders);
+    $('#refreshBtn').click(function() {
+        currentSearch = '';
+        currentStatus = '';
+        $('#searchInput').val('');
+        $('#statusFilter').val('');
+        loadTestOrders();
+    });
+    
+    // Status filter change
+    $('#statusFilter').change(function() {
+        currentStatus = $(this).val();
+        loadTestOrders(1, currentSearch, currentStatus);
+    });
+    
+    // Search on Enter key
+    $('#searchInput').keypress(function(e) {
+        if (e.which == 13) {
+            searchOrders();
+        }
+    });
+    
+    // Auto-calculate total amount when test cost changes
+    $('#testCost').on('input', function() {
+        $('#totalAmount').val($(this).val());
+    });
+    
+    $('#editTestCost').on('input', function() {
+        $('#editTotalAmount').val($(this).val());
+    });
+    
+    // Clear forms when modals close
+    $('#addOrderModal').on('hidden.bs.modal', function() {
+        $('#addOrderForm')[0].reset();
+    });
+    
+    $('#editOrderModal').on('hidden.bs.modal', function() {
+        $('#editOrderForm')[0].reset();
+    });
 });
 
+// Load test orders with AJAX
+function loadTestOrders(page = 1, search = '', status = '') {
+    currentPage = page;
+    currentSearch = search;
+    currentStatus = status;
+    
+    showLoading();
+    
+    $.ajax({
+        url: 'api/test_orders_api.php',
+        method: 'GET',
+        data: {
+            page: page,
+            limit: recordsPerPage,
+            search: search,
+            status: status
+        },
+        dataType: 'json',
+        success: function(response) {
+            hideLoading();
+            if (response.success) {
+                displayOrders(response.data);
+                displayPagination(response.pagination);
+            } else {
+                showAlert('error', 'Error loading test orders: ' + response.message);
+            }
+        },
+        error: function(xhr, status, error) {
+            hideLoading();
+            console.error('AJAX Error:', error);
+            showAlert('error', 'Failed to load test orders. Please try again.');
+        }
+    });
+}
+
+// Display test orders in table
+function displayOrders(orders) {
+    const tbody = $('#ordersTableBody');
+    tbody.empty();
+    
+    if (orders.length === 0) {
+        tbody.append('<tr><td colspan="8" class="text-center">No test orders found</td></tr>');
+        $('#ordersTable').show();
+        return;
+    }
+    
+    orders.forEach(function(order) {
+        const statusClass = getStatusClass(order.status);
+        const priorityClass = getPriorityClass(order.priority);
+        
+        const row = `
+            <tr>
+                <td><span class="badge badge-secondary">${escapeHtml(order.order_id || 'N/A')}</span></td>
+                <td>${escapeHtml(order.patient_name || 'Unknown')}</td>
+                <td>${escapeHtml(order.test_name || '')}</td>
+                <td>${escapeHtml(order.test_type || '')}</td>
+                <td><span class="badge badge-${priorityClass}">${escapeHtml(order.priority || 'normal')}</span></td>
+                <td><span class="badge badge-${statusClass}">${escapeHtml(order.status || 'pending')}</span></td>
+                <td>${formatDateTime(order.order_date)}</td>
+                <td>
+                    <button class="btn btn-info btn-sm" onclick="viewOrder(${order.order_id})" title="View Details">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    <button class="btn btn-primary btn-sm" onclick="editOrder(${order.order_id})" title="Edit">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-success btn-sm" onclick="addResult(${order.order_id})" title="Add Result">
+                        <i class="fas fa-flask"></i>
+                    </button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteOrder(${order.order_id})" title="Delete">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+        tbody.append(row);
+    });
+    
+    $('#ordersTable').show();
+}
+
+// Load patients for dropdowns
+function loadPatients() {
+    $.ajax({
+        url: 'api/patients_api.php',
+        method: 'GET',
+        data: { limit: 100 }, // Get more patients for dropdown
+        dataType: 'json',
+        success: function(response) {
+            if (response.success) {
+                const patients = response.data;
+                const patientOptions = patients.map(patient => 
+                    `<option value="${patient.patient_id}">${escapeHtml(patient.first_name + ' ' + patient.last_name)}</option>`
+                ).join('');
+                
+                $('#patientSelect, #editPatientSelect').html('<option value="">Select Patient</option>' + patientOptions);
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('Error loading patients:', error);
+        }
+    });
+}
+
+// Load doctors for dropdowns
+function loadDoctors() {
+    $.ajax({
+        url: 'api/doctors_api.php',
+        method: 'GET',
+        data: { limit: 100 }, // Get more doctors for dropdown
+        dataType: 'json',
+        success: function(response) {
+            if (response.success) {
+                const doctors = response.data;
+                const doctorOptions = doctors.map(doctor => 
+                    `<option value="${doctor.doctor_id}">${escapeHtml(doctor.first_name + ' ' + doctor.last_name)} - ${escapeHtml(doctor.specialization)}</option>`
+                ).join('');
+                
+                $('#doctorSelect, #editDoctorSelect').html('<option value="">Select Doctor</option>' + doctorOptions);
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('Error loading doctors:', error);
+        }
+    });
+}
+
+// Search orders
+function searchOrders() {
+    const search = $('#searchInput').val().trim();
+    const status = $('#statusFilter').val();
+    loadTestOrders(1, search, status);
+}
+
+// Save new test order
+function saveTestOrder() {
+    const form = $('#addOrderForm')[0];
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+    
+    const formData = new FormData(form);
+    const orderData = {};
+    formData.forEach((value, key) => {
+        orderData[key] = value;
+    });
+    
+    $('#saveOrderBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Creating...');
+    
+    $.ajax({
+        url: 'api/test_orders_api.php',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(orderData),
+        dataType: 'json',
+        success: function(response) {
+            $('#saveOrderBtn').prop('disabled', false).html('<i class="fas fa-save"></i> Create Order');
+            
+            if (response.success) {
+                showAlert('success', response.message);
+                $('#addOrderModal').modal('hide');
+                loadTestOrders(currentPage, currentSearch, currentStatus);
+            } else {
+                showAlert('error', response.message);
+            }
+        },
+        error: function(xhr, status, error) {
+            $('#saveOrderBtn').prop('disabled', false).html('<i class="fas fa-save"></i> Create Order');
+            console.error('AJAX Error:', error);
+            
+            let message = 'Failed to create test order. Please try again.';
+            if (xhr.responseJSON && xhr.responseJSON.message) {
+                message = xhr.responseJSON.message;
+            }
+            showAlert('error', message);
+        }
+    });
+}
+
+// Edit test order
+function editOrder(orderId) {
+    // Get order data
+    $.ajax({
+        url: 'api/test_orders_api.php',
+        method: 'GET',
+        data: { id: orderId },
+        dataType: 'json',
+        success: function(response) {
+            if (response.success) {
+                const order = response.data;
+                
+                // Populate edit form
+                $('#editOrderId').val(order.order_id);
+                $('#editPatientSelect').val(order.patient_id);
+                $('#editDoctorSelect').val(order.doctor_id || '');
+                $('#editTestName').val(order.test_name);
+                $('#editTestType').val(order.test_type);
+                $('#editPriority').val(order.priority);
+                $('#editStatus').val(order.status);
+                $('#editTestCost').val(order.test_cost || '');
+                $('#editTotalAmount').val(order.total_amount || '');
+                $('#editNotes').val(order.notes || '');
+                
+                $('#editOrderModal').modal('show');
+            } else {
+                showAlert('error', 'Failed to load test order data: ' + response.message);
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('AJAX Error:', error);
+            showAlert('error', 'Failed to load test order data. Please try again.');
+        }
+    });
+}
+
+// Update test order
+function updateTestOrder() {
+    const form = $('#editOrderForm')[0];
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+    
+    const formData = new FormData(form);
+    const orderData = {};
+    formData.forEach((value, key) => {
+        orderData[key] = value;
+    });
+    
+    $('#updateOrderBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Updating...');
+    
+    $.ajax({
+        url: 'api/test_orders_api.php',
+        method: 'PUT',
+        contentType: 'application/json',
+        data: JSON.stringify(orderData),
+        dataType: 'json',
+        success: function(response) {
+            $('#updateOrderBtn').prop('disabled', false).html('<i class="fas fa-save"></i> Update Order');
+            
+            if (response.success) {
+                showAlert('success', response.message);
+                $('#editOrderModal').modal('hide');
+                loadTestOrders(currentPage, currentSearch, currentStatus);
+            } else {
+                showAlert('error', response.message);
+            }
+        },
+        error: function(xhr, status, error) {
+            $('#updateOrderBtn').prop('disabled', false).html('<i class="fas fa-save"></i> Update Order');
+            console.error('AJAX Error:', error);
+            
+            let message = 'Failed to update test order. Please try again.';
+            if (xhr.responseJSON && xhr.responseJSON.message) {
+                message = xhr.responseJSON.message;
+            }
+            showAlert('error', message);
+        }
+    });
+}
+
+// Delete test order
+function deleteOrder(orderId) {
+    if (!confirm('Are you sure you want to delete this test order? This action cannot be undone.')) {
+        return;
+    }
+    
+    $.ajax({
+        url: 'api/test_orders_api.php',
+        method: 'DELETE',
+        contentType: 'application/json',
+        data: JSON.stringify({ order_id: orderId }),
+        dataType: 'json',
+        success: function(response) {
+            if (response.success) {
+                showAlert('success', response.message);
+                loadTestOrders(currentPage, currentSearch, currentStatus);
+            } else {
+                showAlert('error', response.message);
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('AJAX Error:', error);
+            
+            let message = 'Failed to delete test order. Please try again.';
+            if (xhr.responseJSON && xhr.responseJSON.message) {
+                message = xhr.responseJSON.message;
+            }
+            showAlert('error', message);
+        }
+    });
+}
+
+// View order details
 function viewOrder(orderId) {
-  // Placeholder for view order details functionality
-  alert('View order details for Order ID: ' + orderId + '\n\nThis feature will show detailed information about the test order.');
+    // TODO: Implement order detail view
+    showAlert('info', 'Order detail view will be implemented in the next phase.');
+}
+
+// Add result for order
+function addResult(orderId) {
+    // Redirect to results page with order ID
+    window.location.href = `results.php?order_id=${orderId}`;
+}
+
+// Display pagination (reuse from patients page)
+function displayPagination(pagination) {
+    const container = $('#pagination');
+    container.empty();
+    
+    if (pagination.pages <= 1) {
+        $('#paginationContainer').hide();
+        return;
+    }
+    
+    // Previous button
+    const prevDisabled = pagination.page <= 1 ? 'disabled' : '';
+    container.append(`
+        <li class="page-item ${prevDisabled}">
+            <a class="page-link" href="#" onclick="loadTestOrders(${pagination.page - 1}, '${currentSearch}', '${currentStatus}')">Previous</a>
+        </li>
+    `);
+    
+    // Page numbers
+    const startPage = Math.max(1, pagination.page - 2);
+    const endPage = Math.min(pagination.pages, pagination.page + 2);
+    
+    if (startPage > 1) {
+        container.append('<li class="page-item"><a class="page-link" href="#" onclick="loadTestOrders(1, \'' + currentSearch + '\', \'' + currentStatus + '\')">1</a></li>');
+        if (startPage > 2) {
+            container.append('<li class="page-item disabled"><span class="page-link">...</span></li>');
+        }
+    }
+    
+    for (let i = startPage; i <= endPage; i++) {
+        const active = i === pagination.page ? 'active' : '';
+        container.append(`
+            <li class="page-item ${active}">
+                <a class="page-link" href="#" onclick="loadTestOrders(${i}, '${currentSearch}', '${currentStatus}')">${i}</a>
+            </li>
+        `);
+    }
+    
+    if (endPage < pagination.pages) {
+        if (endPage < pagination.pages - 1) {
+            container.append('<li class="page-item disabled"><span class="page-link">...</span></li>');
+        }
+        container.append(`<li class="page-item"><a class="page-link" href="#" onclick="loadTestOrders(${pagination.pages}, '${currentSearch}', '${currentStatus}')">${pagination.pages}</a></li>`);
+    }
+    
+    // Next button
+    const nextDisabled = pagination.page >= pagination.pages ? 'disabled' : '';
+    container.append(`
+        <li class="page-item ${nextDisabled}">
+            <a class="page-link" href="#" onclick="loadTestOrders(${pagination.page + 1}, '${currentSearch}', '${currentStatus}')">Next</a>
+        </li>
+    `);
+    
+    $('#paginationContainer').show();
+}
+
+// Utility functions
+function showLoading() {
+    $('#loadingIndicator').show();
+    $('#ordersTable').hide();
+    $('#paginationContainer').hide();
+}
+
+function hideLoading() {
+    $('#loadingIndicator').hide();
+}
+
+function showAlert(type, message) {
+    const alertClass = type === 'success' ? 'alert-success' : 
+                     type === 'error' ? 'alert-danger' : 
+                     type === 'warning' ? 'alert-warning' : 'alert-info';
+    
+    const icon = type === 'success' ? 'fas fa-check' : 
+                type === 'error' ? 'fas fa-ban' : 
+                type === 'warning' ? 'fas fa-exclamation-triangle' : 'fas fa-info-circle';
+    
+    const alert = `
+        <div class="alert ${alertClass} alert-dismissible">
+            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+            <i class="icon ${icon}"></i> ${message}
+        </div>
+    `;
+    
+    $('#alertContainer').html(alert);
+    
+    // Auto-hide after 5 seconds
+    setTimeout(() => {
+        $('#alertContainer .alert').fadeOut();
+    }, 5000);
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function formatDateTime(dateString) {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
+function getStatusClass(status) {
+    switch(status?.toLowerCase()) {
+        case 'pending': return 'warning';
+        case 'in_progress': return 'info';
+        case 'completed': return 'success';
+        case 'cancelled': return 'danger';
+        default: return 'secondary';
+    }
+}
+
+function getPriorityClass(priority) {
+    switch(priority?.toLowerCase()) {
+        case 'stat': return 'danger';
+        case 'urgent': return 'warning';
+        case 'normal': return 'primary';
+        default: return 'secondary';
+    }
 }
 </script>
 </body>

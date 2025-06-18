@@ -9,44 +9,6 @@ if(isset($_SESSION['user_id'])) {
     header("Location: dashboard.php");
     exit();
 }
-
-// Handle registration form submission
-if($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $firstname = trim($_POST['firstname'] ?? '');
-    $lastname = trim($_POST['lastname'] ?? '');
-    $email = trim($_POST['email'] ?? '');
-    $password = $_POST['password'] ?? '';
-    $confirm_password = $_POST['confirm_password'] ?? '';
-    $username = strtolower($firstname . '.' . $lastname);
-    
-    // Validation
-    if($password === $confirm_password && !empty($firstname) && !empty($lastname) && !empty($email) && strlen($password) >= 6) {
-        try {
-            // Check if email already exists
-            $stmt = $pdo->prepare("SELECT id FROM users WHERE email = ? OR username = ?");
-            $stmt->execute([$email, $username]);
-            
-            if($stmt->rowCount() > 0) {
-                $error = "Email or username already exists.";
-            } else {
-                // Hash password and insert user
-                $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-                $full_name = $firstname . ' ' . $lastname;
-                
-                $stmt = $pdo->prepare("
-                    INSERT INTO users (username, password, email, full_name, user_type) 
-                    VALUES (?, ?, ?, ?, 'lab_technician')
-                ");
-                $stmt->execute([$username, $hashed_password, $email, $full_name]);
-                $success = "Registration successful! You can now login with username: " . $username;
-            }
-        } catch(PDOException $e) {
-            $error = "Registration failed. Please try again.";
-        }
-    } else {
-        $error = "Please fill all fields correctly, ensure passwords match, and password is at least 6 characters.";
-    }
-}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -103,9 +65,8 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
   </style>
 </head>
 <body class="hold-transition register-page">
-<div class="register-box">
-  <div class="register-logo">
-    <a href="index.php" class="register-logo"><b>US</b>Fitness</a>
+<div class="register-box">  <div class="register-logo">
+    <a href="index.php" class="register-logo"><b>PathLab</b>Pro</a>
   </div>
 
   <div class="card">
@@ -115,23 +76,12 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
     <div class="card-body register-card-body">
       <p class="login-box-msg">Register a new membership</p>
 
-      <?php if(isset($error)): ?>
-      <div class="alert alert-danger alert-dismissible">
-        <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
-        <i class="icon fas fa-ban"></i> <?php echo $error; ?>
-      </div>
-      <?php endif; ?>
+      <!-- Alert Messages -->
+      <div id="alertMessages"></div>
 
-      <?php if(isset($success)): ?>
-      <div class="alert alert-success alert-dismissible">
-        <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
-        <i class="icon fas fa-check"></i> <?php echo $success; ?>
-      </div>
-      <?php endif; ?>
-
-      <form action="register.php" method="post">
+      <form id="registerForm">
         <div class="input-group mb-3">
-          <input type="text" class="form-control" placeholder="First name" name="firstname" required>
+          <input type="text" class="form-control" placeholder="First name" id="firstname" name="firstname" required>
           <div class="input-group-append">
             <div class="input-group-text">
               <span class="fas fa-user"></span>
@@ -139,7 +89,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
           </div>
         </div>
         <div class="input-group mb-3">
-          <input type="text" class="form-control" placeholder="Last name" name="lastname" required>
+          <input type="text" class="form-control" placeholder="Last name" id="lastname" name="lastname" required>
           <div class="input-group-append">
             <div class="input-group-text">
               <span class="fas fa-user"></span>
@@ -147,7 +97,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
           </div>
         </div>
         <div class="input-group mb-3">
-          <input type="email" class="form-control" placeholder="Email" name="email" required>
+          <input type="email" class="form-control" placeholder="Email" id="email" name="email" required>
           <div class="input-group-append">
             <div class="input-group-text">
               <span class="fas fa-envelope"></span>
@@ -155,7 +105,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
           </div>
         </div>
         <div class="input-group mb-3">
-          <input type="password" class="form-control" placeholder="Password" name="password" required>
+          <input type="password" class="form-control" placeholder="Password" id="password" name="password" required minlength="6">
           <div class="input-group-append">
             <div class="input-group-text">
               <span class="fas fa-lock"></span>
@@ -163,7 +113,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
           </div>
         </div>
         <div class="input-group mb-3">
-          <input type="password" class="form-control" placeholder="Retype password" name="confirm_password" required>
+          <input type="password" class="form-control" placeholder="Retype password" id="confirm_password" name="confirm_password" required minlength="6">
           <div class="input-group-append">
             <div class="input-group-text">
               <span class="fas fa-lock"></span>
@@ -181,7 +131,10 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
           </div>
           <!-- /.col -->
           <div class="col-4">
-            <button type="submit" class="btn btn-primary btn-block">Register</button>
+            <button type="submit" class="btn btn-primary btn-block" id="registerBtn">
+              <span id="registerBtnText">Register</span>
+              <span id="registerSpinner" class="spinner-border spinner-border-sm d-none ml-2"></span>
+            </button>
           </div>
           <!-- /.col -->
         </div>
@@ -212,5 +165,130 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.0/js/bootstrap.bundle.min.js"></script>
 <!-- AdminLTE App -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.2.0/js/adminlte.min.js"></script>
+
+<script>
+$(document).ready(function() {
+    $('#registerForm').submit(function(e) {
+        e.preventDefault();
+        
+        // Clear previous alerts
+        $('#alertMessages').empty();
+        
+        // Get form data
+        const formData = {
+            firstname: $('#firstname').val().trim(),
+            lastname: $('#lastname').val().trim(),
+            email: $('#email').val().trim(),
+            password: $('#password').val(),
+            confirm_password: $('#confirm_password').val(),
+            terms: $('#agreeTerms').is(':checked'),
+            action: 'register'
+        };
+        
+        // Client-side validation
+        if(!formData.firstname || !formData.lastname || !formData.email || !formData.password || !formData.confirm_password) {
+            showAlert('Please fill in all fields.', 'danger');
+            return;
+        }
+        
+        if(formData.password !== formData.confirm_password) {
+            showAlert('Passwords do not match.', 'danger');
+            return;
+        }
+        
+        if(formData.password.length < 6) {
+            showAlert('Password must be at least 6 characters long.', 'danger');
+            return;
+        }
+        
+        if(!formData.terms) {
+            showAlert('Please agree to the terms and conditions.', 'danger');
+            return;
+        }
+        
+        // Show loading state
+        $('#registerBtn').prop('disabled', true);
+        $('#registerBtnText').text('Registering...');
+        $('#registerSpinner').removeClass('d-none');
+        
+        // Send AJAX request
+        $.ajax({
+            url: 'api/auth_api.php',
+            method: 'POST',
+            data: formData,
+            dataType: 'json',
+            success: function(response) {
+                if(response.success) {
+                    showAlert('Registration successful! You can now login.', 'success');
+                    $('#registerForm')[0].reset();
+                    
+                    // Redirect to login page after 2 seconds
+                    setTimeout(function() {
+                        window.location.href = 'index.php';
+                    }, 2000);
+                } else {
+                    showAlert(response.message || 'Registration failed. Please try again.', 'danger');
+                }
+            },
+            error: function(xhr, status, error) {
+                showAlert('Registration failed. Please try again.', 'danger');
+                console.error('Registration error:', error);
+            },
+            complete: function() {
+                // Reset button state
+                $('#registerBtn').prop('disabled', false);
+                $('#registerBtnText').text('Register');
+                $('#registerSpinner').addClass('d-none');
+            }
+        });
+    });
+    
+    // Real-time password validation
+    $('#confirm_password').on('input', function() {
+        const password = $('#password').val();
+        const confirmPassword = $(this).val();
+        
+        if(confirmPassword && password !== confirmPassword) {
+            $(this).removeClass('is-valid').addClass('is-invalid');
+        } else if(confirmPassword && password === confirmPassword) {
+            $(this).removeClass('is-invalid').addClass('is-valid');
+        } else {
+            $(this).removeClass('is-invalid is-valid');
+        }
+    });
+    
+    // Email validation
+    $('#email').on('blur', function() {
+        const email = $(this).val();
+        const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        
+        if(email && !emailPattern.test(email)) {
+            $(this).removeClass('is-valid').addClass('is-invalid');
+        } else if(email) {
+            $(this).removeClass('is-invalid').addClass('is-valid');
+        } else {
+            $(this).removeClass('is-invalid is-valid');
+        }
+    });
+});
+
+function showAlert(message, type) {
+    const alertHtml = `
+        <div class="alert alert-${type} alert-dismissible">
+            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+            <i class="icon fas ${type === 'success' ? 'fa-check' : 'fa-ban'}"></i> ${message}
+        </div>
+    `;
+    
+    $('#alertMessages').html(alertHtml);
+    
+    // Auto dismiss success messages after 5 seconds
+    if(type === 'success') {
+        setTimeout(function() {
+            $('.alert').fadeOut();
+        }, 5000);
+    }
+}
+</script>
 </body>
 </html>

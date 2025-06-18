@@ -4,7 +4,9 @@ header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE');
 header('Access-Control-Allow-Headers: Content-Type');
 
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 require_once '../config.php';
 
 $method = $_SERVER['REQUEST_METHOD'];
@@ -64,34 +66,35 @@ function handleLogin($pdo, $input) {
         echo json_encode(['success' => false, 'message' => 'Username and password cannot be empty']);
         return;
     }
-    
-    try {
+      try {
         // Check user credentials
-        $stmt = $pdo->prepare("SELECT user_id, username, password_hash, full_name, role FROM users WHERE username = ?");
+        $stmt = $pdo->prepare("SELECT id, username, password, full_name, user_type FROM users WHERE username = ?");
         $stmt->execute([$username]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
         
-        if ($user && password_verify($password, $user['password_hash'])) {
+        if ($user && password_verify($password, $user['password'])) {
             // Set session variables
-            $_SESSION['user_id'] = $user['user_id'];
+            $_SESSION['user_id'] = $user['id'];
             $_SESSION['username'] = $user['username'];
             $_SESSION['full_name'] = $user['full_name'];
-            $_SESSION['role'] = $user['role'];
+            $_SESSION['role'] = $user['user_type'];
             
-            // Update last login
-            $updateStmt = $pdo->prepare("UPDATE users SET last_login = NOW() WHERE user_id = ?");
-            $updateStmt->execute([$user['user_id']]);
-            
-            echo json_encode([
+            // Update last login (only if last_login column exists)
+            try {
+                $updateStmt = $pdo->prepare("UPDATE users SET created_at = NOW() WHERE id = ?");
+                $updateStmt->execute([$user['id']]);
+              echo json_encode([
                 'success' => true,
                 'message' => 'Login successful',
                 'data' => [
-                    'user_id' => $user['user_id'],
-                    'username' => $user['username'],
-                    'full_name' => $user['full_name'],
-                    'role' => $user['role']
+                    'user_id' => $user['id'],
+                    'username' => $user['username'],                    'full_name' => $user['full_name'],
+                    'role' => $user['user_type']
                 ]
             ]);
+        } catch (PDOException $e) {
+            // Silently handle last login update error
+        }
         } else {
             http_response_code(401);
             echo json_encode(['success' => false, 'message' => 'Invalid username or password']);

@@ -333,9 +333,10 @@ try {
       <div class="container-fluid">        <!-- Small boxes (Stat box) -->
         <div class="row">
           <div class="col-lg-3 col-6">
-            <!-- small box -->            <div class="small-box bg-info">
+            <!-- small box -->            
+            <div class="small-box bg-info">
               <div class="inner">
-                <h3><?php echo $stats['total_patients']; ?></h3>
+                <h3 id="totalPatients"><i class="fas fa-spinner fa-spin"></i></h3>
                 <p>Total Patients</p>
               </div>
               <div class="icon">
@@ -349,8 +350,8 @@ try {
             <!-- small box -->
             <div class="small-box bg-success">
               <div class="inner">
-                <h3><?php echo $stats['pending_tests']; ?></h3>
-                <p>Pending Tests</p>
+                <h3 id="todayTests"><i class="fas fa-spinner fa-spin"></i></h3>
+                <p>Today's Tests</p>
               </div>
               <div class="icon">
                 <i class="fas fa-clipboard-list"></i>
@@ -363,8 +364,8 @@ try {
             <!-- small box -->
             <div class="small-box bg-warning">
               <div class="inner">
-                <h3><?php echo $stats['completed_today']; ?></h3>
-                <p>Completed Today</p>
+                <h3 id="pendingResults"><i class="fas fa-spinner fa-spin"></i></h3>
+                <p>Pending Results</p>
               </div>
               <div class="icon">
                 <i class="fas fa-flask"></i>
@@ -377,13 +378,13 @@ try {
             <!-- small box -->
             <div class="small-box bg-danger">
               <div class="inner">
-                <h3><?php echo $stats['critical_results']; ?></h3>
-                <p>Critical Results</p>
+                <h3 id="totalDoctors"><i class="fas fa-spinner fa-spin"></i></h3>
+                <p>Total Doctors</p>
               </div>
               <div class="icon">
-                <i class="fas fa-exclamation-triangle"></i>
+                <i class="fas fa-user-md"></i>
               </div>
-              <a href="results.php" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a>
+              <a href="doctors.php" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a>
             </div>
           </div>
           <!-- ./col -->
@@ -517,6 +518,61 @@ try {
 <script src="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.2.0/js/adminlte.js"></script>
 
 <script>
+$(document).ready(function() {
+    // Load dashboard statistics via AJAX
+    loadDashboardStats();
+    
+    // Set up refresh interval (every 30 seconds)
+    setInterval(loadDashboardStats, 30000);
+});
+
+function loadDashboardStats() {
+    $.ajax({
+        url: 'api/dashboard_api.php',
+        method: 'GET',
+        data: { action: 'stats' },
+        dataType: 'json',
+        success: function(response) {
+            if (response.success) {
+                const stats = response.data;
+                
+                // Update stat boxes
+                $('#totalPatients').html(stats.total_patients || 0);
+                $('#todayTests').html(stats.today_tests || 0);
+                $('#pendingResults').html(stats.pending_results || 0);
+                $('#totalDoctors').html(stats.total_doctors || 0);
+                
+                // Update additional stats if they exist
+                if (stats.monthly_revenue !== undefined) {
+                    updateRevenueDisplay(stats.monthly_revenue);
+                }
+            } else {
+                console.error('Error loading dashboard stats:', response.message);
+                // Fallback to default values
+                $('#totalPatients').html('--');
+                $('#todayTests').html('--');
+                $('#pendingResults').html('--');
+                $('#totalDoctors').html('--');
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('AJAX Error loading dashboard stats:', error);
+            // Fallback to default values
+            $('#totalPatients').html('--');
+            $('#todayTests').html('--');
+            $('#pendingResults').html('--');
+            $('#totalDoctors').html('--');
+        }
+    });
+}
+
+function updateRevenueDisplay(revenue) {
+    // Update revenue display if there's a dedicated element
+    if ($('#monthlyRevenue').length) {
+        $('#monthlyRevenue').html('$' + Number(revenue).toLocaleString());
+    }
+}
+
 $(function () {
   'use strict'
 

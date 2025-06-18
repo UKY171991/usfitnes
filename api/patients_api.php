@@ -98,6 +98,11 @@ function handleGet($pdo) {
 }
 
 function handlePost($pdo, $input) {
+    // Handle both JSON input and POST data
+    if (empty($input)) {
+        $input = $_POST;
+    }
+    
     // Validate required fields
     $requiredFields = ['first_name', 'last_name', 'date_of_birth', 'gender', 'phone'];
     foreach ($requiredFields as $field) {
@@ -116,7 +121,7 @@ function handlePost($pdo, $input) {
     }
     
     // Check if patient with same phone already exists
-    $stmt = $pdo->prepare("SELECT patient_id FROM patients WHERE phone = ?");
+    $stmt = $pdo->prepare("SELECT id FROM patients WHERE phone = ?");
     $stmt->execute([$input['phone']]);
     if ($stmt->fetch()) {
         http_response_code(409);
@@ -124,13 +129,17 @@ function handlePost($pdo, $input) {
         return;
     }
     
+    // Generate unique patient ID
+    $patient_id = generatePatientId($pdo);
+    
     try {
         $stmt = $pdo->prepare("
-            INSERT INTO patients (first_name, last_name, date_of_birth, gender, phone, email, address, emergency_contact, emergency_phone)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO patients (patient_id, first_name, last_name, date_of_birth, gender, phone, email, address, emergency_contact, emergency_phone)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
         
         $stmt->execute([
+            $patient_id,
             trim($input['first_name']),
             trim($input['last_name']),
             $input['date_of_birth'],
@@ -142,12 +151,12 @@ function handlePost($pdo, $input) {
             !empty($input['emergency_phone']) ? trim($input['emergency_phone']) : null
         ]);
         
-        $patientId = $pdo->lastInsertId();
+        $id = $pdo->lastInsertId();
         
         echo json_encode([
             'success' => true,
             'message' => 'Patient added successfully',
-            'data' => ['patient_id' => $patientId]
+            'data' => ['id' => $id, 'patient_id' => $patient_id]
         ]);
         
     } catch (PDOException $e) {
@@ -157,15 +166,20 @@ function handlePost($pdo, $input) {
 }
 
 function handlePut($pdo, $input) {
-    if (!isset($input['patient_id'])) {
+    // Handle both JSON input and POST data
+    if (empty($input)) {
+        $input = $_POST;
+    }
+    
+    if (!isset($input['id'])) {
         http_response_code(400);
         echo json_encode(['success' => false, 'message' => 'Patient ID is required']);
         return;
     }
     
     // Check if patient exists
-    $stmt = $pdo->prepare("SELECT patient_id FROM patients WHERE patient_id = ?");
-    $stmt->execute([$input['patient_id']]);
+    $stmt = $pdo->prepare("SELECT id FROM patients WHERE id = ?");
+    $stmt->execute([$input['id']]);
     if (!$stmt->fetch()) {
         http_response_code(404);
         echo json_encode(['success' => false, 'message' => 'Patient not found']);
@@ -184,7 +198,7 @@ function handlePut($pdo, $input) {
             UPDATE patients SET 
                 first_name = ?, last_name = ?, date_of_birth = ?, gender = ?, 
                 phone = ?, email = ?, address = ?, emergency_contact = ?, emergency_phone = ?
-            WHERE patient_id = ?
+            WHERE id = ?
         ");
         
         $stmt->execute([
@@ -197,8 +211,7 @@ function handlePut($pdo, $input) {
             !empty($input['address']) ? trim($input['address']) : null,
             !empty($input['emergency_contact']) ? trim($input['emergency_contact']) : null,
             !empty($input['emergency_phone']) ? trim($input['emergency_phone']) : null,
-            $input['patient_id']
-        ]);
+            $input['id']        ]);
         
         echo json_encode(['success' => true, 'message' => 'Patient updated successfully']);
         
@@ -209,7 +222,12 @@ function handlePut($pdo, $input) {
 }
 
 function handleDelete($pdo, $input) {
-    if (!isset($input['patient_id'])) {
+    // Handle both JSON input and POST data
+    if (empty($input)) {
+        $input = $_POST;
+    }
+    
+    if (!isset($input['id'])) {
         http_response_code(400);
         echo json_encode(['success' => false, 'message' => 'Patient ID is required']);
         return;
@@ -218,7 +236,7 @@ function handleDelete($pdo, $input) {
     try {
         // Check if patient has any test orders
         $stmt = $pdo->prepare("SELECT COUNT(*) FROM test_orders WHERE patient_id = ?");
-        $stmt->execute([$input['patient_id']]);
+        $stmt->execute([$input['id']]);
         $orderCount = $stmt->fetchColumn();
         
         if ($orderCount > 0) {
@@ -226,10 +244,8 @@ function handleDelete($pdo, $input) {
             echo json_encode(['success' => false, 'message' => 'Cannot delete patient with existing test orders']);
             return;
         }
-        
-        $stmt = $pdo->prepare("DELETE FROM patients WHERE patient_id = ?");
-        $stmt->execute([$input['patient_id']]);
-        
+          $stmt = $pdo->prepare("DELETE FROM patients WHERE id = ?");
+        $stmt->execute([$input['id']]);
         if ($stmt->rowCount() > 0) {
             echo json_encode(['success' => true, 'message' => 'Patient deleted successfully']);
         } else {
@@ -241,5 +257,22 @@ function handleDelete($pdo, $input) {
         http_response_code(500);
         echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
     }
+}
+
+function generatePatientId($pdo) {
+    do {
+        // Generate patient ID in format: PAT + current year + 4 digit random number
+        $year = date('Y');
+        $randomNumber = str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
+        $patientId = 'PAT' . $year . $randomNumber;
+        
+        // Check if this ID already exists
+        $stmt = $pdo->prepare("SELECT id FROM patients WHERE patient_id = ?");
+        $stmt->execute([$patientId]);
+        $exists = $stmt->fetch();
+        
+    } while ($exists);
+    
+    return $patientId;
 }
 ?>

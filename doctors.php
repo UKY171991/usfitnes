@@ -11,53 +11,6 @@ if(!isset($_SESSION['user_id'])) {
 }
 
 $username = $_SESSION['full_name'] ?? $_SESSION['username'] ?? 'User';
-$message = '';
-$messageType = '';
-
-// Handle form submission for new doctor
-if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['add_doctor'])) {
-    $first_name = trim($_POST['first_name']);
-    $last_name = trim($_POST['last_name']);
-    $specialization = trim($_POST['specialization']);
-    $license_number = trim($_POST['license_number']);
-    $phone = trim($_POST['phone']);
-    $email = trim($_POST['email']);
-    $hospital_affiliation = trim($_POST['hospital_affiliation']);
-    
-    // Check if license number already exists
-    $check_stmt = $conn->prepare("SELECT id FROM doctors WHERE license_number = ?");
-    $check_stmt->bind_param("s", $license_number);
-    $check_stmt->execute();
-    $check_result = $check_stmt->get_result();
-    
-    if ($check_result->num_rows > 0) {
-        $message = "A doctor with this license number already exists.";
-        $messageType = "danger";
-    } else {
-        $stmt = $conn->prepare("INSERT INTO doctors (first_name, last_name, specialization, license_number, phone, email, hospital_affiliation) VALUES (?, ?, ?, ?, ?, ?, ?)");
-        $stmt->bind_param("sssssss", $first_name, $last_name, $specialization, $license_number, $phone, $email, $hospital_affiliation);
-        
-        if ($stmt->execute()) {
-            $message = "Doctor added successfully!";
-            $messageType = "success";
-        } else {
-            $message = "Error adding doctor: " . $conn->error;
-            $messageType = "danger";
-        }
-        $stmt->close();
-    }
-    $check_stmt->close();
-}
-
-// Get doctors from database
-$query = "SELECT * FROM doctors ORDER BY last_name, first_name";
-$result = $conn->query($query);
-$doctors = [];
-if ($result && $result->num_rows > 0) {
-    while($row = $result->fetch_assoc()) {
-        $doctors[] = $row;
-    }
-}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -72,6 +25,8 @@ if ($result && $result->num_rows > 0) {
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <!-- DataTables -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/datatables.net-bs4/1.11.3/dataTables.bootstrap4.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/datatables.net-responsive-bs4/2.2.9/responsive.bootstrap4.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/datatables.net-buttons-bs4/2.0.1/buttons.bootstrap4.min.css">
   <!-- Theme style -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.2.0/css/adminlte.min.css">
 
@@ -142,13 +97,13 @@ if ($result && $result->num_rows > 0) {
           </li>
           <li class="nav-item">
             <a href="test-orders.php" class="nav-link">
-              <i class="nav-icon fas fa-clipboard-list"></i>
+              <i class="nav-icon fas fa-flask"></i>
               <p>Test Orders</p>
             </a>
           </li>
           <li class="nav-item">
             <a href="results.php" class="nav-link">
-              <i class="nav-icon fas fa-file-medical"></i>
+              <i class="nav-icon fas fa-chart-line"></i>
               <p>Test Results</p>
             </a>
           </li>
@@ -159,9 +114,9 @@ if ($result && $result->num_rows > 0) {
             </a>
           </li>
           <li class="nav-item">
-            <a href="logout.php" class="nav-link">
-              <i class="nav-icon fas fa-sign-out-alt"></i>
-              <p>Logout</p>
+            <a href="register.php" class="nav-link">
+              <i class="nav-icon fas fa-user-plus"></i>
+              <p>Register User</p>
             </a>
           </li>
         </ul>
@@ -189,169 +144,311 @@ if ($result && $result->num_rows > 0) {
 
     <section class="content">
       <div class="container-fluid">
-        <?php if($message): ?>
-        <div class="alert alert-<?php echo $messageType; ?> alert-dismissible">
-          <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
-          <?php echo htmlspecialchars($message); ?>
-        </div>
-        <?php endif; ?>
-        
-        <!-- Add New Doctor Card -->
-        <div class="row">
-          <div class="col-12">
-            <div class="card collapsed-card">
-              <div class="card-header">
-                <h3 class="card-title">Add New Doctor</h3>
-                <div class="card-tools">
-                  <button type="button" class="btn btn-tool" data-card-widget="collapse">
-                    <i class="fas fa-plus"></i>
-                  </button>
-                </div>
-              </div>
-              <div class="card-body" style="display: none;">
-                <form method="post">
-                  <div class="row">
-                    <div class="col-md-6">
-                      <div class="form-group">
-                        <label for="first_name">First Name <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="first_name" name="first_name" required>
-                      </div>
-                    </div>
-                    <div class="col-md-6">
-                      <div class="form-group">
-                        <label for="last_name">Last Name <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="last_name" name="last_name" required>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="row">
-                    <div class="col-md-6">
-                      <div class="form-group">
-                        <label for="specialization">Specialization <span class="text-danger">*</span></label>
-                        <select class="form-control" id="specialization" name="specialization" required>
-                          <option value="">Select Specialization</option>
-                          <option value="Internal Medicine">Internal Medicine</option>
-                          <option value="Family Medicine">Family Medicine</option>
-                          <option value="Cardiology">Cardiology</option>
-                          <option value="Endocrinology">Endocrinology</option>
-                          <option value="Hematology">Hematology</option>
-                          <option value="Oncology">Oncology</option>
-                          <option value="Gastroenterology">Gastroenterology</option>
-                          <option value="Nephrology">Nephrology</option>
-                          <option value="Pulmonology">Pulmonology</option>
-                          <option value="Emergency Medicine">Emergency Medicine</option>
-                          <option value="Surgery">Surgery</option>
-                          <option value="Pediatrics">Pediatrics</option>
-                          <option value="Obstetrics and Gynecology">Obstetrics and Gynecology</option>
-                          <option value="General Practice">General Practice</option>
-                          <option value="Other">Other</option>
-                        </select>
-                      </div>
-                    </div>
-                    <div class="col-md-6">
-                      <div class="form-group">
-                        <label for="license_number">License Number <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="license_number" name="license_number" required>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="row">
-                    <div class="col-md-6">
-                      <div class="form-group">
-                        <label for="phone">Phone Number</label>
-                        <input type="tel" class="form-control" id="phone" name="phone">
-                      </div>
-                    </div>
-                    <div class="col-md-6">
-                      <div class="form-group">
-                        <label for="email">Email</label>
-                        <input type="email" class="form-control" id="email" name="email">
-                      </div>
-                    </div>
-                  </div>
-                  <div class="row">
-                    <div class="col-12">
-                      <div class="form-group">
-                        <label for="hospital_affiliation">Hospital/Clinic Affiliation</label>
-                        <input type="text" class="form-control" id="hospital_affiliation" name="hospital_affiliation" placeholder="Hospital or clinic name">
-                      </div>
-                    </div>
-                  </div>
-                  <div class="row">
-                    <div class="col-12">
-                      <button type="submit" name="add_doctor" class="btn btn-primary">
-                        <i class="fas fa-save"></i> Add Doctor
-                      </button>
-                      <button type="button" class="btn btn-secondary" data-card-widget="collapse">
-                        <i class="fas fa-times"></i> Cancel
-                      </button>
-                    </div>
-                  </div>
-                </form>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Doctors List -->
         <div class="row">
           <div class="col-12">
             <div class="card">
               <div class="card-header">
                 <h3 class="card-title">Registered Doctors</h3>
                 <div class="card-tools">
-                  <span class="badge badge-primary"><?php echo count($doctors); ?> Total Doctors</span>
+                  <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#addDoctorModal">
+                    <i class="fas fa-plus"></i> Add Doctor
+                  </button>
                 </div>
               </div>
               <div class="card-body">
-                <table id="doctorsTable" class="table table-bordered table-striped">
-                  <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Specialization</th>
-                    <th>License #</th>
-                    <th>Phone</th>
-                    <th>Email</th>
-                    <th>Hospital</th>
-                    <th>Actions</th>
-                  </tr>
-                  </thead>
-                  <tbody>
-                  <?php foreach($doctors as $doctor): ?>
-                  <tr>
-                    <td>
-                      <strong>Dr. <?php echo htmlspecialchars($doctor['last_name'] . ', ' . $doctor['first_name']); ?></strong>
-                    </td>
-                    <td>
-                      <span class="badge badge-info"><?php echo htmlspecialchars($doctor['specialization']); ?></span>
-                    </td>
-                    <td><?php echo htmlspecialchars($doctor['license_number']); ?></td>
-                    <td><?php echo htmlspecialchars($doctor['phone'] ?? 'N/A'); ?></td>
-                    <td><?php echo htmlspecialchars($doctor['email'] ?? 'N/A'); ?></td>
-                    <td><?php echo htmlspecialchars($doctor['hospital_affiliation'] ?? 'N/A'); ?></td>
-                    <td>
-                      <div class="btn-group">
-                        <button type="button" class="btn btn-info btn-sm" title="View Details">
-                          <i class="fas fa-eye"></i>
-                        </button>
-                        <button type="button" class="btn btn-primary btn-sm" title="Edit">
-                          <i class="fas fa-edit"></i>
-                        </button>
-                        <button type="button" class="btn btn-success btn-sm" title="Contact">
-                          <i class="fas fa-phone"></i>
+                <!-- Search and Filter Controls -->
+                <div class="row mb-3">
+                  <div class="col-md-4">
+                    <div class="input-group">
+                      <input type="text" class="form-control" id="searchInput" placeholder="Search doctors...">
+                      <div class="input-group-append">
+                        <button class="btn btn-outline-secondary" type="button" id="searchBtn">
+                          <i class="fas fa-search"></i>
                         </button>
                       </div>
-                    </td>
-                  </tr>
-                  <?php endforeach; ?>
-                  </tbody>
-                </table>
+                    </div>
+                  </div>
+                  <div class="col-md-3">
+                    <select class="form-control" id="specializationFilter">
+                      <option value="">All Specializations</option>
+                      <option value="Pathology">Pathology</option>
+                      <option value="Hematology">Hematology</option>
+                      <option value="Microbiology">Microbiology</option>
+                      <option value="Biochemistry">Biochemistry</option>
+                      <option value="Immunology">Immunology</option>
+                      <option value="Cytology">Cytology</option>
+                      <option value="Histopathology">Histopathology</option>
+                    </select>
+                  </div>
+                  <div class="col-md-3">
+                    <select class="form-control" id="statusFilter">
+                      <option value="">All Status</option>
+                      <option value="active">Active</option>
+                      <option value="inactive">Inactive</option>
+                    </select>
+                  </div>
+                  <div class="col-md-2">
+                    <button class="btn btn-secondary btn-block" id="clearFilters">
+                      <i class="fas fa-times"></i> Clear
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Doctors Table -->
+                <div class="table-responsive">
+                  <table class="table table-bordered table-striped">
+                    <thead>
+                      <tr>
+                        <th>Name</th>
+                        <th>Specialization</th>
+                        <th>License No</th>
+                        <th>Phone</th>
+                        <th>Email</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="doctorsTableBody">
+                      <!-- Dynamic content loaded via AJAX -->
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- Pagination -->
+                <div class="row mt-3">
+                  <div class="col-sm-12 col-md-5">
+                    <div class="dataTables_info" id="tableInfo"></div>
+                  </div>
+                  <div class="col-sm-12 col-md-7">
+                    <div class="dataTables_paginate paging_simple_numbers">
+                      <ul class="pagination" id="pagination"></ul>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
     </section>
+  </div>
+
+  <!-- Add Doctor Modal -->
+  <div class="modal fade" id="addDoctorModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h4 class="modal-title">Add New Doctor</h4>
+          <button type="button" class="close" data-dismiss="modal">&times;</button>
+        </div>
+        <form id="addDoctorForm">
+          <div class="modal-body">
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>First Name <span class="text-danger">*</span></label>
+                  <input type="text" class="form-control" id="add_first_name" name="first_name" required>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>Last Name <span class="text-danger">*</span></label>
+                  <input type="text" class="form-control" id="add_last_name" name="last_name" required>
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>Specialization <span class="text-danger">*</span></label>
+                  <select class="form-control" id="add_specialization" name="specialization" required>
+                    <option value="">Select Specialization</option>
+                    <option value="Pathology">Pathology</option>
+                    <option value="Hematology">Hematology</option>
+                    <option value="Microbiology">Microbiology</option>
+                    <option value="Biochemistry">Biochemistry</option>
+                    <option value="Immunology">Immunology</option>
+                    <option value="Cytology">Cytology</option>
+                    <option value="Histopathology">Histopathology</option>
+                  </select>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>License Number <span class="text-danger">*</span></label>
+                  <input type="text" class="form-control" id="add_license_number" name="license_number" required>
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>Phone <span class="text-danger">*</span></label>
+                  <input type="tel" class="form-control" id="add_phone" name="phone" required>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>Email <span class="text-danger">*</span></label>
+                  <input type="email" class="form-control" id="add_email" name="email" required>
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>Status <span class="text-danger">*</span></label>
+                  <select class="form-control" id="add_status" name="status" required>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>Years of Experience</label>
+                  <input type="number" class="form-control" id="add_experience_years" name="experience_years" min="0">
+                </div>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Address</label>
+              <textarea class="form-control" id="add_address" name="address" rows="2" placeholder="Doctor's address..."></textarea>
+            </div>
+            <div class="form-group">
+              <label>Notes</label>
+              <textarea class="form-control" id="add_notes" name="notes" rows="3" placeholder="Additional notes..."></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-save"></i> Save Doctor
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Doctor Modal -->
+  <div class="modal fade" id="editDoctorModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h4 class="modal-title">Edit Doctor</h4>
+          <button type="button" class="close" data-dismiss="modal">&times;</button>
+        </div>
+        <form id="editDoctorForm">
+          <input type="hidden" id="edit_doctor_id" name="id">
+          <div class="modal-body">
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>First Name <span class="text-danger">*</span></label>
+                  <input type="text" class="form-control" id="edit_first_name" name="first_name" required>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>Last Name <span class="text-danger">*</span></label>
+                  <input type="text" class="form-control" id="edit_last_name" name="last_name" required>
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>Specialization <span class="text-danger">*</span></label>
+                  <select class="form-control" id="edit_specialization" name="specialization" required>
+                    <option value="">Select Specialization</option>
+                    <option value="Pathology">Pathology</option>
+                    <option value="Hematology">Hematology</option>
+                    <option value="Microbiology">Microbiology</option>
+                    <option value="Biochemistry">Biochemistry</option>
+                    <option value="Immunology">Immunology</option>
+                    <option value="Cytology">Cytology</option>
+                    <option value="Histopathology">Histopathology</option>
+                  </select>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>License Number <span class="text-danger">*</span></label>
+                  <input type="text" class="form-control" id="edit_license_number" name="license_number" required>
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>Phone <span class="text-danger">*</span></label>
+                  <input type="tel" class="form-control" id="edit_phone" name="phone" required>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>Email <span class="text-danger">*</span></label>
+                  <input type="email" class="form-control" id="edit_email" name="email" required>
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>Status <span class="text-danger">*</span></label>
+                  <select class="form-control" id="edit_status" name="status" required>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>Years of Experience</label>
+                  <input type="number" class="form-control" id="edit_experience_years" name="experience_years" min="0">
+                </div>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Address</label>
+              <textarea class="form-control" id="edit_address" name="address" rows="2" placeholder="Doctor's address..."></textarea>
+            </div>
+            <div class="form-group">
+              <label>Notes</label>
+              <textarea class="form-control" id="edit_notes" name="notes" rows="3" placeholder="Additional notes..."></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-save"></i> Update Doctor
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- View Doctor Modal -->
+  <div class="modal fade" id="viewDoctorModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h4 class="modal-title">Doctor Details</h4>
+          <button type="button" class="close" data-dismiss="modal">&times;</button>
+        </div>
+        <div class="modal-body" id="viewDoctorContent">
+          <!-- Dynamic content loaded via AJAX -->
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-primary" onclick="printDoctorInfo()">
+            <i class="fas fa-print"></i> Print Info
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <footer class="main-footer">
@@ -363,21 +460,368 @@ if ($result && $result->num_rows > 0) {
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
 <!-- Bootstrap 4 -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.0/js/bootstrap.bundle.min.js"></script>
-<!-- DataTables & Plugins -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables.net/1.11.3/jquery.dataTables.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables.net-bs4/1.11.3/dataTables.bootstrap4.min.js"></script>
 <!-- AdminLTE App -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.2.0/js/adminlte.min.js"></script>
 
 <script>
-$(function () {
-  $("#doctorsTable").DataTable({
-    "responsive": true,
-    "lengthChange": false,
-    "autoWidth": false,
-    "order": [[ 0, "asc" ]] // Sort by name
-  });
+let currentPage = 1;
+let currentSearch = '';
+let currentSpecialization = '';
+let currentStatus = '';
+
+$(document).ready(function() {
+    loadDoctors();
 });
+
+// Search functionality
+$('#searchBtn').click(function() {
+    currentSearch = $('#searchInput').val();
+    loadDoctors(1, currentSearch, currentSpecialization, currentStatus);
+});
+
+$('#searchInput').keypress(function(e) {
+    if(e.which == 13) {
+        $('#searchBtn').click();
+    }
+});
+
+// Filter functionality
+$('#specializationFilter').change(function() {
+    currentSpecialization = $(this).val();
+    loadDoctors(1, currentSearch, currentSpecialization, currentStatus);
+});
+
+$('#statusFilter').change(function() {
+    currentStatus = $(this).val();
+    loadDoctors(1, currentSearch, currentSpecialization, currentStatus);
+});
+
+$('#clearFilters').click(function() {
+    $('#searchInput').val('');
+    $('#specializationFilter').val('');
+    $('#statusFilter').val('');
+    currentSearch = '';
+    currentSpecialization = '';
+    currentStatus = '';
+    loadDoctors();
+});
+
+// Load doctors function
+function loadDoctors(page = 1, search = '', specialization = '', status = '') {
+    currentPage = page;
+    currentSearch = search;
+    currentSpecialization = specialization;
+    currentStatus = status;
+    
+    $.ajax({
+        url: 'api/doctors_api.php',
+        method: 'GET',
+        data: {
+            action: 'read',
+            page: page,
+            search: search,
+            specialization: specialization,
+            status: status
+        },
+        dataType: 'json',
+        success: function(response) {
+            if(response.success) {
+                displayDoctors(response.data);
+                updatePagination(response.pagination);
+                updateTableInfo(response.pagination);
+            } else {
+                showAlert('Error loading doctors: ' + response.message, 'danger');
+            }
+        },
+        error: function() {
+            showAlert('Error loading doctors. Please try again.', 'danger');
+        }
+    });
+}
+
+// Display doctors in table
+function displayDoctors(doctors) {
+    let html = '';
+    
+    if(doctors.length === 0) {
+        html = '<tr><td colspan="7" class="text-center">No doctors found</td></tr>';
+    } else {
+        doctors.forEach(function(doctor) {
+            const statusBadge = doctor.status === 'active' ? 
+                '<span class="badge badge-success">Active</span>' : 
+                '<span class="badge badge-secondary">Inactive</span>';
+            
+            html += `
+                <tr>
+                    <td>Dr. ${doctor.first_name} ${doctor.last_name}</td>
+                    <td>${doctor.specialization}</td>
+                    <td>${doctor.license_number}</td>
+                    <td>${doctor.phone}</td>
+                    <td>${doctor.email}</td>
+                    <td>${statusBadge}</td>
+                    <td>
+                        <button class="btn btn-info btn-sm" onclick="viewDoctor(${doctor.id})" title="View Details">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-warning btn-sm" onclick="editDoctor(${doctor.id})" title="Edit">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteDoctor(${doctor.id})" title="Delete">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+    }
+    
+    $('#doctorsTableBody').html(html);
+}
+
+// Add doctor form submission
+$('#addDoctorForm').submit(function(e) {
+    e.preventDefault();
+    
+    $.ajax({
+        url: 'api/doctors_api.php',
+        method: 'POST',
+        data: $(this).serialize() + '&action=create',
+        dataType: 'json',
+        success: function(response) {
+            if(response.success) {
+                $('#addDoctorModal').modal('hide');
+                $('#addDoctorForm')[0].reset();
+                loadDoctors(currentPage, currentSearch, currentSpecialization, currentStatus);
+                showAlert('Doctor added successfully!', 'success');
+            } else {
+                showAlert('Error adding doctor: ' + response.message, 'danger');
+            }
+        },
+        error: function() {
+            showAlert('Error adding doctor. Please try again.', 'danger');
+        }
+    });
+});
+
+// Edit doctor
+function editDoctor(id) {
+    $.ajax({
+        url: 'api/doctors_api.php',
+        method: 'GET',
+        data: { action: 'read', id: id },
+        dataType: 'json',
+        success: function(response) {
+            if(response.success && response.data.length > 0) {
+                const doctor = response.data[0];
+                $('#edit_doctor_id').val(doctor.id);
+                $('#edit_first_name').val(doctor.first_name);
+                $('#edit_last_name').val(doctor.last_name);
+                $('#edit_specialization').val(doctor.specialization);
+                $('#edit_license_number').val(doctor.license_number);
+                $('#edit_phone').val(doctor.phone);
+                $('#edit_email').val(doctor.email);
+                $('#edit_status').val(doctor.status);
+                $('#edit_experience_years').val(doctor.experience_years);
+                $('#edit_address').val(doctor.address);
+                $('#edit_notes').val(doctor.notes);
+                $('#editDoctorModal').modal('show');
+            }
+        }
+    });
+}
+
+// Edit doctor form submission
+$('#editDoctorForm').submit(function(e) {
+    e.preventDefault();
+    
+    $.ajax({
+        url: 'api/doctors_api.php',
+        method: 'POST',
+        data: $(this).serialize() + '&action=update',
+        dataType: 'json',
+        success: function(response) {
+            if(response.success) {
+                $('#editDoctorModal').modal('hide');
+                loadDoctors(currentPage, currentSearch, currentSpecialization, currentStatus);
+                showAlert('Doctor updated successfully!', 'success');
+            } else {
+                showAlert('Error updating doctor: ' + response.message, 'danger');
+            }
+        },
+        error: function() {
+            showAlert('Error updating doctor. Please try again.', 'danger');
+        }
+    });
+});
+
+// View doctor details
+function viewDoctor(id) {
+    $.ajax({
+        url: 'api/doctors_api.php',
+        method: 'GET',
+        data: { action: 'read', id: id },
+        dataType: 'json',
+        success: function(response) {
+            if(response.success && response.data.length > 0) {
+                const doctor = response.data[0];
+                const statusBadge = doctor.status === 'active' ? 
+                    '<span class="badge badge-success">Active</span>' : 
+                    '<span class="badge badge-secondary">Inactive</span>';
+                
+                let html = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5>Personal Information</h5>
+                            <table class="table table-sm">
+                                <tr><td><strong>Name:</strong></td><td>Dr. ${doctor.first_name} ${doctor.last_name}</td></tr>
+                                <tr><td><strong>Specialization:</strong></td><td>${doctor.specialization}</td></tr>
+                                <tr><td><strong>License No:</strong></td><td>${doctor.license_number}</td></tr>
+                                <tr><td><strong>Experience:</strong></td><td>${doctor.experience_years || 'N/A'} years</td></tr>
+                                <tr><td><strong>Status:</strong></td><td>${statusBadge}</td></tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h5>Contact Information</h5>
+                            <table class="table table-sm">
+                                <tr><td><strong>Phone:</strong></td><td>${doctor.phone}</td></tr>
+                                <tr><td><strong>Email:</strong></td><td>${doctor.email}</td></tr>
+                                <tr><td><strong>Address:</strong></td><td>${doctor.address || 'N/A'}</td></tr>
+                                <tr><td><strong>Joined:</strong></td><td>${formatDate(doctor.created_at)}</td></tr>
+                            </table>
+                        </div>
+                    </div>
+                `;
+                
+                if(doctor.notes) {
+                    html += `
+                        <div class="row">
+                            <div class="col-12">
+                                <h5>Notes</h5>
+                                <div class="alert alert-info">${doctor.notes}</div>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                $('#viewDoctorContent').html(html);
+                $('#viewDoctorModal').modal('show');
+            }
+        }
+    });
+}
+
+// Delete doctor
+function deleteDoctor(id) {
+    if(confirm('Are you sure you want to delete this doctor? This action cannot be undone.')) {
+        $.ajax({
+            url: 'api/doctors_api.php',
+            method: 'POST',
+            data: { action: 'delete', id: id },
+            dataType: 'json',
+            success: function(response) {
+                if(response.success) {
+                    loadDoctors(currentPage, currentSearch, currentSpecialization, currentStatus);
+                    showAlert('Doctor deleted successfully!', 'success');
+                } else {
+                    showAlert('Error deleting doctor: ' + response.message, 'danger');
+                }
+            },
+            error: function() {
+                showAlert('Error deleting doctor. Please try again.', 'danger');
+            }
+        });
+    }
+}
+
+// Print doctor info function
+function printDoctorInfo() {
+    window.print();
+}
+
+// Utility functions
+function formatDate(dateStr) {
+    if(!dateStr) return 'N/A';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString();
+}
+
+function updatePagination(pagination) {
+    let container = $('#pagination');
+    container.empty();
+    
+    if(pagination.pages <= 1) return;
+    
+    // Previous button
+    if(pagination.page > 1) {
+        container.append(`
+            <li class="page-item">
+                <a class="page-link" href="#" onclick="loadDoctors(${pagination.page - 1}, '${currentSearch}', '${currentSpecialization}', '${currentStatus}')">Previous</a>
+            </li>
+        `);
+    }
+    
+    // Page numbers
+    let startPage = Math.max(1, pagination.page - 2);
+    let endPage = Math.min(pagination.pages, pagination.page + 2);
+    
+    if(startPage > 1) {
+        container.append('<li class="page-item"><a class="page-link" href="#" onclick="loadDoctors(1, \'' + currentSearch + '\', \'' + currentSpecialization + '\', \'' + currentStatus + '\')">1</a></li>');
+        if(startPage > 2) {
+            container.append('<li class="page-item disabled"><span class="page-link">...</span></li>');
+        }
+    }
+    
+    for(let i = startPage; i <= endPage; i++) {
+        const activeClass = i === pagination.page ? 'active' : '';
+        container.append(`
+            <li class="page-item ${activeClass}">
+                <a class="page-link" href="#" onclick="loadDoctors(${i}, '${currentSearch}', '${currentSpecialization}', '${currentStatus}')">${i}</a>
+            </li>
+        `);
+    }
+    
+    if(endPage < pagination.pages) {
+        if(endPage < pagination.pages - 1) {
+            container.append('<li class="page-item disabled"><span class="page-link">...</span></li>');
+        }
+        container.append(`<li class="page-item"><a class="page-link" href="#" onclick="loadDoctors(${pagination.pages}, '${currentSearch}', '${currentSpecialization}', '${currentStatus}')">${pagination.pages}</a></li>`);
+    }
+    
+    // Next button
+    if(pagination.page < pagination.pages) {
+        container.append(`
+            <li class="page-item">
+                <a class="page-link" href="#" onclick="loadDoctors(${pagination.page + 1}, '${currentSearch}', '${currentSpecialization}', '${currentStatus}')">Next</a>
+            </li>
+        `);
+    }
+}
+
+function updateTableInfo(pagination) {
+    const start = (pagination.page - 1) * pagination.limit + 1;
+    const end = Math.min(pagination.page * pagination.limit, pagination.total);
+    $('#tableInfo').text(`Showing ${start} to ${end} of ${pagination.total} entries`);
+}
+
+function showAlert(message, type) {
+    const alertHtml = `
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="close" data-dismiss="alert">&times;</button>
+        </div>
+    `;
+    
+    // Remove existing alerts
+    $('.alert').remove();
+    
+    // Add new alert at the top of content
+    $('.content-wrapper .content').prepend(alertHtml);
+    
+    // Auto dismiss after 5 seconds
+    setTimeout(function() {
+        $('.alert').fadeOut();
+    }, 5000);
+}
 </script>
 </body>
 </html>
