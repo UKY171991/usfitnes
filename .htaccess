@@ -25,19 +25,6 @@ RewriteRule ^login$ templates/login.php [L]
 # Security Settings
 
 # Prevent access to sensitive directories
-<Directory "c:/xampp/htdocs/usfitnes/config">
-    Order Deny,Allow
-    Deny from all
-</Directory>
-<Directory "c:/xampp/htdocs/usfitnes/logs">
-    Order Deny,Allow
-    Deny from all
-</Directory>
-<Directory "c:/xampp/htdocs/usfitnes/src">
-    Order Deny,Allow
-    Deny from all
-</Directory>
-
 # Prevent access to PHP files in sensitive directories
 <FilesMatch "^(config|src).*\.php$">
     Order Deny,Allow
