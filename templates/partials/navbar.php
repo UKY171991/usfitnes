@@ -1,14 +1,14 @@
 <?php
 // Get current user info
 $currentUser = $_SESSION['user_name'] ?? 'User';
-$currentRole = $_SESSION['role'] ?? 'patient';
+$currentRole = $_SESSION['user_role'] ?? 'patient';
 $isLoggedIn = isset($_SESSION['user_id']);
 ?>
 
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
     <div class="container-fluid">
         <!-- Brand -->
-        <a class="navbar-brand fw-bold" href="/">
+        <a class="navbar-brand fw-bold" href="<?php echo BASE_URL; ?>">
             <i class="fas fa-heartbeat me-2"></i>
             US Fitness Lab
         </a>
@@ -22,30 +22,25 @@ $isLoggedIn = isset($_SESSION['user_id']);
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav me-auto">
                 <?php if ($isLoggedIn): ?>
-                    <?php if ($currentRole === 'patient'): ?>
+                    <?php if ($currentRole === USER_ROLE_PATIENT): ?>
                         <li class="nav-item">
-                            <a class="nav-link" href="/tests">
-                                <i class="fas fa-vial me-1"></i>Tests
+                            <a class="nav-link" href="<?php echo BASE_URL; ?>patient/dashboard">
+                                <i class="fas fa-tachometer-alt me-1"></i>Dashboard
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="/booking/create">
+                            <a class="nav-link" href="<?php echo BASE_URL; ?>patient/book-test">
                                 <i class="fas fa-calendar-plus me-1"></i>Book Test
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="/bookings">
+                            <a class="nav-link" href="<?php echo BASE_URL; ?>patient/bookings">
                                 <i class="fas fa-calendar-check me-1"></i>My Bookings
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="/reports">
+                            <a class="nav-link" href="<?php echo BASE_URL; ?>patient/reports">
                                 <i class="fas fa-file-medical me-1"></i>My Reports
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="/payments">
-                                <i class="fas fa-credit-card me-1"></i>Payments
                             </a>
                         </li>
                     <?php elseif ($currentRole === 'admin'): ?>
