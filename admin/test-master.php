@@ -111,6 +111,35 @@ $categories = $conn->query("SELECT id, category_name FROM test_categories ORDER 
 include '../inc/header.php';
 ?>
 <link rel="stylesheet" href="admin-shared.css">
+<style>
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+
+#searchInput {
+    transition: all 0.3s ease;
+}
+
+#searchInput:focus {
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    border-color: #80bdff;
+}
+
+#clearSearch {
+    border-left: 0;
+}
+
+.input-group .btn {
+    z-index: 2;
+}
+
+.search-highlight {
+    background-color: #fff3cd;
+    padding: 2px 4px;
+    border-radius: 3px;
+}
+</style>
 
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
     <h1 class="h2">Manage Tests</h1>
@@ -143,6 +172,21 @@ include '../inc/header.php';
 
 <!-- Tests Table -->
 <div class="card">
+    <div class="card-header">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <h5 class="card-title mb-0">Tests List</h5>
+            </div>
+            <div class="col-md-6">
+                <div class="input-group">
+                    <input type="text" class="form-control" id="searchInput" placeholder="Search tests...">
+                    <button class="btn btn-outline-secondary" type="button" id="clearSearch">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
     <div class="card-body">
         <div class="table-responsive">
             <table class="table table-striped table-hover align-middle">
@@ -442,9 +486,32 @@ document.addEventListener('DOMContentLoaded', function() {
 
     let currentPage = 1;
     const itemsPerPage = 10; // Or get from a select input
+    let searchTerm = '';
+    let searchTimeout = null;
+
+    // Search functionality
+    const searchInput = document.getElementById('searchInput');
+    const clearSearchBtn = document.getElementById('clearSearch');
+
+    searchInput.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            searchTerm = this.value.trim();
+            currentPage = 1; // Reset to first page when searching
+            fetchTests(currentPage);
+        }, 300); // Debounce search by 300ms
+    });
+
+    clearSearchBtn.addEventListener('click', function() {
+        searchInput.value = '';
+        searchTerm = '';
+        currentPage = 1;
+        fetchTests(currentPage);
+    });
 
     function fetchTests(page) {
-        fetch(`ajax/get_tests.php?page=${page}&itemsPerPage=${itemsPerPage}`)
+        const searchParam = searchTerm ? `&search=${encodeURIComponent(searchTerm)}` : '';
+        fetch(`ajax/get_tests.php?page=${page}&itemsPerPage=${itemsPerPage}${searchParam}`)
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'success') {
@@ -467,7 +534,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const tbody = document.getElementById('tests-table-body');
         tbody.innerHTML = ''; // Clear existing rows
         if (tests.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4"><div class="text-muted"><i class="fas fa-vial fa-2x mb-2"></i><p>No tests found</p></div></td></tr>';
+            const message = searchTerm ? 
+                `<div class="text-muted"><i class="fas fa-search fa-2x mb-2"></i><p>No tests found matching "${searchTerm}"</p><p class="small">Try adjusting your search terms</p></div>` :
+                '<div class="text-muted"><i class="fas fa-vial fa-2x mb-2"></i><p>No tests found</p></div>';
+            tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4">${message}</td></tr>`;
             return;
         }
 

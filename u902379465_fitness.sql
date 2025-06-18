@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1:3306
--- Generation Time: Jun 16, 2025 at 11:24 AM
+-- Generation Time: Jun 18, 2025 at 01:35 AM
 -- Server version: 10.11.10-MariaDB-log
 -- PHP Version: 7.2.34
 
@@ -154,7 +154,14 @@ INSERT INTO `activities` (`id`, `user_id`, `description`, `created_at`) VALUES
 (115, 4, 'User updated: ID 10', '2025-06-15 10:50:52'),
 (116, 4, 'User logged in: uky171991@gmail.com', '2025-06-16 11:01:17'),
 (117, 4, 'User logged out: uky171991@gmail.com', '2025-06-16 11:02:42'),
-(118, 8, 'User logged in: uky171992@gmail.com', '2025-06-16 11:02:48');
+(118, 8, 'User logged in: uky171992@gmail.com', '2025-06-16 11:02:48'),
+(119, 4, 'User logged in: uky171991@gmail.com', '2025-06-17 02:58:30'),
+(120, 4, 'User logged out: uky171991@gmail.com', '2025-06-17 02:59:02'),
+(121, 8, 'User logged in: uky171992@gmail.com', '2025-06-17 02:59:10'),
+(122, 4, 'User logged in: uky171991@gmail.com', '2025-06-17 03:53:41'),
+(123, 4, 'User logged in: uky171991@gmail.com', '2025-06-17 10:12:15'),
+(124, 4, 'User logged in: uky171991@gmail.com', '2025-06-17 10:43:33'),
+(125, 4, 'User logged in: uky171991@gmail.com', '2025-06-18 01:25:26');
 
 -- --------------------------------------------------------
 
@@ -224,10 +231,14 @@ CREATE TABLE `patients` (
   `name` varchar(100) DEFAULT NULL,
   `gender` enum('Male','Female','Other') DEFAULT NULL,
   `age` int(11) DEFAULT NULL,
+  `age_unit` varchar(10) DEFAULT 'Yrs',
   `dob` date DEFAULT NULL,
   `phone` varchar(15) DEFAULT NULL,
+  `uhid` varchar(50) DEFAULT NULL,
+  `fn_hn` varchar(50) DEFAULT NULL,
   `email` varchar(100) DEFAULT NULL,
   `address` text DEFAULT NULL,
+  `referred_by_text` varchar(255) DEFAULT NULL COMMENT 'Stores text if not linked to doctors table',
   `referred_by` varchar(100) DEFAULT NULL,
   `doctor_name` varchar(100) DEFAULT NULL,
   `branch_id` int(11) DEFAULT NULL,
@@ -238,11 +249,11 @@ CREATE TABLE `patients` (
 -- Dumping data for table `patients`
 --
 
-INSERT INTO `patients` (`id`, `patient_code`, `name`, `gender`, `age`, `dob`, `phone`, `email`, `address`, `referred_by`, `doctor_name`, `branch_id`, `created_at`) VALUES
-(1, NULL, 'John Doe', 'Male', 35, NULL, '9876543210', 'john@example.com', '456 Park Ave, City', NULL, NULL, 1, '2025-04-20 18:27:16'),
-(2, NULL, 'Jane Smith', 'Female', 28, NULL, '8765432109', 'jane@example.com', '789 Oak St, City', NULL, NULL, 1, '2025-04-20 18:27:16'),
-(3, NULL, 'Cole Rutledge', 'Other', 97, NULL, '+1 (172) 568-57', 'rujed@mailinator.com', 'Voluptates sit susc', NULL, NULL, 4, '2025-04-20 18:30:06'),
-(4, NULL, 'Sage Garrett', 'Male', 50, NULL, '+1 (948) 561-89', 'fiqipigo@mailinator.com', 'Blanditiis quod atqu', NULL, NULL, 4, '2025-04-20 18:34:54');
+INSERT INTO `patients` (`id`, `patient_code`, `name`, `gender`, `age`, `age_unit`, `dob`, `phone`, `uhid`, `fn_hn`, `email`, `address`, `referred_by_text`, `referred_by`, `doctor_name`, `branch_id`, `created_at`) VALUES
+(1, NULL, 'John Doe', 'Male', 35, 'Yrs', NULL, '9876543210', NULL, NULL, 'john@example.com', '456 Park Ave, City', NULL, NULL, NULL, 1, '2025-04-20 18:27:16'),
+(2, NULL, 'Jane Smith', 'Female', 28, 'Yrs', NULL, '8765432109', NULL, NULL, 'jane@example.com', '789 Oak St, City', NULL, NULL, NULL, 1, '2025-04-20 18:27:16'),
+(3, NULL, 'Cole Rutledge', 'Other', 97, 'Yrs', NULL, '+1 (172) 568-57', NULL, NULL, 'rujed@mailinator.com', 'Voluptates sit susc', NULL, NULL, NULL, 4, '2025-04-20 18:30:06'),
+(4, NULL, 'Sage Garrett', 'Male', 50, 'Yrs', NULL, '+1 (948) 561-89', NULL, NULL, 'fiqipigo@mailinator.com', 'Blanditiis quod atqu', NULL, NULL, NULL, 4, '2025-04-20 18:34:54');
 
 -- --------------------------------------------------------
 
@@ -290,6 +301,7 @@ CREATE TABLE `reports` (
   `patient_id` int(11) DEFAULT NULL,
   `test_id` int(11) DEFAULT NULL,
   `result` text DEFAULT NULL,
+  `price` varchar(255) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `status` enum('pending','completed') NOT NULL DEFAULT 'pending',
@@ -300,12 +312,12 @@ CREATE TABLE `reports` (
 -- Dumping data for table `reports`
 --
 
-INSERT INTO `reports` (`id`, `patient_id`, `test_id`, `result`, `created_at`, `updated_at`, `status`, `notes`) VALUES
-(5, 3, 7, 'Normal', '2025-04-20 19:40:30', '2025-04-20 19:44:34', 'completed', ''),
-(6, 3, 8, 'Normal', '2025-04-20 20:39:59', '2025-04-20 20:48:45', 'completed', 'wert'),
-(7, 4, 7, 'Normal', '2025-04-20 20:49:10', '2025-04-20 20:49:20', 'completed', ''),
-(8, 4, 8, 'Normal', '2025-04-20 20:50:14', '2025-04-20 20:50:39', 'completed', ''),
-(9, 3, 8, NULL, '2025-04-20 21:02:34', '2025-04-20 21:02:34', 'pending', '');
+INSERT INTO `reports` (`id`, `patient_id`, `test_id`, `result`, `price`, `created_at`, `updated_at`, `status`, `notes`) VALUES
+(5, 3, 7, 'Normal', '', '2025-04-20 19:40:30', '2025-04-20 19:44:34', 'completed', ''),
+(6, 3, 8, 'Normal', '', '2025-04-20 20:39:59', '2025-04-20 20:48:45', 'completed', 'wert'),
+(7, 4, 7, 'Normal', '', '2025-04-20 20:49:10', '2025-04-20 20:49:20', 'completed', ''),
+(8, 4, 8, 'Normal', '', '2025-04-20 20:50:14', '2025-04-20 20:50:39', 'completed', ''),
+(9, 3, 8, NULL, '', '2025-04-20 21:02:34', '2025-04-20 21:02:34', 'pending', '');
 
 -- --------------------------------------------------------
 
@@ -591,7 +603,7 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `activities`
 --
 ALTER TABLE `activities`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=119;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=126;
 
 --
 -- AUTO_INCREMENT for table `branches`

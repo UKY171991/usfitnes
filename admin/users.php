@@ -126,6 +126,35 @@ $branches = $conn->query("SELECT id, branch_name as name FROM branches ORDER BY 
 include '../inc/header.php';
 ?>
 <link rel="stylesheet" href="admin-shared.css">
+<style>
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+
+#searchInput {
+    transition: all 0.3s ease;
+}
+
+#searchInput:focus {
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    border-color: #80bdff;
+}
+
+#clearSearch {
+    border-left: 0;
+}
+
+.input-group .btn {
+    z-index: 2;
+}
+
+.search-highlight {
+    background-color: #fff3cd;
+    padding: 2px 4px;
+    border-radius: 3px;
+}
+</style>
 
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
     <h1 class="h2">Manage Users</h1>
@@ -157,6 +186,21 @@ include '../inc/header.php';
 <?php endif; ?>
 
 <div class="card">
+    <div class="card-header">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <h5 class="card-title mb-0">Users List</h5>
+            </div>
+            <div class="col-md-6">
+                <div class="input-group">
+                    <input type="text" class="form-control" id="searchInput" placeholder="Search users...">
+                    <button class="btn btn-outline-secondary" type="button" id="clearSearch">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
     <div class="card-body">
         <div class="table-responsive">
             <table class="table table-striped table-hover align-middle">
@@ -442,8 +486,8 @@ include '../inc/header.php';
 document.addEventListener('DOMContentLoaded', function() {
     let currentPage = 1;
     const itemsPerPage = 10;
-
-    // Form validation
+    let searchTerm = '';
+    let searchTimeout = null;    // Form validation
     const forms = document.querySelectorAll('.needs-validation');
     Array.from(forms).forEach(form => {
         form.addEventListener('submit', event => {
@@ -455,8 +499,29 @@ document.addEventListener('DOMContentLoaded', function() {
         }, false);
     });
 
+    // Search functionality
+    const searchInput = document.getElementById('searchInput');
+    const clearSearchBtn = document.getElementById('clearSearch');
+
+    searchInput.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            searchTerm = this.value.trim();
+            currentPage = 1; // Reset to first page when searching
+            fetchUsers(currentPage);
+        }, 300); // Debounce search by 300ms
+    });
+
+    clearSearchBtn.addEventListener('click', function() {
+        searchInput.value = '';
+        searchTerm = '';
+        currentPage = 1;
+        fetchUsers(currentPage);
+    });
+
     function fetchUsers(page) {
-        fetch(`ajax/get_users.php?page=${page}&itemsPerPage=${itemsPerPage}`)
+        const searchParam = searchTerm ? `&search=${encodeURIComponent(searchTerm)}` : '';
+        fetch(`ajax/get_users.php?page=${page}&itemsPerPage=${itemsPerPage}${searchParam}`)
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'success') {
@@ -473,13 +538,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.error('Fetch Error:', error);
                 document.getElementById('users-table-body').innerHTML = `<tr><td colspan="11" class="text-center py-4"><div class="text-muted"><i class="fas fa-exclamation-triangle fa-2x mb-2"></i><p>Could not connect to server.</p></div></td></tr>`;
             });
-    }
-
-    function renderTable(users, offset) {
+    }    function renderTable(users, offset) {
         const tbody = document.getElementById('users-table-body');
         tbody.innerHTML = '';
         if (users.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="11" class="text-center py-4"><div class="text-muted"><i class="fas fa-users fa-2x mb-2"></i><p>No users found</p></div></td></tr>';
+            const message = searchTerm ? 
+                `<div class="text-muted"><i class="fas fa-search fa-2x mb-2"></i><p>No users found matching "${searchTerm}"</p><p class="small">Try adjusting your search terms</p></div>` :
+                '<div class="text-muted"><i class="fas fa-users fa-2x mb-2"></i><p>No users found</p></div>';
+            tbody.innerHTML = `<tr><td colspan="11" class="text-center py-4">${message}</td></tr>`;
             return;
         }
 
@@ -491,7 +557,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const row = `
                 <tr>
                     <td>${sr_no}</td>
-                    <td>${escapeHTML(user.name)}</td>
+                    <td>${highlightSearchTerm(escapeHTML(user.name), searchTerm)}</td>
                     <td>${escapeHTML(user.username)}</td>
                     <td>${escapeHTML(user.phone)}</td>
                     <td>${escapeHTML(user.email)}</td>
@@ -611,6 +677,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 '`': '&#x60;'
             }[match];
         });
+    }
+
+    function highlightSearchTerm(text, searchTerm) {
+        if (!searchTerm || searchTerm.length < 2) return escapeHTML(text);
+        
+        const escapedText = escapeHTML(text);
+        const escapedSearchTerm = escapeHTML(searchTerm);
+        const regex = new RegExp(`(${escapedSearchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+        return escapedText.replace(regex, '<span class="search-highlight">$1</span>');
     }
 
     function attachActionListeners() {

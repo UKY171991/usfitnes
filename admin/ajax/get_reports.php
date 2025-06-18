@@ -19,32 +19,52 @@ try {
     
     if (!empty($search)) {
         $whereClause = " WHERE (
+            p.name LIKE :search OR 
+            r.id LIKE :search OR 
             t.test_name LIKE :search OR 
-            t.test_code LIKE :search OR 
-            t.sample_type LIKE :search OR 
-            t.description LIKE :search OR 
-            c.category_name LIKE :search
+            b.branch_name LIKE :search OR
+            r.total_amount LIKE :search
         )";
         $params[':search'] = '%' . $search . '%';
     }
 
-    // Get total tests count
-    $totalQuery = "SELECT COUNT(*) FROM tests t LEFT JOIN test_categories c ON t.category_id = c.id" . $whereClause;
+    // Get total reports count
+    $totalQuery = "
+        SELECT COUNT(*) 
+        FROM test_reports r 
+        JOIN patients p ON r.patient_id = p.id 
+        JOIN tests t ON r.test_id = t.id 
+        LEFT JOIN branches b ON r.branch_id = b.id
+        " . $whereClause;
+    
     $totalStmt = $conn->prepare($totalQuery);
     foreach ($params as $key => $value) {
         $totalStmt->bindValue($key, $value);
     }
     $totalStmt->execute();
-    $totalTests = $totalStmt->fetchColumn();
-    $totalPages = ceil($totalTests / $itemsPerPage);
+    $totalReports = $totalStmt->fetchColumn();
+    $totalPages = ceil($totalReports / $itemsPerPage);
 
-    // Get tests for the current page
+    // Get reports for the current page
     $query = "
-        SELECT t.*, c.category_name as category_name 
-        FROM tests t 
-        LEFT JOIN test_categories c ON t.category_id = c.id 
+        SELECT 
+            r.id,
+            r.patient_id,
+            r.test_id,
+            r.branch_id,
+            r.total_amount,
+            r.status,
+            r.created_at,
+            p.name as patient_name,
+            p.phone as patient_phone,
+            t.test_name,
+            b.branch_name
+        FROM test_reports r 
+        JOIN patients p ON r.patient_id = p.id 
+        JOIN tests t ON r.test_id = t.id 
+        LEFT JOIN branches b ON r.branch_id = b.id
         " . $whereClause . "
-        ORDER BY t.test_name
+        ORDER BY r.created_at DESC
         LIMIT :limit OFFSET :offset
     ";
     
@@ -55,15 +75,21 @@ try {
     $stmt->bindParam(':limit', $itemsPerPage, PDO::PARAM_INT);
     $stmt->bindParam(':offset', $offset, PDO::PARAM_INT);
     $stmt->execute();
-    $tests = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $reports = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Format the data
+    foreach ($reports as &$report) {
+        $report['created_formatted'] = date('Y-m-d H:i', strtotime($report['created_at']));
+        $report['amount_formatted'] = '₹' . number_format($report['total_amount'], 2);
+    }
 
     $response = [
         'status' => 'success',
-        'tests' => $tests,
+        'reports' => $reports,
         'totalPages' => $totalPages,
         'currentPage' => $page,
         'itemsPerPage' => $itemsPerPage,
-        'totalTests' => $totalTests,
+        'totalReports' => $totalReports,
         'searchTerm' => $search
     ];
 

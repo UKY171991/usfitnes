@@ -85,6 +85,35 @@ $completed_reports = count(array_filter($reports, function($report) {
 include '../inc/header.php';
 ?>
 <link rel="stylesheet" href="admin-shared.css">
+<style>
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+
+#searchInput {
+    transition: all 0.3s ease;
+}
+
+#searchInput:focus {
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    border-color: #80bdff;
+}
+
+#clearSearch {
+    border-left: 0;
+}
+
+.input-group .btn {
+    z-index: 2;
+}
+
+.search-highlight {
+    background-color: #fff3cd;
+    padding: 2px 4px;
+    border-radius: 3px;
+}
+</style>
 
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
     <h1 class="h2">Reports</h1>
@@ -176,6 +205,21 @@ include '../inc/header.php';
 
 <!-- Reports Table -->
 <div class="card">
+    <div class="card-header">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <h5 class="card-title mb-0">Reports List</h5>
+            </div>
+            <div class="col-md-6">
+                <div class="input-group">
+                    <input type="text" class="form-control" id="searchInput" placeholder="Search reports...">
+                    <button class="btn btn-outline-secondary" type="button" id="clearSearch">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
     <div class="card-body">
         <div class="table-responsive">
             <table class="table table-striped table-hover align-middle">
@@ -191,7 +235,7 @@ include '../inc/header.php';
                         <th class="text-end">Actions</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="reports-table-body">
                     <?php if (empty($reports)): ?>
                          <tr>
                              <td colspan="8" class="text-center py-4">
@@ -234,10 +278,14 @@ include '../inc/header.php';
                                 </td>
                             </tr>
                         <?php endforeach; ?>
-                     <?php endif; ?>
-                </tbody>
+                     <?php endif; ?>                </tbody>
             </table>
         </div>
+        <nav aria-label="Page navigation">
+            <ul class="pagination justify-content-center" id="pagination-controls">
+                <!-- Pagination controls will be inserted here by JavaScript -->
+            </ul>
+        </nav>
     </div>
 </div>
 
@@ -267,6 +315,192 @@ include '../inc/header.php';
 <script>
 // Make sure functions are globally available
 let viewReportModalInstance = null;
+let currentPage = 1;
+const itemsPerPage = 10;
+let searchTerm = '';
+let searchTimeout = null;
+
+// Search functionality
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize modal
+    const modalElement = document.getElementById('viewReportModal');
+    if (modalElement) {
+        viewReportModalInstance = new bootstrap.Modal(modalElement);
+    }
+
+    // Search functionality
+    const searchInput = document.getElementById('searchInput');
+    const clearSearchBtn = document.getElementById('clearSearch');
+
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                searchTerm = this.value.trim();
+                currentPage = 1; // Reset to first page when searching
+                fetchReports(currentPage);
+            }, 300); // Debounce search by 300ms
+        });
+    }
+
+    if (clearSearchBtn) {
+        clearSearchBtn.addEventListener('click', function() {
+            if (searchInput) {
+                searchInput.value = '';
+                searchTerm = '';
+                currentPage = 1;
+                fetchReports(currentPage);
+            }
+        });
+    }
+
+    // Load initial data
+    fetchReports(currentPage);
+});
+
+function fetchReports(page) {
+    const searchParam = searchTerm ? `&search=${encodeURIComponent(searchTerm)}` : '';
+    fetch(`ajax/get_reports.php?page=${page}&itemsPerPage=${itemsPerPage}${searchParam}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                renderTable(data.reports, (page - 1) * itemsPerPage);
+                renderPagination(data.totalPages, parseInt(data.currentPage));
+                currentPage = parseInt(data.currentPage);
+            } else {
+                console.error('Error fetching reports:', data.message);
+                document.getElementById('reports-table-body').innerHTML = `<tr><td colspan="8" class="text-center py-4"><div class="text-muted"><i class="fas fa-exclamation-triangle fa-2x mb-2"></i><p>Error loading reports: ${data.message}</p></div></td></tr>`;
+            }
+        })
+        .catch(error => {
+            console.error('Fetch Error:', error);
+            document.getElementById('reports-table-body').innerHTML = `<tr><td colspan="8" class="text-center py-4"><div class="text-muted"><i class="fas fa-exclamation-triangle fa-2x mb-2"></i><p>Could not connect to server.</p></div></td></tr>`;
+        });
+}
+
+function renderTable(reports, offset) {
+    const tbody = document.getElementById('reports-table-body');
+    tbody.innerHTML = '';
+    if (reports.length === 0) {
+        const message = searchTerm ? 
+            `<div class="text-muted"><i class="fas fa-search fa-2x mb-2"></i><p>No reports found matching "${searchTerm}"</p><p class="small">Try adjusting your search terms</p></div>` :
+            '<div class="text-muted"><i class="fas fa-file-alt fa-2x mb-2"></i><p>No reports found</p></div>';
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4">${message}</td></tr>`;
+        return;
+    }
+
+    reports.forEach((report, index) => {
+        const sr_no = offset + index + 1;
+        const statusBadge = report.status === 'completed' ? 
+            '<span class="badge bg-success">Completed</span>' : 
+            '<span class="badge bg-warning">Pending</span>';
+        
+        // Use highlighting for search results
+        const patientName = highlightSearchTerm(report.patient_name, searchTerm);
+        const testName = highlightSearchTerm(report.test_name, searchTerm);
+        const branchName = highlightSearchTerm(report.branch_name, searchTerm);
+        const amount = highlightSearchTerm(report.amount_formatted, searchTerm);
+        
+        const row = `
+            <tr>
+                <td>${sr_no}</td>
+                <td>${patientName}</td>
+                <td>${testName}</td>
+                <td>${branchName || '-'}</td>
+                <td>${report.created_formatted}</td>
+                <td>${amount}</td>
+                <td>${statusBadge}</td>
+                <td class="text-end">
+                    <div class="btn-group btn-group-sm">
+                        <button type="button" class="btn btn-outline-info" onclick="viewReport(${report.id})" title="View Report">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <a href="print-report.php?id=${report.id}" class="btn btn-outline-primary" title="Print Report" target="_blank">
+                            <i class="fas fa-print"></i>
+                        </a>
+                    </div>
+                </td>
+            </tr>
+        `;
+        tbody.innerHTML += row;
+    });
+}
+
+function renderPagination(totalPages, currentPage) {
+    const paginationControls = document.getElementById('pagination-controls');
+    if (!paginationControls) return;
+    
+    paginationControls.innerHTML = '';
+
+    if (totalPages <= 1) return;
+
+    // Previous button
+    const prevLi = document.createElement('li');
+    prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+    const prevA = document.createElement('a');
+    prevA.className = 'page-link';
+    prevA.href = '#';
+    prevA.textContent = 'Previous';
+    prevA.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (currentPage > 1) fetchReports(currentPage - 1);
+    });
+    prevLi.appendChild(prevA);
+    paginationControls.appendChild(prevLi);
+
+    // Page numbers
+    for (let i = 1; i <= totalPages; i++) {
+        const li = document.createElement('li');
+        li.className = `page-item ${i === currentPage ? 'active' : ''}`;
+        const a = document.createElement('a');
+        a.className = 'page-link';
+        a.href = '#';
+        a.textContent = i;
+        a.addEventListener('click', (e) => {
+            e.preventDefault();
+            fetchReports(i);
+        });
+        li.appendChild(a);
+        paginationControls.appendChild(li);
+    }
+
+    // Next button
+    const nextLi = document.createElement('li');
+    nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+    const nextA = document.createElement('a');
+    nextA.className = 'page-link';
+    nextA.href = '#';
+    nextA.textContent = 'Next';
+    nextA.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (currentPage < totalPages) fetchReports(currentPage + 1);
+    });
+    nextLi.appendChild(nextA);
+    paginationControls.appendChild(nextLi);
+}
+
+function escapeHTML(str) {
+    if (str === null || str === undefined) return '';
+    return str.toString().replace(/[&<>\"'`]/g, function (match) {
+        return {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;',
+            '`': '&#x60;'
+        }[match];
+    });
+}
+
+function highlightSearchTerm(text, searchTerm) {
+    if (!searchTerm || searchTerm.length < 2) return escapeHTML(text);
+    
+    const escapedText = escapeHTML(text);
+    const escapedSearchTerm = escapeHTML(searchTerm);
+    const regex = new RegExp(`(${escapedSearchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    return escapedText.replace(regex, '<span class="search-highlight">$1</span>');
+}
 
 // Function to view report
 window.viewReport = function(reportId) {
