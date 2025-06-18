@@ -112,6 +112,35 @@ if (isset($_POST['delete_branch'])) {
 include '../inc/header.php';
 ?>
 <link rel="stylesheet" href="admin-shared.css">
+<style>
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+
+#searchInput {
+    transition: all 0.3s ease;
+}
+
+#searchInput:focus {
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    border-color: #80bdff;
+}
+
+#clearSearch {
+    border-left: 0;
+}
+
+.input-group .btn {
+    z-index: 2;
+}
+
+.search-highlight {
+    background-color: #fff3cd;
+    padding: 2px 4px;
+    border-radius: 3px;
+}
+</style>
 
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
     <h1 class="h2">Manage Branches</h1>
@@ -136,6 +165,21 @@ include '../inc/header.php';
 
 <!-- Branches Table -->
 <div class="card">
+    <div class="card-header">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <h5 class="card-title mb-0">Branches List</h5>
+            </div>
+            <div class="col-md-6">
+                <div class="input-group">
+                    <input type="text" class="form-control" id="searchInput" placeholder="Search branches...">
+                    <button class="btn btn-outline-secondary" type="button" id="clearSearch">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
     <div class="card-body">
         <div class="table-responsive">
             <table class="table table-striped table-hover align-middle">
@@ -299,6 +343,8 @@ include '../inc/header.php';
 document.addEventListener('DOMContentLoaded', function() {
     let currentPage = 1;
     const itemsPerPage = 10;
+    let searchTerm = '';
+    let searchTimeout = null;
 
     // Form validation
     const forms = document.querySelectorAll('.needs-validation');
@@ -312,8 +358,29 @@ document.addEventListener('DOMContentLoaded', function() {
         }, false);
     });
 
+    // Search functionality
+    const searchInput = document.getElementById('searchInput');
+    const clearSearchBtn = document.getElementById('clearSearch');
+
+    searchInput.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            searchTerm = this.value.trim();
+            currentPage = 1; // Reset to first page when searching
+            fetchBranches(currentPage);
+        }, 300); // Debounce search by 300ms
+    });
+
+    clearSearchBtn.addEventListener('click', function() {
+        searchInput.value = '';
+        searchTerm = '';
+        currentPage = 1;
+        fetchBranches(currentPage);
+    });
+
     function fetchBranches(page) {
-        fetch(`ajax/get_branches.php?page=${page}&itemsPerPage=${itemsPerPage}`)
+        const searchParam = searchTerm ? `&search=${encodeURIComponent(searchTerm)}` : '';
+        fetch(`ajax/get_branches.php?page=${page}&itemsPerPage=${itemsPerPage}${searchParam}`)
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'success') {
@@ -330,33 +397,42 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.error('Fetch Error:', error);
                 document.getElementById('branches-table-body').innerHTML = `<tr><td colspan="7" class="text-center py-4"><div class="text-muted"><i class="fas fa-exclamation-triangle fa-2x mb-2"></i><p>Could not connect to server.</p></div></td></tr>`;
             });
-    }
-
-    function renderTable(branches, offset) {
+    }    function renderTable(branches, offset) {
         const tbody = document.getElementById('branches-table-body');
         tbody.innerHTML = '';
         if (branches.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4"><div class="text-muted"><i class="fas fa-hospital fa-2x mb-2"></i><p>No branches found</p></div></td></tr>';
+            const message = searchTerm ? 
+                `<div class="text-muted"><i class="fas fa-search fa-2x mb-2"></i><p>No branches found matching "${searchTerm}"</p><p class="small">Try adjusting your search terms</p></div>` :
+                '<div class="text-muted"><i class="fas fa-hospital fa-2x mb-2"></i><p>No branches found</p></div>';
+            tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4">${message}</td></tr>`;
             return;
-        }
-
-        branches.forEach((branch, index) => {
+        }        branches.forEach((branch, index) => {
             const sr_no = offset + index + 1;
             const statusBadge = branch.status == 1 ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-danger">Inactive</span>';
-            const location = `${escapeHTML(branch.city)}, ${escapeHTML(branch.state)}, ${escapeHTML(branch.pincode)}`;
-            const contact = `${escapeHTML(branch.phone)}<br>${escapeHTML(branch.email)}`;
+            
+            // Use highlighting for search results
+            const branchCode = highlightSearchTerm(branch.branch_code, searchTerm);
+            const branchName = highlightSearchTerm(branch.branch_name, searchTerm);
+            const phone = highlightSearchTerm(branch.phone, searchTerm);
+            const email = highlightSearchTerm(branch.email, searchTerm);
+            const city = highlightSearchTerm(branch.city, searchTerm);
+            const state = highlightSearchTerm(branch.state, searchTerm);
+            const pincode = highlightSearchTerm(branch.pincode, searchTerm);
+            
+            const location = `${city}, ${state}, ${pincode}`;
+            const contact = `${phone}<br>${email}`;
             
             const row = `
                 <tr>
                     <td>${sr_no}</td>
-                    <td>${escapeHTML(branch.branch_code)}</td>
-                    <td>${escapeHTML(branch.branch_name)}</td>
+                    <td>${branchCode}</td>
+                    <td>${branchName}</td>
                     <td>${contact}</td>
                     <td>${location}</td>
                     <td>${statusBadge}</td>
                     <td class="text-end">
-                        <div class="btn-group">
-                            <button type="button" class="btn btn-sm btn-info view-branch" 
+                        <div class="btn-group btn-group-sm">
+                            <button type="button" class="btn btn-outline-info view-branch" 
                                     data-bs-toggle="modal" 
                                     data-bs-target="#viewBranchModal"
                                     data-id="${branch.id}"
@@ -372,7 +448,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     title="View Branch">
                                 <i class="fas fa-eye"></i>
                             </button>
-                            <button type="button" class="btn btn-sm btn-primary edit-branch" 
+                            <button type="button" class="btn btn-outline-primary edit-branch" 
                                     data-bs-toggle="modal" 
                                     data-bs-target="#branchModal"
                                     data-id="${branch.id}"
@@ -466,6 +542,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 '`': '&#x60;'
             }[match];
         });
+    }
+
+    function highlightSearchTerm(text, searchTerm) {
+        if (!searchTerm || searchTerm.length < 2) return escapeHTML(text);
+        
+        const escapedText = escapeHTML(text);
+        const escapedSearchTerm = escapeHTML(searchTerm);
+        const regex = new RegExp(`(${escapedSearchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+        return escapedText.replace(regex, '<span class="search-highlight">$1</span>');
     }
 
     function attachActionListeners() {
