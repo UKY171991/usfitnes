@@ -59,11 +59,44 @@ $routes = [
     'dashboard' => 'UserController@dashboard',
     'change-password' => 'UserController@changePassword',
     
-    // Patient routes
-    'patient/dashboard' => 'PatientController@dashboard',
+    // Patient auth routes
+    'patient/register' => 'UserController@patientRegister',
+    'patient/login' => 'UserController@patientLogin',
+    'patient/authenticate' => 'UserController@patientLogin',
+    
+    // Patient dashboard routes
+    'patient/dashboard' => 'UserController@patientDashboard',
+    'patient/profile' => 'UserController@patientProfile',
+    'patient/profile/update' => 'UserController@patientProfile',
+    'patient/bookings' => 'UserController@patientBookings',
+    'patient/reports' => 'UserController@patientReports',
+    
+    // Patient booking routes
     'patient/book-test' => 'BookingController@create',
-    'patient/bookings' => 'BookingController@patientBookings',
-    'patient/reports' => 'ReportController@patientReports',
+    'booking/store' => 'BookingController@store',
+    'patient/booking/{id}' => 'BookingController@show',
+    'patient/booking/{id}/cancel' => 'BookingController@cancel',
+    
+    // Patient payment routes
+    'patient/payment/{id}' => 'PaymentController@show',
+    'payment/process' => 'PaymentController@process',
+    'payment/callback' => 'PaymentController@callback',
+    'payment/success' => 'PaymentController@success',
+    'payment/failure' => 'PaymentController@failure',
+    
+    // Patient report routes
+    'patient/report/{id}/view' => 'ReportController@view',
+    'patient/report/{id}/download' => 'ReportController@download',
+    'patient/report/{id}/share' => 'ReportController@share',
+    
+    // Test routes
+    'tests' => 'TestController@index',
+    'tests/category/{id}' => 'TestController@category',
+    'ajax/tests-by-category' => 'TestController@getByCategory',
+    
+    // Branch routes
+    'branches' => 'BranchController@index',
+    'branches/{id}' => 'BranchController@show',
     
     // Admin routes
     'admin/dashboard' => 'AdminController@dashboard',
