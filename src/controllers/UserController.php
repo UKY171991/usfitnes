@@ -493,7 +493,7 @@ class UserController extends BaseController {
             Auth::login($user['id'], $user['role'], $rememberMe);
             Logger::activity($user['id'], 'Patient Login', ['ip' => $_SERVER['REMOTE_ADDR']]);
             
-            $this->setSuccess('Welcome back, ' . $user['first_name'] . '!");
+            $this->setSuccess('Welcome back, ' . $user['first_name'] . '!');
             $this->redirect('/patient/dashboard');
 
         } catch (Exception $e) {
