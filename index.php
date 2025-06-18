@@ -62,7 +62,7 @@ function router($path) {
     // Handle default route
     if (empty($route)) {
         // Check if user is logged in
-        if (isLoggedIn()) {
+        if (Auth::isLoggedIn()) {
             $role = $_SESSION['user_role'] ?? '';
             switch ($role) {
                 case USER_ROLE_MASTER_ADMIN:
