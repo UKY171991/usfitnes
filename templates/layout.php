@@ -46,8 +46,8 @@ require_once __DIR__ . '/../config/constants.php';
         </div>
     <?php endif; ?>
       <!-- Main Content -->
-    <main class="<?php echo $containerClass ?? 'container'; ?> <?php echo $mainClass ?? 'my-4'; ?>">
-        <?php echo $content ?? ''; ?>
+    <main class="<?php echo $containerClass ?? 'container'; ?> <?php echo $mainClass ?? 'my-4'; ?>" role="main">
+        <?php echo htmlspecialchars($content ?? '', ENT_QUOTES, 'UTF-8'); ?>
     </main>
       <!-- Footer -->
     <?php include __DIR__ . '/footer.php'; ?>
@@ -75,10 +75,21 @@ require_once __DIR__ . '/../config/constants.php';
         <?php endforeach; ?>
     <?php endif; ?>
     
-    <!-- Inline Scripts -->
+    <!-- Security Enhancements: Ensure CSRF Token is set -->
+    <?php if (empty(CSRF_TOKEN)): ?>
+        <script>
+            console.error('CSRF Token is missing. AJAX requests may fail.');
+        </script>
+    <?php endif; ?>
+
+    <!-- Error Handling for Inline Scripts -->
     <?php if (isset($inlineScripts)): ?>
         <script>
-            <?php echo $inlineScripts; ?>
+            try {
+                <?php echo $inlineScripts; ?>
+            } catch (error) {
+                console.error('Error in inline scripts:', error);
+            }
         </script>
     <?php endif; ?>
 </body>
