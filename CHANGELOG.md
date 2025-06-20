@@ -13,13 +13,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Environment-specific configurations
 - Automated deployment pipeline setup
 - Medical compliance documentation
+- Complete equipment management module with maintenance tracking
+- Comprehensive reports module with multiple report types
+- Equipment API for AJAX CRUD operations
+- Reports API for generating various analytical reports
+- Custom CSS styles for consistent design across all pages
+- Common JavaScript utilities for form handling, validation, and AJAX operations
 
 ### Changed
 - Updated documentation for pathology lab workflows
 - Enhanced security measures for medical data
+- Standardized layout across all pages using common includes
+- Improved consistency in UI/UX across the application
+- Enhanced form validation and input masking
+- Optimized CSS and JavaScript loading
 
 ### Fixed
 - Initial setup and configuration issues
+- Session handling and user authentication issues
+- Page layout inconsistencies across different modules
+- Deprecated table structures replaced with standardized schema
+- Missing CSS and JavaScript dependencies added
 
 ## [1.0.0] - 2025-06-18
 

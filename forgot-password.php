@@ -24,7 +24,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>USFitness | Forgot Password</title>
+  <title>PathLab Pro | Forgot Password</title>
 
   <!-- Google Font: Source Sans Pro -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
@@ -76,7 +76,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
 <body class="hold-transition login-page">
 <div class="login-box">
   <div class="login-logo">
-    <a href="index.php" class="login-logo"><b>US</b>Fitness</a>
+    <a href="index.php" class="login-logo"><b>PathLab</b>Pro</a>
   </div>
   <!-- /.login-logo -->
   <div class="card">

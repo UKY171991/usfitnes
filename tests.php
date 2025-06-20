@@ -1,173 +1,13 @@
 <?php
-session_start();
-
-// Include database configuration
-require_once 'config.php';
-
-// Check if user is logged in
-if(!isset($_SESSION['user_id'])) {
-    header("Location: index.php");
-    exit();
-}
-
-$username = $_SESSION['full_name'] ?? $_SESSION['username'] ?? 'User';
-$user_type = $_SESSION['user_type'] ?? 'user';
+// Set page title
 $page_title = 'Lab Tests';
+
+// Include header
+include 'includes/header.php';
+
+// Include sidebar with user info
+include 'includes/sidebar.php';
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>PathLab Pro | Lab Tests</title>
-
-  <!-- Google Font: Source Sans Pro -->
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
-  <!-- Font Awesome -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-  <!-- DataTables -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.21/css/dataTables.bootstrap4.min.css">
-  <!-- Theme style -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.2.0/css/adminlte.min.css">
-</head>
-<body class="hold-transition sidebar-mini layout-fixed">
-<div class="wrapper">
-
-  <!-- Preloader -->
-  <div class="preloader flex-column justify-content-center align-items-center">
-    <img class="animation__shake" src="img/logo.svg" alt="PathLab Pro Logo" height="60" width="60">
-  </div>
-
-  <!-- Navbar -->
-  <nav class="main-header navbar navbar-expand navbar-white navbar-light">
-    <!-- Left navbar links -->
-    <ul class="navbar-nav">
-      <li class="nav-item">
-        <a class="nav-link" data-widget="pushmenu" href="#" role="button"><i class="fas fa-bars"></i></a>
-      </li>
-      <li class="nav-item d-none d-sm-inline-block">
-        <a href="dashboard.php" class="nav-link">Home</a>
-      </li>
-      <li class="nav-item d-none d-sm-inline-block">
-        <a href="#" class="nav-link">Contact</a>
-      </li>
-    </ul>
-
-    <!-- Right navbar links -->
-    <ul class="navbar-nav ml-auto">
-      <!-- User Menu -->
-      <li class="nav-item dropdown">
-        <a class="nav-link" data-toggle="dropdown" href="#">
-          <i class="far fa-user"></i>
-        </a>
-        <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
-          <span class="dropdown-item dropdown-header"><?php echo htmlspecialchars($username); ?></span>
-          <div class="dropdown-divider"></div>
-          <a href="#" class="dropdown-item">
-            <i class="fas fa-user-cog mr-2"></i> Profile
-          </a>
-          <div class="dropdown-divider"></div>
-          <a href="logout.php" class="dropdown-item">
-            <i class="fas fa-sign-out-alt mr-2"></i> Logout
-          </a>
-        </div>
-      </li>
-    </ul>
-  </nav>
-  <!-- /.navbar -->
-
-  <!-- Main Sidebar Container -->
-  <aside class="main-sidebar sidebar-dark-primary elevation-4">
-    <!-- Brand Logo -->
-    <a href="dashboard.php" class="brand-link">
-      <img src="img/logo.svg" alt="PathLab Pro Logo" class="brand-image img-circle elevation-3" style="opacity: .8">
-      <span class="brand-text font-weight-light">PathLab Pro</span>
-    </a>
-
-    <!-- Sidebar -->
-    <div class="sidebar">
-      <!-- Sidebar user panel (optional) -->
-      <div class="user-panel mt-3 pb-3 mb-3 d-flex">
-        <div class="image">
-          <img src="https://ui-avatars.com/api/?name=<?php echo urlencode($username); ?>&background=random" class="img-circle elevation-2" alt="User Image">
-        </div>
-        <div class="info">
-          <a href="#" class="d-block"><?php echo htmlspecialchars($username); ?> <span class="badge badge-success"><?php echo htmlspecialchars(ucfirst($user_type)); ?></span></a>
-        </div>
-      </div>
-
-      <!-- Sidebar Menu -->
-      <nav class="mt-2">
-        <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
-          <li class="nav-item">
-            <a href="dashboard.php" class="nav-link">
-              <i class="nav-icon fas fa-tachometer-alt"></i>
-              <p>Dashboard</p>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a href="patients.php" class="nav-link">
-              <i class="nav-icon fas fa-user-injured"></i>
-              <p>
-                Patients
-                <span class="right badge badge-info">New</span>
-              </p>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a href="test-orders.php" class="nav-link">
-              <i class="nav-icon fas fa-clipboard-list"></i>
-              <p>Test Orders</p>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a href="tests.php" class="nav-link active">
-              <i class="nav-icon fas fa-flask"></i>
-              <p>Lab Tests</p>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a href="results.php" class="nav-link">
-              <i class="nav-icon fas fa-file-medical"></i>
-              <p>Test Results</p>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a href="doctors.php" class="nav-link">
-              <i class="nav-icon fas fa-user-md"></i>
-              <p>Doctors</p>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a href="reports.php" class="nav-link">
-              <i class="nav-icon fas fa-chart-line"></i>
-              <p>Reports</p>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a href="equipment.php" class="nav-link">
-              <i class="nav-icon fas fa-microscope"></i>
-              <p>Equipment</p>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a href="settings.php" class="nav-link">
-              <i class="nav-icon fas fa-cog"></i>
-              <p>Settings</p>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a href="logout.php" class="nav-link">
-              <i class="nav-icon fas fa-sign-out-alt"></i>
-              <p>Logout</p>
-            </a>
-          </li>
-        </ul>
-      </nav>
-      <!-- /.sidebar-menu -->
-    </div>
-    <!-- /.sidebar -->
-  </aside>
 
   <!-- Content Wrapper. Contains page content -->
   <div class="content-wrapper">
@@ -192,19 +32,22 @@ $page_title = 'Lab Tests';
     <!-- Main content -->
     <section class="content">
       <div class="container-fluid">
+        <!-- Alert Messages -->
+        <div id="alertContainer"></div>
+        
         <!-- Lab Tests DataTable -->
         <div class="card">
           <div class="card-header">
-            <h3 class="card-title">Available Lab Tests</h3>
+            <h3 class="card-title"><i class="fas fa-flask mr-2"></i>Available Lab Tests</h3>
             <div class="card-tools">
               <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#modal-add-test">
-                <i class="fas fa-plus"></i> Add Test
+                <i class="fas fa-plus"></i> Add New Test
               </button>
             </div>
           </div>
           <div class="card-body">
             <div class="table-responsive">
-              <table id="testsTable" class="table table-bordered table-striped">
+              <table id="testsTable" class="table table-bordered table-striped table-hover">
                 <thead>
                   <tr>
                     <th>Test ID</th>
@@ -213,56 +56,75 @@ $page_title = 'Lab Tests';
                     <th>Price</th>
                     <th>Turnaround Time</th>
                     <th>Sample Type</th>
+                    <th>Status</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody id="testsTableBody">
                   <tr>
-                    <td>CBC001</td>
+                    <td><span class="badge badge-info">CBC001</span></td>
                     <td>Complete Blood Count</td>
-                    <td>Hematology</td>
-                    <td>$25.00</td>
+                    <td><span class="badge badge-secondary">Hematology</span></td>
+                    <td><strong>$25.00</strong></td>
                     <td>24 hours</td>
-                    <td>Blood</td>
+                    <td><span class="badge badge-danger">Blood</span></td>
+                    <td><span class="badge badge-success">Active</span></td>
                     <td>
-                      <button class="btn btn-sm btn-info btn-edit-test" data-id="CBC001">
-                        <i class="fas fa-edit"></i>
-                      </button>
-                      <button class="btn btn-sm btn-danger btn-delete-test" data-id="CBC001">
-                        <i class="fas fa-trash"></i>
-                      </button>
+                      <div class="btn-group" role="group">
+                        <button class="btn btn-sm btn-info btn-edit-test" data-id="CBC001" title="Edit">
+                          <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-warning btn-view-test" data-id="CBC001" title="View Details">
+                          <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger btn-delete-test" data-id="CBC001" title="Delete">
+                          <i class="fas fa-trash"></i>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                   <tr>
-                    <td>GLU001</td>
+                    <td><span class="badge badge-info">GLU001</span></td>
                     <td>Glucose Test</td>
-                    <td>Chemistry</td>
-                    <td>$15.00</td>
+                    <td><span class="badge badge-secondary">Chemistry</span></td>
+                    <td><strong>$15.00</strong></td>
                     <td>12 hours</td>
-                    <td>Blood</td>
+                    <td><span class="badge badge-danger">Blood</span></td>
+                    <td><span class="badge badge-success">Active</span></td>
                     <td>
-                      <button class="btn btn-sm btn-info btn-edit-test" data-id="GLU001">
-                        <i class="fas fa-edit"></i>
-                      </button>
-                      <button class="btn btn-sm btn-danger btn-delete-test" data-id="GLU001">
-                        <i class="fas fa-trash"></i>
-                      </button>
+                      <div class="btn-group" role="group">
+                        <button class="btn btn-sm btn-info btn-edit-test" data-id="GLU001" title="Edit">
+                          <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-warning btn-view-test" data-id="GLU001" title="View Details">
+                          <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger btn-delete-test" data-id="GLU001" title="Delete">
+                          <i class="fas fa-trash"></i>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                   <tr>
-                    <td>LFT001</td>
+                    <td><span class="badge badge-info">LFT001</span></td>
                     <td>Liver Function Test</td>
-                    <td>Chemistry</td>
-                    <td>$45.00</td>
+                    <td><span class="badge badge-secondary">Chemistry</span></td>
+                    <td><strong>$45.00</strong></td>
                     <td>24 hours</td>
-                    <td>Blood</td>
+                    <td><span class="badge badge-danger">Blood</span></td>
+                    <td><span class="badge badge-success">Active</span></td>
                     <td>
-                      <button class="btn btn-sm btn-info btn-edit-test" data-id="LFT001">
-                        <i class="fas fa-edit"></i>
-                      </button>
-                      <button class="btn btn-sm btn-danger btn-delete-test" data-id="LFT001">
-                        <i class="fas fa-trash"></i>
-                      </button>
+                      <div class="btn-group" role="group">
+                        <button class="btn btn-sm btn-info btn-edit-test" data-id="LFT001" title="Edit">
+                          <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-warning btn-view-test" data-id="LFT001" title="View Details">
+                          <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger btn-delete-test" data-id="LFT001" title="Delete">
+                          <i class="fas fa-trash"></i>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 </tbody>
@@ -272,152 +134,256 @@ $page_title = 'Lab Tests';
         </div>
       </div>
     </section>
-    <!-- /.content -->
   </div>
-  <!-- /.content-wrapper -->
 
   <!-- Add Test Modal -->
-  <div class="modal fade" id="modal-add-test">
-    <div class="modal-dialog">
+  <div class="modal fade" id="modal-add-test" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
       <div class="modal-content">
-        <div class="modal-header">
-          <h4 class="modal-title">Add New Test</h4>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+        <div class="modal-header bg-primary">
+          <h4 class="modal-title text-white"><i class="fas fa-plus mr-2"></i>Add New Lab Test</h4>
+          <button type="button" class="close text-white" data-dismiss="modal">
             <span aria-hidden="true">&times;</span>
           </button>
         </div>
         <div class="modal-body">
           <form id="addTestForm">
-            <div class="form-group">
-              <label for="testId">Test ID</label>
-              <input type="text" class="form-control" id="testId" placeholder="Enter test ID" required>
-            </div>
-            <div class="form-group">
-              <label for="testName">Test Name</label>
-              <input type="text" class="form-control" id="testName" placeholder="Enter test name" required>
-            </div>
-            <div class="form-group">
-              <label for="category">Category</label>
-              <select class="form-control" id="category" required>
-                <option value="">Select Category</option>
-                <option value="Hematology">Hematology</option>
-                <option value="Chemistry">Chemistry</option>
-                <option value="Microbiology">Microbiology</option>
-                <option value="Immunology">Immunology</option>
-                <option value="Pathology">Pathology</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="price">Price</label>
-              <div class="input-group">
-                <div class="input-group-prepend">
-                  <span class="input-group-text">$</span>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="testId">Test ID <span class="text-danger">*</span></label>
+                  <input type="text" class="form-control" id="testId" name="test_id" required>
                 </div>
-                <input type="number" step="0.01" class="form-control" id="price" placeholder="Enter price" required>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="testName">Test Name <span class="text-danger">*</span></label>
+                  <input type="text" class="form-control" id="testName" name="test_name" required>
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="category">Category <span class="text-danger">*</span></label>
+                  <select class="form-control" id="category" name="category" required>
+                    <option value="">Select Category</option>
+                    <option value="Hematology">Hematology</option>
+                    <option value="Chemistry">Chemistry</option>
+                    <option value="Microbiology">Microbiology</option>
+                    <option value="Immunology">Immunology</option>
+                    <option value="Pathology">Pathology</option>
+                  </select>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="price">Price ($) <span class="text-danger">*</span></label>
+                  <input type="number" class="form-control" id="price" name="price" step="0.01" required>
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="turnaroundTime">Turnaround Time <span class="text-danger">*</span></label>
+                  <input type="text" class="form-control" id="turnaroundTime" name="turnaround_time" placeholder="e.g., 24 hours" required>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="sampleType">Sample Type <span class="text-danger">*</span></label>
+                  <select class="form-control" id="sampleType" name="sample_type" required>
+                    <option value="">Select Sample Type</option>
+                    <option value="Blood">Blood</option>
+                    <option value="Urine">Urine</option>
+                    <option value="Stool">Stool</option>
+                    <option value="Saliva">Saliva</option>
+                    <option value="Tissue">Tissue</option>
+                  </select>
+                </div>
               </div>
             </div>
             <div class="form-group">
-              <label for="turnaround">Turnaround Time</label>
-              <input type="text" class="form-control" id="turnaround" placeholder="e.g. 24 hours" required>
-            </div>
-            <div class="form-group">
-              <label for="sampleType">Sample Type</label>
-              <input type="text" class="form-control" id="sampleType" placeholder="e.g. Blood, Urine" required>
+              <label for="description">Description</label>
+              <textarea class="form-control" id="description" name="description" rows="3" placeholder="Test description and instructions"></textarea>
             </div>
           </form>
         </div>
-        <div class="modal-footer justify-content-between">
-          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-          <button type="button" class="btn btn-primary" id="saveTestBtn">Save</button>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="saveTestBtn">
+            <i class="fas fa-save mr-1"></i>Save Test
+          </button>
         </div>
       </div>
     </div>
   </div>
 
-  <footer class="main-footer">
-    <strong>Copyright &copy; 2025 <a href="#">PathLab Pro</a>.</strong>
-    All rights reserved.
-    <div class="float-right d-none d-sm-inline-block">
-      <b>Version</b> 1.0.0
-    </div>
-  </footer>
-</div>
-<!-- ./wrapper -->
-
-<!-- jQuery -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-<!-- Bootstrap 4 -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.0/js/bootstrap.bundle.min.js"></script>
-<!-- DataTables -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.21/js/jquery.dataTables.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.21/js/dataTables.bootstrap4.min.js"></script>
-<!-- AdminLTE App -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.2.0/js/adminlte.min.js"></script>
-
+<?php
+// Additional scripts specific to the tests page
+$additional_scripts = <<<EOT
 <script>
 $(document).ready(function() {
-  // Initialize DataTable
-  $('#testsTable').DataTable({
-    "paging": true,
-    "lengthChange": true,
-    "searching": true,
-    "ordering": true,
-    "info": true,
-    "autoWidth": false,
-    "responsive": true
-  });
-  
-  // Save Test button click handler
-  $('#saveTestBtn').on('click', function() {
-    const form = document.getElementById('addTestForm');
-    
-    if (!form.checkValidity()) {
-      form.reportValidity();
-      return;
-    }
-    
-    // Get form data (in a real app, this would be sent to the server)
-    const testData = {
-      testId: $('#testId').val(),
-      testName: $('#testName').val(),
-      category: $('#category').val(),
-      price: $('#price').val(),
-      turnaround: $('#turnaround').val(),
-      sampleType: $('#sampleType').val()
-    };
-    
-    console.log('Test data to save:', testData);
-    
-    // Add a new row to the table (in a real app, this would happen after successful API call)
-    const newRow = `
-      <tr>
-        <td>${testData.testId}</td>
-        <td>${testData.testName}</td>
-        <td>${testData.category}</td>
-        <td>$${testData.price}</td>
-        <td>${testData.turnaround}</td>
-        <td>${testData.sampleType}</td>
-        <td>
-          <button class="btn btn-sm btn-info btn-edit-test" data-id="${testData.testId}">
-            <i class="fas fa-edit"></i>
-          </button>
-          <button class="btn btn-sm btn-danger btn-delete-test" data-id="${testData.testId}">
-            <i class="fas fa-trash"></i>
-          </button>
-        </td>
-      </tr>
-    `;
-    
-    $('#testsTableBody').append(newRow);
-    
-    // Reset form and close modal
-    form.reset();
-    $('#modal-add-test').modal('hide');
-    
-    // Show success message
-    alert('Test added successfully!');
-  });
+    // Initialize DataTable
+    $('#testsTable').DataTable({
+        responsive: true,
+        lengthChange: false,
+        autoWidth: false,
+        buttons: [
+            {
+                extend: 'copy',
+                className: 'btn btn-sm btn-secondary'
+            },
+            {
+                extend: 'csv',
+                className: 'btn btn-sm btn-secondary'
+            },
+            {
+                extend: 'excel',
+                className: 'btn btn-sm btn-secondary'
+            },
+            {
+                extend: 'pdf',
+                className: 'btn btn-sm btn-secondary'
+            },
+            {
+                extend: 'print',
+                className: 'btn btn-sm btn-secondary'
+            }
+        ]
+    }).buttons().container().appendTo('#testsTable_wrapper .col-md-6:eq(0)');    // Handle form submission
+    $('#saveTestBtn').on('click', function() {
+        var formData = {
+            action: 'create',
+            test_name: $('#testName').val(),
+            test_code: $('#testId').val(),
+            category: $('#category').val(),
+            price: $('#price').val(),
+            turn_around_time: $('#turnaroundTime').val(),
+            sample_type: $('#sampleType').val(),
+            description: $('#description').val()
+        };        // Basic validation
+        if (!formData.test_code || !formData.test_name || !formData.category || !formData.price) {
+            showToaster('danger', 'Please fill in all required fields.');
+            return;
+        }
+
+        // Send data to API
+        $.ajax({
+            url: 'api/tests_api.php',
+            method: 'POST',
+            data: formData,
+            dataType: 'json',
+            success: function(response) {
+                if (response.success) {
+                    showToaster('success', 'Test added successfully!');
+                    $('#modal-add-test').modal('hide');
+                    $('#addTestForm')[0].reset();
+                    loadTests(); // Reload the tests table
+                } else {
+                    showToaster('danger', response.message || 'Failed to add test');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error adding test:', error);
+                showToaster('danger', 'Failed to add test. Please try again.');
+            }
+        });
+    });
+
+    // Handle edit button clicks
+    $(document).on('click', '.btn-edit-test', function() {
+        var testId = $(this).data('id');
+        // TODO: Implement edit functionality
+        showToaster('info', 'Edit functionality for test ' + testId + ' will be implemented.');
+    });
+
+    // Handle view button clicks
+    $(document).on('click', '.btn-view-test', function() {
+        var testId = $(this).data('id');
+        // TODO: Implement view functionality
+        showToaster('info', 'View details for test ' + testId + ' will be implemented.');
+    });
+
+    // Handle delete button clicks
+    $(document).on('click', '.btn-delete-test', function() {
+        var testId = $(this).data('id');
+        if (confirm('Are you sure you want to delete this test?')) {
+            $.ajax({
+                url: 'api/tests_api.php',
+                method: 'POST',
+                data: {
+                    action: 'delete',
+                    id: testId
+                },
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success) {
+                        showToaster('success', 'Test deleted successfully!');
+                        loadTests(); // Reload the tests table
+                    } else {
+                        showToaster('danger', response.message || 'Failed to delete test');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error deleting test:', error);
+                    showToaster('danger', 'Failed to delete test. Please try again.');
+                }
+            });
+        }
+    });
+
+    // Load tests function
+    function loadTests() {
+        $.ajax({
+            url: 'api/tests_api.php?action=list',
+            method: 'GET',
+            dataType: 'json',
+            success: function(response) {
+                if (response.success) {
+                    var table = $('#testsTable').DataTable();
+                    table.clear();
+                    
+                    response.data.forEach(function(test) {
+                        table.row.add([
+                            test.test_code,
+                            test.test_name,
+                            test.category,
+                            '$' + parseFloat(test.price).toFixed(2),
+                            test.turn_around_time || 'N/A',
+                            test.sample_type || 'N/A',
+                            `<div class="btn-group" role="group">
+                                <button type="button" class="btn btn-info btn-sm btn-view-test" data-id="${test.id}" title="View">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button type="button" class="btn btn-warning btn-sm btn-edit-test" data-id="${test.id}" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button type="button" class="btn btn-danger btn-sm btn-delete-test" data-id="${test.id}" title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>`
+                        ]);
+                    });
+                    
+                    table.draw();
+                } else {
+                    showToaster('danger', 'Failed to load tests');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error loading tests:', error);
+                showToaster('danger', 'Failed to load tests');
+            }
+        });
+    }    // Load tests on page load
+    loadTests();
+    });
 });
 </script>
-</body>
-</html>
+EOT;
+
+// Include footer
+include 'includes/footer.php';
+?>

@@ -72,26 +72,27 @@ function handleLogin($pdo, $input) {
         $stmt->execute([$username]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
         
-        if ($user && password_verify($password, $user['password'])) {
-            // Set session variables
+        if ($user && password_verify($password, $user['password'])) {            // Set session variables
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['username'] = $user['username'];
             $_SESSION['full_name'] = $user['full_name'];
-            $_SESSION['role'] = $user['user_type'];
+            $_SESSION['user_type'] = $user['user_type'];
+            $_SESSION['role'] = $user['user_type']; // Ensure both 'role' and 'user_type' are set for compatibility
             
             // Update last login (only if last_login column exists)
             try {
                 $updateStmt = $pdo->prepare("UPDATE users SET created_at = NOW() WHERE id = ?");
                 $updateStmt->execute([$user['id']]);
-              echo json_encode([
-                'success' => true,
-                'message' => 'Login successful',
-                'data' => [
-                    'user_id' => $user['id'],
-                    'username' => $user['username'],                    'full_name' => $user['full_name'],
-                    'role' => $user['user_type']
-                ]
-            ]);
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Login successful',
+                    'data' => [
+                        'user_id' => $user['id'],
+                        'username' => $user['username'],
+                        'full_name' => $user['full_name'],
+                        'role' => $user['user_type']
+                    ]
+                ]);
         } catch (PDOException $e) {
             // Silently handle last login update error
         }

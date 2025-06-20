@@ -1,102 +1,13 @@
 <?php
-session_start();
-
-// Include database configuration
-require_once 'config.php';
-
-// Check if user is logged in
-if(!isset($_SESSION['user_id'])) {
-    header("Location: index.php");
-    exit();
-}
-
-$username = $_SESSION['full_name'] ?? $_SESSION['username'] ?? 'User';
-$user_type = $_SESSION['user_type'] ?? 'user';
+// Set page title
 $page_title = 'Settings';
+
+// Include header
+include 'includes/header.php';
+
+// Include sidebar with user info
+include 'includes/sidebar.php';
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>PathLab Pro | Settings</title>
-
-  <!-- Google Font: Source Sans Pro -->
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
-  <!-- Font Awesome -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-  <!-- Theme style -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.2.0/css/adminlte.min.css">
-</head>
-<body class="hold-transition sidebar-mini layout-fixed">
-<div class="wrapper">
-
-  <!-- Preloader -->
-  <div class="preloader flex-column justify-content-center align-items-center">
-    <img class="animation__shake" src="img/logo.svg" alt="PathLab Pro Logo" height="60" width="60">
-  </div>
-
-  <!-- Navbar -->
-  <nav class="main-header navbar navbar-expand navbar-white navbar-light">
-    <!-- Left navbar links -->
-    <ul class="navbar-nav">
-      <li class="nav-item">
-        <a class="nav-link" data-widget="pushmenu" href="#" role="button"><i class="fas fa-bars"></i></a>
-      </li>
-      <li class="nav-item d-none d-sm-inline-block">
-        <a href="dashboard.php" class="nav-link">Home</a>
-      </li>
-      <li class="nav-item d-none d-sm-inline-block">
-        <a href="#" class="nav-link">Contact</a>
-      </li>
-    </ul>
-
-    <!-- Right navbar links -->
-    <ul class="navbar-nav ml-auto">
-      <!-- User Menu -->
-      <li class="nav-item dropdown">
-        <a class="nav-link" data-toggle="dropdown" href="#">
-          <i class="far fa-user"></i>
-        </a>
-        <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
-          <span class="dropdown-item dropdown-header"><?php echo htmlspecialchars($username); ?></span>
-          <div class="dropdown-divider"></div>
-          <a href="#" class="dropdown-item">
-            <i class="fas fa-user-cog mr-2"></i> Profile
-          </a>
-          <div class="dropdown-divider"></div>
-          <a href="logout.php" class="dropdown-item">
-            <i class="fas fa-sign-out-alt mr-2"></i> Logout
-          </a>
-        </div>
-      </li>
-    </ul>
-  </nav>
-  <!-- /.navbar -->
-
-  <!-- Main Sidebar Container -->
-  <aside class="main-sidebar sidebar-dark-primary elevation-4">
-    <!-- Brand Logo -->
-    <a href="dashboard.php" class="brand-link">
-      <img src="img/logo.svg" alt="PathLab Pro Logo" class="brand-image img-circle elevation-3" style="opacity: .8">
-      <span class="brand-text font-weight-light">PathLab Pro</span>
-    </a>
-
-    <!-- Sidebar -->
-    <div class="sidebar">
-      <!-- Sidebar user panel (optional) -->
-      <div class="user-panel mt-3 pb-3 mb-3 d-flex">
-        <div class="image">
-          <img src="https://ui-avatars.com/api/?name=<?php echo urlencode($username); ?>&background=random" class="img-circle elevation-2" alt="User Image">
-        </div>
-        <div class="info">
-          <a href="#" class="d-block"><?php echo htmlspecialchars($username); ?> <span class="badge badge-success"><?php echo htmlspecialchars(ucfirst($user_type)); ?></span></a>
-        </div>
-      </div>
-
-      <!-- Sidebar Menu -->
-      <nav class="mt-2">
-        <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
           <li class="nav-item">
             <a href="dashboard.php" class="nav-link">
               <i class="nav-icon fas fa-tachometer-alt"></i>
@@ -244,22 +155,21 @@ $page_title = 'Settings';
                     <h3 class="card-title">General Settings</h3>
                   </div>
                   <div class="card-body">
-                    <form id="generalSettingsForm">
-                      <div class="form-group">
-                        <label for="labName">Laboratory Name</label>
-                        <input type="text" class="form-control" id="labName" value="PathLab Pro" required>
+                    <form id="generalSettingsForm">                      <div class="form-group">
+                        <label for="laboratory_name">Laboratory Name</label>
+                        <input type="text" class="form-control" id="laboratory_name" placeholder="Laboratory Name" required>
                       </div>
                       <div class="form-group">
-                        <label for="labAddress">Laboratory Address</label>
-                        <textarea class="form-control" id="labAddress" rows="3" required>123 Medical Center Drive, Suite 456, Healthcare City, HC 12345</textarea>
+                        <label for="laboratory_address">Laboratory Address</label>
+                        <textarea class="form-control" id="laboratory_address" rows="3" placeholder="Enter full address" required></textarea>
                       </div>
                       <div class="form-group">
-                        <label for="labPhone">Contact Phone</label>
-                        <input type="tel" class="form-control" id="labPhone" value="(555) 123-4567" required>
+                        <label for="contact_phone">Contact Phone</label>
+                        <input type="tel" class="form-control" id="contact_phone" placeholder="Contact Phone" required>
                       </div>
                       <div class="form-group">
-                        <label for="labEmail">Contact Email</label>
-                        <input type="email" class="form-control" id="labEmail" value="info@pathlabpro.com" required>
+                        <label for="contact_email">Contact Email</label>
+                        <input type="email" class="form-control" id="contact_email" placeholder="Contact Email" required>
                       </div>
                       <div class="form-group">
                         <label for="timezone">Timezone</label>
@@ -742,51 +652,117 @@ $page_title = 'Settings';
         </div>
       </div>
     </section>
-    <!-- /.content -->
-  </div>
+    <!-- /.content -->  </div>
   <!-- /.content-wrapper -->
 
-  <footer class="main-footer">
-    <strong>Copyright &copy; 2025 <a href="#">PathLab Pro</a>.</strong>
-    All rights reserved.
-    <div class="float-right d-none d-sm-inline-block">
-      <b>Version</b> 1.0.0
-    </div>
-  </footer>
-</div>
-<!-- ./wrapper -->
-
-<!-- jQuery -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-<!-- Bootstrap 4 -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.0/js/bootstrap.bundle.min.js"></script>
-<!-- AdminLTE App -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.2.0/js/adminlte.min.js"></script>
-
+<?php
+// Additional scripts specific to the settings page
+$additional_scripts = <<<EOT
 <script>
 $(document).ready(function() {
+  // Load settings from the server when page loads
+  loadGeneralSettings();
+  
   // Form submission handlers
   $('#generalSettingsForm').on('submit', function(e) {
     e.preventDefault();
-    alert('General settings saved successfully!');
+    
+    // Get form data
+    const formData = {
+      laboratory_name: $('#laboratory_name').val(),
+      laboratory_address: $('#laboratory_address').val(),
+      contact_phone: $('#contact_phone').val(),
+      contact_email: $('#contact_email').val()
+    };
+    
+    // Send AJAX request to save settings
+    $.ajax({
+      url: 'api/settings_api.php',
+      type: 'POST',
+      data: {
+        action: 'save_general_settings',
+        settings: formData
+      },
+      dataType: 'json',
+      success: function(response) {
+        if (response.success) {
+          showAlert('General settings saved successfully!', 'success');
+        } else {
+          showAlert('Error: ' + response.message, 'danger');
+        }
+      },
+      error: function() {
+        showAlert('Server error while saving settings.', 'danger');
+      }
+    });
   });
   
   $('#notificationSettingsForm').on('submit', function(e) {
     e.preventDefault();
-    alert('Notification settings saved successfully!');
+    showAlert('Notification settings saved successfully!', 'success');
   });
   
   $('#appearanceSettingsForm').on('submit', function(e) {
     e.preventDefault();
-    alert('Appearance settings saved successfully!');
+    showAlert('Appearance settings saved successfully!', 'success');
   });
   
   // File input label update
   $('.custom-file-input').on('change', function() {
-    var fileName = $(this).val().split('\\').pop();
+    var fileName = $(this).val().split('\\\\').pop();
     $(this).next('.custom-file-label').addClass('selected').html(fileName);
   });
+  
+  // Helper function to show alerts
+  function showAlert(message, type) {
+    const alertHtml = `
+      <div class="alert alert-\${type} alert-dismissible fade show" role="alert">
+        \${message}
+        <button type="button" class="close" data-dismiss="alert">&times;</button>
+      </div>
+    `;
+    
+    // Remove existing alerts
+    $('.alert').remove();
+    
+    // Add new alert at the top of content
+    $('.content-wrapper .content').prepend(alertHtml);
+    
+    // Auto dismiss after 5 seconds
+    setTimeout(function() {
+      $('.alert').fadeOut();
+    }, 5000);
+  }
+  
+  // Function to load general settings from the server
+  function loadGeneralSettings() {
+    $.ajax({
+      url: 'api/settings_api.php',
+      type: 'GET',
+      data: { action: 'get_general_settings' },
+      dataType: 'json',
+      success: function(response) {
+        if (response.success) {
+          const settings = response.data;
+          
+          // Populate form fields with settings from server
+          $('#laboratory_name').val(settings.laboratory_name || '');
+          $('#laboratory_address').val(settings.laboratory_address || '');
+          $('#contact_phone').val(settings.contact_phone || '');
+          $('#contact_email').val(settings.contact_email || '');
+        } else {
+          console.error('Error loading settings:', response.message);
+        }
+      },
+      error: function() {
+        console.error('Server error while loading settings.');
+      }
+    });
+  }
 });
 </script>
-</body>
-</html>
+EOT;
+
+// Include footer with all the necessary scripts
+include 'includes/footer.php';
+?>

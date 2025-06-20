@@ -131,19 +131,31 @@ CREATE TABLE IF NOT EXISTS test_results (
     FOREIGN KEY (verified_by) REFERENCES users(id)
 );
 
-CREATE TABLE IF NOT EXISTS lab_equipment (
-    id INT AUTO_INCREMENT PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS equipment (
+    equipment_id INT AUTO_INCREMENT PRIMARY KEY,
     equipment_name VARCHAR(100) NOT NULL,
     model VARCHAR(100),
-    manufacturer VARCHAR(100),
     serial_number VARCHAR(100),
+    category VARCHAR(100),
     purchase_date DATE,
     warranty_expiry DATE,
-    last_maintenance DATE,
-    next_maintenance DATE,
     status ENUM('Working', 'Maintenance', 'Out_of_Order') DEFAULT 'Working',
-    location VARCHAR(100),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS equipment_maintenance (
+    maintenance_id INT AUTO_INCREMENT PRIMARY KEY,
+    equipment_id INT NOT NULL,
+    maintenance_type VARCHAR(100) NOT NULL,
+    maintenance_date DATE NOT NULL,
+    performed_by VARCHAR(100),
+    cost DECIMAL(10,2) DEFAULT 0.00,
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (equipment_id) REFERENCES equipment(equipment_id)
 );
 
 CREATE TABLE IF NOT EXISTS reports (

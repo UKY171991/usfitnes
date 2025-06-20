@@ -1,133 +1,13 @@
 <?php
-session_start();
+// Set page title
+$page_title = 'Patients';
 
-// Include database configuration
-require_once 'config.php';
-
-// Check if user is logged in
-if(!isset($_SESSION['user_id'])) {
-    header("Location: index.php");    exit();
-}
+// Include header
+include 'includes/header.php';
+// Include sidebar with user info
+include 'includes/sidebar.php';
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>PathLab Pro | Patients</title>
-
-  <!-- Google Font: Source Sans Pro -->
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
-  <!-- Font Awesome -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-  <!-- DataTables -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/datatables.net-bs4/1.11.3/dataTables.bootstrap4.min.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/datatables.net-responsive-bs4/2.2.9/responsive.bootstrap4.min.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/datatables.net-buttons-bs4/2.0.1/buttons.bootstrap4.min.css">
-  <!-- Theme style -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.2.0/css/adminlte.min.css">
-
-  <style>
-    .content-wrapper {
-      background: linear-gradient(135deg, #f8f9fa 0%, #e3f2fd 100%);
-    }
-    .main-header {
-      background: linear-gradient(135deg, #2c5aa0 0%, #1e3c72 100%);
-    }
-    .main-sidebar {
-      background: #263238;
-    }
-    .card {
-      border-radius: 15px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-    }
-  </style>
-</head>
-<body class="hold-transition sidebar-mini">
-<div class="wrapper">
-  <!-- Navbar -->
-  <nav class="main-header navbar navbar-expand navbar-white navbar-light">
-    <ul class="navbar-nav">
-      <li class="nav-item">
-        <a class="nav-link" data-widget="pushmenu" href="#" role="button"><i class="fas fa-bars text-white"></i></a>
-      </li>
-    </ul>
-    <ul class="navbar-nav ml-auto">
-      <li class="nav-item">
-        <a class="nav-link" href="logout.php" role="button">
-          <i class="fas fa-sign-out-alt text-white"></i>
-        </a>
-      </li>
-    </ul>
-  </nav>
-
-  <!-- Main Sidebar Container -->
-  <aside class="main-sidebar sidebar-dark-primary elevation-4">
-    <a href="dashboard.php" class="brand-link">
-      <img src="https://via.placeholder.com/33x33/2c5aa0/ffffff?text=PL" alt="PathLab Pro Logo" class="brand-image img-circle elevation-3">
-      <span class="brand-text font-weight-light">PathLab Pro</span>
-    </a>
-
-    <div class="sidebar">
-      <div class="user-panel mt-3 pb-3 mb-3 d-flex">
-        <div class="image">
-          <img src="https://via.placeholder.com/160x160/2c5aa0/ffffff?text=<?php echo strtoupper(substr($_SESSION['full_name'] ?? $_SESSION['username'] ?? 'U', 0, 1)); ?>" class="img-circle elevation-2" alt="User Image">
-        </div>
-        <div class="info">
-          <a href="#" class="d-block"><?php echo htmlspecialchars($username); ?></a>
-        </div>
-      </div>
-
-      <nav class="mt-2">
-        <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu">
-          <li class="nav-item">
-            <a href="dashboard.php" class="nav-link">
-              <i class="nav-icon fas fa-tachometer-alt"></i>
-              <p>Dashboard</p>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a href="patients.php" class="nav-link active">
-              <i class="nav-icon fas fa-user-injured"></i>
-              <p>Patients</p>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a href="test-orders.php" class="nav-link">
-              <i class="nav-icon fas fa-clipboard-list"></i>
-              <p>Test Orders</p>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a href="tests.php" class="nav-link">
-              <i class="nav-icon fas fa-flask"></i>
-              <p>Lab Tests</p>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a href="results.php" class="nav-link">
-              <i class="nav-icon fas fa-file-medical"></i>
-              <p>Test Results</p>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a href="doctors.php" class="nav-link">
-              <i class="nav-icon fas fa-user-md"></i>
-              <p>Doctors</p>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a href="logout.php" class="nav-link">
-              <i class="nav-icon fas fa-sign-out-alt"></i>
-              <p>Logout</p>
-            </a>
-          </li>
-        </ul>
-      </nav>
-    </div>
-  </aside>
-
-  <!-- Content Wrapper -->
+  <!-- Content Wrapper. Contains page content -->
   <div class="content-wrapper">
     <div class="content-header">
       <div class="container-fluid">
@@ -143,11 +23,11 @@ if(!isset($_SESSION['user_id'])) {
           </div>
         </div>
       </div>
-    </div>    <section class="content">
+    </div>
+    <section class="content">
       <div class="container-fluid">
         <!-- Alert Messages -->
         <div id="alertContainer"></div>
-        
         <div class="row">
           <div class="col-12">
             <div class="card">
@@ -177,14 +57,12 @@ if(!isset($_SESSION['user_id'])) {
                     </button>
                   </div>
                 </div>
-                
                 <div id="loadingIndicator" class="text-center" style="display: none;">
                   <div class="spinner-border text-primary" role="status">
                     <span class="sr-only">Loading...</span>
                   </div>
                   <p>Loading patients...</p>
                 </div>
-                
                 <table id="patientsTable" class="table table-bordered table-striped" style="display: none;">
                   <thead>
                   <tr>
@@ -201,7 +79,6 @@ if(!isset($_SESSION['user_id'])) {
                   <tbody id="patientsTableBody">
                   </tbody>
                 </table>
-                
                 <!-- Pagination -->
                 <nav aria-label="Patient pagination" id="paginationContainer" style="display: none;">
                   <ul class="pagination justify-content-center" id="pagination">
@@ -214,7 +91,6 @@ if(!isset($_SESSION['user_id'])) {
       </div>
     </section>
   </div>
-
   <!-- Add Patient Modal -->
   <div class="modal fade" id="addPatientModal" tabindex="-1" role="dialog">
     <div class="modal-dialog modal-lg" role="document">
@@ -397,61 +273,6 @@ if(!isset($_SESSION['user_id'])) {
       </div>
     </div>
   </div>
-                  <input type="text" class="form-control" id="lastName" required>
-                </div>
-              </div>
-            </div>
-            <div class="row">
-              <div class="col-md-6">
-                <div class="form-group">
-                  <label for="email">Email</label>
-                  <input type="email" class="form-control" id="email" required>
-                </div>
-              </div>
-              <div class="col-md-6">
-                <div class="form-group">
-                  <label for="phone">Phone</label>
-                  <input type="tel" class="form-control" id="phone" required>
-                </div>
-              </div>
-            </div>
-            <div class="row">
-              <div class="col-md-4">
-                <div class="form-group">
-                  <label for="gender">Gender</label>
-                  <select class="form-control" id="gender" required>
-                    <option value="">Select Gender</option>
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
-              </div>
-              <div class="col-md-4">
-                <div class="form-group">
-                  <label for="dateOfBirth">Date of Birth</label>
-                  <input type="date" class="form-control" id="dateOfBirth" required>
-                </div>
-              </div>
-              <div class="col-md-4">
-                <div class="form-group">
-                  <label for="emergencyContact">Emergency Contact</label>
-                  <input type="text" class="form-control" id="emergencyContact">
-                </div>
-              </div>
-            </div>
-            <div class="form-group">
-              <label for="address">Address</label>
-              <textarea class="form-control" id="address" rows="3"></textarea>
-            </div>
-          </form>
-        </div>        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-          <button type="submit" class="btn btn-primary">Save Patient</button>
-        </div>
-      </div>
-    </div>
-  </div>
   <footer class="main-footer">
     <strong>Copyright &copy; 2024 <a href="#">PathLab Pro</a>.</strong> All rights reserved.
   </footer>
@@ -530,13 +351,13 @@ function loadPatients(page = 1, search = '') {
                 displayPatients(response.data);
                 displayPagination(response.pagination);
             } else {
-                showAlert('error', 'Error loading patients: ' + response.message);
+                showToaster('danger', 'Error loading patients: ' + response.message);
             }
         },
         error: function(xhr, status, error) {
             hideLoading();
             console.error('AJAX Error:', error);
-            showAlert('error', 'Failed to load patients. Please try again.');
+            showToaster('danger', 'Failed to load patients. Please try again.');
         }
     });
 }
@@ -879,13 +700,15 @@ function calculateAge(birthDate) {
 
 function formatDate(dateString) {
     if (!dateString) return 'N/A';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
+    const date = new Date(dateString);    return date.toLocaleDateString('en-US', { 
         year: 'numeric', 
         month: 'short', 
         day: 'numeric' 
     });
 }
 </script>
-</body>
-</html>
+
+<?php
+// Include footer
+include 'includes/footer.php';
+?>

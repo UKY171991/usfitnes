@@ -188,7 +188,6 @@ include 'includes/sidebar.php';
     </div>
   </section>
 </div>
-
 <!-- Add Result Modal -->
 <div class="modal fade" id="addResultModal" tabindex="-1" role="dialog" aria-labelledby="addResultModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg" role="document">
@@ -398,124 +397,150 @@ include 'includes/sidebar.php';
     </div>
   </div>
 </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>Critical Result</label>
+                  <select class="form-control" id="edit_is_critical" name="is_critical">
+                    <option value="0">Normal</option>
+                    <option value="1">Critical</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Result Values</label>
+              <textarea class="form-control" id="edit_result_values" name="result_values" rows="4" placeholder="Enter test result values..."></textarea>
+            </div>
+            <div class="form-group">
+              <label>Notes</label>
+              <textarea class="form-control" id="edit_notes" name="notes" rows="3" placeholder="Additional notes..."></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-save"></i> Update Result
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
 
-<!-- JavaScript -->
+  <!-- View Result Modal -->
+  <div class="modal fade" id="viewResultModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h4 class="modal-title">Test Result Details</h4>
+          <button type="button" class="close" data-dismiss="modal">&times;</button>
+        </div>
+        <div class="modal-body" id="viewResultContent">
+          <!-- Dynamic content loaded via AJAX -->
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-primary" onclick="downloadResultPDF()">
+            <i class="fas fa-download"></i> Download PDF
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="main-footer">
+    <strong>Copyright &copy; 2024 <a href="#">PathLab Pro</a>.</strong> All rights reserved.
+  </footer>
+</div>
+
+<!-- jQuery -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<!-- Bootstrap 4 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.0/js/bootstrap.bundle.min.js"></script>
+<!-- AdminLTE App -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.2.0/js/adminlte.min.js"></script>
+
 <script>
+let currentPage = 1;
+let currentSearch = '';
+let currentStatus = '';
+let currentCritical = '';
+
 $(document).ready(function() {
-    // Initialize page
-    loadStats();
     loadResults();
     loadTestOrders();
     
-    // Set default date to today for new results
-    $('#add_result_date').val(new Date().toISOString().split('T')[0]);
-    
-    // Search on Enter key
-    $('#searchInput').on('keypress', function(e) {
-        if (e.which === 13) {
-            loadResults();
-        }
-    });
-    
-    // Auto-refresh every 30 seconds
-    setInterval(function() {
-        if (!$('.modal').hasClass('show')) {
-            loadStats();
-        }
-    }, 30000);
+    // Set today's date as default
+    $('#add_result_date, #edit_result_date').val(new Date().toISOString().split('T')[0]);
 });
 
-// Global variables
-let currentPage = 1;
-let resultsPerPage = 10;
-let currentFilters = {
-    search: '',
-    status: '',
-    critical: '',
-    date: ''
-};
+// Search functionality
+$('#searchBtn').click(function() {
+    currentSearch = $('#searchInput').val();
+    loadResults(1, currentSearch, currentStatus, currentCritical);
+});
 
-// Load statistics
-function loadStats() {
-    $.ajax({
-        url: 'api/results_api.php',
-        method: 'GET',
-        data: { action: 'stats' },
-        dataType: 'json',
-        success: function(response) {
-            if (response.success) {
-                const stats = response.data;
-                $('#totalResults').text(stats.total || 0);
-                $('#pendingResults').text(stats.pending || 0);
-                $('#criticalResults').text(stats.critical || 0);
-                $('#verifiedResults').text(stats.verified || 0);
-            }
-        },
-        error: function() {
-            console.log('Error loading statistics');
-        }
-    });
-}
+$('#searchInput').keypress(function(e) {
+    if(e.which == 13) {
+        $('#searchBtn').click();
+    }
+});
 
-// Load results with filters and pagination
-function loadResults(page = 1) {
+// Filter functionality
+$('#statusFilter').change(function() {
+    currentStatus = $(this).val();
+    loadResults(1, currentSearch, currentStatus, currentCritical);
+});
+
+$('#criticalSelect').change(function() {
+    currentCritical = $(this).val();
+    loadResults(1, currentSearch, currentStatus, currentCritical);
+});
+
+$('#criticalFilter').click(function() {
+    $('#criticalSelect').val('1').trigger('change');
+});
+
+$('#clearFilters').click(function() {
+    $('#searchInput').val('');
+    $('#statusFilter').val('');
+    $('#criticalSelect').val('');
+    currentSearch = '';
+    currentStatus = '';
+    currentCritical = '';
+    loadResults();
+});
+
+// Load results function
+function loadResults(page = 1, search = '', status = '', critical = '') {
     currentPage = page;
-    
-    // Get current filters
-    currentFilters.search = $('#searchInput').val().trim();
-    currentFilters.status = $('#statusFilter').val();
-    currentFilters.critical = $('#criticalFilter').val();
-    currentFilters.date = $('#dateFilter').val();
-    
-    // Show loading indicator
-    $('#loadingIndicator').show();
-    $('#resultsTableBody').hide();
+    currentSearch = search;
+    currentStatus = status;
+    currentCritical = critical;
     
     $.ajax({
         url: 'api/results_api.php',
         method: 'GET',
         data: {
             action: 'read',
-            page: currentPage,
-            limit: resultsPerPage,
-            search: currentFilters.search,
-            status: currentFilters.status,
-            is_critical: currentFilters.critical,
-            date: currentFilters.date
+            page: page,
+            search: search,
+            status: status,
+            is_critical: critical
         },
         dataType: 'json',
         success: function(response) {
-            $('#loadingIndicator').hide();
-            $('#resultsTableBody').show();
-            
-            if (response.success) {
+            if(response.success) {
                 displayResults(response.data);
-                displayPagination(response.pagination);
-                updateResultsInfo(response.pagination);
+                updatePagination(response.pagination);
+                updateTableInfo(response.pagination);
             } else {
-                $('#resultsTableBody').html(`
-                    <tr>
-                        <td colspan="8" class="text-center text-muted py-4">
-                            <i class="fas fa-info-circle fa-2x mb-2"></i><br>
-                            ${response.message || 'No results found'}
-                        </td>
-                    </tr>
-                `);
-                $('#resultsPagination').empty();
-                $('#resultsInfo').text('Showing 0 to 0 of 0 entries');
+                showAlert('Error loading results: ' + response.message, 'danger');
             }
         },
         error: function() {
-            $('#loadingIndicator').hide();
-            $('#resultsTableBody').show();
-            $('#resultsTableBody').html(`
-                <tr>
-                    <td colspan="8" class="text-center text-danger py-4">
-                        <i class="fas fa-exclamation-triangle fa-2x mb-2"></i><br>
-                        Error loading results. Please try again.
-                    </td>
-                </tr>
-            `);
+            showAlert('Error loading results. Please try again.', 'danger');
         }
     });
 }
@@ -524,83 +549,37 @@ function loadResults(page = 1) {
 function displayResults(results) {
     let html = '';
     
-    if (results.length === 0) {
-        html = `
-            <tr>
-                <td colspan="8" class="text-center text-muted py-4">
-                    <i class="fas fa-search fa-2x mb-2"></i><br>
-                    No results found matching your criteria
-                </td>
-            </tr>
-        `;
+    if(results.length === 0) {
+        html = '<tr><td colspan="7" class="text-center">No results found</td></tr>';
     } else {
         results.forEach(function(result) {
-            // Status badge
-            let statusBadge = '';
-            switch(result.status) {
-                case 'pending':
-                    statusBadge = '<span class="badge badge-warning">Pending</span>';
-                    break;
-                case 'completed':
-                    statusBadge = '<span class="badge badge-info">Completed</span>';
-                    break;
-                case 'verified':
-                    statusBadge = '<span class="badge badge-success">Verified</span>';
-                    break;
-                default:
-                    statusBadge = '<span class="badge badge-secondary">' + result.status + '</span>';
-            }
-            
-            // Critical badge
-            const criticalBadge = result.is_critical == 1 
-                ? '<span class="badge badge-danger"><i class="fas fa-exclamation-triangle"></i> Critical</span>'
-                : '<span class="badge badge-success">Normal</span>';
-            
-            // Truncate result values for display
-            const resultValues = result.result_values 
-                ? (result.result_values.length > 50 
-                    ? result.result_values.substring(0, 50) + '...' 
-                    : result.result_values)
-                : 'N/A';
+            const criticalClass = result.is_critical == '1' ? 'table-warning' : '';
+            const statusBadge = getStatusBadge(result.status);
+            const criticalBadge = result.is_critical == '1' ? 
+                '<span class="badge badge-danger"><i class="fas fa-exclamation-triangle"></i> Critical</span>' :
+                '<span class="badge badge-success">Normal</span>';
             
             html += `
-                <tr ${result.is_critical == 1 ? 'class="table-warning"' : ''}>
-                    <td>
-                        <strong>${result.order_id || 'N/A'}</strong>
-                    </td>
-                    <td>
-                        <div class="user-panel d-flex align-items-center">
-                            <div class="image">
-                                <i class="fas fa-user-circle fa-2x text-muted"></i>
-                            </div>
-                            <div class="info ml-2">
-                                <strong>${result.patient_name || 'N/A'}</strong>
-                            </div>
-                        </div>
-                    </td>
-                    <td>
-                        <span class="badge badge-primary">${result.test_name || 'N/A'}</span>
-                    </td>
-                    <td>
-                        <small>${formatDate(result.result_date)}</small>
-                    </td>
+                <tr class="${criticalClass}">
+                    <td><span class="badge badge-primary">${result.order_id || 'N/A'}</span></td>
+                    <td>${result.patient_name || 'Unknown'}</td>
+                    <td>${result.test_name || 'Unknown'}</td>
+                    <td>${formatDate(result.result_date)}</td>
                     <td>${statusBadge}</td>
                     <td>${criticalBadge}</td>
                     <td>
-                        <small class="text-muted">${resultValues}</small>
-                    </td>
-                    <td>
-                        <div class="btn-group" role="group">
-                            <button type="button" class="btn btn-info btn-sm" onclick="viewResult(${result.id})" title="View Details">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                            <button type="button" class="btn btn-warning btn-sm" onclick="editResult(${result.id})" title="Edit">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button type="button" class="btn btn-danger btn-sm" onclick="confirmDeleteResult(${result.id})" title="Delete">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
+                        <button class="btn btn-info btn-sm" onclick="viewResult(${result.id})" title="View Details">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-warning btn-sm" onclick="editResult(${result.id})" title="Edit">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-primary btn-sm" onclick="downloadResultPDF(${result.id})" title="Download PDF">
+                            <i class="fas fa-download"></i>
+                        </button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteResult(${result.id})" title="Delete">
+                            <i class="fas fa-trash"></i>
+                        </button>
                     </td>
                 </tr>
             `;
@@ -610,134 +589,28 @@ function displayResults(results) {
     $('#resultsTableBody').html(html);
 }
 
-// Display pagination
-function displayPagination(pagination) {
-    let html = '';
-    
-    if (pagination.pages > 1) {
-        // Previous button
-        if (pagination.page > 1) {
-            html += `<li class="page-item">
-                <a class="page-link" href="#" onclick="loadResults(${pagination.page - 1})">
-                    <i class="fas fa-chevron-left"></i>
-                </a>
-            </li>`;
-        }
-        
-        // Page numbers
-        const startPage = Math.max(1, pagination.page - 2);
-        const endPage = Math.min(pagination.pages, pagination.page + 2);
-        
-        if (startPage > 1) {
-            html += `<li class="page-item">
-                <a class="page-link" href="#" onclick="loadResults(1)">1</a>
-            </li>`;
-            if (startPage > 2) {
-                html += `<li class="page-item disabled">
-                    <span class="page-link">...</span>
-                </li>`;
-            }
-        }
-        
-        for (let i = startPage; i <= endPage; i++) {
-            const active = i === pagination.page ? 'active' : '';
-            html += `<li class="page-item ${active}">
-                <a class="page-link" href="#" onclick="loadResults(${i})">${i}</a>
-            </li>`;
-        }
-        
-        if (endPage < pagination.pages) {
-            if (endPage < pagination.pages - 1) {
-                html += `<li class="page-item disabled">
-                    <span class="page-link">...</span>
-                </li>`;
-            }
-            html += `<li class="page-item">
-                <a class="page-link" href="#" onclick="loadResults(${pagination.pages})">${pagination.pages}</a>
-            </li>`;
-        }
-        
-        // Next button
-        if (pagination.page < pagination.pages) {
-            html += `<li class="page-item">
-                <a class="page-link" href="#" onclick="loadResults(${pagination.page + 1})">
-                    <i class="fas fa-chevron-right"></i>
-                </a>
-            </li>`;
-        }
-    }
-    
-    $('#resultsPagination').html(html);
-}
-
-// Update results info
-function updateResultsInfo(pagination) {
-    const start = (pagination.page - 1) * pagination.limit + 1;
-    const end = Math.min(pagination.page * pagination.limit, pagination.total);
-    $('#resultsInfo').text(`Showing ${start} to ${end} of ${pagination.total} entries`);
-}
-
 // Load test orders for dropdowns
 function loadTestOrders() {
     $.ajax({
         url: 'api/test_orders_api.php',
         method: 'GET',
-        data: { action: 'read' },
+        data: { action: 'read', page: 1, limit: 1000 },
         dataType: 'json',
         success: function(response) {
-            if (response.success) {
-                const addSelect = $('#add_test_order_id');
-                const editSelect = $('#edit_test_order_id');
-                
-                addSelect.empty().append('<option value="">Select Test Order</option>');
-                editSelect.empty().append('<option value="">Select Test Order</option>');
-                
+            if(response.success) {
+                let options = '<option value="">Select Test Order</option>';
                 response.data.forEach(function(order) {
-                    const optionText = `${order.order_id} - ${order.patient_name} (${order.test_name})`;
-                    const option = `<option value="${order.id}">${optionText}</option>`;
-                    addSelect.append(option);
-                    editSelect.append(option);
+                    options += `<option value="${order.id}">${order.order_id} - ${order.patient_name} (${order.test_name})</option>`;
                 });
+                $('#add_test_order_id, #edit_test_order_id').html(options);
             }
-        },
-        error: function() {
-            showAlert('Error loading test orders', 'danger');
         }
     });
-}
-
-// Filter functions
-function filterByStatus(status) {
-    $('#statusFilter').val(status);
-    loadResults(1);
-}
-
-function filterByCritical(critical) {
-    $('#criticalFilter').val(critical);
-    loadResults(1);
-}
-
-function clearFilters() {
-    $('#searchInput').val('');
-    $('#statusFilter').val('');
-    $('#criticalFilter').val('');
-    $('#dateFilter').val('');
-    loadResults(1);
-}
-
-function refreshResults() {
-    loadStats();
-    loadResults(currentPage);
-    showAlert('Results refreshed successfully', 'success');
 }
 
 // Add result form submission
 $('#addResultForm').submit(function(e) {
     e.preventDefault();
-    
-    const submitBtn = $('#addResultBtn');
-    const originalText = submitBtn.html();
-    submitBtn.html('<i class="fas fa-spinner fa-spin"></i> Saving...').prop('disabled', true);
     
     $.ajax({
         url: 'api/results_api.php',
@@ -745,21 +618,18 @@ $('#addResultForm').submit(function(e) {
         data: $(this).serialize() + '&action=create',
         dataType: 'json',
         success: function(response) {
-            if (response.success) {
+            if(response.success) {
                 $('#addResultModal').modal('hide');
                 $('#addResultForm')[0].reset();
-                loadResults(currentPage);
-                loadStats();
-                showAlert('Test result added successfully!', 'success');
+                $('#add_result_date').val(new Date().toISOString().split('T')[0]);
+                loadResults(currentPage, currentSearch, currentStatus, currentCritical);
+                showAlert('Result added successfully!', 'success');
             } else {
                 showAlert('Error adding result: ' + response.message, 'danger');
             }
         },
         error: function() {
             showAlert('Error adding result. Please try again.', 'danger');
-        },
-        complete: function() {
-            submitBtn.html(originalText).prop('disabled', false);
         }
     });
 });
@@ -772,7 +642,7 @@ function editResult(id) {
         data: { action: 'read', id: id },
         dataType: 'json',
         success: function(response) {
-            if (response.success && response.data.length > 0) {
+            if(response.success && response.data.length > 0) {
                 const result = response.data[0];
                 $('#edit_result_id').val(result.id);
                 $('#edit_test_order_id').val(result.test_order_id);
@@ -782,12 +652,7 @@ function editResult(id) {
                 $('#edit_result_values').val(result.result_values);
                 $('#edit_notes').val(result.notes);
                 $('#editResultModal').modal('show');
-            } else {
-                showAlert('Result not found', 'danger');
             }
-        },
-        error: function() {
-            showAlert('Error loading result details', 'danger');
         }
     });
 }
@@ -796,30 +661,22 @@ function editResult(id) {
 $('#editResultForm').submit(function(e) {
     e.preventDefault();
     
-    const submitBtn = $('#editResultBtn');
-    const originalText = submitBtn.html();
-    submitBtn.html('<i class="fas fa-spinner fa-spin"></i> Updating...').prop('disabled', true);
-    
     $.ajax({
         url: 'api/results_api.php',
         method: 'POST',
         data: $(this).serialize() + '&action=update',
         dataType: 'json',
         success: function(response) {
-            if (response.success) {
+            if(response.success) {
                 $('#editResultModal').modal('hide');
-                loadResults(currentPage);
-                loadStats();
-                showAlert('Test result updated successfully!', 'success');
+                loadResults(currentPage, currentSearch, currentStatus, currentCritical);
+                showAlert('Result updated successfully!', 'success');
             } else {
                 showAlert('Error updating result: ' + response.message, 'danger');
             }
         },
         error: function() {
             showAlert('Error updating result. Please try again.', 'danger');
-        },
-        complete: function() {
-            submitBtn.html(originalText).prop('disabled', false);
         }
     });
 });
@@ -832,75 +689,40 @@ function viewResult(id) {
         data: { action: 'read', id: id },
         dataType: 'json',
         success: function(response) {
-            if (response.success && response.data.length > 0) {
+            if(response.success && response.data.length > 0) {
                 const result = response.data[0];
-                
-                const statusClass = result.status === 'verified' ? 'success' : 
-                                  result.status === 'completed' ? 'info' : 'warning';
-                
-                const criticalAlert = result.is_critical == 1 ? 
-                    '<div class="alert alert-danger"><i class="fas fa-exclamation-triangle"></i> <strong>CRITICAL RESULT</strong></div>' : '';
+                const criticalBadge = result.is_critical == '1' ? 
+                    '<span class="badge badge-danger"><i class="fas fa-exclamation-triangle"></i> Critical</span>' :
+                    '<span class="badge badge-success">Normal</span>';
                 
                 let html = `
-                    ${criticalAlert}
                     <div class="row">
                         <div class="col-md-6">
-                            <div class="card">
-                                <div class="card-header">
-                                    <h5><i class="fas fa-flask"></i> Test Information</h5>
-                                </div>
-                                <div class="card-body">
-                                    <table class="table table-sm">
-                                        <tr><td><strong>Order ID:</strong></td><td>${result.order_id || 'N/A'}</td></tr>
-                                        <tr><td><strong>Patient:</strong></td><td>${result.patient_name || 'N/A'}</td></tr>
-                                        <tr><td><strong>Test:</strong></td><td>${result.test_name || 'N/A'}</td></tr>
-                                        <tr><td><strong>Result Date:</strong></td><td>${formatDate(result.result_date)}</td></tr>
-                                    </table>
-                                </div>
-                            </div>
+                            <h5>Test Information</h5>
+                            <table class="table table-sm">
+                                <tr><td><strong>Order ID:</strong></td><td>${result.order_id || 'N/A'}</td></tr>
+                                <tr><td><strong>Patient:</strong></td><td>${result.patient_name || 'Unknown'}</td></tr>
+                                <tr><td><strong>Test Name:</strong></td><td>${result.test_name || 'Unknown'}</td></tr>
+                                <tr><td><strong>Result Date:</strong></td><td>${formatDate(result.result_date)}</td></tr>
+                                <tr><td><strong>Status:</strong></td><td>${getStatusBadge(result.status)}</td></tr>
+                                <tr><td><strong>Critical:</strong></td><td>${criticalBadge}</td></tr>
+                            </table>
                         </div>
                         <div class="col-md-6">
-                            <div class="card">
-                                <div class="card-header">
-                                    <h5><i class="fas fa-info-circle"></i> Status</h5>
-                                </div>
-                                <div class="card-body">
-                                    <table class="table table-sm">
-                                        <tr><td><strong>Status:</strong></td><td><span class="badge badge-${statusClass}">${result.status}</span></td></tr>
-                                        <tr><td><strong>Critical:</strong></td><td>${result.is_critical == 1 ? '<span class="badge badge-danger">Yes</span>' : '<span class="badge badge-success">No</span>'}</td></tr>
-                                        <tr><td><strong>Created:</strong></td><td>${formatDate(result.created_at)}</td></tr>
-                                    </table>
-                                </div>
+                            <h5>Result Values</h5>
+                            <div class="form-group">
+                                <textarea class="form-control" rows="6" readonly>${result.result_values || 'No values recorded'}</textarea>
                             </div>
                         </div>
                     </div>
                 `;
                 
-                if (result.result_values) {
+                if(result.notes) {
                     html += `
-                        <div class="card mt-3">
-                            <div class="card-header">
-                                <h5><i class="fas fa-chart-line"></i> Result Values</h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="alert alert-info mb-0">
-                                    <pre class="mb-0" style="white-space: pre-wrap;">${result.result_values}</pre>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                }
-                
-                if (result.notes) {
-                    html += `
-                        <div class="card mt-3">
-                            <div class="card-header">
-                                <h5><i class="fas fa-sticky-note"></i> Notes</h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="alert alert-secondary mb-0">
-                                    <pre class="mb-0" style="white-space: pre-wrap;">${result.notes}</pre>
-                                </div>
+                        <div class="row">
+                            <div class="col-12">
+                                <h5>Notes</h5>
+                                <div class="alert alert-info">${result.notes}</div>
                             </div>
                         </div>
                     `;
@@ -908,98 +730,326 @@ function viewResult(id) {
                 
                 $('#viewResultContent').html(html);
                 $('#viewResultModal').modal('show');
-            } else {
-                showAlert('Result not found', 'danger');
             }
-        },
-        error: function() {
-            showAlert('Error loading result details', 'danger');
         }
     });
 }
-
-// Delete confirmation
-let resultToDelete = null;
-
-function confirmDeleteResult(id) {
-    resultToDelete = id;
-    $('#deleteResultModal').modal('show');
-}
-
-$('#confirmDeleteBtn').click(function() {
-    if (resultToDelete) {
-        deleteResult(resultToDelete);
-        resultToDelete = null;
-    }
-});
 
 // Delete result
 function deleteResult(id) {
-    const deleteBtn = $('#confirmDeleteBtn');
-    const originalText = deleteBtn.html();
-    deleteBtn.html('<i class="fas fa-spinner fa-spin"></i> Deleting...').prop('disabled', true);
-    
-    $.ajax({
-        url: 'api/results_api.php',
-        method: 'POST',
-        data: { action: 'delete', id: id },
-        dataType: 'json',
-        success: function(response) {
-            if (response.success) {
-                $('#deleteResultModal').modal('hide');
-                loadResults(currentPage);
-                loadStats();
-                showAlert('Test result deleted successfully!', 'success');
-            } else {
-                showAlert('Error deleting result: ' + response.message, 'danger');
+    if(confirm('Are you sure you want to delete this result? This action cannot be undone.')) {
+        $.ajax({
+            url: 'api/results_api.php',
+            method: 'POST',
+            data: { action: 'delete', id: id },
+            dataType: 'json',
+            success: function(response) {
+                if(response.success) {
+                    loadResults(currentPage, currentSearch, currentStatus, currentCritical);
+                    showAlert('Result deleted successfully!', 'success');
+                } else {
+                    showAlert('Error deleting result: ' + response.message, 'danger');
+                }
+            },
+            error: function() {
+                showAlert('Error deleting result. Please try again.', 'danger');
             }
-        },
-        error: function() {
-            showAlert('Error deleting result. Please try again.', 'danger');
-        },
-        complete: function() {
-            deleteBtn.html(originalText).prop('disabled', false);
-        }
-    });
+        });
+    }
 }
 
-// Export functions
-function exportResults() {
-    showAlert('Export feature will be available soon.', 'info');
-}
-
-function printResult() {
-    window.print();
+// Download PDF function
+function downloadResultPDF(id) {
+    if(id) {
+        window.open(`api/results_api.php?action=download_pdf&id=${id}`, '_blank');
+    } else {
+        showAlert('Please select a result to download.', 'warning');
+    }
 }
 
 // Utility functions
+function getStatusBadge(status) {
+    const badges = {
+        'pending': 'badge-warning',
+        'completed': 'badge-info', 
+        'verified': 'badge-success'
+    };
+    const badgeClass = badges[status] || 'badge-secondary';
+    return `<span class="badge ${badgeClass}">${status.charAt(0).toUpperCase() + status.slice(1)}</span>`;
+}
+
 function formatDate(dateStr) {
-    if (!dateStr) return 'N/A';
+    if(!dateStr) return 'N/A';
     const date = new Date(dateStr);
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+}
+
+function updatePagination(pagination) {
+    let container = $('#pagination');
+    container.empty();
+    
+    if(pagination.pages <= 1) return;
+    
+    // Previous button
+    if(pagination.page > 1) {
+        container.append(`
+            <li class="page-item">
+                <a class="page-link" href="#" onclick="loadResults(${pagination.page - 1}, '${currentSearch}', '${currentStatus}', '${currentCritical}')">Previous</a>
+            </li>
+        `);
+    }
+    
+    // Page numbers
+    let startPage = Math.max(1, pagination.page - 2);
+    let endPage = Math.min(pagination.pages, pagination.page + 2);
+    
+    if(startPage > 1) {
+        container.append('<li class="page-item"><a class="page-link" href="#" onclick="loadResults(1, \'' + currentSearch + '\', \'' + currentStatus + '\', \'' + currentCritical + '\')">1</a></li>');
+        if(startPage > 2) {
+            container.append('<li class="page-item disabled"><span class="page-link">...</span></li>');
+        }
+    }
+    
+    for(let i = startPage; i <= endPage; i++) {
+        const activeClass = i === pagination.page ? 'active' : '';
+        container.append(`
+            <li class="page-item ${activeClass}">
+                <a class="page-link" href="#" onclick="loadResults(${i}, '${currentSearch}', '${currentStatus}', '${currentCritical}')">${i}</a>
+            </li>
+        `);
+    }
+    
+    if(endPage < pagination.pages) {
+        if(endPage < pagination.pages - 1) {
+            container.append('<li class="page-item disabled"><span class="page-link">...</span></li>');
+        }
+        container.append(`<li class="page-item"><a class="page-link" href="#" onclick="loadResults(${pagination.pages}, '${currentSearch}', '${currentStatus}', '${currentCritical}')">${pagination.pages}</a></li>`);
+    }
+    
+    // Next button
+    if(pagination.page < pagination.pages) {
+        container.append(`
+            <li class="page-item">
+                <a class="page-link" href="#" onclick="loadResults(${pagination.page + 1}, '${currentSearch}', '${currentStatus}', '${currentCritical}')">Next</a>
+            </li>
+        `);
+    }
+}
+
+function updateTableInfo(pagination) {
+    const start = (pagination.page - 1) * pagination.limit + 1;
+    const end = Math.min(pagination.page * pagination.limit, pagination.total);
+    $('#tableInfo').text(`Showing ${start} to ${end} of ${pagination.total} entries`);
 }
 
 function showAlert(message, type) {
     const alertHtml = `
         <div class="alert alert-${type} alert-dismissible fade show" role="alert">
-            <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'danger' ? 'exclamation-triangle' : 'info-circle'}"></i>
             ${message}
-            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
-            </button>
+            <button type="button" class="close" data-dismiss="alert">&times;</button>
         </div>
     `;
     
     // Remove existing alerts
     $('.alert').remove();
     
-    // Add new alert
+    // Add new alert at the top of content
     $('.content-wrapper .content').prepend(alertHtml);
-    
-    // Auto dismiss after 5 seconds
+      // Auto dismiss after 5 seconds
     setTimeout(function() {
         $('.alert').fadeOut();
     }, 5000);
+}
+
+// Load test orders for dropdown
+function loadTestOrders() {
+    $.ajax({
+        url: 'api/test_orders_api.php',
+        method: 'GET',
+        data: { action: 'read' },
+        dataType: 'json',
+        success: function(response) {
+            if(response.success) {
+                const addSelect = $('#add_test_order_id');
+                const editSelect = $('#edit_test_order_id');
+                addSelect.empty().append('<option value="">Select Test Order</option>');
+                editSelect.empty().append('<option value="">Select Test Order</option>');
+                
+                response.data.forEach(function(order) {
+                    const option = `<option value="${order.id}">${order.order_id} - ${order.patient_name} (${order.test_name})</option>`;
+                    addSelect.append(option);
+                    editSelect.append(option);
+                });
+            }
+        }
+    });
+}
+
+// Add result form submission
+$('#addResultForm').submit(function(e) {
+    e.preventDefault();
+    
+    $.ajax({
+        url: 'api/results_api.php',
+        method: 'POST',
+        data: $(this).serialize() + '&action=create',
+        dataType: 'json',
+        success: function(response) {
+            if(response.success) {
+                $('#addResultModal').modal('hide');
+                $('#addResultForm')[0].reset();
+                loadResults(currentPage, currentSearch, currentStatus, currentCritical);
+                showAlert('Result added successfully!', 'success');
+            } else {
+                showAlert('Error adding result: ' + response.message, 'danger');
+            }
+        },
+        error: function() {
+            showAlert('Error adding result. Please try again.', 'danger');
+        }
+    });
+});
+
+// Edit result
+function editResult(id) {
+    $.ajax({
+        url: 'api/results_api.php',
+        method: 'GET',
+        data: { action: 'read', id: id },
+        dataType: 'json',
+        success: function(response) {
+            if(response.success && response.data.length > 0) {
+                const result = response.data[0];
+                $('#edit_result_id').val(result.id);
+                $('#edit_test_order_id').val(result.test_order_id);
+                $('#edit_result_date').val(result.result_date);
+                $('#edit_status').val(result.status);
+                $('#edit_is_critical').val(result.is_critical);
+                $('#edit_result_values').val(result.result_values);
+                $('#edit_notes').val(result.notes);
+                $('#editResultModal').modal('show');
+            }
+        }
+    });
+}
+
+// Edit result form submission
+$('#editResultForm').submit(function(e) {
+    e.preventDefault();
+    
+    $.ajax({
+        url: 'api/results_api.php',
+        method: 'POST',
+        data: $(this).serialize() + '&action=update',
+        dataType: 'json',
+        success: function(response) {
+            if(response.success) {
+                $('#editResultModal').modal('hide');
+                loadResults(currentPage, currentSearch, currentStatus, currentCritical);
+                showAlert('Result updated successfully!', 'success');
+            } else {
+                showAlert('Error updating result: ' + response.message, 'danger');
+            }
+        },
+        error: function() {
+            showAlert('Error updating result. Please try again.', 'danger');
+        }
+    });
+});
+
+// View result details
+function viewResult(id) {
+    $.ajax({
+        url: 'api/results_api.php',
+        method: 'GET',
+        data: { action: 'read', id: id },
+        dataType: 'json',
+        success: function(response) {
+            if(response.success && response.data.length > 0) {
+                const result = response.data[0];
+                let html = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5>Test Information</h5>
+                            <table class="table table-sm">
+                                <tr><td><strong>Order ID:</strong></td><td>${result.order_id}</td></tr>
+                                <tr><td><strong>Patient:</strong></td><td>${result.patient_name}</td></tr>
+                                <tr><td><strong>Test:</strong></td><td>${result.test_name}</td></tr>
+                                <tr><td><strong>Date:</strong></td><td>${formatDate(result.result_date)}</td></tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h5>Result Status</h5>
+                            <table class="table table-sm">
+                                <tr><td><strong>Status:</strong></td><td><span class="badge badge-info">${result.status}</span></td></tr>
+                                <tr><td><strong>Critical:</strong></td><td>${result.is_critical == 1 ? '<span class="badge badge-danger">Yes</span>' : '<span class="badge badge-success">No</span>'}</td></tr>
+                            </table>
+                        </div>
+                    </div>
+                `;
+                
+                if(result.result_values) {
+                    html += `
+                        <div class="row">
+                            <div class="col-12">
+                                <h5>Result Values</h5>
+                                <div class="alert alert-info">${result.result_values}</div>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                if(result.notes) {
+                    html += `
+                        <div class="row">
+                            <div class="col-12">
+                                <h5>Notes</h5>
+                                <div class="alert alert-secondary">${result.notes}</div>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                $('#viewResultContent').html(html);
+                $('#viewResultModal').modal('show');
+            }
+        }
+    });
+}
+
+// Delete result
+function deleteResult(id) {
+    if(confirm('Are you sure you want to delete this result? This action cannot be undone.')) {
+        $.ajax({
+            url: 'api/results_api.php',
+            method: 'POST',
+            data: { action: 'delete', id: id },
+            dataType: 'json',
+            success: function(response) {
+                if(response.success) {
+                    loadResults(currentPage, currentSearch, currentStatus, currentCritical);
+                    showAlert('Result deleted successfully!', 'success');
+                } else {
+                    showAlert('Error deleting result: ' + response.message, 'danger');
+                }
+            },
+            error: function() {
+                showAlert('Error deleting result. Please try again.', 'danger');
+            }
+        });
+    }
+}
+
+// Download result PDF
+function downloadResultPDF() {
+    showAlert('PDF download feature will be implemented soon.', 'info');
+}
+
+// Utility function to format date
+function formatDate(dateStr) {
+    if(!dateStr) return 'N/A';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString();
 }
 </script>
 

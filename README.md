@@ -29,19 +29,30 @@ A comprehensive laboratory management system built with PHP and AdminLTE 3, desi
 - **Lab Tests**: Test catalog with categories and pricing
 - **Test Results**: Results entry, verification, and reporting
 - **Doctors**: Referring physician management
-- **Reports**: Automated report generation and delivery
-- **Equipment**: Laboratory equipment tracking and maintenance
+- **Reports**: Comprehensive analytical reports with multiple types:
+  - Test volume reports
+  - Revenue reports
+  - Doctor performance reports
+  - Custom date range reports
+  - Exportable in multiple formats (PDF, CSV, Excel)
+- **Equipment**: Laboratory equipment tracking and maintenance:
+  - Equipment inventory management
+  - Maintenance scheduling and history
+  - Warranty tracking
+  - Service record management
 - **Quality Control**: Ensure accuracy and compliance
 
 ## Technology Stack
 
-- **Frontend**: HTML5, CSS3, JavaScript, Bootstrap 4
-- **Backend**: PHP 7.4+
-- **Database**: MySQL
-- **UI Framework**: AdminLTE 3
-- **Icons**: Font Awesome 6 (Medical Icons)
-- **Charts**: Chart.js for lab analytics
-- **DataTables**: Advanced table functionality for large datasets
+- **Frontend**: HTML5, CSS3, JavaScript, jQuery, Bootstrap 4
+- **Backend**: PHP 7.4+, RESTful API endpoints for AJAX operations
+- **Database**: MySQL with optimized schema for pathology workflows
+- **UI Framework**: AdminLTE 3 with custom pathology-specific components
+- **Icons**: Font Awesome 6 (Medical and Laboratory Icons)
+- **Charts**: Chart.js for laboratory analytics and report visualization
+- **DataTables**: Advanced table functionality with server-side processing
+- **AJAX**: Asynchronous data operations for smooth user experience
+- **SweetAlert2**: Enhanced user notifications and confirmations
 
 ## Installation
 
