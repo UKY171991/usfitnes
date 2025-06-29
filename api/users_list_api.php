@@ -11,7 +11,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
 }
 
 try {
-    $stmt = $pdo->query('SELECT id, full_name, username, email, user_type, status, phone, department, created_at, last_login FROM users ORDER BY id ASC');
+    $stmt = $pdo->query('SELECT id, full_name, username, email, user_type, status FROM users ORDER BY id ASC');
     $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
     echo json_encode([
         'success' => true,
