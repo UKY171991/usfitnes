@@ -857,9 +857,64 @@ $('#addUserForm').submit(function(e) {
 
 // Edit user
 function editUser(id) {
-    // Implementation for editing user
-    showToaster('info', 'Edit functionality will be available soon.');
+    // Fetch user data and populate modal
+    $.ajax({
+        url: 'api/users_api.php',
+        method: 'GET',
+        data: { action: 'get_user', id: id },
+        dataType: 'json',
+        success: function(response) {
+            if (response.success && response.user) {
+                const user = response.user;
+                $('#edit_user_id').val(user.id);
+                $('#edit_full_name').val(user.full_name);
+                $('#edit_username').val(user.username);
+                $('#edit_email').val(user.email);
+                $('#edit_role').val(user.role);
+                $('#edit_phone').val(user.phone);
+                $('#edit_department').val(user.department);
+                $('#edit_status').val(user.status);
+                $('#editUserModal').modal('show');
+            } else {
+                showToaster('danger', 'Error loading user data.');
+            }
+        },
+        error: function() {
+            showToaster('danger', 'Error loading user data.');
+        }
+    });
 }
+
+// Handle edit user form submit
+$('#editUserForm').submit(function(e) {
+    e.preventDefault();
+    const formData = $(this).serialize() + '&action=update_user';
+    const submitBtn = $('#editUserBtn');
+    const originalText = submitBtn.html();
+    submitBtn.html('<i class="fas fa-spinner fa-spin"></i> Saving...').prop('disabled', true);
+    $.ajax({
+        url: 'api/users_api.php',
+        method: 'POST',
+        data: formData,
+        dataType: 'json',
+        success: function(response) {
+            if (response.success) {
+                $('#editUserModal').modal('hide');
+                loadUsers(currentPage);
+                loadStats();
+                showToaster('success', 'User updated successfully!');
+            } else {
+                showToaster('danger', 'Error updating user: ' + (response.message || response.error));
+            }
+        },
+        error: function() {
+            showToaster('danger', 'Error updating user. Please try again.');
+        },
+        complete: function() {
+            submitBtn.html(originalText).prop('disabled', false);
+        }
+    });
+});
 
 // View user details
 function viewUser(id) {
@@ -884,9 +939,27 @@ $('#confirmDeleteBtn').click(function() {
 
 // Delete user
 function deleteUser(id) {
-    // Implementation for deleting user
-    showToaster('info', 'Delete functionality will be available soon.');
-    $('#deleteUserModal').modal('hide');
+    $.ajax({
+        url: 'api/users_api.php',
+        method: 'POST',
+        data: { action: 'delete_user', id: id },
+        dataType: 'json',
+        success: function(response) {
+            if (response.success) {
+                showToaster('success', 'User deleted successfully!');
+                loadUsers(currentPage);
+                loadStats();
+            } else {
+                showToaster('danger', 'Error deleting user: ' + (response.message || response.error));
+            }
+        },
+        error: function() {
+            showToaster('danger', 'Error deleting user. Please try again.');
+        },
+        complete: function() {
+            $('#deleteUserModal').modal('hide');
+        }
+    });
 }
 
 // Export users
