@@ -512,15 +512,22 @@ function loadStats() {
     $.ajax({
         url: 'api/users_api.php',
         method: 'GET',
-        data: { action: 'stats' },
+        data: { action: 'get_stats' },
         dataType: 'json',
         success: function(response) {
-            if (response.success) {
-                const stats = response.data;
-                $('#totalUsers').text(stats.total || 0);
-                $('#activeUsers').text(stats.active || 0);
-                $('#adminUsers').text(stats.admin || 0);
-                $('#loginToday').text(stats.login_today || 0);
+            if (response.success && response.stats) {
+                const stats = response.stats;
+                $('#totalUsers').text(stats.total_users || 0);
+                $('#activeUsers').text(stats.active_users || 0);
+                // Find admin count from users_by_role
+                let adminCount = 0;
+                if (Array.isArray(stats.users_by_role)) {
+                    stats.users_by_role.forEach(function(roleObj) {
+                        if (roleObj.role === 'admin') adminCount = roleObj.count;
+                    });
+                }
+                $('#adminUsers').text(adminCount);
+                $('#loginToday').text(stats.recent_users || 0);
             }
         },
         error: function() {
@@ -546,22 +553,21 @@ function loadUsers(page = 1) {
         url: 'api/users_api.php',
         method: 'GET',
         data: {
-            action: 'read',
-            page: currentPage,
-            limit: usersPerPage,
-            search: currentFilters.search,
-            type: currentFilters.type,
-            status: currentFilters.status
+            action: 'get_users'
+            // Pagination and filters can be handled here if backend supports
+            // page: currentPage,
+            // limit: usersPerPage,
+            // search: currentFilters.search,
+            // type: currentFilters.type,
+            // status: currentFilters.status
         },
         dataType: 'json',
         success: function(response) {
             $('#loadingIndicator').hide();
             $('#usersTableBody').show();
-            
-            if (response.success) {
-                displayUsers(response.data);
-                displayPagination(response.pagination);
-                updateUsersInfo(response.pagination);
+            if (response.success && response.users) {
+                displayUsers(response.users);
+                // Pagination and info update can be handled if backend supports
             } else {
                 displayNoUsers(response.message || 'No users found');
             }
@@ -569,7 +575,7 @@ function loadUsers(page = 1) {
         error: function() {
             $('#loadingIndicator').hide();
             $('#usersTableBody').show();
-            displaySampleUsers(); // Show sample data for demonstration
+            displayNoUsers('Error loading users');
         }
     });
 }
