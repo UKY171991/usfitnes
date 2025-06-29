@@ -157,7 +157,6 @@ include 'includes/sidebar.php';
                 <table id="usersTable" class="table table-bordered table-striped table-hover">
                   <thead>
                     <tr>
-                      <th width="5%">Avatar</th>
                       <th width="20%">Name</th>
                       <th width="15%">Username</th>
                       <th width="15%">Email</th>
@@ -612,19 +611,10 @@ function displayUsers(users) {
                 typeBadge = '<span class="badge badge-secondary">' + user.type + '</span>';
         }
         
-        // User avatar
-        const userInitial = (user.first_name && user.last_name) 
-            ? (user.first_name.charAt(0) + user.last_name.charAt(0)).toUpperCase()
-            : user.username.charAt(0).toUpperCase();
-        
         html += `
             <tr>
-                <td class="text-center">
-                    <img src="https://via.placeholder.com/40x40/2c5aa0/ffffff?text=${userInitial}" 
-                         class="img-circle" alt="User Avatar" width="40" height="40">
-                </td>
                 <td>
-                    <strong>${user.first_name || ''} ${user.last_name || ''}</strong>
+                    <strong>${user.full_name || ''}</strong>
                     <br><small class="text-muted">${user.username}</small>
                 </td>
                 <td>${user.username}</td>
