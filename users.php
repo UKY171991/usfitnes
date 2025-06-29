@@ -311,16 +311,10 @@ include 'includes/sidebar.php';
         <input type="hidden" id="edit_user_id" name="id">
         <div class="modal-body">
           <div class="row">
-            <div class="col-md-6">
+            <div class="col-md-12">
               <div class="form-group">
-                <label for="edit_first_name">First Name <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" id="edit_first_name" name="first_name" required>
-              </div>
-            </div>
-            <div class="col-md-6">
-              <div class="form-group">
-                <label for="edit_last_name">Last Name <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" id="edit_last_name" name="last_name" required>
+                <label for="edit_full_name">Full Name <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="edit_full_name" name="full_name" required>
               </div>
             </div>
           </div>
@@ -329,6 +323,7 @@ include 'includes/sidebar.php';
               <div class="form-group">
                 <label for="edit_username">Username <span class="text-danger">*</span></label>
                 <input type="text" class="form-control" id="edit_username" name="username" required>
+                <small class="form-text text-muted">Username must be unique</small>
               </div>
             </div>
             <div class="col-md-6">
@@ -340,25 +335,21 @@ include 'includes/sidebar.php';
           </div>
           <div class="row">
             <div class="col-md-6">
-              <div class="form-group">                <label for="edit_type">User Type <span class="text-danger">*</span></label>
-                <select class="form-control" id="edit_type" name="type" required>
-                  <option value="">Select User Type</option>
+              <div class="form-group">
+                <label for="edit_user_type">Role <span class="text-danger">*</span></label>
+                <select class="form-control" id="edit_user_type" name="user_type" required>
+                  <option value="">Select Role</option>
                   <option value="admin">Administrator</option>
                   <option value="technician">Technician</option>
                   <option value="receptionist">Receptionist</option>
                   <option value="doctor">Doctor</option>
-                  <option value="pathologist">Pathologist</option>
                 </select>
               </div>
             </div>
             <div class="col-md-6">
               <div class="form-group">
-                <label for="edit_status">Status</label>
-                <select class="form-control" id="edit_status" name="status">
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                  <option value="suspended">Suspended</option>
-                </select>
+                <label for="edit_department">Department</label>
+                <input type="text" class="form-control" id="edit_department" name="department">
               </div>
             </div>
           </div>
@@ -370,23 +361,17 @@ include 'includes/sidebar.php';
               </div>
             </div>
           </div>
-          <div class="form-group">
-            <label for="edit_notes">Notes</label>
-            <textarea class="form-control" id="edit_notes" name="notes" rows="3"></textarea>
-          </div>
-          <hr>
-          <h5>Change Password (Optional)</h5>
           <div class="row">
             <div class="col-md-6">
               <div class="form-group">
-                <label for="edit_password">New Password</label>
+                <label for="edit_password">Password <span class="text-danger">*</span></label>
                 <input type="password" class="form-control" id="edit_password" name="password" minlength="6">
-                <small class="form-text text-muted">Leave blank to keep current password</small>
+                <small class="form-text text-muted">Minimum 6 characters. Leave blank to keep current password.</small>
               </div>
             </div>
             <div class="col-md-6">
               <div class="form-group">
-                <label for="edit_confirm_password">Confirm New Password</label>
+                <label for="edit_confirm_password">Confirm Password <span class="text-danger">*</span></label>
                 <input type="password" class="form-control" id="edit_confirm_password" name="confirm_password" minlength="6">
               </div>
             </div>
