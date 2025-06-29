@@ -10,10 +10,17 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-// Get input data
-$data = json_decode(file_get_contents('php://input'), true);
-$username = isset($data['username']) ? trim($data['username']) : '';
-$password = isset($data['password']) ? $data['password'] : '';
+
+// Get input data (support both JSON and form-data)
+$rawInput = file_get_contents('php://input');
+$data = json_decode($rawInput, true);
+if (is_array($data)) {
+    $username = isset($data['username']) ? trim($data['username']) : '';
+    $password = isset($data['password']) ? $data['password'] : '';
+} else {
+    $username = isset($_POST['username']) ? trim($_POST['username']) : '';
+    $password = isset($_POST['password']) ? $_POST['password'] : '';
+}
 
 if (empty($username) || empty($password)) {
     http_response_code(400);
