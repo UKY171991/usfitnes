@@ -910,8 +910,40 @@ $('#editUserForm').submit(function(e) {
 
 // View user details
 function viewUser(id) {
-    // Implementation for viewing user details
-    showToaster('info', 'View functionality will be available soon.');
+    $.ajax({
+        url: 'api/users_api.php',
+        method: 'GET',
+        data: { action: 'get_user', id: id },
+        dataType: 'json',
+        success: function(response) {
+            if (response.success && response.user) {
+                const user = response.user;
+                let html = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>Full Name:</strong> ${user.full_name || ''}<br>
+                            <strong>Username:</strong> ${user.username || ''}<br>
+                            <strong>Email:</strong> ${user.email || ''}<br>
+                            <strong>Role:</strong> ${user.user_type || ''}<br>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Phone:</strong> ${user.phone || ''}<br>
+                            <strong>Department:</strong> ${user.department || ''}<br>
+                            <strong>Status:</strong> ${user.status || ''}<br>
+                            <strong>Created At:</strong> ${user.created_at || ''}<br>
+                        </div>
+                    </div>
+                `;
+                $('#viewUserContent').html(html);
+                $('#viewUserModal').modal('show');
+            } else {
+                showToaster('danger', 'Error loading user details.');
+            }
+        },
+        error: function() {
+            showToaster('danger', 'Error loading user details.');
+        }
+    });
 }
 
 // Delete confirmation
