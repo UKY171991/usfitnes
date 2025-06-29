@@ -846,7 +846,7 @@ $('#addUserForm').submit(function(e) {
     $.ajax({
         url: 'api/users_api.php',
         method: 'POST',
-        data: $(this).serialize() + '&action=create',
+        data: $(this).serialize() + '&action=create_user',
         dataType: 'json',
         success: function(response) {
             if (response.success) {
