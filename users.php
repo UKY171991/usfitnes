@@ -592,9 +592,9 @@ function displayUsers(users) {
         }
           // Type badge
         let typeBadge = '';
-        switch(user.type) {
+        switch(user.user_type) {
             case 'admin':
-                typeBadge = '<span class="badge badge-danger">Admin</span>';
+                typeBadge = '<span class="badge badge-danger">Administrator</span>';
                 break;
             case 'technician':
                 typeBadge = '<span class="badge badge-info">Technician</span>';
@@ -609,7 +609,7 @@ function displayUsers(users) {
                 typeBadge = '<span class="badge badge-success">Pathologist</span>';
                 break;
             default:
-                typeBadge = '<span class="badge badge-secondary">' + user.type + '</span>';
+                typeBadge = '<span class="badge badge-secondary">' + (user.user_type || 'N/A') + '</span>';
         }
         
         html += `
