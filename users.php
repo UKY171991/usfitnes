@@ -215,16 +215,10 @@ include 'includes/sidebar.php';
       <form id="addUserForm">
         <div class="modal-body">
           <div class="row">
-            <div class="col-md-6">
+            <div class="col-md-12">
               <div class="form-group">
-                <label for="add_first_name">First Name <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" id="add_first_name" name="first_name" required>
-              </div>
-            </div>
-            <div class="col-md-6">
-              <div class="form-group">
-                <label for="add_last_name">Last Name <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" id="add_last_name" name="last_name" required>
+                <label for="add_full_name">Full Name <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="add_full_name" name="full_name" required>
               </div>
             </div>
           </div>
@@ -246,9 +240,9 @@ include 'includes/sidebar.php';
           <div class="row">
             <div class="col-md-6">
               <div class="form-group">
-                <label for="add_type">User Type <span class="text-danger">*</span></label>
-                <select class="form-control" id="add_type" name="type" required>
-                  <option value="">Select User Type</option>
+                <label for="add_role">Role <span class="text-danger">*</span></label>
+                <select class="form-control" id="add_role" name="role" required>
+                  <option value="">Select Role</option>
                   <option value="admin">Administrator</option>
                   <option value="technician">Technician</option>
                   <option value="receptionist">Receptionist</option>
@@ -258,12 +252,8 @@ include 'includes/sidebar.php';
             </div>
             <div class="col-md-6">
               <div class="form-group">
-                <label for="add_status">Status</label>
-                <select class="form-control" id="add_status" name="status">
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                  <option value="suspended">Suspended</option>
-                </select>
+                <label for="add_department">Department</label>
+                <input type="text" class="form-control" id="add_department" name="department">
               </div>
             </div>
           </div>
@@ -290,10 +280,7 @@ include 'includes/sidebar.php';
               </div>
             </div>
           </div>
-          <div class="form-group">
-            <label for="add_notes">Notes</label>
-            <textarea class="form-control" id="add_notes" name="notes" rows="3" placeholder="Additional notes about the user..."></textarea>
-          </div>
+          <!-- Notes field removed to match backend -->
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-dismiss="modal">
