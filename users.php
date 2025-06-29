@@ -240,8 +240,8 @@ include 'includes/sidebar.php';
           <div class="row">
             <div class="col-md-6">
               <div class="form-group">
-                <label for="add_role">Role <span class="text-danger">*</span></label>
-                <select class="form-control" id="add_role" name="role" required>
+                <label for="add_user_type">Role <span class="text-danger">*</span></label>
+                <select class="form-control" id="add_user_type" name="user_type" required>
                   <option value="">Select Role</option>
                   <option value="admin">Administrator</option>
                   <option value="technician">Technician</option>
@@ -523,7 +523,7 @@ function loadStats() {
                 let adminCount = 0;
                 if (Array.isArray(stats.users_by_role)) {
                     stats.users_by_role.forEach(function(roleObj) {
-                        if (roleObj.role === 'admin') adminCount = roleObj.count;
+                        if (roleObj.user_type === 'admin') adminCount = roleObj.count;
                     });
                 }
                 $('#adminUsers').text(adminCount);
@@ -877,7 +877,7 @@ function editUser(id) {
                 $('#edit_full_name').val(user.full_name);
                 $('#edit_username').val(user.username);
                 $('#edit_email').val(user.email);
-                $('#edit_role').val(user.role);
+                $('#edit_user_type').val(user.user_type);
                 $('#edit_phone').val(user.phone);
                 $('#edit_department').val(user.department);
                 $('#edit_status').val(user.status);

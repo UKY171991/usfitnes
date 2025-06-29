@@ -63,7 +63,7 @@ try {
             $username = $_POST['username'] ?? '';
             $email = $_POST['email'] ?? '';
             $full_name = $_POST['full_name'] ?? '';
-            $role = $_POST['role'] ?? 'staff';
+            $user_type = $_POST['user_type'] ?? 'staff';
             $password = $_POST['password'] ?? '';
             $phone = $_POST['phone'] ?? '';
             $department = $_POST['department'] ?? '';
@@ -82,10 +82,10 @@ try {
             $password_hash = password_hash($password, PASSWORD_DEFAULT);
             
             $stmt = $pdo->prepare("
-                INSERT INTO users (username, email, full_name, role, password, phone, department, status, created_at) 
+                INSERT INTO users (username, email, full_name, user_type, password, phone, department, status, created_at) 
                 VALUES (?, ?, ?, ?, ?, ?, ?, 'active', NOW())
             ");
-            $stmt->execute([$username, $email, $full_name, $role, $password_hash, $phone, $department]);
+            $stmt->execute([$username, $email, $full_name, $user_type, $password_hash, $phone, $department]);
             
             echo json_encode([
                 'success' => true,
@@ -99,7 +99,7 @@ try {
             $username = $_POST['username'] ?? '';
             $email = $_POST['email'] ?? '';
             $full_name = $_POST['full_name'] ?? '';
-            $role = $_POST['role'] ?? 'staff';
+            $user_type = $_POST['user_type'] ?? 'staff';
             $phone = $_POST['phone'] ?? '';
             $department = $_POST['department'] ?? '';
             $status = $_POST['status'] ?? 'active';
@@ -117,10 +117,10 @@ try {
             
             $stmt = $pdo->prepare("
                 UPDATE users 
-                SET username = ?, email = ?, full_name = ?, role = ?, phone = ?, department = ?, status = ?
+                SET username = ?, email = ?, full_name = ?, user_type = ?, phone = ?, department = ?, status = ?
                 WHERE id = ?
             ");
-            $stmt->execute([$username, $email, $full_name, $role, $phone, $department, $status, $id]);
+            $stmt->execute([$username, $email, $full_name, $user_type, $phone, $department, $status, $id]);
             
             echo json_encode([
                 'success' => true,
@@ -189,7 +189,7 @@ try {
             $stats['active_users'] = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
             
             // Users by role
-            $stmt = $pdo->query("SELECT role, COUNT(*) as count FROM users GROUP BY role");
+            $stmt = $pdo->query("SELECT user_type, COUNT(*) as count FROM users GROUP BY user_type");
             $stats['users_by_role'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
             // Recent users (last 30 days)
