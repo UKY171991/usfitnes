@@ -157,6 +157,7 @@ include 'includes/sidebar.php';
                 <table id="usersTable" class="table table-bordered table-striped table-hover">
                   <thead>
                     <tr>
+                      <th width="5%">Sr. No.</th>
                       <th width="20%">Name</th>
                       <th width="15%">Username</th>
                       <th width="15%">Email</th>
@@ -573,7 +574,7 @@ function displayUsers(users) {
         return;
     }
     
-    users.forEach(function(user) {
+    users.forEach(function(user, idx) {
         // Status badge
         let statusBadge = '';
         switch(user.status) {
@@ -613,6 +614,7 @@ function displayUsers(users) {
         
         html += `
             <tr>
+                <td>${idx + 1}</td>
                 <td>
                     <strong>${user.full_name || ''}</strong>
                     <br><small class="text-muted">${user.username}</small>
