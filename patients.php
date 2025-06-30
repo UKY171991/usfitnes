@@ -387,7 +387,8 @@ function displayPatients(patients) {
                 </td>
                 <td>${age} years</td>
                 <td>${formatDate(patient.date_of_birth)}</td>
-                <td>                    <button class="btn btn-info btn-sm" onclick="viewPatient(${patient.id})" title="View Profile">
+                <td>
+                    <button class="btn btn-info btn-sm" onclick="viewPatient(${patient.id})" title="View Profile">
                         <i class="fas fa-eye"></i>
                     </button>
                     <button class="btn btn-success btn-sm" onclick="newTestOrder(${patient.id})" title="New Test Order">
@@ -404,6 +405,7 @@ function displayPatients(patients) {
         `;
         tbody.append(row);
     });
+    $('#patientsTable').show();
     
     $('#patientsTable').show();
 }
