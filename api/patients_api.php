@@ -48,7 +48,7 @@ try {
 function handleGet($pdo) {
     if (isset($_GET['id'])) {
         // Get single patient
-        $stmt = $pdo->prepare("SELECT * FROM patients WHERE patient_id = ?");
+        $stmt = $pdo->prepare("SELECT * FROM patients WHERE id = ?");
         $stmt->execute([$_GET['id']]);
         $patient = $stmt->fetch(PDO::FETCH_ASSOC);
         
@@ -59,7 +59,7 @@ function handleGet($pdo) {
             echo json_encode(['success' => false, 'message' => 'Patient not found']);
         }
     } else {
-        // Get all patients with pagination
+        // Get all patients with pagination for DataTables
         $draw = isset($_GET['draw']) ? (int)$_GET['draw'] : 1;
         $start = isset($_GET['start']) ? (int)$_GET['start'] : 0;
         $length = isset($_GET['length']) ? (int)$_GET['length'] : 10;
@@ -69,9 +69,9 @@ function handleGet($pdo) {
         $params = [];
         
         if (!empty($search)) {
-            $whereClause = "WHERE full_name LIKE ? OR phone LIKE ? OR email LIKE ?";
+            $whereClause = "WHERE full_name LIKE ? OR phone LIKE ? OR email LIKE ? OR patient_id LIKE ?";
             $searchParam = "%{$search}%";
-            $params = [$searchParam, $searchParam, $searchParam];
+            $params = [$searchParam, $searchParam, $searchParam, $searchParam];
         }
         
         // Get total count for filtering
@@ -91,12 +91,12 @@ function handleGet($pdo) {
         $stmt->execute($params);
         $patients = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
+        // Return DataTables format
         echo json_encode([
-            'success' => true,
-            'data' => $patients,
             'draw' => $draw,
             'recordsTotal' => (int)$recordsTotal,
-            'recordsFiltered' => (int)$recordsFiltered
+            'recordsFiltered' => (int)$recordsFiltered,
+            'data' => $patients
         ]);
     }
 }
@@ -189,6 +189,16 @@ function handlePut($pdo, $input) {
         return;
     }
     
+    // Validate required fields
+    $requiredFields = ['full_name', 'date_of_birth', 'gender', 'phone'];
+    foreach ($requiredFields as $field) {
+        if (!isset($input[$field]) || empty(trim($input[$field]))) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => "Field '$field' is required"]);
+            return;
+        }
+    }
+    
     // Validate email format if provided
     if (!empty($input['email']) && !filter_var($input['email'], FILTER_VALIDATE_EMAIL)) {
         http_response_code(400);
@@ -247,7 +257,8 @@ function handleDelete($pdo, $input) {
             echo json_encode(['success' => false, 'message' => 'Cannot delete patient with existing test orders']);
             return;
         }
-          $stmt = $pdo->prepare("DELETE FROM patients WHERE id = ?");
+        
+        $stmt = $pdo->prepare("DELETE FROM patients WHERE id = ?");
         $stmt->execute([$input['id']]);
         if ($stmt->rowCount() > 0) {
             echo json_encode(['success' => true, 'message' => 'Patient deleted successfully']);

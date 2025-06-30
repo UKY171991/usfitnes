@@ -58,33 +58,6 @@ include 'includes/sidebar.php';
                   </div>
                 </div>
                 <div class="table-responsive">
-                <table id="patientsTable" class="table table-bordered table-striped" style="width:100%">
-                  <thead>
-                  <tr>
-                    <th>ID</th>
-                    <th>Patient ID</th>
-                    <th>Full Name</th>
-                    <th>Email</th>
-                    <th>Phone</th>
-                    <th>Gender</th>
-                    <th>Age</th>
-                    <th>Date of Birth</th>
-                    <th>Actions</th>
-                  </tr>
-                  </thead>
-                  <tbody id="patientsTableBody">
-                  </tbody>
-                </table>
-                </div>
-              </div>
-              <div class="card-header">
-                <h3 class="card-title">Patient Records</h3>
-                <button class="btn btn-primary float-right" id="addPatientBtn" data-toggle="modal" data-target="#addPatientModal">
-                  <i class="fas fa-plus"></i> Add New Patient
-                </button>
-              </div>
-              <div class="card-body">
-                <div class="table-responsive">
                   <table id="patientsTable" class="table table-bordered table-striped" style="width:100%">
                     <thead>
                       <tr>
@@ -99,7 +72,7 @@ include 'includes/sidebar.php';
                         <th>Actions</th>
                       </tr>
                     </thead>
-                    <tbody id="patientsTableBody">
+                    <tbody>
                       <!-- DataTables will populate this -->
                     </tbody>
                   </table>
@@ -282,19 +255,25 @@ include 'includes/sidebar.php';
     </div>
   </div>
 
-<!-- jQuery -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-<!-- Bootstrap 4 -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.0/js/bootstrap.bundle.min.js"></script>
-<!-- DataTables & Plugins -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables.net/1.11.3/jquery.dataTables.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables.net-bs4/1.11.3/dataTables.bootstrap4.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables.net-responsive/2.2.9/dataTables.responsive.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables.net-responsive-bs4/2.2.9/responsive.bootstrap4.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables.net-buttons/2.0.1/dataTables.buttons.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables.net-buttons-bs4/2.0.1/buttons.bootstrap4.min.js"></script>
-<!-- AdminLTE App -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.2.0/js/adminlte.min.js"></script>
+<!-- View Patient Modal -->
+<div class="modal fade" id="viewPatientModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4 class="modal-title">Patient Details</h4>
+        <button type="button" class="close" data-dismiss="modal">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body" id="viewPatientContent">
+        <!-- Patient details will be loaded here -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script>
 $(document).ready(function() {
@@ -307,9 +286,8 @@ $(document).ready(function() {
             "type": "GET",
             "dataType": "json",
             "data": function(d) {
-                // DataTables sends its own parameters, we just need to ensure our API handles them.
-                // The 'success' property in our API response is not standard for DataTables,
-                // so we use dataSrc to map the response correctly.
+                // Add any additional parameters if needed
+                return d;
             },
             "dataSrc": function(json) {
                 if (json.success) {
@@ -362,7 +340,7 @@ $(document).ready(function() {
         "autoWidth": false,
         "pageLength": 10,
         "lengthMenu": [[10, 25, 50, 100], [10, 25, 50, 100]],
-        "dom": 'lBfrtip', // Adds length, buttons, filtering, table, info, pagination
+        "dom": 'lBfrtip',
         "buttons": ["copy", "csv", "excel", "pdf", "print", "colvis"]
     });
     
@@ -370,23 +348,27 @@ $(document).ready(function() {
     $('#savePatientBtn').click(savePatient);
     $('#updatePatientBtn').click(updatePatient);
     $('#searchBtn').click(() => patientsTable.search($('#searchInput').val()).draw());
-    $('#refreshBtn').click(() => patientsTable.ajax.reload(null, false)); // Reload without resetting page
+    $('#refreshBtn').click(() => patientsTable.ajax.reload(null, false));
     
     // Search on Enter key
-    $('#searchInput').keypress(e => { if (e.which == 13) patientsTable.search($('#searchInput').val()).draw(); });
+    $('#searchInput').keypress(function(e) { 
+        if (e.which == 13) {
+            patientsTable.search($('#searchInput').val()).draw();
+        }
+    });
 
     // Delegated event listeners for action buttons
-    $('#patientsTableBody').on('click', '.btn-edit', function() {
+    $('#patientsTable').on('click', '.btn-edit', function() {
         const patientId = $(this).data('id');
         editPatient(patientId);
     });
 
-    $('#patientsTableBody').on('click', '.btn-delete', function() {
+    $('#patientsTable').on('click', '.btn-delete', function() {
         const patientId = $(this).data('id');
         deletePatient(patientId);
     });
 
-    $('#patientsTableBody').on('click', '.btn-view', function() {
+    $('#patientsTable').on('click', '.btn-view', function() {
         const patientId = $(this).data('id');
         viewPatient(patientId);
     });
@@ -448,7 +430,7 @@ function editPatient(patientId) {
     // Get patient data
     $.ajax({
         url: 'api/patients_api.php',
-        method: 'GET', // This should be GET to fetch a single patient
+        method: 'GET',
         data: { id: patientId },
         dataType: 'json',
         success: function(response) {
@@ -558,8 +540,52 @@ function deletePatient(patientId) {
 
 // View patient details
 function viewPatient(patientId) {
-    // This can be expanded to a full modal view
-    showAlert('info', `Viewing details for patient ID: ${patientId}. This can be expanded to a modal.`);
+    $.ajax({
+        url: 'api/patients_api.php',
+        method: 'GET',
+        data: { id: patientId },
+        dataType: 'json',
+        success: function(response) {
+            if (response.success) {
+                const patient = response.data;
+                const age = calculateAge(patient.date_of_birth);
+                
+                const content = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5>Personal Information</h5>
+                            <table class="table table-borderless">
+                                <tr><td><strong>Patient ID:</strong></td><td><span class="badge badge-primary">${patient.patient_id}</span></td></tr>
+                                <tr><td><strong>Full Name:</strong></td><td>${escapeHtml(patient.full_name)}</td></tr>
+                                <tr><td><strong>Email:</strong></td><td>${escapeHtml(patient.email || 'N/A')}</td></tr>
+                                <tr><td><strong>Phone:</strong></td><td>${escapeHtml(patient.phone)}</td></tr>
+                                <tr><td><strong>Gender:</strong></td><td><span class="badge badge-${patient.gender === 'Male' ? 'info' : (patient.gender === 'Female' ? 'pink' : 'secondary')}">${patient.gender}</span></td></tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h5>Additional Information</h5>
+                            <table class="table table-borderless">
+                                <tr><td><strong>Date of Birth:</strong></td><td>${formatDate(patient.date_of_birth)}</td></tr>
+                                <tr><td><strong>Age:</strong></td><td>${age} years</td></tr>
+                                <tr><td><strong>Emergency Contact:</strong></td><td>${escapeHtml(patient.emergency_contact || 'N/A')}</td></tr>
+                                <tr><td><strong>Emergency Phone:</strong></td><td>${escapeHtml(patient.emergency_phone || 'N/A')}</td></tr>
+                                <tr><td><strong>Address:</strong></td><td>${escapeHtml(patient.address || 'N/A')}</td></tr>
+                            </table>
+                        </div>
+                    </div>
+                `;
+                
+                $('#viewPatientContent').html(content);
+                $('#viewPatientModal').modal('show');
+            } else {
+                showAlert('error', 'Failed to load patient data: ' + response.message);
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('AJAX Error:', error);
+            showAlert('error', 'Failed to load patient data. Please try again.');
+        }
+    });
 }
 
 // Utility functions
@@ -588,6 +614,7 @@ function showAlert(type, message) {
 }
 
 function escapeHtml(text) {
+    if (!text) return '';
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
