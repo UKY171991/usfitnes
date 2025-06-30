@@ -98,10 +98,8 @@ try {
             $username = $_POST['username'] ?? '';
             $email = $_POST['email'] ?? '';
             $full_name = $_POST['full_name'] ?? '';
-            $user_type = $_POST['user_type'] ?? 'staff';
-            $phone = $_POST['phone'] ?? '';
-            $department = $_POST['department'] ?? '';
-            $status = $_POST['status'] ?? 'active';
+            $user_type = $_POST['user_type'] ?? 'lab_technician';
+            $password = $_POST['password'] ?? '';
             
             if (!$id || !$username || !$email || !$full_name) {
                 throw new Exception('All required fields must be filled');
@@ -114,12 +112,23 @@ try {
                 throw new Exception('Username or email already exists');
             }
             
-            $stmt = $pdo->prepare("
-                UPDATE users 
-                SET username = ?, email = ?, full_name = ?, user_type = ?, phone = ?, department = ?, status = ?
-                WHERE id = ?
-            ");
-            $stmt->execute([$username, $email, $full_name, $user_type, $phone, $department, $status, $id]);
+            // Update with or without password
+            if (!empty($password)) {
+                $password_hash = password_hash($password, PASSWORD_DEFAULT);
+                $stmt = $pdo->prepare("
+                    UPDATE users 
+                    SET username = ?, email = ?, full_name = ?, user_type = ?, password = ?
+                    WHERE id = ?
+                ");
+                $stmt->execute([$username, $email, $full_name, $user_type, $password_hash, $id]);
+            } else {
+                $stmt = $pdo->prepare("
+                    UPDATE users 
+                    SET username = ?, email = ?, full_name = ?, user_type = ?
+                    WHERE id = ?
+                ");
+                $stmt->execute([$username, $email, $full_name, $user_type, $id]);
+            }
             
             echo json_encode([
                 'success' => true,
