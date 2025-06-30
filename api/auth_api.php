@@ -134,7 +134,7 @@ function handleRegister($pdo, $input) {
     
     try {
         // Check if username already exists
-        $stmt = $pdo->prepare("SELECT user_id FROM users WHERE username = ?");
+        $stmt = $pdo->prepare("SELECT id FROM users WHERE username = ?");
         $stmt->execute([$username]);
         if ($stmt->fetch()) {
             http_response_code(409);
@@ -143,7 +143,7 @@ function handleRegister($pdo, $input) {
         }
         
         // Check if email already exists
-        $stmt = $pdo->prepare("SELECT user_id FROM users WHERE email = ?");
+        $stmt = $pdo->prepare("SELECT id FROM users WHERE email = ?");
         $stmt->execute([$email]);
         if ($stmt->fetch()) {
             http_response_code(409);
@@ -155,7 +155,7 @@ function handleRegister($pdo, $input) {
         $password_hash = password_hash($password, PASSWORD_DEFAULT);
         
         $stmt = $pdo->prepare("
-            INSERT INTO users (username, password_hash, full_name, email, role)
+            INSERT INTO users (username, password, full_name, email, user_type)
             VALUES (?, ?, ?, ?, ?)
         ");
         
