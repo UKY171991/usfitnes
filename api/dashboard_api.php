@@ -168,13 +168,14 @@ function getChartData($pdo) {
         ");
         $statusDistribution = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
-        // Top 5 tests by frequency
+        // Top 5 tests by frequency (using test order items and tests table)
         $stmt = $pdo->query("
             SELECT 
-                test_name,
+                t.test_name,
                 COUNT(*) as count
-            FROM test_orders
-            GROUP BY test_name
+            FROM test_order_items toi
+            JOIN tests t ON toi.test_id = t.id
+            GROUP BY t.test_name
             ORDER BY count DESC
             LIMIT 5
         ");
