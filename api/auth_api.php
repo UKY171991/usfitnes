@@ -66,7 +66,7 @@ function handleLogin($pdo, $input) {
         echo json_encode(['success' => false, 'message' => 'Username and password cannot be empty']);
         return;
     }
-      try {
+    try {
         // Check user credentials
         $stmt = $pdo->prepare("SELECT id, username, password, full_name, user_type FROM users WHERE username = ?");
         $stmt->execute([$username]);
@@ -80,23 +80,16 @@ function handleLogin($pdo, $input) {
             $_SESSION['user_type'] = $user['user_type'];
             $_SESSION['role'] = $user['user_type']; // Ensure both 'role' and 'user_type' are set for compatibility
             
-            // Update last login (only if last_login column exists)
-            try {
-                $updateStmt = $pdo->prepare("UPDATE users SET created_at = NOW() WHERE id = ?");
-                $updateStmt->execute([$user['id']]);
-                echo json_encode([
-                    'success' => true,
-                    'message' => 'Login successful',
-                    'data' => [
-                        'user_id' => $user['id'],
-                        'username' => $user['username'],
-                        'full_name' => $user['full_name'],
-                        'role' => $user['user_type']
-                    ]
-                ]);
-        } catch (PDOException $e) {
-            // Silently handle last login update error
-        }
+            echo json_encode([
+                'success' => true,
+                'message' => 'Login successful',
+                'data' => [
+                    'user_id' => $user['id'],
+                    'username' => $user['username'],
+                    'full_name' => $user['full_name'],
+                    'role' => $user['user_type']
+                ]
+            ]);
         } else {
             http_response_code(401);
             echo json_encode(['success' => false, 'message' => 'Invalid username or password']);
