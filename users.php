@@ -12,15 +12,8 @@ include 'includes/sidebar.php';
 <div class="content-wrapper">
   <!-- Content Header -->
   <div class="content-header">
-    <div class="container-fl                <label for="user_role">User Type <span class="text-danger">*</span></label>
-                <select class="form-control" id="user_role" name="role" required>
-                  <option value="">Select User Type</option>
-                  <option value="admin">Administrator</option>
-                  <option value="technician">Technician</option>
-                  <option value="receptionist">Receptionist</option>
-                  <option value="doctor">Doctor</option>
-                  <option value="pathologist">Pathologist</option>
-                </select>     <div class="row mb-2">
+    <div class="container-fluid">
+      <div class="row mb-2">
         <div class="col-sm-6">
           <h1 class="m-0">User Management</h1>
         </div>

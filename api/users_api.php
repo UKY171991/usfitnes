@@ -15,12 +15,13 @@ try {
     switch($action) {
         case 'get_users':
             $stmt = $pdo->query("
-                SELECT u.*, 
-                       COUNT(DISTINCT p.id) as total_patients,
+                SELECT u.id, u.username, u.email, u.full_name, u.user_type, u.created_at,
+                       'active' as status, 
+                       NULL as phone,
+                       NULL as department,
+                       NULL as last_login,
                        DATE_FORMAT(u.created_at, '%M %d, %Y') as formatted_date
                 FROM users u 
-                LEFT JOIN patients p ON u.id = p.created_by 
-                GROUP BY u.id 
                 ORDER BY u.created_at DESC
             ");
             $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -63,10 +64,8 @@ try {
             $username = $_POST['username'] ?? '';
             $email = $_POST['email'] ?? '';
             $full_name = $_POST['full_name'] ?? '';
-            $user_type = $_POST['user_type'] ?? 'staff';
+            $user_type = $_POST['user_type'] ?? 'lab_technician';
             $password = $_POST['password'] ?? '';
-            $phone = $_POST['phone'] ?? '';
-            $department = $_POST['department'] ?? '';
             
             if (!$username || !$email || !$full_name || !$password) {
                 throw new Exception('All required fields must be filled');
@@ -82,10 +81,10 @@ try {
             $password_hash = password_hash($password, PASSWORD_DEFAULT);
             
             $stmt = $pdo->prepare("
-                INSERT INTO users (username, email, full_name, user_type, password, phone, department, status, created_at) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, 'active', NOW())
+                INSERT INTO users (username, email, full_name, user_type, password) 
+                VALUES (?, ?, ?, ?, ?)
             ");
-            $stmt->execute([$username, $email, $full_name, $user_type, $password_hash, $phone, $department]);
+            $stmt->execute([$username, $email, $full_name, $user_type, $password_hash]);
             
             echo json_encode([
                 'success' => true,
