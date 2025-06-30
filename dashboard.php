@@ -226,10 +226,10 @@ function updateRevenueDisplay(revenue) {
     }
 }
 $(function () {
-  'use strict'
+  'use strict';
     // Initialize charts after DOM is ready
   initializeCharts();
-}
+});
 
 function initializeCharts() {
   // Check if Chart.js is loaded
@@ -241,9 +241,9 @@ function initializeCharts() {
   var ticksStyle = {
     fontColor: '#495057',
     fontStyle: 'bold'
-  }
-  var mode = 'index'
-  var intersect = true
+  };
+  var mode = 'index';
+  var intersect = true;
   
   // Revenue Chart (Monthly)
   var revenueCanvas = document.getElementById('revenue-chart-canvas');
