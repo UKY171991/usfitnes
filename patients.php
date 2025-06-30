@@ -302,6 +302,21 @@ $(document).ready(function() {
     // Initialize page
     loadPatients();
     
+    // Initialize DataTable (fix for buttons/bootstrap4 error)
+    setTimeout(function() {
+        if ($.fn.DataTable.isDataTable('#patientsTable')) {
+            $('#patientsTable').DataTable().destroy();
+        }
+        $('#patientsTable').DataTable({
+            responsive: true,
+            lengthChange: true,
+            autoWidth: false,
+            pageLength: 10,
+            lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+            buttons: ["copy", "csv", "excel", "pdf", "print", "colvis"]
+        }).buttons().container().appendTo('#patientsTable_wrapper .col-md-6:eq(0)');
+    }, 500);
+    
     // Event listeners
     $('#savePatientBtn').click(savePatient);
     $('#updatePatientBtn').click(updatePatient);
