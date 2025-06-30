@@ -244,31 +244,43 @@ function updateTest($pdo, $data) {
 }
 
 function deleteTest($pdo, $data) {
-    // Check test ID
-    if (!isset($data['test_id']) || empty($data['test_id'])) {
+    // Check test ID (support both 'id' and 'test_id' parameters)
+    $testId = $data['id'] ?? $data['test_id'] ?? null;
+    if (!$testId || empty($testId)) {
         http_response_code(400);
         echo json_encode(['success' => false, 'message' => "Test ID is required"]);
         return;
     }
     
     try {
-        // Check if test is referenced in test_orders
-        $stmt = $pdo->prepare("SELECT COUNT(*) FROM test_orders WHERE test_id = ?");
-        $stmt->execute([$data['test_id']]);
-        if ($stmt->fetchColumn() > 0) {
-            http_response_code(409);
-            echo json_encode(['success' => false, 'message' => 'Cannot delete: Test is linked to one or more orders']);
-            return;
+        // Check if test is referenced in test_orders (skip if table doesn't exist)
+        try {
+            $stmt = $pdo->prepare("SELECT COUNT(*) FROM test_orders WHERE test_id = ?");
+            $stmt->execute([$testId]);
+            if ($stmt->fetchColumn() > 0) {
+                http_response_code(409);
+                echo json_encode(['success' => false, 'message' => 'Cannot delete: Test is linked to one or more orders']);
+                return;
+            }
+        } catch (PDOException $e) {
+            // Table might not exist, continue with deletion
         }
         
         // Delete test
         $stmt = $pdo->prepare("DELETE FROM lab_tests WHERE id = ?");
-        $stmt->execute([$data['test_id']]);
+        $stmt->execute([$testId]);
         
-        echo json_encode([
-            'success' => true,
-            'message' => 'Test deleted successfully'
-        ]);
+        if ($stmt->rowCount() > 0) {
+            echo json_encode([
+                'success' => true,
+                'message' => 'Test deleted successfully'
+            ]);
+        } else {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Test not found'
+            ]);
+        }
         
     } catch (PDOException $e) {
         http_response_code(500);

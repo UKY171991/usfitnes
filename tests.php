@@ -61,72 +61,7 @@ include 'includes/sidebar.php';
                   </tr>
                 </thead>
                 <tbody id="testsTableBody">
-                  <tr>
-                    <td><span class="badge badge-info">CBC001</span></td>
-                    <td>Complete Blood Count</td>
-                    <td><span class="badge badge-secondary">Hematology</span></td>
-                    <td><strong>$25.00</strong></td>
-                    <td>24 hours</td>
-                    <td><span class="badge badge-danger">Blood</span></td>
-                    <td><span class="badge badge-success">Active</span></td>
-                    <td>
-                      <div class="btn-group" role="group">
-                        <button class="btn btn-sm btn-info btn-edit-test" data-id="CBC001" title="Edit">
-                          <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="btn btn-sm btn-warning btn-view-test" data-id="CBC001" title="View Details">
-                          <i class="fas fa-eye"></i>
-                        </button>
-                        <button class="btn btn-sm btn-danger btn-delete-test" data-id="CBC001" title="Delete">
-                          <i class="fas fa-trash"></i>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td><span class="badge badge-info">GLU001</span></td>
-                    <td>Glucose Test</td>
-                    <td><span class="badge badge-secondary">Chemistry</span></td>
-                    <td><strong>$15.00</strong></td>
-                    <td>12 hours</td>
-                    <td><span class="badge badge-danger">Blood</span></td>
-                    <td><span class="badge badge-success">Active</span></td>
-                    <td>
-                      <div class="btn-group" role="group">
-                        <button class="btn btn-sm btn-info btn-edit-test" data-id="GLU001" title="Edit">
-                          <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="btn btn-sm btn-warning btn-view-test" data-id="GLU001" title="View Details">
-                          <i class="fas fa-eye"></i>
-                        </button>
-                        <button class="btn btn-sm btn-danger btn-delete-test" data-id="GLU001" title="Delete">
-                          <i class="fas fa-trash"></i>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td><span class="badge badge-info">LFT001</span></td>
-                    <td>Liver Function Test</td>
-                    <td><span class="badge badge-secondary">Chemistry</span></td>
-                    <td><strong>$45.00</strong></td>
-                    <td>24 hours</td>
-                    <td><span class="badge badge-danger">Blood</span></td>
-                    <td><span class="badge badge-success">Active</span></td>
-                    <td>
-                      <div class="btn-group" role="group">
-                        <button class="btn btn-sm btn-info btn-edit-test" data-id="LFT001" title="Edit">
-                          <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="btn btn-sm btn-warning btn-view-test" data-id="LFT001" title="View Details">
-                          <i class="fas fa-eye"></i>
-                        </button>
-                        <button class="btn btn-sm btn-danger btn-delete-test" data-id="LFT001" title="Delete">
-                          <i class="fas fa-trash"></i>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
+                  <!-- Dynamic content will be loaded here -->
                 </tbody>
               </table>
             </div>
@@ -252,7 +187,9 @@ $(document).ready(function() {
                 className: 'btn btn-sm btn-secondary'
             }
         ]
-    }).buttons().container().appendTo('#testsTable_wrapper .col-md-6:eq(0)');    // Handle form submission
+    }).buttons().container().appendTo('#testsTable_wrapper .col-md-6:eq(0)');
+    
+    // Handle form submission
     $('#saveTestBtn').on('click', function() {
         var formData = {
             action: 'create',
@@ -263,7 +200,9 @@ $(document).ready(function() {
             turn_around_time: $('#turnaroundTime').val(),
             sample_type: $('#sampleType').val(),
             description: $('#description').val()
-        };        // Basic validation
+        };
+        
+        // Basic validation
         if (!formData.test_code || !formData.test_name || !formData.category || !formData.price) {
             showToaster('danger', 'Please fill in all required fields.');
             return;
@@ -347,23 +286,24 @@ $(document).ready(function() {
                     
                     response.data.forEach(function(test) {
                         table.row.add([
-                            test.test_code,
+                            '<span class="badge badge-info">' + test.test_code + '</span>',
                             test.test_name,
-                            test.category,
-                            '$' + parseFloat(test.price).toFixed(2),
+                            '<span class="badge badge-secondary">' + test.category + '</span>',
+                            '<strong>$' + parseFloat(test.price).toFixed(2) + '</strong>',
                             test.turn_around_time || 'N/A',
-                            test.sample_type || 'N/A',
-                            `<div class="btn-group" role="group">
-                                <button type="button" class="btn btn-info btn-sm btn-view-test" data-id="${test.id}" title="View">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                                <button type="button" class="btn btn-warning btn-sm btn-edit-test" data-id="${test.id}" title="Edit">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button type="button" class="btn btn-danger btn-sm btn-delete-test" data-id="${test.id}" title="Delete">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>`
+                            '<span class="badge badge-danger">' + (test.sample_type || 'N/A') + '</span>',
+                            '<span class="badge badge-success">Active</span>',
+                            '<div class="btn-group" role="group">' +
+                                '<button type="button" class="btn btn-info btn-sm btn-view-test" data-id="' + test.id + '" title="View">' +
+                                    '<i class="fas fa-eye"></i>' +
+                                '</button>' +
+                                '<button type="button" class="btn btn-warning btn-sm btn-edit-test" data-id="' + test.id + '" title="Edit">' +
+                                    '<i class="fas fa-edit"></i>' +
+                                '</button>' +
+                                '<button type="button" class="btn btn-danger btn-sm btn-delete-test" data-id="' + test.id + '" title="Delete">' +
+                                    '<i class="fas fa-trash"></i>' +
+                                '</button>' +
+                            '</div>'
                         ]);
                     });
                     
@@ -377,9 +317,10 @@ $(document).ready(function() {
                 showToaster('danger', 'Failed to load tests');
             }
         });
-    }    // Load tests on page load
+    }
+
+    // Load tests on page load
     loadTests();
-    });
 });
 </script>
 EOT;

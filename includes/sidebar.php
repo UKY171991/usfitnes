@@ -89,6 +89,12 @@
             </a>
           </li>
           <li class="nav-item">
+            <a href="view_all_data.php" class="nav-link <?php echo isActive('view_all_data.php'); ?>">
+              <i class="nav-icon fas fa-database"></i>
+              <p>View All Data</p>
+            </a>
+          </li>
+          <li class="nav-item">
             <a href="logout.php" class="nav-link">
               <i class="nav-icon fas fa-sign-out-alt"></i>
               <p>Logout</p>
