@@ -1,11 +1,14 @@
 <?php
 header('Content-Type: application/json');
-require_once '../includes/init.php';
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+require_once '../config.php';
 
 // Check if user is logged in
 if(!isset($_SESSION['user_id'])) {
     http_response_code(401);
-    echo json_encode(['error' => 'Unauthorized']);
+    echo json_encode(['success' => false, 'message' => 'Unauthorized access']);
     exit();
 }
 
