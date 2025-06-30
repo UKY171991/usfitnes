@@ -52,20 +52,16 @@ include 'includes/sidebar.php';
                     </div>
                   </div>
                   <div class="col-md-3">
-                    <button class="btn btn-info" id="refreshBtn">
+                    <button class="btn btn-info" id="refreshBtn" title="Refresh Table">
                       <i class="fas fa-sync-alt"></i> Refresh
                     </button>
                   </div>
                 </div>
-                <div id="loadingIndicator" class="text-center" style="display: none;">
-                  <div class="spinner-border text-primary" role="status">
-                    <span class="sr-only">Loading...</span>
-                  </div>
-                  <p>Loading patients...</p>
-                </div>
-                <table id="patientsTable" class="table table-bordered table-striped" style="display: none;">
+                <div class="table-responsive">
+                <table id="patientsTable" class="table table-bordered table-striped" style="width:100%">
                   <thead>
                   <tr>
+                    <th>ID</th>
                     <th>Patient ID</th>
                     <th>Full Name</th>
                     <th>Email</th>
@@ -79,11 +75,7 @@ include 'includes/sidebar.php';
                   <tbody id="patientsTableBody">
                   </tbody>
                 </table>
-                <!-- Pagination -->
-                <nav aria-label="Patient pagination" id="paginationContainer" style="display: none;">
-                  <ul class="pagination justify-content-center" id="pagination">
-                  </ul>
-                </nav>
+                </div>
               </div>
             </div>
           </div>
@@ -277,200 +269,105 @@ include 'includes/sidebar.php';
 <script src="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.2.0/js/adminlte.min.js"></script>
 
 <script>
-// Global variables
-let currentPage = 1;
-let currentSearch = '';
-const recordsPerPage = 10;
-
 $(document).ready(function() {
-    // Initialize page
-    loadPatients();
-    
-    // Initialize DataTable (fix for buttons/bootstrap4 error)
-    setTimeout(function() {
-        if ($.fn.DataTable.isDataTable('#patientsTable')) {
-            $('#patientsTable').DataTable().destroy();
-        }
-        $('#patientsTable').DataTable({
-            responsive: true,
-            lengthChange: true,
-            autoWidth: false,
-            pageLength: 10,
-            lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
-            buttons: ["copy", "csv", "excel", "pdf", "print", "colvis"]
-        }).buttons().container().appendTo('#patientsTable_wrapper .col-md-6:eq(0)');
-    }, 500);
+    // Initialize DataTable with server-side processing
+    const patientsTable = $('#patientsTable').DataTable({
+        "processing": true,
+        "serverSide": true,
+        "ajax": {
+            "url": "api/patients_api.php",
+            "type": "GET",
+            "dataType": "json",
+            "data": function(d) {
+                // DataTables sends its own parameters, we just need to ensure our API handles them.
+                // The 'success' property in our API response is not standard for DataTables,
+                // so we use dataSrc to map the response correctly.
+            },
+            "dataSrc": function(json) {
+                if (json.success) {
+                    return json.data;
+                } else {
+                    showAlert('error', 'Error loading patients: ' + (json.message || 'Unknown error'));
+                    return [];
+                }
+            }
+        },
+        "columns": [
+            { "data": "id" },
+            { "data": "patient_id", "render": function(data) {
+                return `<span class="badge badge-primary">${escapeHtml(data || 'N/A')}</span>`;
+            }},
+            { "data": "full_name", "render": function(data) { return escapeHtml(data); }},
+            { "data": "email", "render": function(data) { return escapeHtml(data || ''); }},
+            { "data": "phone", "render": function(data) { return escapeHtml(data || ''); }},
+            { "data": "gender", "render": function(data) {
+                const badgeClass = data === 'Male' ? 'info' : (data === 'Female' ? 'pink' : 'secondary');
+                return `<span class="badge badge-${badgeClass}">${escapeHtml(data || '')}</span>`;
+            }},
+            { "data": "date_of_birth", "render": function(data) {
+                return calculateAge(data) + ' years';
+            }},
+            { "data": "date_of_birth", "render": function(data) { return formatDate(data); }},
+            { 
+                "data": null,
+                "orderable": false,
+                "searchable": false,
+                "render": function(data, type, row) {
+                    return `
+                        <div class="btn-group">
+                            <button class="btn btn-info btn-sm btn-view" data-id="${row.id}" title="View Profile">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="btn btn-primary btn-sm btn-edit" data-id="${row.id}" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-danger btn-sm btn-delete" data-id="${row.id}" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    `;
+                }
+            }
+        ],
+        "responsive": true,
+        "lengthChange": true,
+        "autoWidth": false,
+        "pageLength": 10,
+        "lengthMenu": [[10, 25, 50, 100], [10, 25, 50, 100]],
+        "dom": 'lBfrtip', // Adds length, buttons, filtering, table, info, pagination
+        "buttons": ["copy", "csv", "excel", "pdf", "print", "colvis"]
+    });
     
     // Event listeners
     $('#savePatientBtn').click(savePatient);
     $('#updatePatientBtn').click(updatePatient);
-    $('#searchBtn').click(searchPatients);
-    $('#refreshBtn').click(function() {
-        currentSearch = '';
-        $('#searchInput').val('');
-        loadPatients();
-    });
+    $('#searchBtn').click(() => patientsTable.search($('#searchInput').val()).draw());
+    $('#refreshBtn').click(() => patientsTable.ajax.reload(null, false)); // Reload without resetting page
     
     // Search on Enter key
-    $('#searchInput').keypress(function(e) {
-        if (e.which == 13) {
-            searchPatients();
-        }
+    $('#searchInput').keypress(e => { if (e.which == 13) patientsTable.search($('#searchInput').val()).draw(); });
+
+    // Delegated event listeners for action buttons
+    $('#patientsTableBody').on('click', '.btn-edit', function() {
+        const patientId = $(this).data('id');
+        editPatient(patientId);
+    });
+
+    $('#patientsTableBody').on('click', '.btn-delete', function() {
+        const patientId = $(this).data('id');
+        deletePatient(patientId);
+    });
+
+    $('#patientsTableBody').on('click', '.btn-view', function() {
+        const patientId = $(this).data('id');
+        viewPatient(patientId);
     });
     
     // Clear form when modal closes
-    $('#addPatientModal').on('hidden.bs.modal', function() {
-        $('#addPatientForm')[0].reset();
-    });
-    
-    $('#editPatientModal').on('hidden.bs.modal', function() {
-        $('#editPatientForm')[0].reset();
+    $('#addPatientModal, #editPatientModal').on('hidden.bs.modal', function() {
+        $(this).find('form')[0].reset();
     });
 });
-
-// Load patients with AJAX
-function loadPatients(page = 1, search = '') {
-    currentPage = page;
-    currentSearch = search;
-    
-    showLoading();
-    
-    $.ajax({
-        url: 'api/patients_api.php',
-        method: 'GET',
-        data: {
-            page: page,
-            limit: recordsPerPage,
-            search: search
-        },
-        dataType: 'json',
-        success: function(response) {
-            hideLoading();
-            if (response.success) {
-                displayPatients(response.data);
-                displayPagination(response.pagination);
-            } else {
-                showAlert('error', 'Error loading patients: ' + response.message);
-            }
-        },
-        error: function(xhr, status, error) {
-            hideLoading();
-            console.error('AJAX Error:', error);
-            showAlert('error', 'Failed to load patients. Please try again.');
-        }
-    });
-}
-
-// Display patients in table
-function displayPatients(patients) {
-    const tbody = $('#patientsTableBody');
-    tbody.empty();
-    
-    if (patients.length === 0) {
-        tbody.append('<tr><td colspan="8" class="text-center">No patients found</td></tr>');
-        $('#patientsTable').show();
-        return;
-    }
-    
-    patients.forEach(function(patient) {
-        const age = calculateAge(patient.date_of_birth);
-        const row = `
-            <tr>
-                <td><span class="badge badge-primary">${patient.patient_id || 'N/A'}</span></td>
-                <td>${escapeHtml(patient.full_name)}</td>
-                <td>${escapeHtml(patient.email || '')}</td>
-                <td>${escapeHtml(patient.phone || '')}</td>
-                <td>
-                    <span class="badge badge-${patient.gender === 'Male' ? 'info' : (patient.gender === 'Female' ? 'danger' : 'secondary')}">
-                        ${escapeHtml(patient.gender || '')}
-                    </span>
-                </td>
-                <td>${age} years</td>
-                <td>${formatDate(patient.date_of_birth)}</td>
-                <td>
-                    <button class="btn btn-info btn-sm" onclick="viewPatient(${patient.id})" title="View Profile">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                    <button class="btn btn-success btn-sm" onclick="newTestOrder(${patient.id})" title="New Test Order">
-                        <i class="fas fa-plus-circle"></i>
-                    </button>
-                    <button class="btn btn-primary btn-sm" onclick="editPatient(${patient.id})" title="Edit">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="btn btn-danger btn-sm" onclick="deletePatient(${patient.id})" title="Delete">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </td>
-            </tr>
-        `;
-        tbody.append(row);
-    });
-    $('#patientsTable').show();
-    
-    $('#patientsTable').show();
-}
-
-// Display pagination
-function displayPagination(pagination) {
-    const container = $('#pagination');
-    container.empty();
-    
-    if (pagination.pages <= 1) {
-        $('#paginationContainer').hide();
-        return;
-    }
-    
-    // Previous button
-    const prevDisabled = pagination.page <= 1 ? 'disabled' : '';
-    container.append(`
-        <li class="page-item ${prevDisabled}">
-            <a class="page-link" href="#" onclick="loadPatients(${pagination.page - 1}, '${currentSearch}')">Previous</a>
-        </li>
-    `);
-    
-    // Page numbers
-    const startPage = Math.max(1, pagination.page - 2);
-    const endPage = Math.min(pagination.pages, pagination.page + 2);
-    
-    if (startPage > 1) {
-        container.append('<li class="page-item"><a class="page-link" href="#" onclick="loadPatients(1, \'' + currentSearch + '\')">1</a></li>');
-        if (startPage > 2) {
-            container.append('<li class="page-item disabled"><span class="page-link">...</span></li>');
-        }
-    }
-    
-    for (let i = startPage; i <= endPage; i++) {
-        const active = i === pagination.page ? 'active' : '';
-        container.append(`
-            <li class="page-item ${active}">
-                <a class="page-link" href="#" onclick="loadPatients(${i}, '${currentSearch}')">${i}</a>
-            </li>
-        `);
-    }
-    
-    if (endPage < pagination.pages) {
-        if (endPage < pagination.pages - 1) {
-            container.append('<li class="page-item disabled"><span class="page-link">...</span></li>');
-        }
-        container.append(`<li class="page-item"><a class="page-link" href="#" onclick="loadPatients(${pagination.pages}, '${currentSearch}')">${pagination.pages}</a></li>`);
-    }
-    
-    // Next button
-    const nextDisabled = pagination.page >= pagination.pages ? 'disabled' : '';
-    container.append(`
-        <li class="page-item ${nextDisabled}">
-            <a class="page-link" href="#" onclick="loadPatients(${pagination.page + 1}, '${currentSearch}')">Next</a>
-        </li>
-    `);
-    
-    $('#paginationContainer').show();
-}
-
-// Search patients
-function searchPatients() {
-    const search = $('#searchInput').val().trim();
-    loadPatients(1, search);
-}
 
 // Save new patient
 function savePatient() {
@@ -500,7 +397,7 @@ function savePatient() {
             if (response.success) {
                 showAlert('success', response.message);
                 $('#addPatientModal').modal('hide');
-                loadPatients(currentPage, currentSearch);
+                $('#patientsTable').DataTable().ajax.reload();
             } else {
                 showAlert('error', response.message);
             }
@@ -523,7 +420,7 @@ function editPatient(patientId) {
     // Get patient data
     $.ajax({
         url: 'api/patients_api.php',
-        method: 'GET',
+        method: 'GET', // This should be GET to fetch a single patient
         data: { id: patientId },
         dataType: 'json',
         success: function(response) {
@@ -581,7 +478,7 @@ function updatePatient() {
             if (response.success) {
                 showAlert('success', response.message);
                 $('#editPatientModal').modal('hide');
-                loadPatients(currentPage, currentSearch);
+                $('#patientsTable').DataTable().ajax.reload(null, false);
             } else {
                 showAlert('error', response.message);
             }
@@ -614,7 +511,7 @@ function deletePatient(patientId) {
         success: function(response) {
             if (response.success) {
                 showAlert('success', response.message);
-                loadPatients(currentPage, currentSearch);
+                $('#patientsTable').DataTable().ajax.reload(null, false);
             } else {
                 showAlert('error', response.message);
             }
@@ -633,27 +530,11 @@ function deletePatient(patientId) {
 
 // View patient details
 function viewPatient(patientId) {
-    // TODO: Implement patient detail view
-    showAlert('info', 'Patient detail view will be implemented in the next phase.');
-}
-
-// New test order for patient
-function newTestOrder(patientId) {
-    // Redirect to test orders page with patient ID
-    window.location.href = `test-orders.php?patient_id=${patientId}`;
+    // This can be expanded to a full modal view
+    showAlert('info', `Viewing details for patient ID: ${patientId}. This can be expanded to a modal.`);
 }
 
 // Utility functions
-function showLoading() {
-    $('#loadingIndicator').show();
-    $('#patientsTable').hide();
-    $('#paginationContainer').hide();
-}
-
-function hideLoading() {
-    $('#loadingIndicator').hide();
-}
-
 function showAlert(type, message) {
     const alertClass = type === 'success' ? 'alert-success' : 
                      type === 'error' ? 'alert-danger' : 

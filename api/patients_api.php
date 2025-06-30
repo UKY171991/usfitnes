@@ -60,30 +60,33 @@ function handleGet($pdo) {
         }
     } else {
         // Get all patients with pagination
-        $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-        $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 10;
-        $offset = ($page - 1) * $limit;
-        $search = isset($_GET['search']) ? $_GET['search'] : '';
+        $draw = isset($_GET['draw']) ? (int)$_GET['draw'] : 1;
+        $start = isset($_GET['start']) ? (int)$_GET['start'] : 0;
+        $length = isset($_GET['length']) ? (int)$_GET['length'] : 10;
+        $search = isset($_GET['search']['value']) ? $_GET['search']['value'] : '';
         
         $whereClause = '';
         $params = [];
         
         if (!empty($search)) {
             $whereClause = "WHERE full_name LIKE ? OR phone LIKE ? OR email LIKE ?";
-            $searchParam = "%$search%";
+            $searchParam = "%{$search}%";
             $params = [$searchParam, $searchParam, $searchParam];
         }
         
-        // Get total count
-        $countStmt = $pdo->prepare("SELECT COUNT(*) FROM patients $whereClause");
+        // Get total count for filtering
+        $countStmt = $pdo->prepare("SELECT COUNT(id) FROM patients $whereClause");
         $countStmt->execute($params);
-        $totalCount = $countStmt->fetchColumn();
+        $recordsFiltered = $countStmt->fetchColumn();
+
+        // Get total count without filtering
+        $totalStmt = $pdo->query("SELECT COUNT(id) FROM patients");
+        $recordsTotal = $totalStmt->fetchColumn();
         
         // Get patients
-        // LIMIT and OFFSET must be integers directly in the SQL string for MySQL/MariaDB
-        $limit = (int)$limit;
-        $offset = (int)$offset;
-        $sql = "SELECT * FROM patients $whereClause ORDER BY created_at DESC LIMIT $limit OFFSET $offset";
+        $sql = "SELECT * FROM patients $whereClause ORDER BY created_at DESC LIMIT ? OFFSET ?";
+        $params[] = (int)$length;
+        $params[] = (int)$start;
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
         $patients = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -91,12 +94,9 @@ function handleGet($pdo) {
         echo json_encode([
             'success' => true,
             'data' => $patients,
-            'pagination' => [
-                'page' => $page,
-                'limit' => $limit,
-                'total' => $totalCount,
-                'pages' => ceil($totalCount / $limit)
-            ]
+            'draw' => $draw,
+            'recordsTotal' => (int)$recordsTotal,
+            'recordsFiltered' => (int)$recordsFiltered
         ]);
     }
 }
