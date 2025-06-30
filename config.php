@@ -39,8 +39,9 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS patients (
     id INT AUTO_INCREMENT PRIMARY KEY,
     patient_id VARCHAR(20) UNIQUE NOT NULL,
-    first_name VARCHAR(50) NOT NULL,
-    last_name VARCHAR(50) NOT NULL,
+    full_name VARCHAR(100) NOT NULL,
+    first_name VARCHAR(50),
+    last_name VARCHAR(50),
     email VARCHAR(100),
     phone VARCHAR(20),
     address TEXT,
@@ -225,15 +226,15 @@ try {
         
         // Insert sample patients
         $patients = [
-            ['PAT001', 'John', 'Doe', 'john.doe@email.com', '123-456-7890', '123 Main St', '1985-05-15', 'Male'],
-            ['PAT002', 'Jane', 'Smith', 'jane.smith@email.com', '098-765-4321', '456 Oak Ave', '1990-08-22', 'Female'],
-            ['PAT003', 'Michael', 'Johnson', 'michael.j@email.com', '555-123-4567', '789 Pine Rd', '1975-12-10', 'Male'],
-            ['PAT004', 'Sarah', 'Wilson', 'sarah.w@email.com', '444-555-6666', '321 Elm St', '1988-03-18', 'Female']
+            ['PAT001', 'John Doe', 'John', 'Doe', 'john.doe@email.com', '123-456-7890', '123 Main St', '1985-05-15', 'Male'],
+            ['PAT002', 'Jane Smith', 'Jane', 'Smith', 'jane.smith@email.com', '098-765-4321', '456 Oak Ave', '1990-08-22', 'Female'],
+            ['PAT003', 'Michael Johnson', 'Michael', 'Johnson', 'michael.j@email.com', '555-123-4567', '789 Pine Rd', '1975-12-10', 'Male'],
+            ['PAT004', 'Sarah Wilson', 'Sarah', 'Wilson', 'sarah.w@email.com', '444-555-6666', '321 Elm St', '1988-03-18', 'Female']
         ];
         
         $insertPatient = $pdo->prepare("
-            INSERT INTO patients (patient_id, first_name, last_name, email, phone, address, date_of_birth, gender) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO patients (patient_id, full_name, first_name, last_name, email, phone, address, date_of_birth, gender) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
         foreach ($patients as $patient) {
             $insertPatient->execute($patient);

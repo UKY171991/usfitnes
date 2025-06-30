@@ -213,7 +213,8 @@ function handlePut($pdo, $input) {
             !empty($input['address']) ? trim($input['address']) : null,
             !empty($input['emergency_contact']) ? trim($input['emergency_contact']) : null,
             !empty($input['emergency_phone']) ? trim($input['emergency_phone']) : null,
-            $input['id']        ]);
+            $input['id']
+        ]);
         
         echo json_encode(['success' => true, 'message' => 'Patient updated successfully']);
         

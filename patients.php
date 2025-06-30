@@ -261,10 +261,6 @@ include 'includes/sidebar.php';
       </div>
     </div>
   </div>
-  <footer class="main-footer">
-    <strong>Copyright &copy; 2024 <a href="#">PathLab Pro</a>.</strong> All rights reserved.
-  </footer>
-</div>
 
 <!-- jQuery -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
@@ -354,13 +350,13 @@ function loadPatients(page = 1, search = '') {
                 displayPatients(response.data);
                 displayPagination(response.pagination);
             } else {
-                showToaster('danger', 'Error loading patients: ' + response.message);
+                showAlert('error', 'Error loading patients: ' + response.message);
             }
         },
         error: function(xhr, status, error) {
             hideLoading();
             console.error('AJAX Error:', error);
-            showToaster('danger', 'Failed to load patients. Please try again.');
+            showAlert('error', 'Failed to load patients. Please try again.');
         }
     });
 }
@@ -702,7 +698,8 @@ function calculateAge(birthDate) {
 
 function formatDate(dateString) {
     if (!dateString) return 'N/A';
-    const date = new Date(dateString);    return date.toLocaleDateString('en-US', { 
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
         year: 'numeric', 
         month: 'short', 
         day: 'numeric' 
