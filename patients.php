@@ -381,7 +381,7 @@ function displayPatients(patients) {
                 <td>${escapeHtml(patient.email || '')}</td>
                 <td>${escapeHtml(patient.phone || '')}</td>
                 <td>
-                    <span class="badge badge-${patient.gender === 'Male' ? 'info' : (patient.gender === 'Female' ? 'pink' : 'secondary')}">
+                    <span class="badge badge-${patient.gender === 'Male' ? 'info' : (patient.gender === 'Female' ? 'danger' : 'secondary')}">
                         ${escapeHtml(patient.gender || '')}
                     </span>
                 </td>
