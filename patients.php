@@ -7,6 +7,13 @@ include 'includes/header.php';
 // Include sidebar with user info
 include 'includes/sidebar.php';
 ?>
+<!-- Ensure jQuery is loaded first -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script>
+if (typeof jQuery == 'undefined') {
+  document.write('<script src="js/jquery-3.6.0.min.js"><\/script>');
+}
+</script>
   <!-- Content Wrapper. Contains page content -->
   <div class="content-wrapper">
     <div class="content-header">
