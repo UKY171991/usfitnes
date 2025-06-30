@@ -77,6 +77,34 @@ include 'includes/sidebar.php';
                 </table>
                 </div>
               </div>
+              <div class="card-header">
+                <h3 class="card-title">Patient Records</h3>
+                <button class="btn btn-primary float-right" id="addPatientBtn" data-toggle="modal" data-target="#addPatientModal">
+                  <i class="fas fa-plus"></i> Add New Patient
+                </button>
+              </div>
+              <div class="card-body">
+                <div class="table-responsive">
+                  <table id="patientsTable" class="table table-bordered table-striped" style="width:100%">
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>Patient ID</th>
+                        <th>Full Name</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Gender</th>
+                        <th>Age</th>
+                        <th>Date of Birth</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="patientsTableBody">
+                      <!-- DataTables will populate this -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           </div>
         </div>
