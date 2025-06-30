@@ -75,7 +75,8 @@
               <i class="nav-icon fas fa-chart-line"></i>
               <p>Reports</p>
             </a>
-          </li>          <li class="nav-item">
+          </li>
+          <li class="nav-item">
             <a href="equipment.php" class="nav-link <?php echo isActive('equipment.php'); ?>">
               <i class="nav-icon fas fa-microscope"></i>
               <p>Equipment</p>
