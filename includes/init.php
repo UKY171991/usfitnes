@@ -21,7 +21,7 @@ if(!isset($_SESSION['user_id'])) {
 $user_id = $_SESSION['user_id'] ?? null;
 $username = $_SESSION['username'] ?? 'Guest';
 $full_name = $_SESSION['full_name'] ?? 'Guest User';
-$user_type = $_SESSION['role'] ?? 'guest';
+$user_type = $_SESSION['user_type'] ?? $_SESSION['role'] ?? 'guest';
 $user_initial = strtoupper(substr($full_name, 0, 1));
 
 // Function to check if a menu item should be marked as active
