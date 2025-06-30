@@ -78,9 +78,11 @@ function handleGet($pdo) {
         $totalCount = $countStmt->fetchColumn();
         
         // Get patients
-        $stmt = $pdo->prepare("SELECT * FROM patients $whereClause ORDER BY created_at DESC LIMIT ? OFFSET ?");
-        $params[] = $limit;
-        $params[] = $offset;
+        // LIMIT and OFFSET must be integers directly in the SQL string for MySQL/MariaDB
+        $limit = (int)$limit;
+        $offset = (int)$offset;
+        $sql = "SELECT * FROM patients $whereClause ORDER BY created_at DESC LIMIT $limit OFFSET $offset";
+        $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
         $patients = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
