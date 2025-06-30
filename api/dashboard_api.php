@@ -107,7 +107,7 @@ function getRecentActivities($pdo) {
                 CONCAT('Test order #', order_id, ' for ', p.first_name, ' ', p.last_name) as description,
                 order_date as created_at
             FROM test_orders to
-            JOIN patients p ON to.patient_id = p.patient_id
+            JOIN patients p ON to.patient_id = p.id
             ORDER BY order_date DESC
             LIMIT 5
         ");
