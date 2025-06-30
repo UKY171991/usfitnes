@@ -5,7 +5,9 @@ header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE');
 header('Access-Control-Allow-Headers: Content-Type');
 
 // Start session to check authentication
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 // Check if user is logged in
 if (!isset($_SESSION['user_id'])) {
@@ -67,9 +69,9 @@ function handleGet($pdo) {
         $params = [];
         
         if (!empty($search)) {
-            $whereClause = "WHERE first_name LIKE ? OR last_name LIKE ? OR phone LIKE ? OR email LIKE ?";
+            $whereClause = "WHERE full_name LIKE ? OR phone LIKE ? OR email LIKE ?";
             $searchParam = "%$search%";
-            $params = [$searchParam, $searchParam, $searchParam, $searchParam];
+            $params = [$searchParam, $searchParam, $searchParam];
         }
         
         // Get total count
@@ -106,7 +108,7 @@ function handlePost($pdo, $input) {
     }
     
     // Validate required fields
-    $requiredFields = ['first_name', 'last_name', 'date_of_birth', 'gender', 'phone'];
+    $requiredFields = ['full_name', 'date_of_birth', 'gender', 'phone'];
     foreach ($requiredFields as $field) {
         if (!isset($input[$field]) || empty(trim($input[$field]))) {
             http_response_code(400);
@@ -136,14 +138,13 @@ function handlePost($pdo, $input) {
     
     try {
         $stmt = $pdo->prepare("
-            INSERT INTO patients (patient_id, first_name, last_name, date_of_birth, gender, phone, email, address, emergency_contact, emergency_phone)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO patients (patient_id, full_name, date_of_birth, gender, phone, email, address, emergency_contact, emergency_phone)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
         
         $stmt->execute([
             $patient_id,
-            trim($input['first_name']),
-            trim($input['last_name']),
+            trim($input['full_name']),
             $input['date_of_birth'],
             $input['gender'],
             trim($input['phone']),
@@ -198,14 +199,13 @@ function handlePut($pdo, $input) {
     try {
         $stmt = $pdo->prepare("
             UPDATE patients SET 
-                first_name = ?, last_name = ?, date_of_birth = ?, gender = ?, 
+                full_name = ?, date_of_birth = ?, gender = ?, 
                 phone = ?, email = ?, address = ?, emergency_contact = ?, emergency_phone = ?
             WHERE id = ?
         ");
         
         $stmt->execute([
-            trim($input['first_name']),
-            trim($input['last_name']),
+            trim($input['full_name']),
             $input['date_of_birth'],
             $input['gender'],
             trim($input['phone']),

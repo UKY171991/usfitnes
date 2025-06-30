@@ -104,16 +104,10 @@ include 'includes/sidebar.php';
         <div class="modal-body">
           <form id="addPatientForm">
             <div class="row">
-              <div class="col-md-6">
+              <div class="col-md-12">
                 <div class="form-group">
-                  <label for="firstName">First Name <span class="text-danger">*</span></label>
-                  <input type="text" class="form-control" id="firstName" name="first_name" required>
-                </div>
-              </div>
-              <div class="col-md-6">
-                <div class="form-group">
-                  <label for="lastName">Last Name <span class="text-danger">*</span></label>
-                  <input type="text" class="form-control" id="lastName" name="last_name" required>
+                  <label for="fullName">Full Name <span class="text-danger">*</span></label>
+                  <input type="text" class="form-control" id="fullName" name="full_name" required>
                 </div>
               </div>
             </div>
@@ -196,16 +190,10 @@ include 'includes/sidebar.php';
           <form id="editPatientForm">
             <input type="hidden" id="editPatientId" name="id">
             <div class="row">
-              <div class="col-md-6">
+              <div class="col-md-12">
                 <div class="form-group">
-                  <label for="editFirstName">First Name <span class="text-danger">*</span></label>
-                  <input type="text" class="form-control" id="editFirstName" name="first_name" required>
-                </div>
-              </div>
-              <div class="col-md-6">
-                <div class="form-group">
-                  <label for="editLastName">Last Name <span class="text-danger">*</span></label>
-                  <input type="text" class="form-control" id="editLastName" name="last_name" required>
+                  <label for="editFullName">Full Name <span class="text-danger">*</span></label>
+                  <input type="text" class="form-control" id="editFullName" name="full_name" required>
                 </div>
               </div>
             </div>
@@ -393,7 +381,7 @@ function displayPatients(patients) {
         const row = `
             <tr>
                 <td><span class="badge badge-primary">${patient.patient_id || 'N/A'}</span></td>
-                <td>${escapeHtml(patient.first_name + ' ' + patient.last_name)}</td>
+                <td>${escapeHtml(patient.full_name)}</td>
                 <td>${escapeHtml(patient.email || '')}</td>
                 <td>${escapeHtml(patient.phone || '')}</td>
                 <td>
@@ -546,8 +534,7 @@ function editPatient(patientId) {
                 
                 // Populate edit form
                 $('#editPatientId').val(patient.id);
-                $('#editFirstName').val(patient.first_name);
-                $('#editLastName').val(patient.last_name);
+                $('#editFullName').val(patient.full_name);
                 $('#editEmail').val(patient.email || '');
                 $('#editPhone').val(patient.phone);
                 $('#editGender').val(patient.gender);
