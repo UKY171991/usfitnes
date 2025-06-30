@@ -84,9 +84,9 @@ function handleGet($pdo) {
         $recordsTotal = $totalStmt->fetchColumn();
         
         // Get patients
-        $sql = "SELECT * FROM patients $whereClause ORDER BY created_at DESC LIMIT ? OFFSET ?";
-        $params[] = (int)$length;
-        $params[] = (int)$start;
+        $length = (int)$length;
+        $start = (int)$start;
+        $sql = "SELECT * FROM patients $whereClause ORDER BY created_at DESC LIMIT $length OFFSET $start";
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
         $patients = $stmt->fetchAll(PDO::FETCH_ASSOC);
