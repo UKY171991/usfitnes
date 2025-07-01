@@ -91,51 +91,64 @@ $test_orders = [
           </div>
         </div>
         
-        <!-- Test Orders DataTable -->
-        <div class="card">
-          <div class="card-header">
-            <h3 class="card-title"><i class="fas fa-clipboard-list mr-2"></i>Test Orders</h3>
-            <div class="card-tools">
-              <div class="btn-group">
-                <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#modal-add-order">
-                  <i class="fas fa-plus"></i> New Order
-                </button>
-                <button type="button" class="btn btn-secondary btn-sm" onclick="refreshTable()">
-                  <i class="fas fa-sync-alt"></i> Refresh
+        <!-- Controls Row -->
+        <div class="row mb-3">
+          <div class="col-md-6 mb-2 mb-md-0">
+            <div class="input-group">
+              <input type="text" class="form-control" id="searchInput" placeholder="Search test orders...">
+              <div class="input-group-append">
+                <button class="btn btn-outline-secondary" type="button" id="searchBtn" title="Search">
+                  <i class="fas fa-search"></i>
                 </button>
               </div>
             </div>
           </div>
-          <div class="card-body">
-            <!-- Filter Controls -->
-            <div class="row mb-3">
-              <div class="col-md-3">
-                <select class="form-control" id="statusFilter">
-                  <option value="">All Status</option>
-                  <option value="Pending">Pending</option>
-                  <option value="Sample_Collected">Sample Collected</option>
-                  <option value="In_Progress">In Progress</option>
-                  <option value="Completed">Completed</option>
-                </select>
-              </div>
-              <div class="col-md-3">
-                <select class="form-control" id="priorityFilter">
-                  <option value="">All Priorities</option>
-                  <option value="Normal">Normal</option>
-                  <option value="Urgent">Urgent</option>
-                  <option value="STAT">STAT</option>
-                </select>
-              </div>
-              <div class="col-md-3">
-                <input type="date" class="form-control" id="dateFilter" placeholder="Filter by date">
-              </div>
-              <div class="col-md-3">
-                <button class="btn btn-info btn-block" onclick="applyFilters()">
-                  <i class="fas fa-filter"></i> Apply Filters
-                </button>
-              </div>
-            </div>
+          <div class="col-md-3 mb-2 mb-md-0">
+            <button class="btn btn-info w-100" id="refreshBtn" title="Refresh Table">
+              <i class="fas fa-sync-alt"></i> Refresh
+            </button>
+          </div>
+          <div class="col-md-3 text-md-right">
+            <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#modal-add-order" title="Add New Test Order">
+              <i class="fas fa-plus"></i> Add New Test Order
+            </button>
+          </div>
+        </div>
 
+        <!-- Filter Controls -->
+        <div class="row mb-3">
+          <div class="col-md-3">
+            <select class="form-control" id="statusFilter">
+              <option value="">All Status</option>
+              <option value="Pending">Pending</option>
+              <option value="Sample_Collected">Sample Collected</option>
+              <option value="In_Progress">In Progress</option>
+              <option value="Completed">Completed</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <select class="form-control" id="priorityFilter">
+              <option value="">All Priorities</option>
+              <option value="Normal">Normal</option>
+              <option value="Urgent">Urgent</option>
+              <option value="STAT">STAT</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <input type="date" class="form-control" id="dateFilter" placeholder="Filter by date">
+          </div>
+          <div class="col-md-3">
+            <button class="btn btn-info btn-block" onclick="applyFilters()" title="Apply Filters">
+              <i class="fas fa-filter"></i> Apply Filters
+            </button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title"><i class="fas fa-clipboard-list mr-2"></i>Test Orders</h3>
+          </div>
+          <div class="card-body">
             <div class="table-responsive">
               <table id="ordersTable" class="table table-bordered table-striped table-hover">
                 <thead>
@@ -173,16 +186,16 @@ $test_orders = [
                     <td><?php echo date('M d, Y', strtotime($order['order_date'])); ?></td>
                     <td>
                       <div class="btn-group" role="group">
-                        <button class="btn btn-sm btn-info btn-view-order" data-id="<?php echo $order['id']; ?>" title="View">
+                        <button class="btn btn-sm btn-info btn-view-order" data-id="<?php echo $order['id']; ?>" title="View Order">
                           <i class="fas fa-eye"></i>
                         </button>
-                        <button class="btn btn-sm btn-warning btn-edit-order" data-id="<?php echo $order['id']; ?>" title="Edit">
+                        <button class="btn btn-sm btn-warning btn-edit-order" data-id="<?php echo $order['id']; ?>" title="Edit Order">
                           <i class="fas fa-edit"></i>
                         </button>
                         <button class="btn btn-sm btn-success btn-update-status" data-id="<?php echo $order['id']; ?>" title="Update Status">
                           <i class="fas fa-clipboard-check"></i>
                         </button>
-                        <button class="btn btn-sm btn-danger btn-delete-order" data-id="<?php echo $order['id']; ?>" title="Delete">
+                        <button class="btn btn-sm btn-danger btn-delete-order" data-id="<?php echo $order['id']; ?>" title="Delete Order">
                           <i class="fas fa-trash"></i>
                         </button>
                       </div>
@@ -432,6 +445,57 @@ function applyFilters() {
       // Here you would apply the filters to your DataTable
     showToaster('info', 'Filters applied successfully!');
 }
+
+function showAlert(type, message) {
+  const alertClass = type === 'success' ? 'alert-success' :
+                    type === 'error' ? 'alert-danger' :
+                    type === 'warning' ? 'alert-warning' : 'alert-info';
+  const icon = type === 'success' ? 'fas fa-check' :
+               type === 'error' ? 'fas fa-ban' :
+               type === 'warning' ? 'fas fa-exclamation-triangle' : 'fas fa-info-circle';
+  const alert = `
+    <div class="alert ${alertClass} alert-dismissible">
+      <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+      <i class="icon ${icon}"></i> ${message}
+    </div>
+  `;
+  document.getElementById('alertContainer').innerHTML = alert;
+  setTimeout(() => {
+    const el = document.querySelector('#alertContainer .alert');
+    if (el) el.style.display = 'none';
+  }, 5000);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.btn-view-order').forEach(btn => {
+    btn.addEventListener('click', function() {
+      showAlert('info', 'View Order: ' + this.dataset.id);
+    });
+  });
+  document.querySelectorAll('.btn-edit-order').forEach(btn => {
+    btn.addEventListener('click', function() {
+      showAlert('warning', 'Edit Order: ' + this.dataset.id);
+    });
+  });
+  document.querySelectorAll('.btn-update-status').forEach(btn => {
+    btn.addEventListener('click', function() {
+      showAlert('success', 'Update Status for Order: ' + this.dataset.id);
+    });
+  });
+  document.querySelectorAll('.btn-delete-order').forEach(btn => {
+    btn.addEventListener('click', function() {
+      if (confirm('Are you sure you want to delete this order?')) {
+        showAlert('error', 'Order deleted: ' + this.dataset.id);
+      }
+    });
+  });
+  document.getElementById('refreshBtn').addEventListener('click', function() {
+    showAlert('info', 'Table refreshed!');
+  });
+  document.getElementById('searchBtn').addEventListener('click', function() {
+    showAlert('info', 'Search: ' + document.getElementById('searchInput').value);
+  });
+});
 </script>
 EOT;
 
