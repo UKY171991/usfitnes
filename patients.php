@@ -35,35 +35,32 @@ if (typeof jQuery == 'undefined') {
       <div class="container-fluid">
         <!-- Alert Messages -->
         <div id="alertContainer"></div>
+        <div class="row mb-3">
+          <div class="col-md-6 mb-2 mb-md-0">
+            <div class="input-group">
+              <input type="text" class="form-control" id="searchInput" placeholder="Search patients...">
+              <div class="input-group-append">
+                <button class="btn btn-outline-secondary" type="button" id="searchBtn">
+                  <i class="fas fa-search"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3 mb-2 mb-md-0">
+            <button class="btn btn-info w-100" id="refreshBtn" title="Refresh Table">
+              <i class="fas fa-sync-alt"></i> Refresh
+            </button>
+          </div>
+          <div class="col-md-3 text-md-right">
+            <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#addPatientModal">
+              <i class="fas fa-plus"></i> Add New Patient
+            </button>
+          </div>
+        </div>
         <div class="row">
           <div class="col-12">
             <div class="card">
-              <div class="card-header">
-                <h3 class="card-title">Patient Records</h3>
-                <div class="card-tools">
-                  <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#addPatientModal">
-                    <i class="fas fa-plus"></i> Add New Patient
-                  </button>
-                </div>
-              </div>
               <div class="card-body">
-                <div class="row mb-3">
-                  <div class="col-md-6">
-                    <div class="input-group">
-                      <input type="text" class="form-control" id="searchInput" placeholder="Search patients...">
-                      <div class="input-group-append">
-                        <button class="btn btn-outline-secondary" type="button" id="searchBtn">
-                          <i class="fas fa-search"></i>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="col-md-3">
-                    <button class="btn btn-info" id="refreshBtn" title="Refresh Table">
-                      <i class="fas fa-sync-alt"></i> Refresh
-                    </button>
-                  </div>
-                </div>
                 <div class="table-responsive">
                   <table id="patientsTable" class="table table-bordered table-striped" style="width:100%">
                     <thead>
@@ -293,16 +290,23 @@ $(document).ready(function() {
             "type": "GET",
             "dataType": "json",
             "data": function(d) {
-                // Add any additional parameters if needed
                 return d;
             },
             "dataSrc": function(json) {
-                if (json.success) {
+                if (json.data !== undefined) {
                     return json.data;
                 } else {
                     showAlert('error', 'Error loading patients: ' + (json.message || 'Unknown error'));
                     return [];
                 }
+            },
+            "error": function(xhr, error, thrown) {
+                let msg = 'Unknown error';
+                try {
+                    msg = xhr.responseText ? xhr.responseText : error;
+                } catch (e) {}
+                showAlert('error', 'Error loading patients: ' + msg);
+                console.error('DataTables AJAX error:', msg);
             }
         },
         "columns": [
