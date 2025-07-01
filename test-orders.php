@@ -7,14 +7,6 @@ include 'includes/header.php';
 
 // Include sidebar with user info
 include 'includes/sidebar.php';
-
-// Sample data for test orders
-$test_orders = [
-    ['id' => 1, 'order_id' => 'ORD001', 'patient_name' => 'John Doe', 'test_name' => 'Complete Blood Count', 'priority' => 'Normal', 'status' => 'Pending', 'order_date' => '2025-06-18'],
-    ['id' => 2, 'order_id' => 'ORD002', 'patient_name' => 'Jane Smith', 'test_name' => 'Liver Function Test', 'priority' => 'Urgent', 'status' => 'Sample_Collected', 'order_date' => '2025-06-18'],
-    ['id' => 3, 'order_id' => 'ORD003', 'patient_name' => 'Mike Johnson', 'test_name' => 'Blood Glucose', 'priority' => 'STAT', 'status' => 'In_Progress', 'order_date' => '2025-06-17'],
-    ['id' => 4, 'order_id' => 'ORD004', 'patient_name' => 'Sarah Wilson', 'test_name' => 'Urine Analysis', 'priority' => 'Normal', 'status' => 'Completed', 'order_date' => '2025-06-17'],
-];
 ?>
 
   <!-- Content Wrapper. Contains page content -->
@@ -150,7 +142,7 @@ $test_orders = [
           </div>
           <div class="card-body">
             <div class="table-responsive">
-              <table id="ordersTable" class="table table-bordered table-striped table-hover">
+              <table id="ordersTable" class="table table-bordered table-striped table-hover" style="width:100%">
                 <thead>
                   <tr>
                     <th>Order ID</th>
@@ -162,47 +154,7 @@ $test_orders = [
                     <th>Actions</th>
                   </tr>
                 </thead>
-                <tbody>
-                  <?php foreach($test_orders as $order): ?>
-                  <tr>
-                    <td><span class="badge badge-primary"><?php echo htmlspecialchars($order['order_id']); ?></span></td>
-                    <td><?php echo htmlspecialchars($order['patient_name']); ?></td>
-                    <td><?php echo htmlspecialchars($order['test_name']); ?></td>
-                    <td>
-                      <?php 
-                      $priority_class = $order['priority'] === 'STAT' ? 'badge-danger' : 
-                                       ($order['priority'] === 'Urgent' ? 'badge-warning' : 'badge-secondary');
-                      ?>
-                      <span class="badge <?php echo $priority_class; ?>"><?php echo htmlspecialchars($order['priority']); ?></span>
-                    </td>
-                    <td>
-                      <?php 
-                      $status_class = $order['status'] === 'Completed' ? 'badge-success' : 
-                                     ($order['status'] === 'In_Progress' ? 'badge-warning' : 
-                                     ($order['status'] === 'Sample_Collected' ? 'badge-info' : 'badge-secondary'));
-                      ?>
-                      <span class="badge <?php echo $status_class; ?>"><?php echo str_replace('_', ' ', $order['status']); ?></span>
-                    </td>
-                    <td><?php echo date('M d, Y', strtotime($order['order_date'])); ?></td>
-                    <td>
-                      <div class="btn-group" role="group">
-                        <button class="btn btn-sm btn-info btn-view-order" data-id="<?php echo $order['id']; ?>" title="View Order">
-                          <i class="fas fa-eye"></i>
-                        </button>
-                        <button class="btn btn-sm btn-warning btn-edit-order" data-id="<?php echo $order['id']; ?>" title="Edit Order">
-                          <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="btn btn-sm btn-success btn-update-status" data-id="<?php echo $order['id']; ?>" title="Update Status">
-                          <i class="fas fa-clipboard-check"></i>
-                        </button>
-                        <button class="btn btn-sm btn-danger btn-delete-order" data-id="<?php echo $order['id']; ?>" title="Delete Order">
-                          <i class="fas fa-trash"></i>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                  <?php endforeach; ?>
-                </tbody>
+                <tbody></tbody>
               </table>
             </div>
           </div>
@@ -284,167 +236,256 @@ $test_orders = [
     </div>
   </div>
 
+  <!-- Modals for Add/Edit/View -->
+  <div class="modal fade" id="orderModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="orderModalTitle">Order</h5>
+          <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+        </div>
+        <div class="modal-body">
+          <form id="orderForm">
+            <input type="hidden" id="orderId" name="id">
+            <div class="form-group">
+              <label for="order_id">Order ID</label>
+              <input type="text" class="form-control" id="order_id" name="order_id" required>
+            </div>
+            <div class="form-group">
+              <label for="patient_name">Patient Name</label>
+              <input type="text" class="form-control" id="patient_name" name="patient_name" required>
+            </div>
+            <div class="form-group">
+              <label for="test_name">Test Name</label>
+              <input type="text" class="form-control" id="test_name" name="test_name" required>
+            </div>
+            <div class="form-group">
+              <label for="priority">Priority</label>
+              <select class="form-control" id="priority" name="priority" required>
+                <option value="Normal">Normal</option>
+                <option value="Urgent">Urgent</option>
+                <option value="STAT">STAT</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="status">Status</label>
+              <select class="form-control" id="status" name="status" required>
+                <option value="Pending">Pending</option>
+                <option value="Sample_Collected">Sample Collected</option>
+                <option value="In_Progress">In Progress</option>
+                <option value="Completed">Completed</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="order_date">Order Date</label>
+              <input type="date" class="form-control" id="order_date" name="order_date" required>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-primary" id="saveOrderBtn">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
 <?php
 // Additional scripts specific to the test orders page
 $additional_scripts = <<<EOT
 <script>
 $(document).ready(function() {
-    // Initialize DataTable
-    $('#ordersTable').DataTable({
-        responsive: true,
-        lengthChange: false,
-        autoWidth: false,
-        order: [[5, 'desc']], // Sort by order date descending
-        buttons: [
-            {
-                extend: 'copy',
-                className: 'btn btn-sm btn-secondary'
-            },
-            {
-                extend: 'csv',
-                className: 'btn btn-sm btn-secondary'
-            },
-            {
-                extend: 'excel',
-                className: 'btn btn-sm btn-secondary'
-            },
-            {
-                extend: 'pdf',
-                className: 'btn btn-sm btn-secondary'
-            },
-            {
-                extend: 'print',
-                className: 'btn btn-sm btn-secondary'
-            }
-        ]
-    }).buttons().container().appendTo('#ordersTable_wrapper .col-md-6:eq(0)');
-
-    // Initialize Select2
-    $('.select2').select2({
-        theme: 'bootstrap4',
-        width: '100%'
-    });    // Handle form submission
-    $('#saveOrderBtn').on('click', function() {
-        var formData = {
-            action: 'create',
-            patient_id: $('#patientSelect').val(),
-            test_id: $('#testSelect').val(),
-            priority: $('#priority').val(),
-            order_date: $('#orderDate').val(),
-            instructions: $('#instructions').val()
-        };
-
-        // Basic validation
-        if (!formData.patient_id || !formData.test_id || !formData.priority) {
-            showToaster('danger', 'Please fill in all required fields.');
-            return;
+  const table = $('#ordersTable').DataTable({
+    processing: true,
+    serverSide: true,
+    ajax: {
+      url: 'api/test_orders_api.php',
+      type: 'GET',
+      dataType: 'json',
+      dataSrc: function(json) {
+        if (json.data !== undefined) {
+          return json.data;
+        } else {
+          showAlert('error', 'Error loading orders: ' + (json.message || 'Unknown error'));
+          return [];
         }
+      },
+      error: function(xhr, error, thrown) {
+        let msg = 'Unknown error';
+        try { msg = xhr.responseText ? xhr.responseText : error; } catch (e) {}
+        showAlert('error', 'Error loading orders: ' + msg);
+        console.error('DataTables AJAX error:', msg);
+      }
+    },
+    columns: [
+      { data: 'order_id', render: data => `<span class="badge badge-primary">${data}</span>` },
+      { data: 'patient_name' },
+      { data: 'test_name' },
+      { data: 'priority', render: data => `<span class="badge badge-${data === 'STAT' ? 'danger' : (data === 'Urgent' ? 'warning' : 'secondary')}">${data}</span>` },
+      { data: 'status', render: data => `<span class="badge badge-${data === 'Completed' ? 'success' : (data === 'In_Progress' ? 'warning' : (data === 'Sample_Collected' ? 'info' : 'secondary'))}">${data.replace('_', ' ')}</span>` },
+      { data: 'order_date', render: data => new Date(data).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) },
+      { data: null, orderable: false, searchable: false, render: function(data, type, row) {
+        return `
+          <div class="btn-group" role="group">
+            <button class="btn btn-sm btn-info btn-view-order" data-id="${row.id}" title="View Order"><i class="fas fa-eye"></i></button>
+            <button class="btn btn-sm btn-warning btn-edit-order" data-id="${row.id}" title="Edit Order"><i class="fas fa-edit"></i></button>
+            <button class="btn btn-sm btn-success btn-update-status" data-id="${row.id}" title="Update Status"><i class="fas fa-clipboard-check"></i></button>
+            <button class="btn btn-sm btn-danger btn-delete-order" data-id="${row.id}" title="Delete Order"><i class="fas fa-trash"></i></button>
+          </div>`;
+      }}
+    ]
+  });
 
-        // Send data to API
-        $.ajax({
-            url: 'api/test_orders_api.php',
-            method: 'POST',
-            data: formData,
-            dataType: 'json',
-            success: function(response) {
-                if (response.success) {
-                    showToaster('success', 'Test order created successfully!');
-                    $('#modal-add-order').modal('hide');
-                    $('#addOrderForm')[0].reset();
-                    $('.select2').val(null).trigger('change');
-                    loadOrders(); // Reload the orders table
-                } else {
-                    showToaster('danger', response.message || 'Failed to create test order');
-                }
-            },
-            error: function(xhr, status, error) {
-                console.error('Error creating order:', error);
-                showToaster('danger', 'Failed to create test order. Please try again.');
-            }
-        });
-    });
-
-    // Handle button clicks
-    $(document).on('click', '.btn-view-order', function() {
-        var orderId = $(this).data('id');
-        // TODO: Implement view functionality
-        showToaster('info', 'View order functionality for order ' + orderId + ' will be implemented.');
-    });
-
-    $(document).on('click', '.btn-edit-order', function() {
-        var orderId = $(this).data('id');
-        // TODO: Implement edit functionality
-        showToaster('info', 'Edit order functionality for order ' + orderId + ' will be implemented.');
-    });
-
-    $(document).on('click', '.btn-update-status', function() {
-        var orderId = $(this).data('id');
-        // TODO: Implement status update functionality
-        showToaster('info', 'Update status functionality for order ' + orderId + ' will be implemented.');
-    });
-
-    $(document).on('click', '.btn-delete-order', function() {
-        var orderId = $(this).data('id');
-        if (confirm('Are you sure you want to delete this order?')) {
-            $.ajax({
-                url: 'api/test_orders_api.php',
-                method: 'POST',
-                data: {
-                    action: 'delete',
-                    id: orderId
-                },
-                dataType: 'json',
-                success: function(response) {
-                    if (response.success) {
-                        showToaster('success', 'Order deleted successfully!');
-                        loadOrders(); // Reload the orders table
-                    } else {
-                        showToaster('danger', response.message || 'Failed to delete order');
-                    }
-                },
-                error: function(xhr, status, error) {
-                    console.error('Error deleting order:', error);
-                    showToaster('danger', 'Failed to delete order. Please try again.');
-                }
-            });
-        }
-    });
-
-    // Load orders function
-    function loadOrders() {
-        $.ajax({
-            url: 'api/test_orders_api.php?action=list',
-            method: 'GET',
-            dataType: 'json',
-            success: function(response) {
-                if (response.success) {
-                    // Update the orders table with new data
-                    // This would need to be implemented based on your table structure
-                    console.log('Orders loaded:', response.data);
-                } else {
-                    showToaster('danger', 'Failed to load orders');
-                }
-            },
-            error: function(xhr, status, error) {
-                console.error('Error loading orders:', error);
-                showToaster('danger', 'Failed to load orders');
-            }
-        });
+  // Add Order
+  $('#saveOrderBtn').click(function() {
+    const form = $('#orderForm')[0];
+    if (!form.checkValidity()) {
+      form.reportValidity();
+      return;
     }
+    const data = Object.fromEntries(new FormData(form).entries());
+    const isEdit = !!data.id;
+    $.ajax({
+      url: 'api/test_orders_api.php',
+      type: isEdit ? 'PUT' : 'POST',
+      contentType: 'application/json',
+      data: JSON.stringify(data),
+      dataType: 'json',
+      success: function(response) {
+        if (response.success) {
+          showAlert('success', response.message);
+          $('#orderModal').modal('hide');
+          table.ajax.reload();
+        } else {
+          showAlert('error', response.message);
+        }
+      },
+      error: function(xhr) {
+        showAlert('error', xhr.responseText || 'Unknown error');
+      }
+    });
+  });
+
+  // Open Add Modal
+  $(document).on('click', '[data-target="#modal-add-order"]', function() {
+    $('#orderModalTitle').text('Add Test Order');
+    $('#orderForm')[0].reset();
+    $('#orderId').val('');
+    $('#orderModal').modal('show');
+  });
+
+  // Edit Order
+  $('#ordersTable').on('click', '.btn-edit-order', function() {
+    const id = $(this).data('id');
+    $.get('api/test_orders_api.php', { id }, function(response) {
+      if (response.success) {
+        const d = response.data;
+        $('#orderModalTitle').text('Edit Test Order');
+        $('#orderId').val(d.id);
+        $('#order_id').val(d.order_id);
+        $('#patient_name').val(d.patient_name);
+        $('#test_name').val(d.test_name);
+        $('#priority').val(d.priority);
+        $('#status').val(d.status);
+        $('#order_date').val(d.order_date);
+        $('#orderModal').modal('show');
+      } else {
+        showAlert('error', response.message);
+      }
+    }, 'json');
+  });
+
+  // Delete Order
+  $('#ordersTable').on('click', '.btn-delete-order', function() {
+    const id = $(this).data('id');
+    if (!confirm('Are you sure you want to delete this order?')) return;
+    $.ajax({
+      url: 'api/test_orders_api.php',
+      type: 'DELETE',
+      contentType: 'application/json',
+      data: JSON.stringify({ id }),
+      dataType: 'json',
+      success: function(response) {
+        if (response.success) {
+          showAlert('success', response.message);
+          table.ajax.reload();
+        } else {
+          showAlert('error', response.message);
+        }
+      },
+      error: function(xhr) {
+        showAlert('error', xhr.responseText || 'Unknown error');
+      }
+    });
+  });
+
+  // View Order
+  $('#ordersTable').on('click', '.btn-view-order', function() {
+    const id = $(this).data('id');
+    $.get('api/test_orders_api.php', { id }, function(response) {
+      if (response.success) {
+        const d = response.data;
+        let html = `<strong>Order ID:</strong> ${d.order_id}<br>
+                    <strong>Patient:</strong> ${d.patient_name}<br>
+                    <strong>Test Name:</strong> ${d.test_name}<br>
+                    <strong>Priority:</strong> ${d.priority}<br>
+                    <strong>Status:</strong> ${d.status}<br>
+                    <strong>Order Date:</strong> ${d.order_date}`;
+        $('#orderModalTitle').text('View Test Order');
+        $('#orderForm')[0].reset();
+        $('#orderForm input, #orderForm select').prop('disabled', true);
+        $('#orderForm').html(html);
+        $('#saveOrderBtn').hide();
+        $('#orderModal').modal('show');
+      } else {
+        showAlert('error', response.message);
+      }
+    }, 'json');
+  });
+
+  // Reset modal on close
+  $('#orderModal').on('hidden.bs.modal', function() {
+    $('#orderForm input, #orderForm select').prop('disabled', false);
+    $('#saveOrderBtn').show();
+    // Restore form fields if needed
+    $('#orderForm').html(`
+      <input type="hidden" id="orderId" name="id">
+      <div class="form-group">
+        <label for="order_id">Order ID</label>
+        <input type="text" class="form-control" id="order_id" name="order_id" required>
+      </div>
+      <div class="form-group">
+        <label for="patient_name">Patient Name</label>
+        <input type="text" class="form-control" id="patient_name" name="patient_name" required>
+      </div>
+      <div class="form-group">
+        <label for="test_name">Test Name</label>
+        <input type="text" class="form-control" id="test_name" name="test_name" required>
+      </div>
+      <div class="form-group">
+        <label for="priority">Priority</label>
+        <select class="form-control" id="priority" name="priority" required>
+          <option value="Normal">Normal</option>
+          <option value="Urgent">Urgent</option>
+          <option value="STAT">STAT</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="status">Status</label>
+        <select class="form-control" id="status" name="status" required>
+          <option value="Pending">Pending</option>
+          <option value="Sample_Collected">Sample Collected</option>
+          <option value="In_Progress">In Progress</option>
+          <option value="Completed">Completed</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="order_date">Order Date</label>
+        <input type="date" class="form-control" id="order_date" name="order_date" required>
+      </div>
+    `);
+  });
 });
-
-function refreshTable() {
-    $('#ordersTable').DataTable().ajax.reload();
-    showToaster('info', 'Table refreshed successfully!');
-}
-
-function applyFilters() {
-    var status = $('#statusFilter').val();
-    var priority = $('#priorityFilter').val();
-    var date = $('#dateFilter').val();
-      // Here you would apply the filters to your DataTable
-    showToaster('info', 'Filters applied successfully!');
-}
 
 function showAlert(type, message) {
   const alertClass = type === 'success' ? 'alert-success' :
@@ -465,37 +506,6 @@ function showAlert(type, message) {
     if (el) el.style.display = 'none';
   }, 5000);
 }
-
-document.addEventListener('DOMContentLoaded', function() {
-  document.querySelectorAll('.btn-view-order').forEach(btn => {
-    btn.addEventListener('click', function() {
-      showAlert('info', 'View Order: ' + this.dataset.id);
-    });
-  });
-  document.querySelectorAll('.btn-edit-order').forEach(btn => {
-    btn.addEventListener('click', function() {
-      showAlert('warning', 'Edit Order: ' + this.dataset.id);
-    });
-  });
-  document.querySelectorAll('.btn-update-status').forEach(btn => {
-    btn.addEventListener('click', function() {
-      showAlert('success', 'Update Status for Order: ' + this.dataset.id);
-    });
-  });
-  document.querySelectorAll('.btn-delete-order').forEach(btn => {
-    btn.addEventListener('click', function() {
-      if (confirm('Are you sure you want to delete this order?')) {
-        showAlert('error', 'Order deleted: ' + this.dataset.id);
-      }
-    });
-  });
-  document.getElementById('refreshBtn').addEventListener('click', function() {
-    showAlert('info', 'Table refreshed!');
-  });
-  document.getElementById('searchBtn').addEventListener('click', function() {
-    showAlert('info', 'Search: ' + document.getElementById('searchInput').value);
-  });
-});
 </script>
 EOT;
 

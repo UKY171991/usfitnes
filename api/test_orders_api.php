@@ -1,7 +1,11 @@
 <?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE');
+header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type');
 
 if (session_status() === PHP_SESSION_NONE) {
@@ -46,266 +50,102 @@ try {
 
 function handleGet($pdo) {
     if (isset($_GET['id'])) {
-        // Get single test order
-        $stmt = $pdo->prepare("
-            SELECT to.*, 
-                   CONCAT(p.first_name, ' ', p.last_name) as patient_name,
-                   CONCAT(d.first_name, ' ', d.last_name) as doctor_name
-            FROM test_orders to
-            LEFT JOIN patients p ON to.patient_id = p.patient_id
-            LEFT JOIN doctors d ON to.doctor_id = d.doctor_id
-            WHERE to.order_id = ?
-        ");
+        $stmt = $pdo->prepare('SELECT * FROM test_orders WHERE id = ?');
         $stmt->execute([$_GET['id']]);
         $order = $stmt->fetch(PDO::FETCH_ASSOC);
-        
         if ($order) {
             echo json_encode(['success' => true, 'data' => $order]);
         } else {
             http_response_code(404);
-            echo json_encode(['success' => false, 'message' => 'Test order not found']);
+            echo json_encode(['success' => false, 'message' => 'Order not found']);
         }
-    } else {
-        // Get all test orders with pagination
-        $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-        $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 10;
-        $offset = ($page - 1) * $limit;
-        $search = isset($_GET['search']) ? $_GET['search'] : '';
-        $status = isset($_GET['status']) ? $_GET['status'] : '';
-        
-        $whereClause = '';
-        $params = [];
-        
-        $conditions = [];
-        if (!empty($search)) {
-            $conditions[] = "(test_name LIKE ? OR CONCAT(p.first_name, ' ', p.last_name) LIKE ?)";
-            $searchParam = "%$search%";
-            $params[] = $searchParam;
-            $params[] = $searchParam;
-        }
-        
-        if (!empty($status)) {
-            $conditions[] = "to.status = ?";
-            $params[] = $status;
-        }
-        
-        if (!empty($conditions)) {
-            $whereClause = "WHERE " . implode(" AND ", $conditions);
-        }
-        
-        // Get total count
-        $countStmt = $pdo->prepare("
-            SELECT COUNT(*) FROM test_orders to
-            LEFT JOIN patients p ON to.patient_id = p.patient_id
-            $whereClause
-        ");
-        $countStmt->execute($params);
-        $totalCount = $countStmt->fetchColumn();
-        
-        // Get test orders
-        $stmt = $pdo->prepare("
-            SELECT to.*, 
-                   CONCAT(p.first_name, ' ', p.last_name) as patient_name,
-                   CONCAT(d.first_name, ' ', d.last_name) as doctor_name
-            FROM test_orders to
-            LEFT JOIN patients p ON to.patient_id = p.patient_id
-            LEFT JOIN doctors d ON to.doctor_id = d.doctor_id
-            $whereClause
-            ORDER BY to.order_date DESC
-            LIMIT ? OFFSET ?
-        ");
-        $params[] = $limit;
-        $params[] = $offset;
-        $stmt->execute($params);
-        $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
-        echo json_encode([
-            'success' => true,
-            'data' => $orders,
-            'pagination' => [
-                'page' => $page,
-                'limit' => $limit,
-                'total' => $totalCount,
-                'pages' => ceil($totalCount / $limit)
-            ]
-        ]);
+        return;
     }
+    $draw   = isset($_GET['draw']) ? (int)$_GET['draw'] : 1;
+    $start  = isset($_GET['start']) ? (int)$_GET['start'] : 0;
+    $length = isset($_GET['length']) ? (int)$_GET['length'] : 10;
+    $search = isset($_GET['search']['value']) ? trim($_GET['search']['value']) : '';
+    $where = '';
+    $params = [];
+    if ($search !== '') {
+        $where = "WHERE order_id LIKE ? OR patient_name LIKE ? OR test_name LIKE ?";
+        $searchParam = "%$search%";
+        $params = [$searchParam, $searchParam, $searchParam];
+    }
+    $recordsTotal = (int)$pdo->query('SELECT COUNT(*) FROM test_orders')->fetchColumn();
+    $sqlCount = "SELECT COUNT(*) FROM test_orders $where";
+    $stmt = $pdo->prepare($sqlCount);
+    $stmt->execute($params);
+    $recordsFiltered = (int)$stmt->fetchColumn();
+    $sql = "SELECT * FROM test_orders $where ORDER BY order_date DESC LIMIT $length OFFSET $start";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+    $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    echo json_encode([
+        'draw' => $draw,
+        'recordsTotal' => $recordsTotal,
+        'recordsFiltered' => $recordsFiltered,
+        'data' => $data
+    ]);
 }
 
 function handlePost($pdo, $input) {
-    // Validate required fields
-    $requiredFields = ['patient_id', 'test_name', 'test_type'];
-    foreach ($requiredFields as $field) {
-        if (!isset($input[$field]) || empty($input[$field])) {
+    if (empty($input)) $input = $_POST;
+    $required = ['order_id', 'patient_name', 'test_name', 'priority', 'status', 'order_date'];
+    foreach ($required as $field) {
+        if (empty($input[$field])) {
             http_response_code(400);
             echo json_encode(['success' => false, 'message' => "Field '$field' is required"]);
             return;
         }
     }
-    
-    // Validate patient exists
-    $stmt = $pdo->prepare("SELECT patient_id FROM patients WHERE patient_id = ?");
-    $stmt->execute([$input['patient_id']]);
-    if (!$stmt->fetch()) {
-        http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'Invalid patient ID']);
-        return;
-    }
-    
-    // Validate doctor exists if provided
-    if (!empty($input['doctor_id'])) {
-        $stmt = $pdo->prepare("SELECT doctor_id FROM doctors WHERE doctor_id = ?");
-        $stmt->execute([$input['doctor_id']]);
-        if (!$stmt->fetch()) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Invalid doctor ID']);
-            return;
-        }
-    }
-    
-    try {
-        $stmt = $pdo->prepare("
-            INSERT INTO test_orders (patient_id, doctor_id, test_name, test_type, test_cost, total_amount, status, priority, notes)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ");
-        
-        $test_cost = isset($input['test_cost']) ? (float)$input['test_cost'] : 0.00;
-        $total_amount = isset($input['total_amount']) ? (float)$input['total_amount'] : $test_cost;
-        $status = isset($input['status']) ? $input['status'] : 'pending';
-        $priority = isset($input['priority']) ? $input['priority'] : 'normal';
-        
-        $stmt->execute([
-            $input['patient_id'],
-            !empty($input['doctor_id']) ? $input['doctor_id'] : null,
-            trim($input['test_name']),
-            trim($input['test_type']),
-            $test_cost,
-            $total_amount,
-            $status,
-            $priority,
-            !empty($input['notes']) ? trim($input['notes']) : null
-        ]);
-        
-        $orderId = $pdo->lastInsertId();
-        
-        echo json_encode([
-            'success' => true,
-            'message' => 'Test order created successfully',
-            'data' => ['order_id' => $orderId]
-        ]);
-        
-    } catch (PDOException $e) {
-        http_response_code(500);
-        echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
-    }
+    $stmt = $pdo->prepare('INSERT INTO test_orders (order_id, patient_name, test_name, priority, status, order_date) VALUES (?, ?, ?, ?, ?, ?)');
+    $stmt->execute([
+        $input['order_id'],
+        $input['patient_name'],
+        $input['test_name'],
+        $input['priority'],
+        $input['status'],
+        $input['order_date']
+    ]);
+    $id = $pdo->lastInsertId();
+    echo json_encode(['success' => true, 'message' => 'Order added successfully', 'data' => ['id' => $id]]);
 }
 
 function handlePut($pdo, $input) {
-    if (!isset($input['order_id'])) {
+    if (empty($input)) $input = $_POST;
+    if (empty($input['id'])) {
         http_response_code(400);
         echo json_encode(['success' => false, 'message' => 'Order ID is required']);
         return;
     }
-    
-    // Check if order exists
-    $stmt = $pdo->prepare("SELECT order_id FROM test_orders WHERE order_id = ?");
-    $stmt->execute([$input['order_id']]);
-    if (!$stmt->fetch()) {
-        http_response_code(404);
-        echo json_encode(['success' => false, 'message' => 'Test order not found']);
-        return;
-    }
-    
-    // Validate patient exists if provided
-    if (isset($input['patient_id'])) {
-        $stmt = $pdo->prepare("SELECT patient_id FROM patients WHERE patient_id = ?");
-        $stmt->execute([$input['patient_id']]);
-        if (!$stmt->fetch()) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Invalid patient ID']);
-            return;
-        }
-    }
-    
-    // Validate doctor exists if provided
-    if (!empty($input['doctor_id'])) {
-        $stmt = $pdo->prepare("SELECT doctor_id FROM doctors WHERE doctor_id = ?");
-        $stmt->execute([$input['doctor_id']]);
-        if (!$stmt->fetch()) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Invalid doctor ID']);
-            return;
-        }
-    }
-    
-    try {
-        $stmt = $pdo->prepare("
-            UPDATE test_orders SET 
-                patient_id = COALESCE(?, patient_id),
-                doctor_id = ?,
-                test_name = COALESCE(?, test_name),
-                test_type = COALESCE(?, test_type),
-                test_cost = COALESCE(?, test_cost),
-                total_amount = COALESCE(?, total_amount),
-                status = COALESCE(?, status),
-                priority = COALESCE(?, priority),
-                notes = ?
-            WHERE order_id = ?
-        ");
-        
-        $stmt->execute([
-            $input['patient_id'] ?? null,
-            !empty($input['doctor_id']) ? $input['doctor_id'] : null,
-            isset($input['test_name']) ? trim($input['test_name']) : null,
-            isset($input['test_type']) ? trim($input['test_type']) : null,
-            isset($input['test_cost']) ? (float)$input['test_cost'] : null,
-            isset($input['total_amount']) ? (float)$input['total_amount'] : null,
-            $input['status'] ?? null,
-            $input['priority'] ?? null,
-            isset($input['notes']) ? trim($input['notes']) : null,
-            $input['order_id']
-        ]);
-        
-        echo json_encode(['success' => true, 'message' => 'Test order updated successfully']);
-        
-    } catch (PDOException $e) {
-        http_response_code(500);
-        echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
-    }
+    $stmt = $pdo->prepare('UPDATE test_orders SET order_id=?, patient_name=?, test_name=?, priority=?, status=?, order_date=? WHERE id=?');
+    $stmt->execute([
+        $input['order_id'],
+        $input['patient_name'],
+        $input['test_name'],
+        $input['priority'],
+        $input['status'],
+        $input['order_date'],
+        $input['id']
+    ]);
+    echo json_encode(['success' => true, 'message' => 'Order updated successfully']);
 }
 
 function handleDelete($pdo, $input) {
-    if (!isset($input['order_id'])) {
+    if (empty($input)) $input = $_POST;
+    if (empty($input['id'])) {
         http_response_code(400);
         echo json_encode(['success' => false, 'message' => 'Order ID is required']);
         return;
     }
-    
-    try {
-        // Check if order has results
-        $stmt = $pdo->prepare("SELECT COUNT(*) FROM test_results WHERE order_id = ?");
-        $stmt->execute([$input['order_id']]);
-        $resultCount = $stmt->fetchColumn();
-        
-        if ($resultCount > 0) {
-            http_response_code(409);
-            echo json_encode(['success' => false, 'message' => 'Cannot delete test order with existing results']);
-            return;
-        }
-        
-        $stmt = $pdo->prepare("DELETE FROM test_orders WHERE order_id = ?");
-        $stmt->execute([$input['order_id']]);
-        
-        if ($stmt->rowCount() > 0) {
-            echo json_encode(['success' => true, 'message' => 'Test order deleted successfully']);
-        } else {
-            http_response_code(404);
-            echo json_encode(['success' => false, 'message' => 'Test order not found']);
-        }
-        
-    } catch (PDOException $e) {
-        http_response_code(500);
-        echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
+    $stmt = $pdo->prepare('DELETE FROM test_orders WHERE id = ?');
+    $stmt->execute([$input['id']]);
+    if ($stmt->rowCount() > 0) {
+        echo json_encode(['success' => true, 'message' => 'Order deleted successfully']);
+    } else {
+        http_response_code(404);
+        echo json_encode(['success' => false, 'message' => 'Order not found']);
     }
 }
 ?>
