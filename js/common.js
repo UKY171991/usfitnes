@@ -295,10 +295,198 @@ function initializeDataTable(tableId, options = {}) {
   return $('#' + tableId).DataTable(mergedOptions);
 }
 
+// Contact form handling
+function initializeContactForm() {
+    const contactForm = document.getElementById('contactForm');
+    if (!contactForm) return;
+
+    // Form validation
+    const validateForm = () => {
+        let isValid = true;
+        const formData = new FormData(contactForm);
+        
+        // Clear previous validation
+        contactForm.querySelectorAll('.form-control').forEach(input => {
+            input.classList.remove('is-invalid', 'is-valid');
+            const feedback = input.parentNode.querySelector('.invalid-feedback, .valid-feedback');
+            if (feedback) feedback.remove();
+        });
+
+        // Required fields validation
+        const requiredFields = [
+            { name: 'firstName', label: 'First Name' },
+            { name: 'lastName', label: 'Last Name' },
+            { name: 'email', label: 'Email Address' },
+            { name: 'subject', label: 'Subject' },
+            { name: 'message', label: 'Message' }
+        ];
+
+        requiredFields.forEach(field => {
+            const input = contactForm.querySelector(`[name="${field.name}"]`);
+            const value = formData.get(field.name);
+            
+            if (!value || value.trim() === '') {
+                showFieldError(input, `${field.label} is required`);
+                isValid = false;
+            } else if (field.name === 'email' && !isValidEmail(value)) {
+                showFieldError(input, 'Please enter a valid email address');
+                isValid = false;
+            } else {
+                showFieldSuccess(input);
+            }
+        });
+
+        return isValid;
+    };
+
+    const showFieldError = (input, message) => {
+        input.classList.add('is-invalid');
+        const feedback = document.createElement('div');
+        feedback.className = 'invalid-feedback';
+        feedback.textContent = message;
+        input.parentNode.appendChild(feedback);
+    };
+
+    const showFieldSuccess = (input) => {
+        input.classList.add('is-valid');
+    };
+
+    const isValidEmail = (email) => {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+    };
+
+    // Real-time validation
+    contactForm.addEventListener('input', (e) => {
+        const input = e.target;
+        if (input.classList.contains('form-control')) {
+            // Clear previous validation state
+            input.classList.remove('is-invalid', 'is-valid');
+            const feedback = input.parentNode.querySelector('.invalid-feedback, .valid-feedback');
+            if (feedback) feedback.remove();
+
+            // Validate on input
+            const value = input.value.trim();
+            if (input.required && value === '') {
+                // Don't show error while typing
+                return;
+            } else if (input.type === 'email' && value && !isValidEmail(value)) {
+                showFieldError(input, 'Please enter a valid email address');
+            } else if (value) {
+                showFieldSuccess(input);
+            }
+        }
+    });
+
+    // Form submission
+    contactForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        if (!validateForm()) {
+            showAlert('error', 'Please correct the errors in the form before submitting.');
+            return;
+        }
+
+        const submitBtn = contactForm.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        
+        // Show loading state
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Sending...';
+
+        try {
+            // Submit form data
+            const formData = new FormData(contactForm);
+            const response = await fetch('contact_handler.php', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                // Show success message
+                showAlert('success', result.message);
+                
+                // Reset form
+                contactForm.reset();
+                contactForm.querySelectorAll('.form-control').forEach(input => {
+                    input.classList.remove('is-invalid', 'is-valid');
+                });
+                
+                // Scroll to top of contact section
+                document.getElementById('contact').scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'start' 
+                });
+            } else {
+                showAlert('error', result.message);
+            }
+            
+        } catch (error) {
+            showAlert('error', 'Sorry, there was an error sending your message. Please try again or contact us directly.');
+            console.error('Contact form error:', error);
+        } finally {
+            // Restore button state
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+        }
+    });
+}
+
+// Smooth scrolling for contact section links
+function initializeContactScrolling() {
+    // Handle navbar contact link
+    document.addEventListener('click', (e) => {
+        const target = e.target.closest('a[href="#contact"]');
+        if (target) {
+            e.preventDefault();
+            const contactSection = document.getElementById('contact');
+            if (contactSection) {
+                contactSection.scrollIntoView({ 
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }
+        }
+    });
+}
+
+// Initialize contact form animations
+function initializeContactAnimations() {
+    const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.animationPlayState = 'running';
+            }
+        });
+    }, observerOptions);
+
+    // Observe contact section elements
+    document.querySelectorAll('#contact .fade-in-up').forEach(el => {
+        el.style.animationPlayState = 'paused';
+        observer.observe(el);
+    });
+}
+
 // Initialize on document ready
 $(document).ready(function() {
   // Initialize form components
   initializeFormComponents();
+  
+  // Initialize contact form
+  initializeContactForm();
+  
+  // Initialize smooth scrolling for contact section
+  initializeContactScrolling();
+  
+  // Initialize contact form animations
+  initializeContactAnimations();
   
   // Add global AJAX error handling
   $(document).ajaxError(function(event, jqxhr, settings, thrownError) {

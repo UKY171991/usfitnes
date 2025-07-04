@@ -18,6 +18,11 @@ $(document).ready(function() {
   initButtonEffects();
   initSmoothScrolling();
   
+  // Initialize contact form functionality
+  initializeContactForm();
+  initializeContactScrolling();
+  initializeContactAnimations();
+  
   // Force navbar visibility on page load
   forceNavbarVisibility();
 });
@@ -279,3 +284,54 @@ document.addEventListener('mousemove', (e) => {
 // Uncomment to enable typing effect for hero title
 // const heroTitle = document.querySelector('.hero-title');
 // if (heroTitle) typeWriter(heroTitle, 'PathLab Pro');
+
+/**
+ * Initialize contact form functionality
+ */
+function initializeContactForm() {
+  // Handle form submission
+  $('#contactForm').on('submit', function(e) {
+    e.preventDefault();
+    
+    // Simple validation
+    const name = $('#name').val().trim();
+    const email = $('#email').val().trim();
+    const message = $('#message').val().trim();
+    
+    if (!name || !email || !message) {
+      alert('Please fill in all fields.');
+      return;
+    }
+    
+    // Simulate form submission
+    setTimeout(() => {
+      alert('Thank you for your message! We will get back to you soon.');
+      $('#contactForm')[0].reset();
+    }, 500);
+  });
+}
+
+/**
+ * Initialize contact scrolling behavior
+ */
+function initializeContactScrolling() {
+  // Smooth scroll to contact section
+  $('#scrollToContact').on('click', function(e) {
+    e.preventDefault();
+    const target = $('#contactSection');
+    if (target.length) {
+      $('html, body').animate({
+        scrollTop: target.offset().top - 80
+      }, 800, 'easeInOutQuart');
+    }
+  });
+}
+
+/**
+ * Initialize contact form animations
+ */
+function initializeContactAnimations() {
+  // Fade in contact form on page load
+  $('#contactSection').css('opacity', '0');
+  $('#contactSection').animate({ opacity: 1 }, 1000, 'easeInOutQuart');
+}
