@@ -1,26 +1,13 @@
-<?php
-// Include init for logo functions
-require_once 'includes/init.php';
-?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Terms and Conditions - PathLab Pro</title>
+    <meta name="description" content="Terms and Conditions for PathLab Pro Laboratory Management System">
+    <meta name="keywords" content="terms, conditions, privacy, pathlab pro, laboratory management">
     
-    <!-- Google Font: Source Sans Pro -->
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Bootstrap -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/css/bootstrap.min.css">
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="css/custom.css">
-    <!-- Home Page Styles -->
-    <link rel="stylesheet" href="css/home.css">
-    <!-- Navbar Fix -->
-    <link rel="stylesheet" href="css/navbar-fix.css">
+    <?php include 'includes/public-head.php'; ?>
     
     <style>
         body {
@@ -173,56 +160,9 @@ require_once 'includes/init.php';
                 font-size: 1.6rem;
             }
         }
-    </style>
 </head>
 <body>
-    <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-light navbar-custom fixed-top">
-        <div class="container">
-            <a class="navbar-brand d-flex align-items-center" href="index.php">
-                <?php if (hasLogo()): ?>
-                    <img src="<?php echo getLogoPath(); ?>" alt="PathLab Pro Logo" height="35" class="me-2 mr-2">
-                <?php else: ?>
-                    <i class="fas fa-microscope mr-2" style="font-size: 1.8rem; color: var(--primary-color);"></i>
-                <?php endif; ?>
-                <span style="font-weight: 700; font-size: 1.8rem;">PathLab Pro</span>
-            </a>
-            
-            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ml-auto align-items-lg-center">
-                    <li class="nav-item">
-                        <a class="nav-link" href="index.php#home">
-                            <i class="fas fa-home mr-1"></i>Home
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="index.php#features">
-                            <i class="fas fa-star mr-1"></i>Features
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="index.php#about">
-                            <i class="fas fa-info-circle mr-1"></i>About
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="index.php#contact">
-                            <i class="fas fa-envelope mr-1"></i>Contact
-                        </a>
-                    </li>
-                    <li class="nav-item ml-lg-3">
-                        <a class="btn btn-primary rounded-pill px-4 py-2 font-weight-bold" href="login.php" style="border: none; background: linear-gradient(45deg, #667eea, #764ba2); color: white; text-decoration: none;">
-                            <i class="fas fa-sign-in-alt mr-2"></i>LOGIN
-                        </a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
+    <?php include 'includes/navbar.php'; ?>
 
     <!-- Terms and Conditions Content -->
     <div class="container" style="margin-top: 120px;">
@@ -321,57 +261,10 @@ require_once 'includes/init.php';
                     </a>
                 </div>
             </div>
-        </div>
     </div>
 
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="container">
-            <div class="row">
-                <div class="col-lg-4 mb-4">
-                    <h5>PathLab Pro</h5>
-                    <p>Advanced Laboratory Management System designed to streamline operations and improve efficiency in modern healthcare facilities.</p>
-                </div>
-                <div class="col-lg-2 mb-4">
-                    <h5>Quick Links</h5>
-                    <ul class="list-unstyled">
-                        <li><a href="index.php#home">Home</a></li>
-                        <li><a href="index.php#features">Features</a></li>
-                        <li><a href="login.php">Login</a></li>
-                        <li><a href="register.php">Register</a></li>
-                    </ul>
-                </div>
-                <div class="col-lg-3 mb-4">
-                    <h5>Support</h5>
-                    <ul class="list-unstyled">
-                        <li><a href="#">Documentation</a></li>
-                        <li><a href="#">Help Center</a></li>
-                        <li><a href="#">Contact Support</a></li>
-                        <li><a href="terms-and-conditions.php">Terms & Conditions</a></li>
-                    </ul>
-                </div>
-                <div class="col-lg-3 mb-4">
-                    <h5>Contact Info</h5>
-                    <p><i class="fas fa-envelope mr-2"></i> support@pathlab.com</p>
-                    <p><i class="fas fa-phone mr-2"></i> +1 (555) 123-4567</p>
-                    <p><i class="fas fa-map-marker-alt mr-2"></i> 123 Medical Center Dr<br>Healthcare City, HC 12345</p>
-                </div>
-            </div>
-            <hr style="border-color: rgba(255,255,255,0.2);">
-            <div class="row">
-                <div class="col-12 text-center">
-                    <p class="mb-2">
-                        <a href="terms-and-conditions.php" class="text-white-50 mr-3" style="text-decoration: none;">Terms & Conditions</a>
-                        <a href="#" class="text-white-50" style="text-decoration: none;">Privacy Policy</a>
-                    </p>
-                    <p class="mb-0">&copy; <?php echo date('Y'); ?> PathLab Pro. All rights reserved.</p>
-                </div>
-            </div>
-        </div>
-    </footer>
+    <?php include 'includes/public-footer.php'; ?>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.0/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/js/bootstrap.bundle.min.js"></script>
-    <script src="js/home.js"></script>
+    <?php include 'includes/public-scripts.php'; ?>
 </body>
 </html>
