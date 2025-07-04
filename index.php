@@ -27,6 +27,8 @@ if(isset($_SESSION['user_id'])) {
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/icheck-bootstrap/3.0.1/icheck-bootstrap.min.css">
   <!-- Theme style -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.2.0/css/adminlte.min.css">
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="css/custom.css">
   <!-- SweetAlert2 -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
   
@@ -180,6 +182,7 @@ if(isset($_SESSION['user_id'])) {
         font-size: 2rem;
       }
     }
+  </style>
 </head>
 <body class="login-page">
 <div class="login-box">
@@ -244,23 +247,11 @@ if(isset($_SESSION['user_id'])) {
               </label>
             </div>
           </div>
-          <div class="col-4">
-            <button type="submit" class="btn btn-primary btn-block" id="loginBtn">
-              <span class="btn-text">Sign In</span>
-              <span class="btn-loading" style="display: none;">
-                <i class="fas fa-spinner fa-spin"></i> Signing In...
-              </span>
-            </button>
-          </div>
-          <!-- /.col -->
-        </div>
-      </form>
-
           <div class="col-5">
             <button type="submit" class="btn btn-primary btn-block" id="loginBtn">
               <span class="btn-text">Sign In</span>
               <span class="btn-loading" style="display: none;">
-                <i class="fas fa-spinner fa-spin"></i> Signing in...
+                <i class="fas fa-spinner fa-spin"></i> Signing In...
               </span>
             </button>
           </div>
