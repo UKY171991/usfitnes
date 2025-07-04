@@ -76,7 +76,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
 <body class="hold-transition login-page">
 <div class="login-box">
   <div class="login-logo">
-    <a href="index.php" class="login-logo"><b>PathLab</b>Pro</a>
+    <a href="login.php" class="login-logo"><b>PathLab</b>Pro</a>
   </div>
   <!-- /.login-logo -->
   <div class="card">
@@ -118,7 +118,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
       </form>
 
       <p class="mt-3 mb-1">
-        <a href="index.php">Login</a>
+        <a href="login.php">Login</a>
       </p>
       <p class="mb-0">
         <a href="register.php" class="text-center">Register a new membership</a>

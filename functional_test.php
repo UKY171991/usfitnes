@@ -144,7 +144,7 @@
                                 </div>
                                 <div class="page-links">
                                     <h5 class="mt-3">Quick Links to Working Pages:</h5>
-                                    <a href="index.php" class="btn btn-outline-primary btn-sm">Login</a>
+                                    <a href="login.php" class="btn btn-outline-primary btn-sm">Login</a>
                                     <a href="register.php" class="btn btn-outline-primary btn-sm">Register</a>
                                     <a href="setup_test.php" class="btn btn-outline-info btn-sm">System Test</a>
                                 </div>

@@ -66,7 +66,7 @@ if(isset($_SESSION['user_id'])) {
 </head>
 <body class="hold-transition register-page">
 <div class="register-box">  <div class="register-logo">
-    <a href="index.php" class="register-logo"><b>PathLab</b>Pro</a>
+    <a href="login.php" class="register-logo"><b>PathLab</b>Pro</a>
   </div>
 
   <div class="card">
@@ -140,7 +140,7 @@ if(isset($_SESSION['user_id'])) {
         </div>      </form>
 
       <div class="text-center mt-3">
-        <a href="index.php" class="text-decoration-none">I already have a membership</a>
+        <a href="login.php" class="text-decoration-none">I already have a membership</a>
       </div>
     </div>
     <!-- /.form-box -->
