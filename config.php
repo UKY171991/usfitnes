@@ -5,9 +5,9 @@ if (session_status() === PHP_SESSION_NONE) {
 
 // Local Database configuration for development
 $host = 'localhost';
-$dbname = 'pathlab_pro';
-$username = 'root';
-$password = '';
+$dbname = 'u902379465_fitness';
+$username = 'u902379465_fitness';
+$password = '0Rz>Sa6qOi7M';
 
 try {
     // First create database if it doesn't exist
