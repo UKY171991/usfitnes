@@ -1,65 +1,33 @@
+<?php
+// Include init for logo functions
+require_once 'includes/init.php';
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Terms and Conditions - PathLab Pro</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css">
+    
+    <!-- Google Font: Source Sans Pro -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Bootstrap -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/css/bootstrap.min.css">
+    <!-- Custom CSS -->
     <link rel="stylesheet" href="css/custom.css">
+    <!-- Home Page Styles -->
+    <link rel="stylesheet" href="css/home.css">
+    <!-- Navbar Fix -->
+    <link rel="stylesheet" href="css/navbar-fix.css">
+    
     <style>
         body {
             font-family: 'Source Sans Pro', sans-serif;
             background: linear-gradient(135deg, #f8f9fa 0%, #e3f2fd 100%);
             min-height: 100vh;
-        }
-        .navbar-custom {
-            background: rgba(255, 255, 255, 0.98) !important;
-            backdrop-filter: blur(20px);
-            border-bottom: 1px solid rgba(0,0,0,0.08);
-            padding: 1rem 0;
-            box-shadow: 0 2px 20px rgba(0,0,0,0.05);
-        }
-        .navbar-brand {
-            font-weight: 700 !important;
-            font-size: 1.8rem !important;
-            color: #2c5aa0 !important;
-            text-decoration: none !important;
-        }
-        .navbar-brand:hover {
-            color: #1e3c72 !important;
-            text-decoration: none !important;
-        }
-        .navbar-nav .nav-link {
-            color: #2c5aa0 !important;
-            font-weight: 600 !important;
-            padding: 0.8rem 1rem !important;
-            transition: all 0.3s ease;
-            border-radius: 8px;
-            display: flex !important;
-            align-items: center;
-            text-decoration: none !important;
-        }
-        .navbar-nav .nav-link:hover {
-            color: #1e3c72 !important;
-            background: rgba(102, 126, 234, 0.05) !important;
-            text-decoration: none !important;
-        }
-        .navbar-nav .btn {
-            font-weight: 700 !important;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
-            transition: all 0.3s ease !important;
-            text-decoration: none !important;
-        }
-        .navbar-nav .btn:hover {
-            background: linear-gradient(45deg, #764ba2, #667eea) !important;
-            color: white !important;
-            border-color: transparent !important;
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
-            text-decoration: none !important;
+            padding-top: 100px; /* Account for fixed navbar */
         }
         .terms-container {
             max-width: 900px;
@@ -211,37 +179,44 @@
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-light navbar-custom fixed-top">
         <div class="container">
-            <a class="navbar-brand" href="index.php">
-                <i class="fas fa-flask me-2"></i>PathLab Pro
+            <a class="navbar-brand d-flex align-items-center" href="index.php">
+                <?php if (hasLogo()): ?>
+                    <img src="<?php echo getLogoPath(); ?>" alt="PathLab Pro Logo" height="35" class="me-2 mr-2">
+                <?php else: ?>
+                    <i class="fas fa-microscope mr-2" style="font-size: 1.8rem; color: var(--primary-color);"></i>
+                <?php endif; ?>
+                <span style="font-weight: 700; font-size: 1.8rem;">PathLab Pro</span>
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
+            
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
+                <ul class="navbar-nav ml-auto align-items-lg-center">
                     <li class="nav-item">
-                        <a class="nav-link" href="index.php">
-                            <i class="fas fa-home"></i> Home
+                        <a class="nav-link" href="index.php#home">
+                            <i class="fas fa-home mr-1"></i>Home
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="index.php#features">
-                            <i class="fas fa-star"></i> Features
+                            <i class="fas fa-star mr-1"></i>Features
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="index.php#about">
-                            <i class="fas fa-info-circle"></i> About
+                            <i class="fas fa-info-circle mr-1"></i>About
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="index.php#contact">
-                            <i class="fas fa-envelope"></i> Contact
+                            <i class="fas fa-envelope mr-1"></i>Contact
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link btn btn-outline-primary px-4" href="login.php">
-                            <i class="fas fa-sign-in-alt"></i> Login
+                    <li class="nav-item ml-lg-3">
+                        <a class="btn btn-primary rounded-pill px-4 py-2 font-weight-bold" href="login.php" style="border: none; background: linear-gradient(45deg, #667eea, #764ba2); color: white; text-decoration: none;">
+                            <i class="fas fa-sign-in-alt mr-2"></i>LOGIN
                         </a>
                     </li>
                 </ul>
@@ -353,36 +328,50 @@
     <footer class="footer">
         <div class="container">
             <div class="row">
-                <div class="col-md-4 mb-4">
-                    <h5><i class="fas fa-flask me-2"></i>PathLab Pro</h5>
-                    <p>Advanced laboratory management system for modern healthcare facilities.</p>
+                <div class="col-lg-4 mb-4">
+                    <h5>PathLab Pro</h5>
+                    <p>Advanced Laboratory Management System designed to streamline operations and improve efficiency in modern healthcare facilities.</p>
                 </div>
-                <div class="col-md-4 mb-4">
+                <div class="col-lg-2 mb-4">
                     <h5>Quick Links</h5>
                     <ul class="list-unstyled">
-                        <li><a href="index.php">Home</a></li>
+                        <li><a href="index.php#home">Home</a></li>
                         <li><a href="index.php#features">Features</a></li>
-                        <li><a href="index.php#about">About</a></li>
-                        <li><a href="index.php#contact">Contact</a></li>
+                        <li><a href="login.php">Login</a></li>
+                        <li><a href="register.php">Register</a></li>
                     </ul>
                 </div>
-                <div class="col-md-4 mb-4">
-                    <h5>Legal</h5>
+                <div class="col-lg-3 mb-4">
+                    <h5>Support</h5>
                     <ul class="list-unstyled">
+                        <li><a href="#">Documentation</a></li>
+                        <li><a href="#">Help Center</a></li>
+                        <li><a href="#">Contact Support</a></li>
                         <li><a href="terms-and-conditions.php">Terms & Conditions</a></li>
-                        <li><a href="#privacy">Privacy Policy</a></li>
-                        <li><a href="#support">Support</a></li>
                     </ul>
+                </div>
+                <div class="col-lg-3 mb-4">
+                    <h5>Contact Info</h5>
+                    <p><i class="fas fa-envelope mr-2"></i> support@pathlab.com</p>
+                    <p><i class="fas fa-phone mr-2"></i> +1 (555) 123-4567</p>
+                    <p><i class="fas fa-map-marker-alt mr-2"></i> 123 Medical Center Dr<br>Healthcare City, HC 12345</p>
                 </div>
             </div>
-            <div class="row mt-4">
+            <hr style="border-color: rgba(255,255,255,0.2);">
+            <div class="row">
                 <div class="col-12 text-center">
-                    <p>&copy; 2024 PathLab Pro. All rights reserved.</p>
+                    <p class="mb-2">
+                        <a href="terms-and-conditions.php" class="text-white-50 mr-3" style="text-decoration: none;">Terms & Conditions</a>
+                        <a href="#" class="text-white-50" style="text-decoration: none;">Privacy Policy</a>
+                    </p>
+                    <p class="mb-0">&copy; <?php echo date('Y'); ?> PathLab Pro. All rights reserved.</p>
                 </div>
             </div>
         </div>
     </footer>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/js/bootstrap.bundle.min.js"></script>
+    <script src="js/home.js"></script>
 </body>
 </html>
