@@ -31,6 +31,8 @@ require_once 'includes/init.php';
   <link rel="stylesheet" href="css/custom.css">
   <!-- Home Page Styles -->
   <link rel="stylesheet" href="css/home.css">
+  <!-- Navbar Fix -->
+  <link rel="stylesheet" href="css/navbar-fix.css">
   
 </head>
 <body>

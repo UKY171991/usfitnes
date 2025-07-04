@@ -176,24 +176,53 @@ function initButtonEffects() {
  * Force navbar visibility to ensure all links are shown
  */
 function forceNavbarVisibility() {
-  // Ensure navbar links are visible
-  const navbarNav = document.querySelector('.navbar-nav');
-  const navLinks = document.querySelectorAll('.navbar-nav .nav-link');
+  // Wait for DOM to be fully ready
+  setTimeout(function() {
+    // Ensure navbar collapse is properly shown on desktop
+    const navbar = document.querySelector('.navbar-custom');
+    const navbarCollapse = document.querySelector('#navbarNav');
+    const navbarNav = document.querySelector('.navbar-nav');
+    const navLinks = document.querySelectorAll('.navbar-nav .nav-link');
+    
+    if (navbar) {
+      navbar.style.display = 'block';
+      navbar.style.visibility = 'visible';
+    }
+    
+    if (navbarCollapse) {
+      // Force show collapse on desktop
+      if (window.innerWidth >= 992) {
+        navbarCollapse.classList.add('show');
+        navbarCollapse.style.display = 'flex';
+        navbarCollapse.style.visibility = 'visible';
+        navbarCollapse.style.opacity = '1';
+      }
+    }
+    
+    if (navbarNav) {
+      navbarNav.style.display = 'flex';
+      navbarNav.style.visibility = 'visible';
+      navbarNav.style.opacity = '1';
+    }
+    
+    navLinks.forEach(function(link) {
+      link.style.display = 'flex';
+      link.style.visibility = 'visible';
+      link.style.opacity = '1';
+      link.style.color = '#2c5aa0';
+    });
+    
+    console.log('Navbar visibility forced - Width:', window.innerWidth);
+  }, 100);
   
-  if (navbarNav) {
-    navbarNav.style.display = 'flex';
-    navbarNav.style.visibility = 'visible';
-    navbarNav.style.opacity = '1';
-  }
-  
-  navLinks.forEach(function(link) {
-    link.style.display = 'flex';
-    link.style.visibility = 'visible';
-    link.style.opacity = '1';
-    link.style.color = '#2c5aa0';
+  // Also handle window resize
+  window.addEventListener('resize', function() {
+    const navbarCollapse = document.querySelector('#navbarNav');
+    if (navbarCollapse && window.innerWidth >= 992) {
+      navbarCollapse.classList.add('show');
+      navbarCollapse.style.display = 'flex';
+    }
   });
-  
-  console.log('Navbar visibility forced');
 }
 
 /**
