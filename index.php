@@ -3,401 +3,560 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Include database configuration
-require_once 'config.php';
-
-// Check if user is already logged in
+// If user is already logged in, redirect to dashboard
 if(isset($_SESSION['user_id'])) {
     header("Location: dashboard.php");
     exit();
 }
+
+// Include init for logo functions
+require_once 'includes/init.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>PathLab Pro | Log in</title>
+  <title>PathLab Pro - Laboratory Management System</title>
+  <meta name="description" content="PathLab Pro - Advanced Laboratory Management System for modern healthcare facilities. Streamline operations, manage patients, and generate reports efficiently.">
+  <meta name="keywords" content="laboratory management, pathlab, medical lab, healthcare, laboratory software, lab automation">
 
   <!-- Google Font: Source Sans Pro -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
   <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <!-- icheck bootstrap -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/icheck-bootstrap/3.0.1/icheck-bootstrap.min.css">
   <!-- Theme style -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.2.0/css/adminlte.min.css">
   <!-- Custom CSS -->
   <link rel="stylesheet" href="css/custom.css">
-  <!-- SweetAlert2 -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
   
   <style>
     :root {
       --primary-color: #2c5aa0;
       --primary-dark: #1e3c72;
+      --primary-light: #4b6cb7;
+      --secondary-color: #6c757d;
+      --success-color: #28a745;
+      --info-color: #17a2b8;
+      --warning-color: #ffc107;
+      --danger-color: #dc3545;
     }
-    
+
     body {
-      background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
-      min-height: 100vh;
       font-family: 'Source Sans Pro', sans-serif;
+      background: linear-gradient(135deg, #f8f9fa 0%, #e3f2fd 100%);
     }
-    
-    .login-page {
+
+    /* Hero Section */
+    .hero-section {
+      background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+      color: white;
+      padding: 100px 0;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-section::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 100" fill="rgba(255,255,255,0.1)"><polygon points="1000,100 1000,0 0,100"/></svg>') no-repeat;
+      background-size: cover;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 2;
+    }
+
+    .hero-title {
+      font-size: 3.5rem;
+      font-weight: 300;
+      margin-bottom: 1rem;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+
+    .hero-subtitle {
+      font-size: 1.4rem;
+      margin-bottom: 2rem;
+      opacity: 0.9;
+    }
+
+    .hero-logo {
+      max-width: 120px;
+      height: auto;
+      margin-bottom: 2rem;
+      border-radius: 50%;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+    }
+
+    /* Features Section */
+    .features-section {
+      padding: 80px 0;
+      background: white;
+    }
+
+    .feature-card {
+      text-align: center;
+      padding: 2rem;
+      border-radius: 15px;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      height: 100%;
+      background: white;
+      border: 1px solid #e3f2fd;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-10px);
+      box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+    }
+
+    .feature-icon {
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+      border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      min-height: 100vh;
+      margin: 0 auto 1.5rem auto;
+      color: white;
+      font-size: 2rem;
     }
-    
-    .login-box {
-      width: 400px;
-      margin: 0;
+
+    .feature-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: var(--primary-dark);
     }
-    
-    .login-logo {
+
+    .feature-description {
+      color: #666;
+      line-height: 1.6;
+    }
+
+    /* Stats Section */
+    .stats-section {
+      background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+      color: white;
+      padding: 60px 0;
+    }
+
+    .stat-card {
       text-align: center;
-      margin-bottom: 2rem;
+      padding: 1.5rem;
     }
-    
-    .login-logo img {
-      max-width: 80px;
-      height: auto;
+
+    .stat-number {
+      font-size: 3rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    .stat-label {
+      font-size: 1.1rem;
+      opacity: 0.9;
+    }
+
+    /* CTA Section */
+    .cta-section {
+      padding: 80px 0;
+      background: #f8f9fa;
+      text-align: center;
+    }
+
+    .btn-primary-custom {
+      background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+      border: none;
+      padding: 1rem 2.5rem;
+      font-size: 1.1rem;
+      border-radius: 50px;
+      color: white;
+      text-decoration: none;
+      display: inline-block;
+      transition: all 0.3s ease;
+      box-shadow: 0 5px 15px rgba(44, 90, 160, 0.3);
+    }
+
+    .btn-primary-custom:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 25px rgba(44, 90, 160, 0.4);
+      color: white;
+      text-decoration: none;
+    }
+
+    .btn-outline-custom {
+      border: 2px solid var(--primary-color);
+      color: var(--primary-color);
+      padding: 1rem 2.5rem;
+      font-size: 1.1rem;
+      border-radius: 50px;
+      text-decoration: none;
+      display: inline-block;
+      transition: all 0.3s ease;
+      margin-left: 1rem;
+    }
+
+    .btn-outline-custom:hover {
+      background: var(--primary-color);
+      color: white;
+      text-decoration: none;
+    }
+
+    /* Header */
+    .navbar-custom {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(0,0,0,0.1);
+      padding: 1rem 0;
+    }
+
+    .navbar-brand {
+      font-weight: 600;
+      font-size: 1.5rem;
+      color: var(--primary-dark) !important;
+    }
+
+    .navbar-nav .nav-link {
+      color: var(--primary-dark) !important;
+      font-weight: 500;
+      margin: 0 0.5rem;
+      transition: color 0.3s ease;
+    }
+
+    .navbar-nav .nav-link:hover {
+      color: var(--primary-color) !important;
+    }
+
+    /* Footer */
+    .footer {
+      background: var(--primary-dark);
+      color: white;
+      padding: 40px 0 20px 0;
+    }
+
+    .footer h5 {
+      color: white;
       margin-bottom: 1rem;
     }
-    
-    .login-logo h1 {
-      color: white;
-      font-weight: 300;
-      font-size: 2.5rem;
-      margin: 0;
-      text-shadow: 0 2px 4px rgba(0,0,0,0.3);
-    }
-    
-    .login-logo p {
-      color: rgba(255,255,255,0.8);
-      margin: 0.5rem 0 0 0;
-      font-size: 1.1rem;
-    }
-    
-    .card {
-      border-radius: 15px;
-      border: none;
-      box-shadow: 0 15px 35px rgba(0,0,0,0.3);
-      backdrop-filter: blur(10px);
-      background: rgba(255,255,255,0.95);
-    }
-    
-    .card-body {
-      padding: 2rem;
-    }
-    
-    .login-card-msg {
-      text-align: center;
-      color: #666;
-      margin-bottom: 2rem;
-      font-size: 1.1rem;
-    }
-    
-    .form-group {
-      margin-bottom: 1.5rem;
-    }
-    
-    .form-control {
-      border-radius: 10px;
-      padding: 0.75rem 1rem;
-      border: 1px solid #ddd;
-      font-size: 1rem;
-      transition: all 0.3s ease;
-    }
-    
-    .form-control:focus {
-      border-color: var(--primary-color);
-      box-shadow: 0 0 0 0.2rem rgba(44, 90, 160, 0.25);
-    }
-    
-    .input-group-text {
-      border-radius: 10px 0 0 10px;
-      background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
-      color: white;
-      border: none;
-    }
-    
-    .input-group .form-control {
-      border-radius: 0 10px 10px 0;
-      border-left: none;
-    }
-    
-    .btn-primary {
-      background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
-      border: none;
-      border-radius: 10px;
-      padding: 0.75rem 2rem;
-      font-weight: 600;
-      font-size: 1rem;
-      transition: all 0.3s ease;
-    }
-    
-    .btn-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 5px 15px rgba(44, 90, 160, 0.4);
-    }
-    
-    .icheck-primary {
-      margin-top: 1rem;
-    }
-    
-    .forgot-password {
-      text-align: center;
-      margin-top: 1.5rem;
-    }
-    
-    .forgot-password a {
-      color: var(--primary-color);
+
+    .footer a {
+      color: rgba(255, 255, 255, 0.8);
       text-decoration: none;
       transition: color 0.3s ease;
     }
-    
-    .forgot-password a:hover {
-      color: var(--primary-dark);
+
+    .footer a:hover {
+      color: white;
     }
-    
-    .alert {
-      border-radius: 10px;
-      margin-bottom: 1rem;
-    }
-    
-    @media (max-width: 576px) {
-      .login-box {
-        width: 90%;
-        margin: 0 auto;
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .hero-title {
+        font-size: 2.5rem;
       }
       
-      .card-body {
-        padding: 1.5rem;
+      .hero-subtitle {
+        font-size: 1.2rem;
       }
       
-      .login-logo h1 {
-        font-size: 2rem;
+      .btn-outline-custom {
+        margin-left: 0;
+        margin-top: 1rem;
+        display: block;
+        width: fit-content;
+        margin-left: auto;
+        margin-right: auto;
       }
     }
   </style>
 </head>
-<body class="login-page">
-<div class="login-box">
-  <div class="login-logo">
-    <?php 
-    // Include init.php for utility functions
-    require_once 'includes/init.php';
-    
-    if (hasLogo()): ?>
-        <img src="<?php echo getLogoPath(); ?>" alt="PathLab Pro Logo" style="max-width: 80px; height: auto; margin-bottom: 1rem;">
-        <h1 style="font-size: 2.5rem;">PathLab Pro</h1>
-    <?php else: ?>
-        <h1 style="font-size: 3rem; margin-top: 0;">PathLab Pro</h1>
-    <?php endif; ?>
-    <p>Laboratory Management System</p>
-  </div>
-  
-  <div class="card">
-    <div class="card-body">
-      <p class="login-card-msg">Sign in to access your laboratory dashboard</p>
-
-      <!-- Alert Messages -->
-      <div id="alertContainer"></div>
+<body>
+  <!-- Navigation -->
+  <nav class="navbar navbar-expand-lg navbar-light fixed-top navbar-custom">
+    <div class="container">
+      <a class="navbar-brand d-flex align-items-center" href="#home">
+        <?php if (hasLogo()): ?>
+          <img src="<?php echo getLogoPath(); ?>" alt="PathLab Pro Logo" height="40" class="me-2">
+        <?php endif; ?>
+        PathLab Pro
+      </a>
       
-      <!-- Demo Login Info -->
-      <div class="alert alert-info alert-dismissible">
-        <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
-        <h6><i class="icon fas fa-info"></i> Demo Login Credentials:</h6>
-        <strong>Username:</strong> admin<br>
-        <strong>Password:</strong> password
-      </div>
-
-      <form id="loginForm">
-        <div class="form-group">
-          <div class="input-group">
-            <div class="input-group-prepend">
-              <span class="input-group-text">
-                <i class="fas fa-user"></i>
-              </span>
-            </div>
-            <input type="text" class="form-control" placeholder="Username" id="username" name="username" required>
-          </div>
-        </div>
-        
-        <div class="form-group">
-          <div class="input-group">
-            <div class="input-group-prepend">
-              <span class="input-group-text">
-                <i class="fas fa-lock"></i>
-              </span>
-            </div>
-            <input type="password" class="form-control" placeholder="Password" id="password" name="password" required>
-          </div>
-        </div>
-        
-        <div class="row align-items-center">
-          <div class="col-7">
-            <div class="icheck-primary">
-              <input type="checkbox" id="remember">
-              <label for="remember">
-                Remember Me
-              </label>
-            </div>
-          </div>
-          <div class="col-5">
-            <button type="submit" class="btn btn-primary btn-block" id="loginBtn">
-              <span class="btn-text">Sign In</span>
-              <span class="btn-loading" style="display: none;">
-                <i class="fas fa-spinner fa-spin"></i> Signing In...
-              </span>
-            </button>
-          </div>
-        </div>
-      </form>
-
-      <div class="forgot-password">
-        <a href="forgot-password.php">I forgot my password</a>
-      </div>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
       
-      <div class="text-center mt-3">
-        <p class="mb-0">
-          <a href="register.php" class="text-muted">Register a new membership</a>
-        </p>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ml-auto">
+          <li class="nav-item">
+            <a class="nav-link" href="#home">Home</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#features">Features</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#about">About</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#contact">Contact</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link btn btn-outline-primary ml-2 px-3" href="login.php">Login</a>
+          </li>
+        </ul>
       </div>
     </div>
-  </div>
-</div>
+  </nav>
 
-<!-- jQuery -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.0/jquery.min.js"></script>
-<!-- Bootstrap 4 -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/js/bootstrap.bundle.min.js"></script>
-<!-- AdminLTE App -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.2.0/js/adminlte.min.js"></script>
-<!-- SweetAlert2 -->
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-<script>
-$(document).ready(function() {
-    // Handle login form submission
-    $('#loginForm').on('submit', function(e) {
-        e.preventDefault();
-        loginUser();
-    });
-    
-    // Focus on username field
-    $('#username').focus();
-    
-    // Pre-fill demo credentials if requested
-    if (window.location.search.includes('demo=1')) {
-        $('#username').val('admin');
-        $('#password').val('password');
-    }
-});
-
-function loginUser() {
-    const username = $('#username').val().trim();
-    const password = $('#password').val();
-    
-    if (!username || !password) {
-        showAlert('error', 'Please enter both username and password');
-        return;
-    }
-    
-    // Show loading state
-    setLoadingState(true);
-    
-    $.ajax({
-        url: 'api/auth_api.php',
-        method: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify({
-            action: 'login',
-            username: username,
-            password: password
-        }),
-        dataType: 'json',
-        success: function(response) {
-            setLoadingState(false);
-            
-            if (response.success) {
-                showAlert('success', 'Login successful! Redirecting...');
-                // Redirect to dashboard after a short delay
-                setTimeout(() => {
-                    window.location.href = 'dashboard.php';
-                }, 1000);
-            } else {
-                showAlert('error', response.message || 'Login failed');
-            }
-        },        error: function(xhr, status, error) {
-            setLoadingState(false);
-            console.error('AJAX Error:', error);
-            console.log('Error details:', xhr);
-            
-            let message = 'Login failed. Please try again.';
-            try {
-                const response = JSON.parse(xhr.responseText);
-                if (response && response.message) {
-                    message = response.message;
-                }
-            } catch (e) {
-                if (xhr.status === 0) {
-                    message = 'Network error. Please check your connection.';
-                } else if (xhr.status === 500) {
-                    message = 'Server error. Please try again later.';
-                }
-            }
-            
-            showAlert('error', message);
-        }
-    });
-}
-
-function setLoadingState(loading) {
-    if (loading) {
-        $('#loginBtn').prop('disabled', true);
-        $('#loginBtn .btn-text').hide();
-        $('#loginBtn .btn-loading').show();
-    } else {
-        $('#loginBtn').prop('disabled', false);
-        $('#loginBtn .btn-text').show();
-        $('#loginBtn .btn-loading').hide();
-    }
-}
-
-function showAlert(type, message) {
-    const alertClass = type === 'success' ? 'alert-success' : 
-                     type === 'error' ? 'alert-danger' : 
-                     type === 'warning' ? 'alert-warning' : 'alert-info';
-    
-    const icon = type === 'success' ? 'fas fa-check' : 
-                type === 'error' ? 'fas fa-ban' : 
-                type === 'warning' ? 'fas fa-exclamation-triangle' : 'fas fa-info-circle';
-    
-    const alert = `
-        <div class="alert ${alertClass} alert-dismissible">
-            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
-            <i class="icon ${icon}"></i> ${message}
+  <!-- Hero Section -->
+  <section id="home" class="hero-section">
+    <div class="container">
+      <div class="row align-items-center">
+        <div class="col-lg-6">
+          <div class="hero-content">
+            <?php if (hasLogo()): ?>
+              <img src="<?php echo getLogoPath(); ?>" alt="PathLab Pro Logo" class="hero-logo">
+            <?php endif; ?>
+            <h1 class="hero-title">PathLab Pro</h1>
+            <p class="hero-subtitle">Advanced Laboratory Management System for Modern Healthcare</p>
+            <p class="mb-4">Streamline your laboratory operations with our comprehensive management solution. From patient registration to report generation, manage everything efficiently in one platform.</p>
+            <a href="login.php" class="btn-primary-custom">Access Dashboard</a>
+            <a href="#features" class="btn-outline-custom">Learn More</a>
+          </div>
         </div>
-    `;
-    
-    $('#alertContainer').html(alert);
-    
-    // Auto-hide after 5 seconds (except for success messages)
-    if (type !== 'success') {
-        setTimeout(() => {
-            $('#alertContainer .alert').fadeOut();
-        }, 5000);
-    }
-}
+        <div class="col-lg-6">
+          <div class="text-center">
+            <i class="fas fa-microscope" style="font-size: 15rem; opacity: 0.1;"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
 
-// Clear alerts when user starts typing
-$('#username, #password').on('input', function() {
-    $('#alertContainer .alert').fadeOut();
-});
-</script>
+  <!-- Features Section -->
+  <section id="features" class="features-section">
+    <div class="container">
+      <div class="row mb-5">
+        <div class="col-12 text-center">
+          <h2 class="mb-3" style="color: var(--primary-dark); font-weight: 300; font-size: 2.5rem;">Powerful Features</h2>
+          <p class="lead text-muted">Everything you need to manage your laboratory efficiently</p>
+        </div>
+      </div>
+      
+      <div class="row">
+        <div class="col-lg-4 col-md-6 mb-4">
+          <div class="feature-card">
+            <div class="feature-icon">
+              <i class="fas fa-users"></i>
+            </div>
+            <h4 class="feature-title">Patient Management</h4>
+            <p class="feature-description">Comprehensive patient database with medical history, contact information, and appointment scheduling.</p>
+          </div>
+        </div>
+        
+        <div class="col-lg-4 col-md-6 mb-4">
+          <div class="feature-card">
+            <div class="feature-icon">
+              <i class="fas fa-flask"></i>
+            </div>
+            <h4 class="feature-title">Test Management</h4>
+            <p class="feature-description">Complete test catalog with automated workflows, quality control, and result validation.</p>
+          </div>
+        </div>
+        
+        <div class="col-lg-4 col-md-6 mb-4">
+          <div class="feature-card">
+            <div class="feature-icon">
+              <i class="fas fa-chart-line"></i>
+            </div>
+            <h4 class="feature-title">Advanced Reports</h4>
+            <p class="feature-description">Generate detailed reports with charts, graphs, and analytics for better decision making.</p>
+          </div>
+        </div>
+        
+        <div class="col-lg-4 col-md-6 mb-4">
+          <div class="feature-card">
+            <div class="feature-icon">
+              <i class="fas fa-cogs"></i>
+            </div>
+            <h4 class="feature-title">Equipment Tracking</h4>
+            <p class="feature-description">Monitor laboratory equipment, maintenance schedules, and calibration records.</p>
+          </div>
+        </div>
+        
+        <div class="col-lg-4 col-md-6 mb-4">
+          <div class="feature-card">
+            <div class="feature-icon">
+              <i class="fas fa-shield-alt"></i>
+            </div>
+            <h4 class="feature-title">Secure & Compliant</h4>
+            <p class="feature-description">HIPAA compliant with role-based access control and audit trails for data security.</p>
+          </div>
+        </div>
+        
+        <div class="col-lg-4 col-md-6 mb-4">
+          <div class="feature-card">
+            <div class="feature-icon">
+              <i class="fas fa-mobile-alt"></i>
+            </div>
+            <h4 class="feature-title">Mobile Ready</h4>
+            <p class="feature-description">Responsive design that works perfectly on all devices - desktop, tablet, and mobile.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Stats Section -->
+  <section class="stats-section">
+    <div class="container">
+      <div class="row">
+        <div class="col-lg-3 col-md-6">
+          <div class="stat-card">
+            <div class="stat-number">500+</div>
+            <div class="stat-label">Laboratories</div>
+          </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+          <div class="stat-card">
+            <div class="stat-number">1M+</div>
+            <div class="stat-label">Tests Processed</div>
+          </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+          <div class="stat-card">
+            <div class="stat-number">99.9%</div>
+            <div class="stat-label">Uptime</div>
+          </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+          <div class="stat-card">
+            <div class="stat-number">24/7</div>
+            <div class="stat-label">Support</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section id="about" class="cta-section">
+    <div class="container">
+      <div class="row">
+        <div class="col-lg-8 mx-auto text-center">
+          <h2 class="mb-4" style="color: var(--primary-dark); font-weight: 300;">Ready to Get Started?</h2>
+          <p class="lead mb-4">Join hundreds of laboratories worldwide who trust PathLab Pro for their daily operations. Experience the future of laboratory management today.</p>
+          <a href="login.php" class="btn-primary-custom">Start Now</a>
+          <a href="#contact" class="btn-outline-custom">Contact Sales</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer id="contact" class="footer">
+    <div class="container">
+      <div class="row">
+        <div class="col-lg-4 mb-4">
+          <h5>PathLab Pro</h5>
+          <p>Advanced Laboratory Management System designed to streamline operations and improve efficiency in modern healthcare facilities.</p>
+        </div>
+        <div class="col-lg-2 mb-4">
+          <h5>Quick Links</h5>
+          <ul class="list-unstyled">
+            <li><a href="#home">Home</a></li>
+            <li><a href="#features">Features</a></li>
+            <li><a href="login.php">Login</a></li>
+            <li><a href="register.php">Register</a></li>
+          </ul>
+        </div>
+        <div class="col-lg-3 mb-4">
+          <h5>Support</h5>
+          <ul class="list-unstyled">
+            <li><a href="#">Documentation</a></li>
+            <li><a href="#">Help Center</a></li>
+            <li><a href="#">Contact Support</a></li>
+            <li><a href="#">System Status</a></li>
+          </ul>
+        </div>
+        <div class="col-lg-3 mb-4">
+          <h5>Contact Info</h5>
+          <p><i class="fas fa-envelope mr-2"></i> support@pathlab.com</p>
+          <p><i class="fas fa-phone mr-2"></i> +1 (555) 123-4567</p>
+          <p><i class="fas fa-map-marker-alt mr-2"></i> 123 Medical Center Dr<br>Healthcare City, HC 12345</p>
+        </div>
+      </div>
+      <hr style="border-color: rgba(255,255,255,0.2);">
+      <div class="row">
+        <div class="col-12 text-center">
+          <p class="mb-0">&copy; <?php echo date('Y'); ?> PathLab Pro. All rights reserved.</p>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- jQuery -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.0/jquery.min.js"></script>
+  <!-- Bootstrap 4 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/js/bootstrap.bundle.min.js"></script>
+  <!-- AdminLTE App -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.2.0/js/adminlte.min.js"></script>
+
+  <script>
+    // Smooth scrolling for anchor links
+    $('a[href*="#"]').on('click', function (e) {
+      e.preventDefault();
+      $('html, body').animate({
+        scrollTop: $($(this).attr('href')).offset().top - 80
+      }, 500, 'linear');
+    });
+
+    // Navbar background on scroll
+    $(window).scroll(function() {
+      if ($(document).scrollTop() > 50) {
+        $('.navbar-custom').addClass('bg-white shadow-sm');
+      } else {
+        $('.navbar-custom').removeClass('bg-white shadow-sm');
+      }
+    });
+
+    // Counter animation
+    function animateCounters() {
+      $('.stat-number').each(function() {
+        const $this = $(this);
+        const countTo = $this.text();
+        
+        $({ countNum: 0 }).animate({
+          countNum: countTo
+        }, {
+          duration: 2000,
+          easing: 'linear',
+          step: function() {
+            $this.text(Math.floor(this.countNum));
+          },
+          complete: function() {
+            $this.text(this.countNum);
+          }
+        });
+      });
+    }
+
+    // Trigger counter animation when stats section is in view
+    $(window).scroll(function() {
+      const statsSection = $('.stats-section');
+      const scrollTop = $(window).scrollTop();
+      const windowHeight = $(window).height();
+      const sectionTop = statsSection.offset().top;
+      
+      if (scrollTop + windowHeight > sectionTop && !statsSection.hasClass('animated')) {
+        statsSection.addClass('animated');
+        animateCounters();
+      }
+    });
+  </script>
 </body>
 </html>
