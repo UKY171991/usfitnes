@@ -22,91 +22,213 @@ if(isset($_SESSION['user_id'])) {
   <!-- Google Font: Source Sans Pro -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
   <!-- Font Awesome -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <!-- icheck bootstrap -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/icheck-bootstrap/3.0.1/icheck-bootstrap.min.css">
   <!-- Theme style -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.2.0/css/adminlte.min.css">
+  <!-- SweetAlert2 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
   
   <style>
+    :root {
+      --primary-color: #2c5aa0;
+      --primary-dark: #1e3c72;
+    }
+    
     body {
-      background: linear-gradient(135deg, #2c5aa0 0%, #1e3c72 100%);
+      background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+      min-height: 100vh;
+      font-family: 'Source Sans Pro', sans-serif;
+    }
+    
+    .login-page {
+      display: flex;
+      align-items: center;
+      justify-content: center;
       min-height: 100vh;
     }
+    
     .login-box {
-      margin: 7% auto;
+      width: 400px;
+      margin: 0;
     }
+    
+    .login-logo {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    
+    .login-logo img {
+      max-width: 80px;
+      height: auto;
+      margin-bottom: 1rem;
+    }
+    
+    .login-logo h1 {
+      color: white;
+      font-weight: 300;
+      font-size: 2.5rem;
+      margin: 0;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+    
+    .login-logo p {
+      color: rgba(255,255,255,0.8);
+      margin: 0.5rem 0 0 0;
+      font-size: 1.1rem;
+    }
+    
     .card {
       border-radius: 15px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-    }
-    .card-header {
-      background: linear-gradient(135deg, #2c5aa0 0%, #1e3c72 100%);
-      border-radius: 15px 15px 0 0;
-    }
-    .login-logo {
-      color: white;
-      font-weight: bold;
-    }
-    .btn-primary {
-      background: linear-gradient(135deg, #2c5aa0 0%, #1e3c72 100%);
       border: none;
-      border-radius: 25px;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+      backdrop-filter: blur(10px);
+      background: rgba(255,255,255,0.95);
     }
-    .btn-primary:hover {
-      background: linear-gradient(135deg, #1e3c72 0%, #2c5aa0 100%);
+    
+    .card-body {
+      padding: 2rem;
     }
+    
+    .login-card-msg {
+      text-align: center;
+      color: #666;
+      margin-bottom: 2rem;
+      font-size: 1.1rem;
+    }
+    
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+    
     .form-control {
-      border-radius: 25px;
-      border: 2px solid #e9ecef;
+      border-radius: 10px;
+      padding: 0.75rem 1rem;
+      border: 1px solid #ddd;
+      font-size: 1rem;
+      transition: all 0.3s ease;
     }
+    
     .form-control:focus {
-      border-color: #2c5aa0;
+      border-color: var(--primary-color);
       box-shadow: 0 0 0 0.2rem rgba(44, 90, 160, 0.25);
     }
-  </style>
+    
+    .input-group-text {
+      border-radius: 10px 0 0 10px;
+      background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+      color: white;
+      border: none;
+    }
+    
+    .input-group .form-control {
+      border-radius: 0 10px 10px 0;
+      border-left: none;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+      border: none;
+      border-radius: 10px;
+      padding: 0.75rem 2rem;
+      font-weight: 600;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(44, 90, 160, 0.4);
+    }
+    
+    .icheck-primary {
+      margin-top: 1rem;
+    }
+    
+    .forgot-password {
+      text-align: center;
+      margin-top: 1.5rem;
+    }
+    
+    .forgot-password a {
+      color: var(--primary-color);
+      text-decoration: none;
+      transition: color 0.3s ease;
+    }
+    
+    .forgot-password a:hover {
+      color: var(--primary-dark);
+    }
+    
+    .alert {
+      border-radius: 10px;
+      margin-bottom: 1rem;
+    }
+    
+    @media (max-width: 576px) {
+      .login-box {
+        width: 90%;
+        margin: 0 auto;
+      }
+      
+      .card-body {
+        padding: 1.5rem;
+      }
+      
+      .login-logo h1 {
+        font-size: 2rem;
+      }
+    }
 </head>
-<body class="hold-transition login-page">
-<div class="login-box">  <div class="login-logo">
-    <a href="#" class="login-logo"><b>PathLab</b>Pro</a>
+<body class="login-page">
+<div class="login-box">
+  <div class="login-logo">
+    <img src="img/logo.svg" alt="PathLab Pro Logo" style="max-width: 80px; height: auto; margin-bottom: 1rem;">
+    <h1>PathLab Pro</h1>
+    <p>Laboratory Management System</p>
   </div>
-  <!-- /.login-logo -->
+  
   <div class="card">
-    <div class="card-header text-center">
-      <h1 class="h4 text-white mb-0">Laboratory Login</h1>
-    </div>    <div class="card-body login-card-body">
-      <p class="login-box-msg">Sign in to access laboratory system</p>
+    <div class="card-body">
+      <p class="login-card-msg">Sign in to access your laboratory dashboard</p>
 
       <!-- Alert Messages -->
       <div id="alertContainer"></div>
       
       <!-- Demo Login Info -->
-      <div class="alert alert-info">
-        <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
-        <h5><i class="icon fas fa-info"></i> Demo Login:</h5>
+      <div class="alert alert-info alert-dismissible">
+        <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+        <h6><i class="icon fas fa-info"></i> Demo Login Credentials:</h6>
         <strong>Username:</strong> admin<br>
         <strong>Password:</strong> password
       </div>
 
       <form id="loginForm">
-        <div class="input-group mb-3">
-          <input type="text" class="form-control" placeholder="Username" id="username" name="username" required>
-          <div class="input-group-append">
-            <div class="input-group-text">
-              <span class="fas fa-user"></span>
+        <div class="form-group">
+          <div class="input-group">
+            <div class="input-group-prepend">
+              <span class="input-group-text">
+                <i class="fas fa-user"></i>
+              </span>
             </div>
+            <input type="text" class="form-control" placeholder="Username" id="username" name="username" required>
           </div>
         </div>
-        <div class="input-group mb-3">
-          <input type="password" class="form-control" placeholder="Password" id="password" name="password" required>
-          <div class="input-group-append">
-            <div class="input-group-text">
-              <span class="fas fa-lock"></span>
+        
+        <div class="form-group">
+          <div class="input-group">
+            <div class="input-group-prepend">
+              <span class="input-group-text">
+                <i class="fas fa-lock"></i>
+              </span>
             </div>
+            <input type="password" class="form-control" placeholder="Password" id="password" name="password" required>
           </div>
         </div>
-        <div class="row">
-          <div class="col-8">
+        
+        <div class="row align-items-center">
+          <div class="col-7">
             <div class="icheck-primary">
               <input type="checkbox" id="remember">
               <label for="remember">
@@ -114,7 +236,6 @@ if(isset($_SESSION['user_id'])) {
               </label>
             </div>
           </div>
-          <!-- /.col -->
           <div class="col-4">
             <button type="submit" class="btn btn-primary btn-block" id="loginBtn">
               <span class="btn-text">Sign In</span>
@@ -127,24 +248,38 @@ if(isset($_SESSION['user_id'])) {
         </div>
       </form>
 
-      <p class="mb-1">
+          <div class="col-5">
+            <button type="submit" class="btn btn-primary btn-block" id="loginBtn">
+              <span class="btn-text">Sign In</span>
+              <span class="btn-loading" style="display: none;">
+                <i class="fas fa-spinner fa-spin"></i> Signing in...
+              </span>
+            </button>
+          </div>
+        </div>
+      </form>
+
+      <div class="forgot-password">
         <a href="forgot-password.php">I forgot my password</a>
-      </p>
-      <p class="mb-0">
-        <a href="register.php" class="text-center">Register a new membership</a>
-      </p>
+      </div>
+      
+      <div class="text-center mt-3">
+        <p class="mb-0">
+          <a href="register.php" class="text-muted">Register a new membership</a>
+        </p>
+      </div>
     </div>
-    <!-- /.login-card-body -->
   </div>
 </div>
-<!-- /.login-box -->
 
 <!-- jQuery -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.0/jquery.min.js"></script>
 <!-- Bootstrap 4 -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.0/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/js/bootstrap.bundle.min.js"></script>
 <!-- AdminLTE App -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.2.0/js/adminlte.min.js"></script>
+<!-- SweetAlert2 -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
 $(document).ready(function() {
