@@ -29,4 +29,23 @@ function isActive($page_name) {
     $current_page = basename($_SERVER['PHP_SELF']);
     return ($current_page == $page_name) ? 'active' : '';
 }
+
+// Function to get logo path or return null if no logo exists
+function getLogoPath() {
+    $logoPath = 'img/logo.svg';
+    $altLogoPath = 'img/logo.png';
+    
+    if (file_exists($logoPath)) {
+        return $logoPath;
+    } elseif (file_exists($altLogoPath)) {
+        return $altLogoPath;
+    }
+    
+    return null;
+}
+
+// Function to check if logo exists
+function hasLogo() {
+    return getLogoPath() !== null;
+}
 ?>

@@ -184,8 +184,16 @@ if(isset($_SESSION['user_id'])) {
 <body class="login-page">
 <div class="login-box">
   <div class="login-logo">
-    <img src="img/logo.svg" alt="PathLab Pro Logo" style="max-width: 80px; height: auto; margin-bottom: 1rem;">
-    <h1>PathLab Pro</h1>
+    <?php 
+    // Include init.php for utility functions
+    require_once 'includes/init.php';
+    
+    if (hasLogo()): ?>
+        <img src="<?php echo getLogoPath(); ?>" alt="PathLab Pro Logo" style="max-width: 80px; height: auto; margin-bottom: 1rem;">
+        <h1 style="font-size: 2.5rem;">PathLab Pro</h1>
+    <?php else: ?>
+        <h1 style="font-size: 3rem; margin-top: 0;">PathLab Pro</h1>
+    <?php endif; ?>
     <p>Laboratory Management System</p>
   </div>
   

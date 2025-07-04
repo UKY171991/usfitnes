@@ -2,8 +2,12 @@
   <aside class="main-sidebar sidebar-dark-primary elevation-4">    
     <!-- Brand Logo -->
     <a href="dashboard.php" class="brand-link">
-      <img src="img/logo.svg" alt="PathLab Pro Logo" class="brand-image img-circle elevation-3" style="opacity: .8">
-      <span class="brand-text font-weight-light">PathLab Pro</span>
+      <?php if (hasLogo()): ?>
+          <img src="<?php echo getLogoPath(); ?>" alt="PathLab Pro Logo" class="brand-image img-circle elevation-3" style="opacity: .8">
+          <span class="brand-text font-weight-light">PathLab Pro</span>
+      <?php else: ?>
+          <span class="brand-text font-weight-bold text-center" style="font-size: 1.2rem; padding-left: 0.5rem;">PathLab Pro</span>
+      <?php endif; ?>
     </a>
 
     <!-- Sidebar -->

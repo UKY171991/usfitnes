@@ -50,7 +50,11 @@ require_once __DIR__ . '/init.php';
 <div class="wrapper">
   <!-- Preloader -->
   <div class="preloader flex-column justify-content-center align-items-center">
-    <img class="animation__shake" src="img/logo.svg" alt="PathLab Pro Logo" height="60" width="60">
+    <?php if (hasLogo()): ?>
+        <img class="animation__shake" src="<?php echo getLogoPath(); ?>" alt="PathLab Pro Logo" height="60" width="60">
+    <?php else: ?>
+        <h2 class="animation__shake text-primary font-weight-bold">PathLab Pro</h2>
+    <?php endif; ?>
   </div>
 
   <!-- Navbar -->
