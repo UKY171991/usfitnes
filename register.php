@@ -62,6 +62,15 @@ if(isset($_SESSION['user_id'])) {
       border-color: #667eea;
       box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
     }
+    .terms-link {
+      color: #667eea !important;
+      text-decoration: none !important;
+      transition: all 0.3s ease;
+    }
+    .terms-link:hover {
+      color: #5a6fd8 !important;
+      text-decoration: underline !important;
+    }
   </style>
 </head>
 <body class="hold-transition register-page">
@@ -125,7 +134,7 @@ if(isset($_SESSION['user_id'])) {
             <div class="icheck-primary">
               <input type="checkbox" id="agreeTerms" name="terms" value="agree" required>
               <label for="agreeTerms">
-               I agree to the <a href="#">terms</a>
+               I agree to the <a href="terms-and-conditions.php" target="_blank" class="terms-link">Terms & Conditions</a>
               </label>
             </div>
           </div>

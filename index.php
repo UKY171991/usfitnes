@@ -290,7 +290,7 @@ require_once 'includes/init.php';
             <li><a href="#">Documentation</a></li>
             <li><a href="#">Help Center</a></li>
             <li><a href="#">Contact Support</a></li>
-            <li><a href="#">System Status</a></li>
+            <li><a href="terms-and-conditions.php">Terms & Conditions</a></li>
           </ul>
         </div>
         <div class="col-lg-3 mb-4">
@@ -303,6 +303,10 @@ require_once 'includes/init.php';
       <hr style="border-color: rgba(255,255,255,0.2);">
       <div class="row">
         <div class="col-12 text-center">
+          <p class="mb-2">
+            <a href="terms-and-conditions.php" class="text-white-50 mr-3" style="text-decoration: none;">Terms & Conditions</a>
+            <a href="#" class="text-white-50" style="text-decoration: none;">Privacy Policy</a>
+          </p>
           <p class="mb-0">&copy; <?php echo date('Y'); ?> PathLab Pro. All rights reserved.</p>
         </div>
       </div>
