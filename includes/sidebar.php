@@ -14,42 +14,69 @@
           <img src="https://via.placeholder.com/160x160/2c5aa0/ffffff?text=<?php echo $user_initial; ?>" class="img-circle elevation-2" alt="User Image">
         </div>
         <div class="info">
-          <a href="#" class="d-block"><?php echo htmlspecialchars($full_name); ?></a>
+          <a href="settings.php" class="d-block"><?php echo htmlspecialchars($full_name); ?></a>
           <span class="user-role"><?php echo ucfirst(htmlspecialchars($user_type)); ?></span>
+        </div>
+      </div>
+
+      <!-- SidebarSearch Form -->
+      <div class="form-inline">
+        <div class="input-group" data-widget="sidebar-search">
+          <input class="form-control form-control-sidebar" type="search" placeholder="Search" aria-label="Search">
+          <div class="input-group-append">
+            <button class="btn btn-sidebar">
+              <i class="fas fa-search fa-fw"></i>
+            </button>
+          </div>
         </div>
       </div>
       
       <!-- Sidebar Menu -->
       <nav class="mt-2">
-        <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">          <li class="nav-item">
+        <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
+          
+          <!-- Dashboard -->
+          <li class="nav-item">
             <a href="dashboard.php" class="nav-link <?php echo isActive('dashboard.php'); ?>">
               <i class="nav-icon fas fa-tachometer-alt"></i>
               <p>Dashboard</p>
             </a>
           </li>
-          <?php if($user_type == 'admin'): ?>
-          <li class="nav-item">
-            <a href="users.php" class="nav-link <?php echo isActive('users.php'); ?>">
-              <i class="nav-icon fas fa-users"></i>
-              <p>User Management</p>
-            </a>
-          </li>
-          <?php endif; ?>
-          <li class="nav-item">
-            <a href="patients.php" class="nav-link <?php echo isActive('patients.php'); ?>">
+
+          <!-- Patient Management -->
+          <li class="nav-item <?php echo (strpos($_SERVER['REQUEST_URI'], 'patients') !== false) ? 'menu-open' : ''; ?>">
+            <a href="#" class="nav-link <?php echo (strpos($_SERVER['REQUEST_URI'], 'patients') !== false) ? 'active' : ''; ?>">
               <i class="nav-icon fas fa-user-injured"></i>
               <p>
-                Patients
-                <?php if($user_type == 'admin'): ?>
-                <span class="right badge badge-info">Manage</span>
-                <?php endif; ?>
+                Patient Management
+                <i class="right fas fa-angle-left"></i>
               </p>
             </a>
+            <ul class="nav nav-treeview">
+              <li class="nav-item">
+                <a href="patients.php" class="nav-link <?php echo isActive('patients.php'); ?>">
+                  <i class="far fa-circle nav-icon"></i>
+                  <p>All Patients</p>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a href="patients.php#add" class="nav-link">
+                  <i class="far fa-circle nav-icon"></i>
+                  <p>Add Patient</p>
+                </a>
+              </li>
+            </ul>
           </li>
+
+          <!-- Laboratory Management -->
+          <li class="nav-header">LABORATORY</li>
           <li class="nav-item">
             <a href="test-orders.php" class="nav-link <?php echo isActive('test-orders.php'); ?>">
               <i class="nav-icon fas fa-clipboard-list"></i>
-              <p>Test Orders</p>
+              <p>
+                Test Orders
+                <span class="right badge badge-primary">New</span>
+              </p>
             </a>
           </li>
           <li class="nav-item">
@@ -64,12 +91,32 @@
               <p>Test Results</p>
             </a>
           </li>
+
+          <!-- Staff & Resources -->
+          <li class="nav-header">STAFF & RESOURCES</li>
           <li class="nav-item">
             <a href="doctors.php" class="nav-link <?php echo isActive('doctors.php'); ?>">
               <i class="nav-icon fas fa-user-md"></i>
               <p>Doctors</p>
             </a>
           </li>
+          <?php if($user_type == 'admin'): ?>
+          <li class="nav-item">
+            <a href="users.php" class="nav-link <?php echo isActive('users.php'); ?>">
+              <i class="nav-icon fas fa-users"></i>
+              <p>User Management</p>
+            </a>
+          </li>
+          <?php endif; ?>
+          <li class="nav-item">
+            <a href="equipment.php" class="nav-link <?php echo isActive('equipment.php'); ?>">
+              <i class="nav-icon fas fa-microscope"></i>
+              <p>Equipment</p>
+            </a>
+          </li>
+
+          <!-- Reports & Analytics -->
+          <li class="nav-header">REPORTS & ANALYTICS</li>
           <li class="nav-item">
             <a href="reports.php" class="nav-link <?php echo isActive('reports.php'); ?>">
               <i class="nav-icon fas fa-chart-line"></i>
@@ -77,11 +124,14 @@
             </a>
           </li>
           <li class="nav-item">
-            <a href="equipment.php" class="nav-link <?php echo isActive('equipment.php'); ?>">
-              <i class="nav-icon fas fa-microscope"></i>
-              <p>Equipment</p>
+            <a href="view_all_data.php" class="nav-link <?php echo isActive('view_all_data.php'); ?>">
+              <i class="nav-icon fas fa-database"></i>
+              <p>Database View</p>
             </a>
           </li>
+
+          <!-- System -->
+          <li class="nav-header">SYSTEM</li>
           <li class="nav-item">
             <a href="settings.php" class="nav-link <?php echo isActive('settings.php'); ?>">
               <i class="nav-icon fas fa-cog"></i>
@@ -89,14 +139,8 @@
             </a>
           </li>
           <li class="nav-item">
-            <a href="view_all_data.php" class="nav-link <?php echo isActive('view_all_data.php'); ?>">
-              <i class="nav-icon fas fa-database"></i>
-              <p>View All Data</p>
-            </a>
-          </li>
-          <li class="nav-item">
             <a href="logout.php" class="nav-link">
-              <i class="nav-icon fas fa-sign-out-alt"></i>
+              <i class="nav-icon fas fa-sign-out-alt text-danger"></i>
               <p>Logout</p>
             </a>
           </li>

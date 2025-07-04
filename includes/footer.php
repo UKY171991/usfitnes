@@ -2,12 +2,28 @@
     <div class="float-right d-none d-sm-block">
       <b>Version</b> 1.0.0
     </div>
-    <strong>Copyright &copy; 2023-2024 <a href="#">PathLab Pro</a>.</strong> All rights reserved.
+    <strong>Copyright &copy; 2023-2025 <a href="#" class="text-primary">PathLab Pro</a>.</strong> All rights reserved.
   </footer>
 
   <!-- Control Sidebar -->
   <aside class="control-sidebar control-sidebar-dark">
     <!-- Control sidebar content goes here -->
+    <div class="p-3">
+      <h5>Customize</h5>
+      <hr class="mb-2">
+      <div class="mb-4">
+        <input type="checkbox" value="1" checked="checked" class="mr-1">
+        <span>Dark Mode</span>
+      </div>
+      <div class="mb-1">
+        <input type="checkbox" value="1" checked="checked" class="mr-1">
+        <span>Fixed Layout</span>
+      </div>
+      <div class="mb-1">
+        <input type="checkbox" value="1" class="mr-1">
+        <span>Boxed Layout</span>
+      </div>
+    </div>
   </aside>
   <!-- /.control-sidebar -->
 </div>
