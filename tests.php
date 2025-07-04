@@ -50,13 +50,11 @@ include 'includes/sidebar.php';
               <table id="testsTable" class="table table-bordered table-striped table-hover">
                 <thead>
                   <tr>
-                    <th>Test ID</th>
+                    <th>Test Code</th>
                     <th>Test Name</th>
                     <th>Category</th>
                     <th>Price</th>
-                    <th>Turnaround Time</th>
                     <th>Sample Type</th>
-                    <th>Status</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -86,18 +84,59 @@ include 'includes/sidebar.php';
             <div class="row">
               <div class="col-md-6">
                 <div class="form-group">
-                  <label for="testId">Test ID <span class="text-danger">*</span></label>
-                  <input type="text" class="form-control" id="testId" name="test_id" required>
+                  <label for="test_code">Test Code <span class="text-danger">*</span></label>
+                  <input type="text" class="form-control" id="test_code" name="test_code" required>
                 </div>
               </div>
               <div class="col-md-6">
                 <div class="form-group">
-                  <label for="testName">Test Name <span class="text-danger">*</span></label>
-                  <input type="text" class="form-control" id="testName" name="test_name" required>
+                  <label for="test_name">Test Name <span class="text-danger">*</span></label>
+                  <input type="text" class="form-control" id="test_name" name="test_name" required>
                 </div>
               </div>
             </div>
             <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="category_id">Category <span class="text-danger">*</span></label>
+                  <select class="form-control" id="category_id" name="category_id" required>
+                    <option value="">Select Category</option>
+                  </select>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="price">Price <span class="text-danger">*</span></label>
+                  <input type="number" class="form-control" id="price" name="price" step="0.01" min="0" required>
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="sample_type">Sample Type</label>
+                  <select class="form-control" id="sample_type" name="sample_type">
+                    <option value="Blood">Blood</option>
+                    <option value="Urine">Urine</option>
+                    <option value="Stool">Stool</option>
+                    <option value="Sputum">Sputum</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="normal_range">Normal Range</label>
+                  <input type="text" class="form-control" id="normal_range" name="normal_range" placeholder="e.g., 4.5-5.5 million/μL">
+                </div>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="description">Description</label>
+              <textarea class="form-control" id="description" name="description" rows="2" placeholder="Brief description of the test"></textarea>
+            </div>
+          </form>
+        </div>
               <div class="col-md-6">
                 <div class="form-group">
                   <label for="category">Category <span class="text-danger">*</span></label>
@@ -160,51 +199,32 @@ include 'includes/sidebar.php';
 $additional_scripts = <<<EOT
 <script>
 $(document).ready(function() {
+    // Load categories
+    loadCategories();
+    
     // Initialize DataTable
     $('#testsTable').DataTable({
         responsive: true,
         lengthChange: false,
-        autoWidth: false,
-        buttons: [
-            {
-                extend: 'copy',
-                className: 'btn btn-sm btn-secondary'
-            },
-            {
-                extend: 'csv',
-                className: 'btn btn-sm btn-secondary'
-            },
-            {
-                extend: 'excel',
-                className: 'btn btn-sm btn-secondary'
-            },
-            {
-                extend: 'pdf',
-                className: 'btn btn-sm btn-secondary'
-            },
-            {
-                extend: 'print',
-                className: 'btn btn-sm btn-secondary'
-            }
-        ]
-    }).buttons().container().appendTo('#testsTable_wrapper .col-md-6:eq(0)');
+        autoWidth: false
+    });
     
     // Handle form submission
     $('#saveTestBtn').on('click', function() {
         var formData = {
             action: 'create',
-            test_name: $('#testName').val(),
-            test_code: $('#testId').val(),
-            category: $('#category').val(),
+            test_name: $('#test_name').val(),
+            test_code: $('#test_code').val(),
+            category_id: $('#category_id').val(),
             price: $('#price').val(),
-            turn_around_time: $('#turnaroundTime').val(),
-            sample_type: $('#sampleType').val(),
+            sample_type: $('#sample_type').val(),
+            normal_range: $('#normal_range').val(),
             description: $('#description').val()
         };
         
         // Basic validation
-        if (!formData.test_code || !formData.test_name || !formData.category || !formData.price) {
-            showToaster('danger', 'Please fill in all required fields.');
+        if (!formData.test_code || !formData.test_name || !formData.category_id || !formData.price) {
+            alert('Please fill in all required fields.');
             return;
         }
 
@@ -216,33 +236,19 @@ $(document).ready(function() {
             dataType: 'json',
             success: function(response) {
                 if (response.success) {
-                    showToaster('success', 'Test added successfully!');
+                    alert('Test added successfully!');
                     $('#modal-add-test').modal('hide');
                     $('#addTestForm')[0].reset();
                     loadTests(); // Reload the tests table
                 } else {
-                    showToaster('danger', response.message || 'Failed to add test');
+                    alert('Error: ' + (response.message || 'Failed to add test'));
                 }
             },
             error: function(xhr, status, error) {
                 console.error('Error adding test:', error);
-                showToaster('danger', 'Failed to add test. Please try again.');
+                alert('Failed to add test. Please try again.');
             }
         });
-    });
-
-    // Handle edit button clicks
-    $(document).on('click', '.btn-edit-test', function() {
-        var testId = $(this).data('id');
-        // TODO: Implement edit functionality
-        showToaster('info', 'Edit functionality for test ' + testId + ' will be implemented.');
-    });
-
-    // Handle view button clicks
-    $(document).on('click', '.btn-view-test', function() {
-        var testId = $(this).data('id');
-        // TODO: Implement view functionality
-        showToaster('info', 'View details for test ' + testId + ' will be implemented.');
     });
 
     // Handle delete button clicks
@@ -259,19 +265,43 @@ $(document).ready(function() {
                 dataType: 'json',
                 success: function(response) {
                     if (response.success) {
-                        showToaster('success', 'Test deleted successfully!');
+                        alert('Test deleted successfully!');
                         loadTests(); // Reload the tests table
                     } else {
-                        showToaster('danger', response.message || 'Failed to delete test');
+                        alert('Error: ' + (response.message || 'Failed to delete test'));
                     }
                 },
                 error: function(xhr, status, error) {
                     console.error('Error deleting test:', error);
-                    showToaster('danger', 'Failed to delete test. Please try again.');
+                    alert('Failed to delete test. Please try again.');
                 }
             });
         }
     });
+
+    // Load categories function
+    function loadCategories() {
+        $.ajax({
+            url: 'api/tests_api.php?action=categories',
+            method: 'GET',
+            dataType: 'json',
+            success: function(response) {
+                if (response.success) {
+                    var categorySelect = $('#category_id');
+                    categorySelect.empty().append('<option value="">Select Category</option>');
+                    
+                    response.data.forEach(function(category) {
+                        categorySelect.append('<option value="' + category.id + '">' + category.category_name + '</option>');
+                    });
+                } else {
+                    console.error('Failed to load categories');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error loading categories:', error);
+            }
+        });
+    }
 
     // Load tests function
     function loadTests() {
@@ -288,18 +318,10 @@ $(document).ready(function() {
                         table.row.add([
                             '<span class="badge badge-info">' + test.test_code + '</span>',
                             test.test_name,
-                            '<span class="badge badge-secondary">' + test.category + '</span>',
+                            '<span class="badge badge-secondary">' + (test.category_name || 'N/A') + '</span>',
                             '<strong>$' + parseFloat(test.price).toFixed(2) + '</strong>',
-                            test.turn_around_time || 'N/A',
-                            '<span class="badge badge-danger">' + (test.sample_type || 'N/A') + '</span>',
-                            '<span class="badge badge-success">Active</span>',
+                            '<span class="badge badge-primary">' + (test.sample_type || 'Blood') + '</span>',
                             '<div class="btn-group" role="group">' +
-                                '<button type="button" class="btn btn-info btn-sm btn-view-test" data-id="' + test.id + '" title="View">' +
-                                    '<i class="fas fa-eye"></i>' +
-                                '</button>' +
-                                '<button type="button" class="btn btn-warning btn-sm btn-edit-test" data-id="' + test.id + '" title="Edit">' +
-                                    '<i class="fas fa-edit"></i>' +
-                                '</button>' +
                                 '<button type="button" class="btn btn-danger btn-sm btn-delete-test" data-id="' + test.id + '" title="Delete">' +
                                     '<i class="fas fa-trash"></i>' +
                                 '</button>' +
@@ -309,12 +331,13 @@ $(document).ready(function() {
                     
                     table.draw();
                 } else {
-                    showToaster('danger', 'Failed to load tests');
+                    console.error('Failed to load tests:', response.message);
+                    $('#testsTableBody').html('<tr><td colspan="6" class="text-center text-danger">Error loading tests: ' + response.message + '</td></tr>');
                 }
             },
             error: function(xhr, status, error) {
                 console.error('Error loading tests:', error);
-                showToaster('danger', 'Failed to load tests');
+                $('#testsTableBody').html('<tr><td colspan="6" class="text-center text-danger">Failed to load tests. Please check console for details.</td></tr>');
             }
         });
     }
