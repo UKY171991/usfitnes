@@ -449,20 +449,22 @@ require_once 'includes/init.php';
 
     /* Header */
     .navbar-custom {
-      background: rgba(255, 255, 255, 0.95);
+      background: rgba(255, 255, 255, 0.98);
       backdrop-filter: blur(20px);
-      border-bottom: 1px solid rgba(0,0,0,0.1);
+      border-bottom: 1px solid rgba(0,0,0,0.08);
       padding: 1rem 0;
       transition: all 0.4s ease;
       position: fixed;
       width: 100%;
       top: 0;
       z-index: 1000;
+      box-shadow: 0 2px 20px rgba(0,0,0,0.05);
     }
 
     .navbar-custom.scrolled {
-      background: rgba(255, 255, 255, 0.98);
-      box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+      background: rgba(255, 255, 255, 0.99);
+      box-shadow: 0 2px 25px rgba(0,0,0,0.1);
+      padding: 0.8rem 0;
     }
 
     .navbar-brand {
@@ -470,39 +472,75 @@ require_once 'includes/init.php';
       font-size: 1.8rem;
       color: var(--primary-dark) !important;
       transition: all 0.3s ease;
+      text-decoration: none;
     }
 
     .navbar-brand:hover {
-      transform: scale(1.05);
+      transform: scale(1.02);
+      color: var(--primary-color) !important;
+      text-decoration: none;
     }
 
     .navbar-nav .nav-link {
       color: var(--primary-dark) !important;
       font-weight: 600;
-      margin: 0 0.5rem;
+      margin: 0 0.8rem;
+      padding: 0.8rem 1rem !important;
       transition: all 0.3s ease;
       position: relative;
+      border-radius: 8px;
     }
 
     .navbar-nav .nav-link::after {
       content: '';
       position: absolute;
-      bottom: -5px;
+      bottom: 0;
       left: 50%;
       width: 0;
-      height: 2px;
+      height: 3px;
       background: linear-gradient(45deg, #667eea, #764ba2);
       transition: all 0.3s ease;
       transform: translateX(-50%);
-    }
-
-    .navbar-nav .nav-link:hover::after {
-      width: 100%;
+      border-radius: 2px;
     }
 
     .navbar-nav .nav-link:hover {
       color: var(--primary-color) !important;
+      background: rgba(102, 126, 234, 0.05);
+      transform: translateY(-1px);
+    }
+
+    .navbar-nav .nav-link:hover::after {
+      width: 80%;
+    }
+
+    .navbar-nav .btn {
+      margin-left: 1rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
+    }
+
+    .navbar-nav .btn:hover {
+      background: linear-gradient(45deg, #667eea, #764ba2) !important;
+      color: white !important;
+      border-color: transparent !important;
       transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+    }
+
+    .navbar-toggler {
+      border: none;
+      padding: 0.5rem;
+    }
+
+    .navbar-toggler:focus {
+      box-shadow: none;
+    }
+
+    .navbar-toggler-icon {
+      background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%2844, 90, 160, 0.8%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='m4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
     }
 
     /* Footer */
@@ -583,6 +621,25 @@ require_once 'includes/init.php';
       .cta-content {
         padding: 3rem 2rem;
       }
+
+      .navbar-nav .nav-link {
+        margin: 0.2rem 0;
+        text-align: center;
+      }
+
+      .navbar-nav .btn {
+        margin: 1rem auto;
+        display: block;
+        width: fit-content;
+      }
+
+      .navbar-collapse {
+        background: rgba(255, 255, 255, 0.98);
+        border-radius: 15px;
+        margin-top: 1rem;
+        padding: 1rem;
+        box-shadow: 0 5px 25px rgba(0,0,0,0.1);
+      }
     }
 
     @media (max-width: 576px) {
@@ -597,6 +654,10 @@ require_once 'includes/init.php';
       .navbar-brand {
         font-size: 1.5rem;
       }
+
+      .navbar-brand span {
+        font-size: 1.5rem !important;
+      }
     }
   </style>
 </head>
@@ -609,9 +670,11 @@ require_once 'includes/init.php';
     <div class="container">
       <a class="navbar-brand d-flex align-items-center" href="#home">
         <?php if (hasLogo()): ?>
-          <img src="<?php echo getLogoPath(); ?>" alt="PathLab Pro Logo" height="45" class="me-2 mr-2">
+          <img src="<?php echo getLogoPath(); ?>" alt="PathLab Pro Logo" height="35" class="me-2 mr-2">
+        <?php else: ?>
+          <i class="fas fa-microscope mr-2" style="font-size: 1.8rem; color: var(--primary-color);"></i>
         <?php endif; ?>
-        PathLab Pro
+        <span style="font-weight: 700; font-size: 1.8rem;">PathLab Pro</span>
       </a>
       
       <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
@@ -619,21 +682,31 @@ require_once 'includes/init.php';
       </button>
       
       <div class="collapse navbar-collapse" id="navbarNav">
-        <ul class="navbar-nav ml-auto">
+        <ul class="navbar-nav ml-auto align-items-center">
           <li class="nav-item">
-            <a class="nav-link" href="#home">Home</a>
+            <a class="nav-link" href="#home">
+              <i class="fas fa-home mr-1"></i>Home
+            </a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="#features">Features</a>
+            <a class="nav-link" href="#features">
+              <i class="fas fa-star mr-1"></i>Features
+            </a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="#about">About</a>
+            <a class="nav-link" href="#about">
+              <i class="fas fa-info-circle mr-1"></i>About
+            </a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="#contact">Contact</a>
+            <a class="nav-link" href="#contact">
+              <i class="fas fa-envelope mr-1"></i>Contact
+            </a>
           </li>
-          <li class="nav-item">
-            <a class="nav-link btn btn-outline-primary ml-2 px-3 rounded-pill" href="login.php">Login</a>
+          <li class="nav-item ml-2">
+            <a class="btn btn-outline-primary px-4 py-2 rounded-pill font-weight-bold" href="login.php" style="border-width: 2px; transition: all 0.3s ease;">
+              <i class="fas fa-sign-in-alt mr-2"></i>Login
+            </a>
           </li>
         </ul>
       </div>
@@ -655,9 +728,6 @@ require_once 'includes/init.php';
       <div class="row align-items-center min-vh-100">
         <div class="col-lg-6">
           <div class="hero-content">
-            <?php if (hasLogo()): ?>
-              <img src="<?php echo getLogoPath(); ?>" alt="PathLab Pro Logo" class="hero-logo">
-            <?php endif; ?>
             <h1 class="hero-title">PathLab Pro</h1>
             <p class="hero-subtitle">Advanced Laboratory Management System</p>
             <p class="hero-description">Transform your laboratory operations with our cutting-edge management solution. Streamline workflows, enhance patient care, and boost efficiency with intelligent automation and comprehensive reporting.</p>
@@ -905,8 +975,15 @@ require_once 'includes/init.php';
         
         // Parallax effect for hero section
         const heroSection = $('.hero-section');
-        const parallaxSpeed = 0.5;
+        const parallaxSpeed = 0.3;
         heroSection.css('transform', `translateY(${scrollTop * parallaxSpeed}px)`);
+      });
+
+      // Auto-collapse navbar on mobile after clicking a link
+      $('.navbar-nav .nav-link').on('click', function() {
+        if ($(window).width() < 992) {
+          $('.navbar-collapse').collapse('hide');
+        }
       });
 
       // Add easing function
