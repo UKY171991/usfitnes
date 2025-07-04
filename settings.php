@@ -686,25 +686,25 @@ $(document).ready(function() {
       dataType: 'json',
       success: function(response) {
         if (response.success) {
-          showAlert('General settings saved successfully!', 'success');
+          showAlert('success', 'General settings saved successfully!');
         } else {
           showAlert('Error: ' + response.message, 'danger');
         }
       },
       error: function() {
-        showAlert('Server error while saving settings.', 'danger');
+        showAlert('danger', 'Server error while saving settings.');
       }
     });
   });
   
   $('#notificationSettingsForm').on('submit', function(e) {
     e.preventDefault();
-    showAlert('Notification settings saved successfully!', 'success');
+    showAlert('success', 'Notification settings saved successfully!');
   });
   
   $('#appearanceSettingsForm').on('submit', function(e) {
     e.preventDefault();
-    showAlert('Appearance settings saved successfully!', 'success');
+    showAlert('success', 'Appearance settings saved successfully!');
   });
   
   // File input label update
@@ -714,7 +714,7 @@ $(document).ready(function() {
   });
   
   // Helper function to show alerts
-  function showAlert(message, type) {
+  function showAlert(type, message) {
     const alertHtml = `
       <div class="alert alert-\${type} alert-dismissible fade show" role="alert">
         \${message}

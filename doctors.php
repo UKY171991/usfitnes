@@ -749,7 +749,7 @@ function clearFilters() {
 function refreshDoctors() {
     loadStats();
     loadDoctors(currentPage);
-    showAlert('Doctors list refreshed successfully', 'success');
+    showAlert('success', 'Doctors list refreshed successfully');
 }
 
 // Add doctor form submission
@@ -771,13 +771,13 @@ $('#addDoctorForm').submit(function(e) {
                 $('#addDoctorForm')[0].reset();
                 loadDoctors(currentPage);
                 loadStats();
-                showAlert('Doctor added successfully!', 'success');
+                showAlert('success', 'Doctor added successfully!');
             } else {
-                showAlert('Error adding doctor: ' + response.message, 'danger');
+                showAlert('danger', 'Error adding doctor: ' + response.message);
             }
         },
         error: function() {
-            showAlert('Error adding doctor. Please try again.', 'danger');
+            showAlert('danger', 'Error adding doctor. Please try again.');
         },
         complete: function() {
             submitBtn.html(originalText).prop('disabled', false);
@@ -808,11 +808,11 @@ function editDoctor(id) {
                 $('#edit_notes').val(doctor.notes);
                 $('#editDoctorModal').modal('show');
             } else {
-                showAlert('Doctor not found', 'danger');
+                showAlert('danger', 'Doctor not found');
             }
         },
         error: function() {
-            showAlert('Error loading doctor details', 'danger');
+            showAlert('danger', 'Error loading doctor details');
         }
     });
 }
@@ -835,13 +835,13 @@ $('#editDoctorForm').submit(function(e) {
                 $('#editDoctorModal').modal('hide');
                 loadDoctors(currentPage);
                 loadStats();
-                showAlert('Doctor updated successfully!', 'success');
+                showAlert('success', 'Doctor updated successfully!');
             } else {
                 showAlert('Error updating doctor: ' + response.message, 'danger');
             }
         },
         error: function() {
-            showAlert('Error updating doctor. Please try again.', 'danger');
+            showAlert('danger', 'Error updating doctor. Please try again.');
         },
         complete: function() {
             submitBtn.html(originalText).prop('disabled', false);
@@ -917,11 +917,11 @@ function viewDoctor(id) {
                 $('#viewDoctorContent').html(html);
                 $('#viewDoctorModal').modal('show');
             } else {
-                showAlert('Doctor not found', 'danger');
+                showAlert('danger', 'Doctor not found');
             }
         },
         error: function() {
-            showAlert('Error loading doctor details', 'danger');
+            showAlert('danger', 'Error loading doctor details');
         }
     });
 }
@@ -957,13 +957,13 @@ function deleteDoctor(id) {
                 $('#deleteDoctorModal').modal('hide');
                 loadDoctors(currentPage);
                 loadStats();
-                showAlert('Doctor deleted successfully!', 'success');
+                showAlert('success', 'Doctor deleted successfully!');
             } else {
                 showAlert('Error deleting doctor: ' + response.message, 'danger');
             }
         },
         error: function() {
-            showAlert('Error deleting doctor. Please try again.', 'danger');
+            showAlert('danger', 'Error deleting doctor. Please try again.');
         },
         complete: function() {
             deleteBtn.html(originalText).prop('disabled', false);
@@ -973,7 +973,7 @@ function deleteDoctor(id) {
 
 // Export functions
 function exportDoctors() {
-    showAlert('Export feature will be available soon.', 'info');
+    showAlert('info', 'Export feature will be available soon.');
 }
 
 function printDoctorInfo() {
@@ -987,7 +987,7 @@ function formatDate(dateStr) {
     return date.toLocaleDateString();
 }
 
-function showAlert(message, type) {
+function showAlert(type, message) {
     const alertHtml = `
         <div class="alert alert-${type} alert-dismissible fade show" role="alert">
             <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'danger' ? 'exclamation-triangle' : 'info-circle'}"></i>

@@ -176,22 +176,22 @@ $(document).ready(function() {
         
         // Client-side validation
         if(!formData.firstname || !formData.lastname || !formData.email || !formData.password || !formData.confirm_password) {
-            showAlert('Please fill in all fields.', 'danger');
+            showAlert('danger', 'Please fill in all fields.');
             return;
         }
         
         if(formData.password !== formData.confirm_password) {
-            showAlert('Passwords do not match.', 'danger');
+            showAlert('danger', 'Passwords do not match.');
             return;
         }
         
         if(formData.password.length < 6) {
-            showAlert('Password must be at least 6 characters long.', 'danger');
+            showAlert('danger', 'Password must be at least 6 characters long.');
             return;
         }
         
         if(!formData.terms) {
-            showAlert('Please agree to the terms and conditions.', 'danger');
+            showAlert('danger', 'Please agree to the terms and conditions.');
             return;
         }
         
@@ -208,7 +208,7 @@ $(document).ready(function() {
             dataType: 'json',
             success: function(response) {
                 if(response.success) {
-                    showAlert('Registration successful! You can now login.', 'success');
+                    showAlert('success', 'Registration successful! You can now login.');
                     $('#registerForm')[0].reset();
                     
                     // Redirect to login page after 2 seconds
@@ -220,7 +220,7 @@ $(document).ready(function() {
                 }
             },
             error: function(xhr, status, error) {
-                showAlert('Registration failed. Please try again.', 'danger');
+                showAlert('danger', 'Registration failed. Please try again.');
                 console.error('Registration error:', error);
             },
             complete: function() {
@@ -261,7 +261,7 @@ $(document).ready(function() {
     });
 });
 
-function showAlert(message, type) {
+function showAlert(type, message) {
     const alertHtml = `
         <div class="alert alert-${type} alert-dismissible">
             <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>

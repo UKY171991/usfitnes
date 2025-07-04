@@ -701,7 +701,7 @@ function loadTestOrders() {
             }
         },
         error: function() {
-            showAlert('Error loading test orders', 'danger');
+            showAlert('danger', 'Error loading test orders');
         }
     });
 }
@@ -728,7 +728,7 @@ function clearFilters() {
 function refreshResults() {
     loadStats();
     loadResults(currentPage);
-    showAlert('Results refreshed successfully', 'success');
+    showAlert('success', 'Results refreshed successfully');
 }
 
 // Add result form submission
@@ -750,13 +750,13 @@ $('#addResultForm').submit(function(e) {
                 $('#addResultForm')[0].reset();
                 loadResults(currentPage);
                 loadStats();
-                showAlert('Test result added successfully!', 'success');
+                showAlert('success', 'Test result added successfully!');
             } else {
                 showAlert('Error adding result: ' + response.message, 'danger');
             }
         },
         error: function() {
-            showAlert('Error adding result. Please try again.', 'danger');
+            showAlert('danger', 'Error adding result. Please try again.');
         },
         complete: function() {
             submitBtn.html(originalText).prop('disabled', false);
@@ -783,11 +783,11 @@ function editResult(id) {
                 $('#edit_notes').val(result.notes);
                 $('#editResultModal').modal('show');
             } else {
-                showAlert('Result not found', 'danger');
+                showAlert('danger', 'Result not found');
             }
         },
         error: function() {
-            showAlert('Error loading result details', 'danger');
+            showAlert('danger', 'Error loading result details');
         }
     });
 }
@@ -810,13 +810,13 @@ $('#editResultForm').submit(function(e) {
                 $('#editResultModal').modal('hide');
                 loadResults(currentPage);
                 loadStats();
-                showAlert('Test result updated successfully!', 'success');
+                showAlert('success', 'Test result updated successfully!');
             } else {
                 showAlert('Error updating result: ' + response.message, 'danger');
             }
         },
         error: function() {
-            showAlert('Error updating result. Please try again.', 'danger');
+            showAlert('danger', 'Error updating result. Please try again.');
         },
         complete: function() {
             submitBtn.html(originalText).prop('disabled', false);
@@ -909,11 +909,11 @@ function viewResult(id) {
                 $('#viewResultContent').html(html);
                 $('#viewResultModal').modal('show');
             } else {
-                showAlert('Result not found', 'danger');
+                showAlert('danger', 'Result not found');
             }
         },
         error: function() {
-            showAlert('Error loading result details', 'danger');
+            showAlert('danger', 'Error loading result details');
         }
     });
 }
@@ -949,13 +949,13 @@ function deleteResult(id) {
                 $('#deleteResultModal').modal('hide');
                 loadResults(currentPage);
                 loadStats();
-                showAlert('Test result deleted successfully!', 'success');
+                showAlert('success', 'Test result deleted successfully!');
             } else {
                 showAlert('Error deleting result: ' + response.message, 'danger');
             }
         },
         error: function() {
-            showAlert('Error deleting result. Please try again.', 'danger');
+            showAlert('danger', 'Error deleting result. Please try again.');
         },
         complete: function() {
             deleteBtn.html(originalText).prop('disabled', false);
@@ -965,7 +965,7 @@ function deleteResult(id) {
 
 // Export functions
 function exportResults() {
-    showAlert('Export feature will be available soon.', 'info');
+    showAlert('info', 'Export feature will be available soon.');
 }
 
 function printResult() {
@@ -979,7 +979,7 @@ function formatDate(dateStr) {
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
 }
 
-function showAlert(message, type) {
+function showAlert(type, message) {
     const alertHtml = `
         <div class="alert alert-${type} alert-dismissible fade show" role="alert">
             <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'danger' ? 'exclamation-triangle' : 'info-circle'}"></i>

@@ -678,7 +678,7 @@ function loadEquipment(page = 1) {
             
             // Show sample data for demonstration
             displaySampleEquipment();
-            showAlert('Using sample data for demonstration', 'info');
+            showAlert('info', 'Using sample data for demonstration');
         }
     });
 }
@@ -914,7 +914,7 @@ function clearFilters() {
 function refreshEquipment() {
     loadStats();
     loadEquipment(currentPage);
-    showAlert('Equipment list refreshed successfully', 'success');
+    showAlert('success', 'Equipment list refreshed successfully');
 }
 
 // Add equipment form submission
@@ -936,13 +936,13 @@ $('#addEquipmentForm').submit(function(e) {
                 $('#addEquipmentForm')[0].reset();
                 loadEquipment(currentPage);
                 loadStats();
-                showAlert('Equipment added successfully!', 'success');
+                showAlert('success', 'Equipment added successfully!');
             } else {
                 showAlert('Error adding equipment: ' + response.message, 'danger');
             }
         },
         error: function() {
-            showAlert('Error adding equipment. Please try again.', 'danger');
+            showAlert('danger', 'Error adding equipment. Please try again.');
         },
         complete: function() {
             submitBtn.html(originalText).prop('disabled', false);
@@ -974,11 +974,11 @@ function editEquipment(id) {
                 $('#edit_notes').val(equipment.notes);
                 $('#editEquipmentModal').modal('show');
             } else {
-                showAlert('Equipment not found', 'danger');
+                showAlert('danger', 'Equipment not found');
             }
         },
         error: function() {
-            showAlert('Error loading equipment details', 'danger');
+            showAlert('danger', 'Error loading equipment details');
         }
     });
 }
@@ -1001,13 +1001,13 @@ $('#editEquipmentForm').submit(function(e) {
                 $('#editEquipmentModal').modal('hide');
                 loadEquipment(currentPage);
                 loadStats();
-                showAlert('Equipment updated successfully!', 'success');
+                showAlert('success', 'Equipment updated successfully!');
             } else {
                 showAlert('Error updating equipment: ' + response.message, 'danger');
             }
         },
         error: function() {
-            showAlert('Error updating equipment. Please try again.', 'danger');
+            showAlert('danger', 'Error updating equipment. Please try again.');
         },
         complete: function() {
             submitBtn.html(originalText).prop('disabled', false);
@@ -1040,13 +1040,13 @@ $('#maintenanceForm').submit(function(e) {
                 $('#maintenanceModal').modal('hide');
                 $('#maintenanceForm')[0].reset();
                 loadEquipment(currentPage);
-                showAlert('Maintenance scheduled successfully!', 'success');
+                showAlert('success', 'Maintenance scheduled successfully!');
             } else {
                 showAlert('Error scheduling maintenance: ' + response.message, 'danger');
             }
         },
         error: function() {
-            showAlert('Error scheduling maintenance. Please try again.', 'danger');
+            showAlert('danger', 'Error scheduling maintenance. Please try again.');
         },
         complete: function() {
             submitBtn.html(originalText).prop('disabled', false);
@@ -1085,13 +1085,13 @@ function deleteEquipment(id) {
                 $('#deleteEquipmentModal').modal('hide');
                 loadEquipment(currentPage);
                 loadStats();
-                showAlert('Equipment deleted successfully!', 'success');
+                showAlert('success', 'Equipment deleted successfully!');
             } else {
                 showAlert('Error deleting equipment: ' + response.message, 'danger');
             }
         },
         error: function() {
-            showAlert('Error deleting equipment. Please try again.', 'danger');
+            showAlert('danger', 'Error deleting equipment. Please try again.');
         },
         complete: function() {
             deleteBtn.html(originalText).prop('disabled', false);
@@ -1102,12 +1102,12 @@ function deleteEquipment(id) {
 // View equipment details
 function viewEquipment(id) {
     // This could open a detailed view modal
-    showAlert('Equipment details view will be implemented soon.', 'info');
+    showAlert('info', 'Equipment details view will be implemented soon.');
 }
 
 // Export equipment
 function exportEquipment() {
-    showAlert('Export feature will be available soon.', 'info');
+    showAlert('info', 'Export feature will be available soon.');
 }
 
 // Utility functions
@@ -1117,7 +1117,7 @@ function formatDate(dateStr) {
     return date.toLocaleDateString();
 }
 
-function showAlert(message, type) {
+function showAlert(type, message) {
     const alertHtml = `
         <div class="alert alert-${type} alert-dismissible fade show" role="alert">
             <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'danger' ? 'exclamation-triangle' : 'info-circle'}"></i>

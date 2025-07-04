@@ -391,7 +391,7 @@ function generateReport() {
                 displayReportData(response.data, reportType);
                 updateChart(response.chart_data, reportType);
                 updateSummary(response.summary);
-                showAlert('Report generated successfully!', 'success');
+                showAlert('success', 'Report generated successfully!');
             } else {
                 showAlert('Error generating report: ' + response.message, 'danger');
             }
@@ -402,7 +402,7 @@ function generateReport() {
             
             // Show sample data for demonstration
             displaySampleData(reportType);
-            showAlert('Using sample data for demonstration', 'info');
+            showAlert('info', 'Using sample data for demonstration');
         }
     });
 }
@@ -659,10 +659,10 @@ function exportReport(format) {
     
     if (format === 'excel') {
         // In a real application, this would generate an Excel file
-        showAlert('Excel export feature will be available soon.', 'info');
+        showAlert('info', 'Excel export feature will be available soon.');
     } else if (format === 'pdf') {
         // In a real application, this would generate a PDF file
-        showAlert('PDF export feature will be available soon.', 'info');
+        showAlert('info', 'PDF export feature will be available soon.');
     }
 }
 
@@ -688,7 +688,7 @@ function printReportModal() {
 }
 
 // Utility function to show alerts
-function showAlert(message, type) {
+function showAlert(type, message) {
     const alertHtml = `
         <div class="alert alert-${type} alert-dismissible fade show" role="alert">
             <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'danger' ? 'exclamation-triangle' : 'info-circle'}"></i>

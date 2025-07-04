@@ -4,6 +4,81 @@
  * This file contains common utility functions that can be used across the entire application.
  */
 
+// Global utility functions
+// Standardized alert function
+function showAlert(type, message, containerId = 'alertContainer') {
+    const alertClass = type === 'success' ? 'alert-success' : 
+                     type === 'error' || type === 'danger' ? 'alert-danger' : 
+                     type === 'warning' ? 'alert-warning' : 'alert-info';
+    
+    const icon = type === 'success' ? 'fas fa-check' : 
+                type === 'error' || type === 'danger' ? 'fas fa-times' : 
+                type === 'warning' ? 'fas fa-exclamation-triangle' : 'fas fa-info-circle';
+    
+    const alert = `
+        <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+            <i class="${icon}"></i> ${message}
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+    `;
+    
+    const container = document.getElementById(containerId);
+    if (container) {
+        container.innerHTML = alert;
+        // Auto-dismiss after 5 seconds for success messages
+        if (type === 'success') {
+            setTimeout(() => {
+                const alertElement = container.querySelector('.alert');
+                if (alertElement) {
+                    $(alertElement).alert('close');
+                }
+            }, 5000);
+        }
+    } else {
+        // Fallback to console if container not found
+        console.log(`${type.toUpperCase()}: ${message}`);
+    }
+}
+
+// HTML escape function for security
+function escapeHtml(text) {
+    if (text === null || text === undefined) return '';
+    const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    };
+    return text.toString().replace(/[&<>"']/g, function(m) { return map[m]; });
+}
+
+// Calculate age from date of birth
+function calculateAge(dateOfBirth) {
+    if (!dateOfBirth) return 'N/A';
+    const today = new Date();
+    const birthDate = new Date(dateOfBirth);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+    }
+    return age;
+}
+
+// Format phone number
+function formatPhone(phone) {
+    if (!phone) return '';
+    const cleaned = phone.replace(/\D/g, '');
+    const match = cleaned.match(/^(\d{3})(\d{3})(\d{4})$/);
+    if (match) {
+        return `(${match[1]}) ${match[2]}-${match[3]}`;
+    }
+    return phone;
+}
+
 // Initialize common form components
 function initializeFormComponents() {
   // Initialize Select2
