@@ -166,15 +166,13 @@ if (typeof jQuery == 'undefined') {
           <form id="editPatientForm">
             <input type="hidden" id="editPatientId" name="id">
             <div class="row">
-              <div class="col-md-12">
+              <div class="col-md-6">
                 <div class="form-group">
                   <label for="editFullName">Full Name <span class="text-danger">*</span></label>
                   <input type="text" class="form-control" id="editFullName" name="full_name" required>
                 </div>
               </div>
-            </div>
-            <div class="row">
-              <div class="col-md-12">
+              <div class="col-md-6">
                 <div class="form-group">
                   <label for="editPhone">Phone <span class="text-danger">*</span></label>
                   <input type="tel" class="form-control" id="editPhone" name="phone" required>
