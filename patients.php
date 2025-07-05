@@ -274,7 +274,6 @@ $(document).ready(function() {
                 return `<span class="badge badge-primary">${escapeHtml(data || 'N/A')}</span>`;
             }},
             { "data": "full_name", "render": function(data) { return escapeHtml(data); }},
-            { "data": "email", "render": function(data) { return escapeHtml(data || ''); }},
             { "data": "phone", "render": function(data) { return escapeHtml(data || ''); }},
             { "data": "gender", "render": function(data) {
                 const badgeClass = data === 'Male' ? 'info' : (data === 'Female' ? 'pink' : 'secondary');
@@ -527,7 +526,6 @@ function viewPatient(patientId) {
                             <table class="table table-borderless">
                                 <tr><td><strong>Patient ID:</strong></td><td><span class="badge badge-primary">${patient.patient_id}</span></td></tr>
                                 <tr><td><strong>Full Name:</strong></td><td>${escapeHtml(patient.full_name)}</td></tr>
-                                <tr><td><strong>Email:</strong></td><td>${escapeHtml(patient.email || 'N/A')}</td></tr>
                                 <tr><td><strong>Phone:</strong></td><td>${escapeHtml(patient.phone)}</td></tr>
                                 <tr><td><strong>Gender:</strong></td><td><span class="badge badge-${patient.gender === 'Male' ? 'info' : (patient.gender === 'Female' ? 'pink' : 'secondary')}">${patient.gender}</span></td></tr>
                             </table>
@@ -537,9 +535,8 @@ function viewPatient(patientId) {
                             <table class="table table-borderless">
                                 <tr><td><strong>Date of Birth:</strong></td><td>${formatDate(patient.date_of_birth)}</td></tr>
                                 <tr><td><strong>Age:</strong></td><td>${age} years</td></tr>
-                                <tr><td><strong>Emergency Contact:</strong></td><td>${escapeHtml(patient.emergency_contact || 'N/A')}</td></tr>
-                                <tr><td><strong>Emergency Phone:</strong></td><td>${escapeHtml(patient.emergency_phone || 'N/A')}</td></tr>
                                 <tr><td><strong>Address:</strong></td><td>${escapeHtml(patient.address || 'N/A')}</td></tr>
+                                <tr><td><strong>Medical History:</strong></td><td>${escapeHtml(patient.medical_history || 'N/A')}</td></tr>
                             </table>
                         </div>
                     </div>
