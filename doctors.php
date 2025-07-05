@@ -442,6 +442,8 @@ $(document).ready(function() {
       ajax: {
         url: 'api/doctors_api.php',
         dataSrc: function(json) {
+          // Remove loading row after data loads
+          $('#doctorsTableBody').empty();
           if (json.success) {
             doctors = json.data;
             updateStats();
@@ -449,7 +451,6 @@ $(document).ready(function() {
             return json.data;
           } else {
             showAlert('error', 'Failed to load doctors: ' + (json.message || 'Unknown error'));
-            
             // If unauthorized, redirect to login
             if (json.message && json.message.includes('Unauthorized')) {
               setTimeout(() => {
@@ -462,7 +463,6 @@ $(document).ready(function() {
         error: function(xhr, error, thrown) {
           console.error('AJAX Error:', xhr.responseText);
           let errorMsg = 'Failed to load doctors data. ';
-          
           // Handle specific error cases
           if (xhr.status === 401) {
             errorMsg = 'You are not logged in. Redirecting to login page...';
@@ -478,7 +478,6 @@ $(document).ready(function() {
           } else {
             errorMsg += 'Server error: ' + error;
           }
-          
           showAlert('error', errorMsg);
           return [];
         }
@@ -537,6 +536,10 @@ $(document).ready(function() {
       ],
       responsive: true,
       pageLength: 25
+    });
+    // Remove loading row after AJAX loads (for extra safety)
+    $('#doctorsTable').on('xhr.dt', function (e, settings, json, xhr) {
+      $('#doctorsTableBody').empty();
     });
   }
 
@@ -716,14 +719,14 @@ $(document).ready(function() {
   });
 
   // Filter by specialization
-  $('#filterSpecialization').on('change', function() {
-    doctorsTable.column(2).search(this.value).draw();
-  });
+  // $('#filterSpecialization').on('change', function() {
+  //   doctorsTable.column(2).search(this.value).draw();
+  // });
 
   // Filter by status
-  $('#filterStatus').on('change', function() {
-    doctorsTable.column(6).search(this.value).draw();
-  });
+  // $('#filterStatus').on('change', function() {
+  //   doctorsTable.column(6).search(this.value).draw();
+  // });
 });
 
 function clearFilters() {
