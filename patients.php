@@ -100,7 +100,7 @@ if (typeof jQuery == 'undefined') {
         <div class="modal-body">
           <form id="addPatientForm">
             <div class="row">
-              <div class="col-md-12">
+              <div class="col-md-6">
                 <div class="form-group">
                   <label for="fullName">Full Name <span class="text-danger">*</span></label>
                   <input type="text" class="form-control" id="fullName" name="full_name" required>
@@ -108,7 +108,7 @@ if (typeof jQuery == 'undefined') {
               </div>
             </div>
             <div class="row">
-              <div class="col-md-12">
+              <div class="col-md-6">
                 <div class="form-group">
                   <label for="phone">Phone <span class="text-danger">*</span></label>
                   <input type="tel" class="form-control" id="phone" name="phone" required>
