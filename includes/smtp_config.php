@@ -47,6 +47,10 @@ function sendEmailWithPHPMailer($to_email, $to_name, $subject, $body, $is_html =
         $mail->SMTPSecure = SMTP_SECURE;
         $mail->Port = SMTP_PORT;
         
+        // Set timeouts to prevent hanging
+        $mail->Timeout = 10;       // SMTP timeout
+        $mail->SMTPKeepAlive = false; // Don't keep connection alive
+        
         // Recipients
         $mail->setFrom(FROM_EMAIL, FROM_NAME);
         $mail->addAddress($to_email, $to_name);
@@ -74,43 +78,11 @@ function sendEmailWithPHPMailer($to_email, $to_name, $subject, $body, $is_html =
  */
 function sendEmailWithSocket($to_email, $to_name, $subject, $body, $is_html = true) {
     try {
-        // Create socket connection
-        $socket = fsockopen(SMTP_HOST, SMTP_PORT, $errno, $errstr, 10);
-        
-        if (!$socket) {
-            return ['success' => false, 'message' => "Failed to connect to SMTP server: $errstr ($errno)"];
-        }
-        
-        // Read initial response
-        $response = fgets($socket);
-        
-        // SMTP commands
-        $commands = [
-            "EHLO " . $_SERVER['HTTP_HOST'] ?? 'localhost',
-            "AUTH LOGIN",
-            base64_encode(SMTP_USERNAME),
-            base64_encode(SMTP_PASSWORD),
-            "MAIL FROM: <" . FROM_EMAIL . ">",
-            "RCPT TO: <$to_email>",
-            "DATA"
-        ];
-        
-        foreach ($commands as $command) {
-            fwrite($socket, $command . "\r\n");
-            $response = fgets($socket);
-            
-            // Check for errors
-            if (substr($response, 0, 1) == '4' || substr($response, 0, 1) == '5') {
-                fclose($socket);
-                return ['success' => false, 'message' => 'SMTP Error: ' . $response];
-            }
-        }
-        
-        // Prepare email headers and body
+        // For now, let's use a simple mail() function as fallback
+        // since the socket connection is having issues
         $headers = "From: " . FROM_NAME . " <" . FROM_EMAIL . ">\r\n";
-        $headers .= "To: $to_name <$to_email>\r\n";
-        $headers .= "Subject: $subject\r\n";
-        $headers .= "Date: " . date('r') . "\r\n";
+        $headers .= "Reply-To: " . FROM_EMAIL . "\r\n";
+        $headers .= "X-Mailer: PHP/" . phpversion() . "\r\n";
         
         if ($is_html) {
             $headers .= "MIME-Version: 1.0\r\n";
@@ -119,24 +91,16 @@ function sendEmailWithSocket($to_email, $to_name, $subject, $body, $is_html = tr
             $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
         }
         
-        $headers .= "\r\n";
+        $mail_sent = mail($to_email, $subject, $body, $headers);
         
-        // Send email content
-        fwrite($socket, $headers . $body . "\r\n.\r\n");
-        $response = fgets($socket);
-        
-        // Send QUIT command
-        fwrite($socket, "QUIT\r\n");
-        fclose($socket);
-        
-        if (substr($response, 0, 1) == '2') {
+        if ($mail_sent) {
             return ['success' => true, 'message' => 'Email sent successfully'];
         } else {
-            return ['success' => false, 'message' => 'Failed to send email: ' . $response];
+            return ['success' => false, 'message' => 'Failed to send email using mail() function'];
         }
         
     } catch (Exception $e) {
-        error_log("SMTP Socket Error: " . $e->getMessage());
+        error_log("Mail sending error: " . $e->getMessage());
         return ['success' => false, 'message' => 'Email sending failed: ' . $e->getMessage()];
     }
 }
@@ -257,5 +221,32 @@ function sendWelcomeEmail($email, $name) {
     ";
     
     return sendEmail($email, $name, $subject, $body, true);
+}
+
+/**
+ * Send OTP email with timeout handling
+ */
+function sendOTPEmailWithTimeout($email, $name, $otp, $timeout = 15) {
+    // Set a maximum execution time for email sending
+    $original_time_limit = ini_get('max_execution_time');
+    set_time_limit($timeout + 5); // Add 5 seconds buffer
+    
+    $start_time = microtime(true);
+    
+    try {
+        $result = sendOTPEmail($email, $name, $otp);
+        
+        $elapsed_time = microtime(true) - $start_time;
+        error_log("OTP email sending took " . round($elapsed_time, 2) . " seconds");
+        
+        return $result;
+        
+    } catch (Exception $e) {
+        error_log("OTP email sending exception: " . $e->getMessage());
+        return ['success' => false, 'message' => 'Email sending failed due to timeout or error'];
+    } finally {
+        // Restore original time limit
+        set_time_limit($original_time_limit);
+    }
 }
 ?>

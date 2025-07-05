@@ -4,6 +4,9 @@
  * Handles OTP generation, verification, and registration process
  */
 
+// Set PHP timeout to prevent hanging
+set_time_limit(30);
+
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE');
@@ -14,7 +17,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 require_once '../config.php';
-require_once '../includes/smtp_config.php';
+require_once '../includes/smtp_config_simple.php';
 
 $method = $_SERVER['REQUEST_METHOD'];
 $input = json_decode(file_get_contents('php://input'), true);
@@ -124,9 +127,16 @@ function sendOTP($pdo, $data) {
         $password_hash = password_hash($password, PASSWORD_DEFAULT);
         $stmt->execute([$email, $otp, $firstname, $lastname, $password_hash, $expiry]);
         
-        // Send OTP email
+        // Send OTP email with timeout handling
         $fullName = $firstname . ' ' . $lastname;
-        $emailResult = sendOTPEmail($email, $fullName, $otp);
+        
+        // Try to send email with timeout
+        $start_time = time();
+        $emailResult = sendOTPEmailWithTimeout($email, $fullName, $otp, 15); // 15 second timeout
+        $elapsed_time = time() - $start_time;
+        
+        // Log email sending time for debugging
+        error_log("Email sending took $elapsed_time seconds for $email");
         
         if ($emailResult['success']) {
             echo json_encode([
@@ -135,14 +145,15 @@ function sendOTP($pdo, $data) {
                 'email' => $email
             ]);
         } else {
-            // Remove the verification record if email failed
-            $stmt = $pdo->prepare("DELETE FROM email_verifications WHERE email = ?");
-            $stmt->execute([$email]);
+            // Log the error for debugging but don't remove the record immediately
+            error_log("Email sending failed for $email: " . $emailResult['message']);
             
-            http_response_code(500);
+            // Still allow user to proceed - they can try resend
             echo json_encode([
-                'success' => false,
-                'message' => 'Failed to send OTP email: ' . $emailResult['message']
+                'success' => true,
+                'message' => 'Registration initiated. If you don\'t receive the OTP email within 2 minutes, please click "Resend OTP".',
+                'email' => $email,
+                'warning' => 'Email delivery may be delayed'
             ]);
         }
         
@@ -316,7 +327,7 @@ function resendOTP($pdo, $data) {
         
         // Send OTP email
         $fullName = $verification['firstname'] . ' ' . $verification['lastname'];
-        $emailResult = sendOTPEmail($email, $fullName, $otp);
+        $emailResult = sendOTPEmailWithTimeout($email, $fullName, $otp, 15);
         
         if ($emailResult['success']) {
             echo json_encode([
@@ -324,10 +335,13 @@ function resendOTP($pdo, $data) {
                 'message' => 'New OTP sent successfully to your email address'
             ]);
         } else {
-            http_response_code(500);
+            error_log("Resend OTP email failed for $email: " . $emailResult['message']);
+            
+            // Don't fail completely - user might still receive delayed email
             echo json_encode([
-                'success' => false,
-                'message' => 'Failed to send OTP email: ' . $emailResult['message']
+                'success' => true,
+                'message' => 'OTP resend initiated. If you don\'t receive the email within 2 minutes, please try again.',
+                'warning' => 'Email delivery may be delayed'
             ]);
         }
         

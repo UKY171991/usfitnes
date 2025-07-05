@@ -255,9 +255,7 @@ $(document).ready(function() {
         }
         
         // Show loading state
-        $('#registerBtn').prop('disabled', true);
-        $('#registerBtnText').text('Sending OTP...');
-        $('#registerSpinner').removeClass('d-none');
+        showLoadingMessage($('#registerBtn'), 'Send OTP', 'Sending OTP...');
         
         // Send AJAX request
         $.ajax({
@@ -265,6 +263,7 @@ $(document).ready(function() {
             method: 'POST',
             data: formData,
             dataType: 'json',
+            timeout: 30000, // 30 second timeout
             success: function(response) {
                 if(response.success) {
                     currentEmail = formData.email;
@@ -286,14 +285,15 @@ $(document).ready(function() {
                 }
             },
             error: function(xhr, status, error) {
-                const response = xhr.responseJSON;
-                showAlert('danger', response ? response.message : 'Failed to send OTP. Please try again.');
+                let errorMessage = 'Failed to send OTP. Please try again.';
+                
+                errorMessage = handleAjaxError(xhr, status, error, errorMessage);
+                
+                showAlert('danger', errorMessage);
             },
             complete: function() {
                 // Reset button state
-                $('#registerBtn').prop('disabled', false);
-                $('#registerBtnText').text('Send OTP');
-                $('#registerSpinner').addClass('d-none');
+                hideLoadingMessage($('#registerBtn'), 'Send OTP');
             }
         });
     });
@@ -310,9 +310,7 @@ $(document).ready(function() {
         }
         
         // Show loading state
-        $('#verifyBtn').prop('disabled', true);
-        $('#verifyBtnText').text('Verifying...');
-        $('#verifySpinner').removeClass('d-none');
+        showLoadingMessage($('#verifyBtn'), 'Verify', 'Verifying...');
         
         // Clear previous alerts
         $('#alertMessages').empty();
@@ -327,6 +325,7 @@ $(document).ready(function() {
                 action: 'verify_otp'
             },
             dataType: 'json',
+            timeout: 30000, // 30 second timeout
             success: function(response) {
                 if(response.success) {
                     showAlert('success', response.message);
@@ -340,14 +339,15 @@ $(document).ready(function() {
                 }
             },
             error: function(xhr, status, error) {
-                const response = xhr.responseJSON;
-                showAlert('danger', response ? response.message : 'Verification failed. Please try again.');
+                let errorMessage = 'Verification failed. Please try again.';
+                
+                errorMessage = handleAjaxError(xhr, status, error, errorMessage);
+                
+                showAlert('danger', errorMessage);
             },
             complete: function() {
                 // Reset button state
-                $('#verifyBtn').prop('disabled', false);
-                $('#verifyBtnText').text('Verify');
-                $('#verifySpinner').addClass('d-none');
+                hideLoadingMessage($('#verifyBtn'), 'Verify');
             }
         });
     });
@@ -366,9 +366,7 @@ $(document).ready(function() {
         if(resendCountdown > 0) return;
         
         // Show loading state
-        $('#resendBtn').prop('disabled', true);
-        $('#resendBtnText').text('Sending...');
-        $('#resendSpinner').removeClass('d-none');
+        showLoadingMessage($('#resendBtn'), 'Resend OTP', 'Sending...');
         
         $.ajax({
             url: 'api/otp_api.php',
@@ -378,6 +376,7 @@ $(document).ready(function() {
                 action: 'resend_otp'
             },
             dataType: 'json',
+            timeout: 30000, // 30 second timeout
             success: function(response) {
                 if(response.success) {
                     showAlert('success', response.message);
@@ -387,14 +386,15 @@ $(document).ready(function() {
                 }
             },
             error: function(xhr, status, error) {
-                const response = xhr.responseJSON;
-                showAlert('danger', response ? response.message : 'Failed to resend OTP. Please try again.');
+                let errorMessage = 'Failed to resend OTP. Please try again.';
+                
+                errorMessage = handleAjaxError(xhr, status, error, errorMessage);
+                
+                showAlert('danger', errorMessage);
             },
             complete: function() {
                 // Reset button state
-                $('#resendBtn').prop('disabled', false);
-                $('#resendBtnText').text('Resend OTP');
-                $('#resendSpinner').addClass('d-none');
+                hideLoadingMessage($('#resendBtn'), 'Resend OTP');
             }
         });
     });
@@ -439,6 +439,36 @@ $(document).ready(function() {
         }
     });
 });
+
+// Add loading indicator function
+function showLoadingMessage(button, originalText, loadingText) {
+    button.prop('disabled', true);
+    button.find('.btn-text').text(loadingText);
+    button.find('.spinner').removeClass('d-none');
+}
+
+function hideLoadingMessage(button, originalText) {
+    button.prop('disabled', false);
+    button.find('.btn-text').text(originalText);
+    button.find('.spinner').addClass('d-none');
+}
+
+// Enhanced AJAX error handling
+function handleAjaxError(xhr, status, error, defaultMessage) {
+    let errorMessage = defaultMessage;
+    
+    if (status === 'timeout') {
+        errorMessage = 'Request timed out. Please check your internet connection and try again.';
+    } else if (status === 'error' && xhr.status === 0) {
+        errorMessage = 'Network error. Please check your internet connection.';
+    } else if (xhr.responseJSON && xhr.responseJSON.message) {
+        errorMessage = xhr.responseJSON.message;
+    } else if (xhr.status >= 500) {
+        errorMessage = 'Server error. Please try again later.';
+    }
+    
+    return errorMessage;
+}
 
 function startResendTimer() {
     resendCountdown = 60;
