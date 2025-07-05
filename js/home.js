@@ -289,26 +289,183 @@ document.addEventListener('mousemove', (e) => {
  * Initialize contact form functionality
  */
 function initializeContactForm() {
-  // Handle form submission
+  // Handle form submission with AJAX
   $('#contactForm').on('submit', function(e) {
     e.preventDefault();
     
-    // Simple validation
-    const name = $('#name').val().trim();
-    const email = $('#email').val().trim();
-    const message = $('#message').val().trim();
-    
-    if (!name || !email || !message) {
-      alert('Please fill in all fields.');
+    // Validate form before submission
+    if (!validateForm()) {
+      showAlert('warning', 'Please correct the errors in the form before submitting.');
       return;
     }
     
-    // Simulate form submission
-    setTimeout(() => {
-      alert('Thank you for your message! We will get back to you soon.');
-      $('#contactForm')[0].reset();
-    }, 500);
+    // Get form data
+    const formData = new FormData(this);
+    const submitBtn = $(this).find('button[type="submit"]');
+    const originalBtnText = submitBtn.html();
+    
+    // Disable submit button and show loading state
+    submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-2"></i>Sending...');
+    
+    // Clear previous alerts
+    $('#alertContainer').empty();
+    
+    // Send AJAX request
+    $.ajax({
+      url: 'contact_handler.php',
+      type: 'POST',
+      data: formData,
+      processData: false,
+      contentType: false,
+      dataType: 'json',
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest'
+      },
+      success: function(response) {
+        if (response.success) {
+          // Show success message
+          showAlert('success', response.message);
+          // Reset form
+          $('#contactForm')[0].reset();
+          // Reset form field styling
+          $('#contactForm input, #contactForm select, #contactForm textarea').css('border-color', '#e9ecef');
+        } else {
+          // Show error message
+          showAlert('danger', response.message);
+        }
+      },
+      error: function(xhr, status, error) {
+        console.error('AJAX Error:', xhr.responseText);
+        let errorMessage = 'Sorry, there was an error sending your message. Please try again later.';
+        
+        // Try to parse error response
+        try {
+          const response = JSON.parse(xhr.responseText);
+          if (response.message) {
+            errorMessage = response.message;
+          }
+        } catch (e) {
+          // Use default message
+        }
+        
+        showAlert('danger', errorMessage);
+      },
+      complete: function() {
+        // Re-enable submit button
+        submitBtn.prop('disabled', false).html(originalBtnText);
+      }
+    });
   });
+  
+  // Form field validation and styling
+  $('#contactForm input, #contactForm select, #contactForm textarea').on('focus', function() {
+    $(this).css('border-color', '#667eea');
+  }).on('blur', function() {
+    validateField($(this));
+  }).on('input change', function() {
+    validateField($(this));
+  });
+  
+  // Real-time validation
+  function validateField($field) {
+    const value = $field.val().trim();
+    const fieldName = $field.attr('name');
+    let isValid = true;
+    
+    // Reset previous validation state
+    $field.removeClass('is-valid is-invalid');
+    $field.siblings('.invalid-feedback').remove();
+    
+    // Required field validation
+    if ($field.prop('required') && value === '') {
+      isValid = false;
+      showFieldError($field, 'This field is required');
+    }
+    
+    // Email validation
+    else if (fieldName === 'email' && value !== '') {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(value)) {
+        isValid = false;
+        showFieldError($field, 'Please enter a valid email address');
+      }
+    }
+    
+    // Phone validation (optional but if provided should be valid)
+    else if (fieldName === 'phone' && value !== '') {
+      const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
+      if (!phoneRegex.test(value.replace(/[\s\-\(\)]/g, ''))) {
+        isValid = false;
+        showFieldError($field, 'Please enter a valid phone number');
+      }
+    }
+    
+    if (isValid && value !== '') {
+      $field.addClass('is-valid').css('border-color', '#28a745');
+    } else if (!isValid) {
+      $field.addClass('is-invalid').css('border-color', '#dc3545');
+    } else {
+      $field.css('border-color', '#e9ecef');
+    }
+    
+    return isValid;
+  }
+  
+  function showFieldError($field, message) {
+    $field.after(`<div class="invalid-feedback" style="display: block;">${message}</div>`);
+  }
+  
+  // Form submission validation
+  function validateForm() {
+    let isValid = true;
+    $('#contactForm input[required], #contactForm select[required], #contactForm textarea[required]').each(function() {
+      if (!validateField($(this))) {
+        isValid = false;
+      }
+    });
+    return isValid;
+  }
+}
+
+/**
+ * Show alert message
+ */
+function showAlert(type, message) {
+  const iconMap = {
+    'success': 'check-circle',
+    'danger': 'exclamation-triangle',
+    'warning': 'exclamation-circle',
+    'info': 'info-circle'
+  };
+  
+  const alertHtml = `
+    <div class="alert alert-${type} alert-dismissible fade show" role="alert" style="border-radius: 10px; border: none; box-shadow: 0 5px 15px rgba(0,0,0,0.1);">
+      <i class="fas fa-${iconMap[type] || 'info-circle'} mr-2"></i>
+      ${message}
+      <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+      </button>
+    </div>
+  `;
+  
+  $('#alertContainer').html(alertHtml);
+  
+  // Scroll to alert if not visible
+  const alertContainer = $('#alertContainer');
+  if (alertContainer.length) {
+    $('html, body').animate({
+      scrollTop: alertContainer.offset().top - 100
+    }, 500);
+  }
+  
+  // Auto-hide success messages after 5 seconds
+  if (type === 'success') {
+    setTimeout(() => {
+      $('#alertContainer .alert').fadeOut(500, function() {
+        $(this).remove();
+      });
+    }, 5000);
+  }
 }
 
 /**

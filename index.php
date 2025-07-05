@@ -237,6 +237,11 @@ require_once 'includes/init.php';
               <div class="card-body p-5">
                 <h4 class="mb-4" style="color: var(--primary-dark); font-weight: 600;">Send us a Message</h4>
                 <form id="contactForm" action="contact_handler.php" method="POST">
+                  <!-- Honeypot field for spam protection -->
+                  <div style="display: none;">
+                    <input type="text" name="honeypot" tabindex="-1" autocomplete="off">
+                  </div>
+                  
                   <div class="row">
                     <div class="col-md-6 mb-3">
                       <div class="form-group">
