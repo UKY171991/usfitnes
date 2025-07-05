@@ -68,9 +68,9 @@ function handleGet($pdo) {
         $params = [];
         
         if (!empty($search)) {
-            $whereClause = "WHERE first_name LIKE ? OR last_name LIKE ? OR specialization LIKE ? OR phone LIKE ? OR email LIKE ?";
+            $whereClause = "WHERE first_name LIKE ? OR last_name LIKE ? OR specialization LIKE ? OR phone LIKE ? OR email LIKE ? OR hospital LIKE ?";
             $searchParam = "%$search%";
-            $params = [$searchParam, $searchParam, $searchParam, $searchParam, $searchParam];
+            $params = [$searchParam, $searchParam, $searchParam, $searchParam, $searchParam, $searchParam];
         }
         
         // Get total count
@@ -138,8 +138,8 @@ function handlePost($pdo, $input) {
     
     try {
         $stmt = $pdo->prepare("
-            INSERT INTO doctors (first_name, last_name, specialization, license_number, phone, email, address)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO doctors (first_name, last_name, specialization, license_number, phone, email, address, hospital, referral_percentage)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
         
         $stmt->execute([
@@ -149,7 +149,9 @@ function handlePost($pdo, $input) {
             !empty($input['license_number']) ? trim($input['license_number']) : null,
             trim($input['phone']),
             !empty($input['email']) ? trim($input['email']) : null,
-            !empty($input['address']) ? trim($input['address']) : null
+            !empty($input['address']) ? trim($input['address']) : null,
+            !empty($input['hospital']) ? trim($input['hospital']) : null,
+            !empty($input['referral_percentage']) ? floatval($input['referral_percentage']) : 0
         ]);
         
         $doctorId = $pdo->lastInsertId();
@@ -220,7 +222,9 @@ function handlePut($pdo, $input) {
                 license_number = ?,
                 phone = COALESCE(?, phone),
                 email = ?,
-                address = ?
+                address = ?,
+                hospital = ?,
+                referral_percentage = ?
             WHERE doctor_id = ?
         ");
         
@@ -232,6 +236,8 @@ function handlePut($pdo, $input) {
             isset($input['phone']) ? trim($input['phone']) : null,
             isset($input['email']) ? trim($input['email']) : null,
             isset($input['address']) ? trim($input['address']) : null,
+            isset($input['hospital']) ? trim($input['hospital']) : null,
+            isset($input['referral_percentage']) ? floatval($input['referral_percentage']) : null,
             $input['doctor_id']
         ]);
         

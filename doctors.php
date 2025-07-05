@@ -130,13 +130,11 @@ include 'includes/sidebar.php';
                 <table id="doctorsTable" class="table table-bordered table-striped">
                   <thead>
                     <tr>
-                      <th>Photo</th>
-                      <th>Name</th>
-                      <th>Specialization</th>
-                      <th>License No</th>
-                      <th>Phone</th>
-                      <th>Email</th>
-                      <th>Status</th>
+                      <th>Doctor Name</th>
+                      <th>Hospital</th>
+                      <th>Contact No.</th>
+                      <th>Address</th>
+                      <th>Ref. %</th>
                       <th>Actions</th>
                     </tr>
                   </thead>
@@ -185,8 +183,39 @@ include 'includes/sidebar.php';
           <div class="row">
             <div class="col-md-6">
               <div class="form-group">
-                <label for="specialization">Specialization <span class="text-danger">*</span></label>
-                <select class="form-control" id="specialization" name="specialization" required>
+                <label for="hospital">Hospital/Clinic <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="hospital" name="hospital" required>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="phone">Contact No. <span class="text-danger">*</span></label>
+                <input type="tel" class="form-control" id="phone" name="phone" required>
+              </div>
+            </div>
+          </div>
+          
+          <div class="row">
+            <div class="col-md-8">
+              <div class="form-group">
+                <label for="address">Address</label>
+                <textarea class="form-control" id="address" name="address" rows="2"></textarea>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group">
+                <label for="referralPercentage">Referral % <span class="text-danger">*</span></label>
+                <input type="number" class="form-control" id="referralPercentage" name="referral_percentage" 
+                       min="0" max="100" step="0.1" required>
+              </div>
+            </div>
+          </div>
+          
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="specialization">Specialization</label>
+                <select class="form-control" id="specialization" name="specialization">
                   <option value="">Select Specialization</option>
                   <option value="Pathology">Pathology</option>
                   <option value="Hematology">Hematology</option>
@@ -201,8 +230,8 @@ include 'includes/sidebar.php';
             </div>
             <div class="col-md-6">
               <div class="form-group">
-                <label for="licenseNumber">License Number <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" id="licenseNumber" name="license_number" required>
+                <label for="licenseNumber">License Number</label>
+                <input type="text" class="form-control" id="licenseNumber" name="license_number">
               </div>
             </div>
           </div>
@@ -210,19 +239,10 @@ include 'includes/sidebar.php';
           <div class="row">
             <div class="col-md-6">
               <div class="form-group">
-                <label for="phone">Phone <span class="text-danger">*</span></label>
-                <input type="tel" class="form-control" id="phone" name="phone" required>
+                <label for="email">Email</label>
+                <input type="email" class="form-control" id="email" name="email">
               </div>
             </div>
-            <div class="col-md-6">
-              <div class="form-group">
-                <label for="email">Email <span class="text-danger">*</span></label>
-                <input type="email" class="form-control" id="email" name="email" required>
-              </div>
-            </div>
-          </div>
-          
-          <div class="row">
             <div class="col-md-6">
               <div class="form-group">
                 <label for="status">Status</label>
@@ -244,6 +264,30 @@ include 'includes/sidebar.php';
           </button>
         </div>
       </form>
+    </div>
+  </div>
+</div>
+
+<!-- View Doctor Modal -->
+<div class="modal fade" id="viewDoctorModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-info">
+        <h4 class="modal-title text-white">
+          <i class="fas fa-user-md"></i> Doctor Details
+        </h4>
+        <button type="button" class="close text-white" data-dismiss="modal">
+          <span>&times;</span>
+        </button>
+      </div>
+      <div class="modal-body" id="viewDoctorContent">
+        <!-- Doctor details will be loaded here -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">
+          <i class="fas fa-times"></i> Close
+        </button>
+      </div>
     </div>
   </div>
 </div>
@@ -278,39 +322,48 @@ $(document).ready(function() {
       columns: [
         { 
           data: null,
-          render: function() {
-            return '<i class="fas fa-user-md fa-2x text-primary"></i>';
-          },
-          orderable: false,
-          width: '60px'
-        },
-        { 
-          data: null,
           render: function(data) {
-            return data.first_name + ' ' + data.last_name;
+            return escapeHtml(data.first_name) + ' ' + escapeHtml(data.last_name);
           }
         },
-        { data: 'specialization' },
-        { data: 'license_number' },
-        { data: 'phone' },
-        { data: 'email' },
         { 
-          data: 'status',
+          data: 'hospital',
           render: function(data) {
-            let badgeClass = data === 'active' ? 'success' : 'secondary';
-            return `<span class="badge badge-\${badgeClass}">\${data.charAt(0).toUpperCase() + data.slice(1)}</span>`;
+            return escapeHtml(data || 'N/A');
+          }
+        },
+        { 
+          data: 'phone',
+          render: function(data) {
+            return escapeHtml(data || '');
+          }
+        },
+        { 
+          data: 'address',
+          render: function(data) {
+            return escapeHtml(data || 'N/A');
+          }
+        },
+        { 
+          data: 'referral_percentage',
+          render: function(data) {
+            return escapeHtml((data || '0')) + '%';
           }
         },
         {
           data: null,
           orderable: false,
           render: function(data, type, row) {
+            const doctorId = row.id || row.doctor_id;
             return `
               <div class="btn-group">
-                <button class="btn btn-sm btn-warning btn-edit" data-id="\${row.id}" title="Edit">
+                <button class="btn btn-sm btn-info btn-view" data-id="${doctorId}" title="View">
+                  <i class="fas fa-eye"></i>
+                </button>
+                <button class="btn btn-sm btn-warning btn-edit" data-id="${doctorId}" title="Edit">
                   <i class="fas fa-edit"></i>
                 </button>
-                <button class="btn btn-sm btn-danger btn-delete" data-id="\${row.id}" title="Delete">
+                <button class="btn btn-sm btn-danger btn-delete" data-id="${doctorId}" title="Delete">
                   <i class="fas fa-trash"></i>
                 </button>
               </div>
@@ -370,6 +423,12 @@ $(document).ready(function() {
     let data = Object.fromEntries(formData.entries());
     let isEdit = !!data.id;
     
+    // Rename id field to doctor_id for API compatibility
+    if (data.id) {
+      data.doctor_id = data.id;
+      delete data.id;
+    }
+    
     $.ajax({
       url: 'api/doctors_api.php',
       type: isEdit ? 'PUT' : 'POST',
@@ -395,20 +454,67 @@ $(document).ready(function() {
     let id = $(this).data('id');
     
     // Find doctor data
-    let doctor = doctors.find(d => d.id == id);
+    let doctor = doctors.find(d => d.id == id || d.doctor_id == id);
     if (doctor) {
       $('#doctorModalTitle').html('<i class="fas fa-edit"></i> Edit Doctor');
-      $('#doctorId').val(doctor.id);
+      $('#doctorId').val(doctor.id || doctor.doctor_id);
       $('#firstName').val(doctor.first_name);
       $('#lastName').val(doctor.last_name);
-      $('#specialization').val(doctor.specialization);
-      $('#licenseNumber').val(doctor.license_number);
+      $('#hospital').val(doctor.hospital || '');
       $('#phone').val(doctor.phone);
-      $('#email').val(doctor.email);
+      $('#address').val(doctor.address || '');
+      $('#referralPercentage').val(doctor.referral_percentage || '0');
+      $('#specialization').val(doctor.specialization || '');
+      $('#licenseNumber').val(doctor.license_number || '');
+      $('#email').val(doctor.email || '');
       $('#status').val(doctor.status);
       $('#doctorModal').modal('show');
     }
   });
+
+  // View doctor
+  $('#doctorsTable').on('click', '.btn-view', function() {
+    let id = $(this).data('id');
+    
+    // Find doctor data
+    let doctor = doctors.find(d => d.id == id || d.doctor_id == id);
+    if (doctor) {
+      const content = `
+        <div class="row">
+          <div class="col-md-6">
+            <h5>Personal Information</h5>
+            <table class="table table-borderless">
+              <tr><td><strong>Name:</strong></td><td>${escapeHtml(doctor.first_name)} ${escapeHtml(doctor.last_name)}</td></tr>
+              <tr><td><strong>Hospital/Clinic:</strong></td><td>${escapeHtml(doctor.hospital || 'N/A')}</td></tr>
+              <tr><td><strong>Contact No.:</strong></td><td>${escapeHtml(doctor.phone)}</td></tr>
+              <tr><td><strong>Email:</strong></td><td>${escapeHtml(doctor.email || 'N/A')}</td></tr>
+              <tr><td><strong>Address:</strong></td><td>${escapeHtml(doctor.address || 'N/A')}</td></tr>
+            </table>
+          </div>
+          <div class="col-md-6">
+            <h5>Professional Information</h5>
+            <table class="table table-borderless">
+              <tr><td><strong>Specialization:</strong></td><td>${escapeHtml(doctor.specialization || 'N/A')}</td></tr>
+              <tr><td><strong>License Number:</strong></td><td>${escapeHtml(doctor.license_number || 'N/A')}</td></tr>
+              <tr><td><strong>Referral %:</strong></td><td><span class="badge badge-primary">${escapeHtml(doctor.referral_percentage || '0')}%</span></td></tr>
+              <tr><td><strong>Status:</strong></td><td><span class="badge badge-${doctor.status === 'active' ? 'success' : 'secondary'}">${doctor.status.charAt(0).toUpperCase() + doctor.status.slice(1)}</span></td></tr>
+            </table>
+          </div>
+        </div>
+      `;
+      
+      $('#viewDoctorContent').html(content);
+      $('#viewDoctorModal').modal('show');
+    }
+  });
+
+  // Add escapeHtml function
+  function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
 
   // Delete doctor
   $('#doctorsTable').on('click', '.btn-delete', function() {
@@ -419,7 +525,7 @@ $(document).ready(function() {
         url: 'api/doctors_api.php',
         type: 'DELETE',
         contentType: 'application/json',
-        data: JSON.stringify({ id: id }),
+        data: JSON.stringify({ doctor_id: id }),
         success: function(response) {
           if (response.success) {
             showAlert('success', response.message);
