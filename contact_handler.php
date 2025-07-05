@@ -5,6 +5,9 @@
  * Supports both AJAX and regular form submissions
  */
 
+// Include SMTP configuration
+require_once 'includes/smtp_config.php';
+
 // Enable error reporting for debugging (remove in production)
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
@@ -106,39 +109,80 @@ $subject = htmlspecialchars($subject);
 $message = htmlspecialchars($message);
 
 // Prepare email content
-$to = 'uky171991@gmail.com'; // Change this to your actual email
+$to_email = 'info@umakant.online'; // Your email address
+$to_name = 'PathLab Pro Team';
 $emailSubject = 'Contact Form: ' . $subject;
 $timestamp = date('Y-m-d H:i:s');
 
 $emailBody = "
-New Contact Form Submission
-
-Date: {$timestamp}
-Name: {$firstName} {$lastName}
-Email: {$email}
-Phone: {$phone}
-Company: {$company}
-Subject: {$subject}
-
-Message:
-{$message}
-
---
-This message was sent from the PathLab Pro contact form.
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f4; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; }
+        .header { border-bottom: 2px solid #2c5aa0; padding-bottom: 20px; margin-bottom: 20px; }
+        .logo { color: #2c5aa0; font-size: 24px; font-weight: bold; }
+        .field { margin-bottom: 15px; }
+        .label { font-weight: bold; color: #333; }
+        .value { color: #666; margin-top: 5px; }
+        .message-box { background: #f8f9fa; padding: 15px; border-radius: 5px; border-left: 4px solid #2c5aa0; }
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='header'>
+            <div class='logo'>PathLab Pro</div>
+            <h2 style='color: #333; margin: 10px 0 0 0;'>New Contact Form Submission</h2>
+        </div>
+        
+        <div class='field'>
+            <div class='label'>Date & Time:</div>
+            <div class='value'>$timestamp</div>
+        </div>
+        
+        <div class='field'>
+            <div class='label'>Name:</div>
+            <div class='value'>$firstName $lastName</div>
+        </div>
+        
+        <div class='field'>
+            <div class='label'>Email:</div>
+            <div class='value'>$email</div>
+        </div>
+        
+        <div class='field'>
+            <div class='label'>Phone:</div>
+            <div class='value'>" . ($phone ?: 'Not provided') . "</div>
+        </div>
+        
+        <div class='field'>
+            <div class='label'>Company:</div>
+            <div class='value'>" . ($company ?: 'Not provided') . "</div>
+        </div>
+        
+        <div class='field'>
+            <div class='label'>Subject:</div>
+            <div class='value'>$subject</div>
+        </div>
+        
+        <div class='field'>
+            <div class='label'>Message:</div>
+            <div class='message-box'>$message</div>
+        </div>
+        
+        <div style='margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; color: #666; font-size: 14px;'>
+            <p>This message was sent from the PathLab Pro contact form.</p>
+        </div>
+    </div>
+</body>
+</html>
 ";
 
-// Email headers
-$headers = [
-    'From: noreply@pathlabpro.com',
-    'Reply-To: ' . $email,
-    'X-Mailer: PHP/' . phpversion(),
-    'Content-Type: text/plain; charset=UTF-8'
-];
+// Send email using SMTP
+$emailResult = sendEmail($to_email, $to_name, $emailSubject, $emailBody, true);
 
-// Attempt to send email
-$emailSent = mail($to, $emailSubject, $emailBody, implode("\r\n", $headers));
-
-if ($emailSent) {
+if ($emailResult['success']) {
     // Log the submission
     logSubmission($firstName, $lastName, $email, $_SERVER['REMOTE_ADDR']);
     
@@ -154,7 +198,7 @@ if ($emailSent) {
     if ($isAjax) {
         echo json_encode([
             'success' => false,
-            'message' => 'Sorry, there was an error sending your message. Please try again or contact us directly at info@pathlabpro.com.'
+            'message' => 'Sorry, there was an error sending your message. Please try again or contact us directly at info@umakant.online.'
         ]);
     } else {
         header('Location: index.php?error=send_failed');

@@ -88,7 +88,8 @@ if(isset($_SESSION['user_id'])) {
       <!-- Alert Messages -->
       <div id="alertMessages"></div>
 
-      <form id="registerForm">
+      <!-- Registration Form (Step 1) -->
+      <form id="registerForm" style="display: block;">
         <div class="input-group mb-3">
           <input type="text" class="form-control" placeholder="First name" id="firstname" name="firstname" required>
           <div class="input-group-append">
@@ -141,12 +142,56 @@ if(isset($_SESSION['user_id'])) {
           <!-- /.col -->
           <div class="col-4">
             <button type="submit" class="btn btn-primary btn-block" id="registerBtn">
-              <span id="registerBtnText">Register</span>
+              <span id="registerBtnText">Send OTP</span>
               <span id="registerSpinner" class="spinner-border spinner-border-sm d-none ml-2"></span>
             </button>
           </div>
           <!-- /.col -->
-        </div>      </form>
+        </div>
+      </form>
+
+      <!-- OTP Verification Form (Step 2) -->
+      <form id="otpForm" style="display: none;">
+        <div class="text-center mb-3">
+          <h5>Email Verification</h5>
+          <p class="text-muted">We've sent a 6-digit verification code to</p>
+          <strong id="verificationEmail"></strong>
+        </div>
+        
+        <div class="input-group mb-3">
+          <input type="text" class="form-control text-center" placeholder="Enter 6-digit OTP" id="otp" name="otp" required maxlength="6" style="letter-spacing: 0.5em; font-size: 1.2em;">
+          <div class="input-group-append">
+            <div class="input-group-text">
+              <span class="fas fa-key"></span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="row">
+          <div class="col-6">
+            <button type="button" class="btn btn-secondary btn-block" id="backBtn">
+              <i class="fas fa-arrow-left mr-1"></i> Back
+            </button>
+          </div>
+          <div class="col-6">
+            <button type="submit" class="btn btn-primary btn-block" id="verifyBtn">
+              <span id="verifyBtnText">Verify</span>
+              <span id="verifySpinner" class="spinner-border spinner-border-sm d-none ml-2"></span>
+            </button>
+          </div>
+        </div>
+        
+        <div class="text-center mt-3">
+          <p class="text-muted mb-1">Didn't receive the code?</p>
+          <button type="button" class="btn btn-link p-0" id="resendBtn">
+            <span id="resendBtnText">Resend OTP</span>
+            <span id="resendSpinner" class="spinner-border spinner-border-sm d-none ml-2"></span>
+          </button>
+          <div id="resendTimer" class="text-muted mt-1" style="display: none;">
+            Resend available in <span id="countdown">60</span> seconds
+          </div>
+        </div>
+      </form>
 
       <div class="text-center mt-3">
         <a href="login.php" class="text-decoration-none">I already have a membership</a>
@@ -165,7 +210,12 @@ if(isset($_SESSION['user_id'])) {
 <script src="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.2.0/js/adminlte.min.js"></script>
 
 <script>
+let currentEmail = '';
+let resendCountdown = 0;
+let resendTimer = null;
+
 $(document).ready(function() {
+    // Step 1: Send OTP
     $('#registerForm').submit(function(e) {
         e.preventDefault();
         
@@ -180,7 +230,7 @@ $(document).ready(function() {
             password: $('#password').val(),
             confirm_password: $('#confirm_password').val(),
             terms: $('#agreeTerms').is(':checked'),
-            action: 'register'
+            action: 'send_otp'
         };
         
         // Client-side validation
@@ -206,39 +256,159 @@ $(document).ready(function() {
         
         // Show loading state
         $('#registerBtn').prop('disabled', true);
-        $('#registerBtnText').text('Registering...');
+        $('#registerBtnText').text('Sending OTP...');
         $('#registerSpinner').removeClass('d-none');
         
         // Send AJAX request
         $.ajax({
-            url: 'api/auth_api.php',
+            url: 'api/otp_api.php',
             method: 'POST',
             data: formData,
             dataType: 'json',
             success: function(response) {
                 if(response.success) {
-                    showAlert('success', 'Registration successful! You can now login.');
-                    $('#registerForm')[0].reset();
+                    currentEmail = formData.email;
+                    $('#verificationEmail').text(currentEmail);
                     
-                    // Redirect to login page after 2 seconds
-                    setTimeout(function() {
-                        window.location.href = 'index.php';
-                    }, 2000);
+                    // Show OTP form, hide registration form
+                    $('#registerForm').hide();
+                    $('#otpForm').show();
+                    
+                    showAlert('success', response.message);
+                    
+                    // Start resend timer
+                    startResendTimer();
+                    
+                    // Focus on OTP input
+                    $('#otp').focus();
                 } else {
-                    showAlert(response.message || 'Registration failed. Please try again.', 'danger');
+                    showAlert('danger', response.message);
                 }
             },
             error: function(xhr, status, error) {
-                showAlert('danger', 'Registration failed. Please try again.');
-                console.error('Registration error:', error);
+                const response = xhr.responseJSON;
+                showAlert('danger', response ? response.message : 'Failed to send OTP. Please try again.');
             },
             complete: function() {
                 // Reset button state
                 $('#registerBtn').prop('disabled', false);
-                $('#registerBtnText').text('Register');
+                $('#registerBtnText').text('Send OTP');
                 $('#registerSpinner').addClass('d-none');
             }
         });
+    });
+    
+    // Step 2: Verify OTP
+    $('#otpForm').submit(function(e) {
+        e.preventDefault();
+        
+        const otp = $('#otp').val().trim();
+        
+        if(!otp || otp.length !== 6) {
+            showAlert('danger', 'Please enter a valid 6-digit OTP.');
+            return;
+        }
+        
+        // Show loading state
+        $('#verifyBtn').prop('disabled', true);
+        $('#verifyBtnText').text('Verifying...');
+        $('#verifySpinner').removeClass('d-none');
+        
+        // Clear previous alerts
+        $('#alertMessages').empty();
+        
+        // Send verification request
+        $.ajax({
+            url: 'api/otp_api.php',
+            method: 'POST',
+            data: {
+                email: currentEmail,
+                otp: otp,
+                action: 'verify_otp'
+            },
+            dataType: 'json',
+            success: function(response) {
+                if(response.success) {
+                    showAlert('success', response.message);
+                    
+                    // Redirect to dashboard after 2 seconds
+                    setTimeout(function() {
+                        window.location.href = 'dashboard.php';
+                    }, 2000);
+                } else {
+                    showAlert('danger', response.message);
+                }
+            },
+            error: function(xhr, status, error) {
+                const response = xhr.responseJSON;
+                showAlert('danger', response ? response.message : 'Verification failed. Please try again.');
+            },
+            complete: function() {
+                // Reset button state
+                $('#verifyBtn').prop('disabled', false);
+                $('#verifyBtnText').text('Verify');
+                $('#verifySpinner').addClass('d-none');
+            }
+        });
+    });
+    
+    // Back button
+    $('#backBtn').click(function() {
+        $('#otpForm').hide();
+        $('#registerForm').show();
+        $('#otp').val('');
+        $('#alertMessages').empty();
+        stopResendTimer();
+    });
+    
+    // Resend OTP
+    $('#resendBtn').click(function() {
+        if(resendCountdown > 0) return;
+        
+        // Show loading state
+        $('#resendBtn').prop('disabled', true);
+        $('#resendBtnText').text('Sending...');
+        $('#resendSpinner').removeClass('d-none');
+        
+        $.ajax({
+            url: 'api/otp_api.php',
+            method: 'POST',
+            data: {
+                email: currentEmail,
+                action: 'resend_otp'
+            },
+            dataType: 'json',
+            success: function(response) {
+                if(response.success) {
+                    showAlert('success', response.message);
+                    startResendTimer();
+                } else {
+                    showAlert('danger', response.message);
+                }
+            },
+            error: function(xhr, status, error) {
+                const response = xhr.responseJSON;
+                showAlert('danger', response ? response.message : 'Failed to resend OTP. Please try again.');
+            },
+            complete: function() {
+                // Reset button state
+                $('#resendBtn').prop('disabled', false);
+                $('#resendBtnText').text('Resend OTP');
+                $('#resendSpinner').addClass('d-none');
+            }
+        });
+    });
+    
+    // OTP input formatting
+    $('#otp').on('input', function() {
+        let value = $(this).val().replace(/\D/g, ''); // Remove non-digits
+        if(value.length > 6) value = value.substr(0, 6);
+        $(this).val(value);
+        
+        // Auto-submit when 6 digits entered
+        if(value.length === 6) {
+            setTimeout(() => $('#otpForm').submit(), 500);
+        }
     });
     
     // Real-time password validation
@@ -270,6 +440,31 @@ $(document).ready(function() {
     });
 });
 
+function startResendTimer() {
+    resendCountdown = 60;
+    $('#resendBtn').prop('disabled', true);
+    $('#resendTimer').show();
+    
+    resendTimer = setInterval(function() {
+        resendCountdown--;
+        $('#countdown').text(resendCountdown);
+        
+        if(resendCountdown <= 0) {
+            stopResendTimer();
+        }
+    }, 1000);
+}
+
+function stopResendTimer() {
+    if(resendTimer) {
+        clearInterval(resendTimer);
+        resendTimer = null;
+    }
+    resendCountdown = 0;
+    $('#resendBtn').prop('disabled', false);
+    $('#resendTimer').hide();
+}
+
 function showAlert(type, message) {
     const alertHtml = `
         <div class="alert alert-${type} alert-dismissible">
@@ -286,6 +481,11 @@ function showAlert(type, message) {
             $('.alert').fadeOut();
         }, 5000);
     }
+    
+    // Scroll to top to show alert
+    $('html, body').animate({
+        scrollTop: 0
+    }, 300);
 }
 </script>
 </body>
