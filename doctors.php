@@ -315,14 +315,8 @@ include 'includes/sidebar.php';
 $additional_scripts = <<<EOT
 <script>
 $(document).ready(function() {
-  // FORCE hide preloader immediately to prevent loading screen issue
-  $('.preloader').hide();
+  $('.preloader').fadeOut(200, function() { $(this).remove(); });
   $('body').removeClass('hold-transition');
-  
-  // Ensure preloader is hidden
-  setTimeout(function() {
-    $('.preloader').fadeOut();
-  }, 100);
   
   console.log('Page loaded, starting doctors initialization...');
   
