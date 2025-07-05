@@ -106,7 +106,7 @@ $subject = htmlspecialchars($subject);
 $message = htmlspecialchars($message);
 
 // Prepare email content
-$to = 'info@pathlabpro.com'; // Change this to your actual email
+$to = 'uky171991@gmail.com'; // Change this to your actual email
 $emailSubject = 'Contact Form: ' . $subject;
 $timestamp = date('Y-m-d H:i:s');
 
