@@ -6,7 +6,8 @@
           <img src="<?php echo getLogoPath(); ?>" alt="PathLab Pro Logo" class="brand-image img-circle elevation-3" style="opacity: .8">
           <span class="brand-text font-weight-light">PathLab Pro</span>
       <?php else: ?>
-          <span class="brand-text font-weight-bold text-center" style="font-size: 1.2rem; padding-left: 0.5rem;">PathLab Pro</span>
+          <i class="fas fa-microscope brand-image" style="font-size: 2rem; color: #007bff; margin-left: 0.5rem;"></i>
+          <span class="brand-text font-weight-bold" style="font-size: 1.2rem; margin-left: 0.5rem;">PathLab Pro</span>
       <?php endif; ?>
     </a>
 

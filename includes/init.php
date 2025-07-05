@@ -32,13 +32,34 @@ function isActive($page_name) {
 
 // Function to get logo path or return null if no logo exists
 function getLogoPath() {
-    $logoPath = 'img/logo.svg';
-    $altLogoPath = 'img/logo.png';
+    // Try different possible paths for the logo files
+    $possiblePaths = [
+        'img/logo.svg',
+        'img/logo.png'
+    ];
     
-    if (file_exists($logoPath)) {
-        return $logoPath;
-    } elseif (file_exists($altLogoPath)) {
-        return $altLogoPath;
+    // Check from current directory
+    foreach ($possiblePaths as $path) {
+        if (file_exists($path)) {
+            return $path;
+        }
+    }
+    
+    // Check from includes directory (when called from includes folder)
+    foreach ($possiblePaths as $path) {
+        $parentPath = '../' . $path;
+        if (file_exists($parentPath)) {
+            return $path; // Return relative to root
+        }
+    }
+    
+    // Check absolute path as fallback
+    $rootPath = dirname(__DIR__);
+    foreach ($possiblePaths as $path) {
+        $absolutePath = $rootPath . '/' . $path;
+        if (file_exists($absolutePath)) {
+            return $path;
+        }
     }
     
     return null;

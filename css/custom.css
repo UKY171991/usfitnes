@@ -21,6 +21,34 @@
   --transition: all 0.3s ease;
 }
 
+/* ===== LOGO FALLBACK STYLES ===== */
+.brand-link .brand-image {
+  transition: var(--transition);
+}
+
+.brand-link .brand-image:hover {
+  transform: scale(1.05);
+}
+
+.navbar-brand .fas.fa-microscope {
+  transition: var(--transition);
+}
+
+.navbar-brand:hover .fas.fa-microscope {
+  transform: rotate(10deg) scale(1.1);
+  color: var(--primary-light) !important;
+}
+
+.preloader .animation__shake {
+  animation: shake 1s ease-in-out infinite;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
 /* ===== GENERAL LAYOUT ===== */
 .content-wrapper {
   background: linear-gradient(135deg, #f8f9fa 0%, #e3f2fd 100%);

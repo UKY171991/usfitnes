@@ -13,10 +13,11 @@ if (!function_exists('hasLogo')) {
         <a class="navbar-brand d-flex align-items-center" href="<?php echo basename($_SERVER['PHP_SELF']) == 'index.php' ? '#home' : 'index.php'; ?>">
             <?php if (hasLogo()): ?>
                 <img src="<?php echo getLogoPath(); ?>" alt="PathLab Pro Logo" height="35" class="me-2 mr-2">
+                <span style="font-weight: 700; font-size: 1.8rem;">PathLab Pro</span>
             <?php else: ?>
                 <i class="fas fa-microscope mr-2" style="font-size: 1.8rem; color: var(--primary-color);"></i>
+                <span style="font-weight: 700; font-size: 1.8rem; color: var(--primary-color);">PathLab Pro</span>
             <?php endif; ?>
-            <span style="font-weight: 700; font-size: 1.8rem;">PathLab Pro</span>
         </a>
         
         <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
