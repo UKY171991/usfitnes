@@ -355,6 +355,49 @@ function generateDoctorId($pdo) {
     return $doctorId;
 }
 ?>
+        $stmt->execute([$_GET['id']]);
+        $doctor = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if ($doctor) {
+            echo json_encode(['success' => true, 'data' => $doctor]);
+        } else {
+            http_response_code(404);
+            echo json_encode(['success' => false, 'message' => 'Doctor not found']);
+        }
+    } else {
+        // Get all doctors with pagination
+        $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+        $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 10;
+        $offset = ($page - 1) * $limit;
+        $search = isset($_GET['search']) ? $_GET['search'] : '';
+        
+        $whereClause = '';
+        $params = [];
+        
+        if (!empty($search)) {
+            $whereClause = "WHERE first_name LIKE ? OR last_name LIKE ? OR specialization LIKE ? OR phone LIKE ? OR email LIKE ? OR hospital LIKE ?";
+            $searchParam = "%$search%";
+            $params = [$searchParam, $searchParam, $searchParam, $searchParam, $searchParam, $searchParam];
+        }
+        
+        // Get total count
+        $countStmt = $pdo->prepare("SELECT COUNT(*) FROM doctors $whereClause");
+        $countStmt->execute($params);
+        $totalCount = $countStmt->fetchColumn();
+        
+        // Get doctors
+        $stmt = $pdo->prepare("SELECT * FROM doctors $whereClause ORDER BY created_at DESC LIMIT ? OFFSET ?");
+        $params[] = $limit;
+        $params[] = $offset;
+        $stmt->execute($params);
+        $doctors = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        echo json_encode([
+            'success' => true,
+            'data' => $doctors,
+            'pagination' => [
+                'page' => $page,
+                'limit' => $limit,
                 'total' => $totalCount,
                 'pages' => ceil($totalCount / $limit)
             ]
