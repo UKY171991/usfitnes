@@ -710,19 +710,35 @@ $(document).ready(function() {
     doctorsTable.ajax.reload();
   });
 
-  // Search functionality
+  // Search and filter functionality
   $('#searchDoctors').on('keyup', function() {
     doctorsTable.search(this.value).draw();
   });
 
-  // Filter by specialization
-  $('#filterSpecialization').on('change', function() {
-    doctorsTable.column(2).search(this.value).draw();
-  });
+  // Custom filtering function for specialization and status
+  $.fn.dataTable.ext.search.push(
+    function(settings, data, dataIndex) {
+      if (settings.nTable.id !== 'doctorsTable') {
+        return true;
+      }
+      
+      let specializationFilter = $('#filterSpecialization').val();
+      let statusFilter = $('#filterStatus').val();
+      let rowData = doctorsTable.row(dataIndex).data(); // Original data object
 
-  // Filter by status
-  $('#filterStatus').on('change', function() {
-    doctorsTable.column(6).search(this.value).draw();
+      if (
+        (specializationFilter === '' || rowData.specialization === specializationFilter) &&
+        (statusFilter === '' || rowData.status === statusFilter)
+      ) {
+        return true;
+      }
+      return false;
+    }
+  );
+
+  // Redraw table when filters change
+  $('#filterSpecialization, #filterStatus').on('change', function() {
+    doctorsTable.draw();
   });
 });
 
