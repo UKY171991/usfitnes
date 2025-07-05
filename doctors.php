@@ -1,4 +1,15 @@
 <?php
+// Start session and check authentication before any output
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+// Check if user is logged in - redirect immediately if not
+if (!isset($_SESSION['user_id'])) {
+    header("Location: login.php");
+    exit();
+}
+
 // Set page title and active menu
 $page_title = 'Doctors';
 $active_menu = 'doctors';
@@ -296,6 +307,11 @@ include 'includes/sidebar.php';
 $additional_scripts = <<<EOT
 <script>
 $(document).ready(function() {
+  // Ensure preloader is hidden
+  setTimeout(function() {
+    $('.preloader').fadeOut();
+  }, 1000);
+  
   // Check if required libraries are loaded
   if (typeof $.fn.DataTable === 'undefined') {
     showAlert('warning', 'DataTables library failed to load. Please check your internet connection and refresh the page.');
@@ -318,17 +334,36 @@ $(document).ready(function() {
             return json.data;
           } else {
             showAlert('error', 'Failed to load doctors: ' + (json.message || 'Unknown error'));
+            
+            // If unauthorized, redirect to login
+            if (json.message && json.message.includes('Unauthorized')) {
+              setTimeout(() => {
+                window.location.href = 'login.php';
+              }, 2000);
+            }
             return [];
           }
         },
         error: function(xhr, error, thrown) {
           console.error('AJAX Error:', xhr.responseText);
           let errorMsg = 'Failed to load doctors data. ';
-          if (xhr.status === 0) {
+          
+          // Handle specific error cases
+          if (xhr.status === 401) {
+            errorMsg = 'You are not logged in. Redirecting to login page...';
+            showAlert('warning', errorMsg);
+            setTimeout(() => {
+              window.location.href = 'login.php';
+            }, 2000);
+            return [];
+          } else if (xhr.status === 0) {
             errorMsg += 'Please check your internet connection or if the server is running.';
+          } else if (xhr.status === 404) {
+            errorMsg += 'API endpoint not found.';
           } else {
             errorMsg += 'Server error: ' + error;
           }
+          
           showAlert('error', errorMsg);
           return [];
         }
