@@ -49,28 +49,11 @@
           </li>
 
           <!-- Patient Management -->
-          <li class="nav-item <?php echo (strpos($_SERVER['REQUEST_URI'], 'patients') !== false) ? 'menu-open' : ''; ?>">
-            <a href="#" class="nav-link <?php echo (strpos($_SERVER['REQUEST_URI'], 'patients') !== false) ? 'active' : ''; ?>">
+          <li class="nav-item">
+            <a href="patients.php" class="nav-link <?php echo isActive('patients.php'); ?>">
               <i class="nav-icon fas fa-user-injured"></i>
-              <p>
-                Patient Management
-                <i class="right fas fa-angle-left"></i>
-              </p>
+              <p>Patient Management</p>
             </a>
-            <ul class="nav nav-treeview">
-              <li class="nav-item">
-                <a href="patients.php" class="nav-link <?php echo isActive('patients.php'); ?>">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>All Patients</p>
-                </a>
-              </li>
-              <li class="nav-item">
-                <a href="patients.php#add" class="nav-link">
-                  <i class="far fa-circle nav-icon"></i>
-                  <p>Add Patient</p>
-                </a>
-              </li>
-            </ul>
           </li>
 
           <!-- Laboratory Management -->
