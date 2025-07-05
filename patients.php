@@ -106,8 +106,6 @@ if (typeof jQuery == 'undefined') {
                   <input type="text" class="form-control" id="fullName" name="full_name" required>
                 </div>
               </div>
-            </div>
-            <div class="row">
               <div class="col-md-6">
                 <div class="form-group">
                   <label for="phone">Phone <span class="text-danger">*</span></label>
