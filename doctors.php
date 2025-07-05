@@ -307,10 +307,16 @@ include 'includes/sidebar.php';
 $additional_scripts = <<<EOT
 <script>
 $(document).ready(function() {
+  // FORCE hide preloader immediately to prevent loading screen issue
+  $('.preloader').hide();
+  $('body').removeClass('hold-transition');
+  
   // Ensure preloader is hidden
   setTimeout(function() {
     $('.preloader').fadeOut();
-  }, 1000);
+  }, 100);
+  
+  console.log('Page loaded, starting doctors initialization...');
   
   // Check if required libraries are loaded
   if (typeof $.fn.DataTable === 'undefined') {
