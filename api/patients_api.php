@@ -73,9 +73,9 @@ function handleGet($pdo) {
         $params = [];
         
         if (!empty($search)) {
-            $whereClause = "WHERE full_name LIKE ? OR phone LIKE ? OR email LIKE ? OR patient_id LIKE ?";
+            $whereClause = "WHERE full_name LIKE ? OR phone LIKE ? OR patient_id LIKE ?";
             $searchParam = "%{$search}%";
-            $params = [$searchParam, $searchParam, $searchParam, $searchParam];
+            $params = [$searchParam, $searchParam, $searchParam];
         }
         
         // Get total count for filtering
@@ -121,13 +121,6 @@ function handlePost($pdo, $input) {
         }
     }
     
-    // Validate email format if provided
-    if (!empty($input['email']) && !filter_var($input['email'], FILTER_VALIDATE_EMAIL)) {
-        http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'Invalid email format']);
-        return;
-    }
-    
     // Check if patient with same phone already exists
     $stmt = $pdo->prepare("SELECT id FROM patients WHERE phone = ?");
     $stmt->execute([$input['phone']]);
@@ -142,8 +135,8 @@ function handlePost($pdo, $input) {
     
     try {
         $stmt = $pdo->prepare("
-            INSERT INTO patients (patient_id, full_name, date_of_birth, gender, phone, email, address, emergency_contact, emergency_phone)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO patients (patient_id, full_name, date_of_birth, gender, phone, address)
+            VALUES (?, ?, ?, ?, ?, ?)
         ");
         
         $stmt->execute([
@@ -152,10 +145,7 @@ function handlePost($pdo, $input) {
             $input['date_of_birth'],
             $input['gender'],
             trim($input['phone']),
-            !empty($input['email']) ? trim($input['email']) : null,
-            !empty($input['address']) ? trim($input['address']) : null,
-            !empty($input['emergency_contact']) ? trim($input['emergency_contact']) : null,
-            !empty($input['emergency_phone']) ? trim($input['emergency_phone']) : null
+            !empty($input['address']) ? trim($input['address']) : null
         ]);
         
         $id = $pdo->lastInsertId();
@@ -203,18 +193,11 @@ function handlePut($pdo, $input) {
         }
     }
     
-    // Validate email format if provided
-    if (!empty($input['email']) && !filter_var($input['email'], FILTER_VALIDATE_EMAIL)) {
-        http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'Invalid email format']);
-        return;
-    }
-    
     try {
         $stmt = $pdo->prepare("
             UPDATE patients SET 
                 full_name = ?, date_of_birth = ?, gender = ?, 
-                phone = ?, email = ?, address = ?, emergency_contact = ?, emergency_phone = ?
+                phone = ?, address = ?
             WHERE id = ?
         ");
         
@@ -223,10 +206,7 @@ function handlePut($pdo, $input) {
             $input['date_of_birth'],
             $input['gender'],
             trim($input['phone']),
-            !empty($input['email']) ? trim($input['email']) : null,
             !empty($input['address']) ? trim($input['address']) : null,
-            !empty($input['emergency_contact']) ? trim($input['emergency_contact']) : null,
-            !empty($input['emergency_phone']) ? trim($input['emergency_phone']) : null,
             $input['id']
         ]);
         

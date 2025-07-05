@@ -68,7 +68,6 @@ if (typeof jQuery == 'undefined') {
                         <th>ID</th>
                         <th>Patient ID</th>
                         <th>Full Name</th>
-                        <th>Email</th>
                         <th>Phone</th>
                         <th>Gender</th>
                         <th>Age</th>
@@ -109,13 +108,7 @@ if (typeof jQuery == 'undefined') {
               </div>
             </div>
             <div class="row">
-              <div class="col-md-6">
-                <div class="form-group">
-                  <label for="email">Email</label>
-                  <input type="email" class="form-control" id="email" name="email">
-                </div>
-              </div>
-              <div class="col-md-6">
+              <div class="col-md-12">
                 <div class="form-group">
                   <label for="phone">Phone <span class="text-danger">*</span></label>
                   <input type="tel" class="form-control" id="phone" name="phone" required>
@@ -123,7 +116,7 @@ if (typeof jQuery == 'undefined') {
               </div>
             </div>
             <div class="row">
-              <div class="col-md-4">
+              <div class="col-md-6">
                 <div class="form-group">
                   <label for="gender">Gender <span class="text-danger">*</span></label>
                   <select class="form-control" id="gender" name="gender" required>
@@ -134,27 +127,15 @@ if (typeof jQuery == 'undefined') {
                   </select>
                 </div>
               </div>
-              <div class="col-md-4">
+              <div class="col-md-6">
                 <div class="form-group">
                   <label for="dateOfBirth">Date of Birth <span class="text-danger">*</span></label>
                   <input type="date" class="form-control" id="dateOfBirth" name="date_of_birth" required>
                 </div>
               </div>
-              <div class="col-md-4">
-                <div class="form-group">
-                  <label for="emergencyPhone">Emergency Phone</label>
-                  <input type="text" class="form-control" id="emergencyPhone" name="emergency_phone">
-                </div>
-              </div>
             </div>
             <div class="row">
-              <div class="col-md-6">
-                <div class="form-group">
-                  <label for="emergencyContact">Emergency Contact</label>
-                  <input type="text" class="form-control" id="emergencyContact" name="emergency_contact">
-                </div>
-              </div>
-              <div class="col-md-6">
+              <div class="col-md-12">
                 <div class="form-group">
                   <label for="address">Address</label>
                   <textarea class="form-control" id="address" name="address" rows="3"></textarea>
@@ -195,13 +176,7 @@ if (typeof jQuery == 'undefined') {
               </div>
             </div>
             <div class="row">
-              <div class="col-md-6">
-                <div class="form-group">
-                  <label for="editEmail">Email</label>
-                  <input type="email" class="form-control" id="editEmail" name="email">
-                </div>
-              </div>
-              <div class="col-md-6">
+              <div class="col-md-12">
                 <div class="form-group">
                   <label for="editPhone">Phone <span class="text-danger">*</span></label>
                   <input type="tel" class="form-control" id="editPhone" name="phone" required>
@@ -209,7 +184,7 @@ if (typeof jQuery == 'undefined') {
               </div>
             </div>
             <div class="row">
-              <div class="col-md-4">
+              <div class="col-md-6">
                 <div class="form-group">
                   <label for="editGender">Gender <span class="text-danger">*</span></label>
                   <select class="form-control" id="editGender" name="gender" required>
@@ -220,27 +195,15 @@ if (typeof jQuery == 'undefined') {
                   </select>
                 </div>
               </div>
-              <div class="col-md-4">
+              <div class="col-md-6">
                 <div class="form-group">
                   <label for="editDateOfBirth">Date of Birth <span class="text-danger">*</span></label>
                   <input type="date" class="form-control" id="editDateOfBirth" name="date_of_birth" required>
                 </div>
               </div>
-              <div class="col-md-4">
-                <div class="form-group">
-                  <label for="editEmergencyPhone">Emergency Phone</label>
-                  <input type="text" class="form-control" id="editEmergencyPhone" name="emergency_phone">
-                </div>
-              </div>
             </div>
             <div class="row">
-              <div class="col-md-6">
-                <div class="form-group">
-                  <label for="editEmergencyContact">Emergency Contact</label>
-                  <input type="text" class="form-control" id="editEmergencyContact" name="emergency_contact">
-                </div>
-              </div>
-              <div class="col-md-6">
+              <div class="col-md-12">
                 <div class="form-group">
                   <label for="editAddress">Address</label>
                   <textarea class="form-control" id="editAddress" name="address" rows="3"></textarea>
