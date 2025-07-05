@@ -6,7 +6,7 @@
  */
 
 // Include SMTP configuration
-require_once 'includes/smtp_config.php';
+require_once 'includes/smtp_config_ssl.php';
 
 // Enable error reporting for debugging (remove in production)
 error_reporting(E_ALL);
