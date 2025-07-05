@@ -296,6 +296,12 @@ include 'includes/sidebar.php';
 $additional_scripts = <<<EOT
 <script>
 $(document).ready(function() {
+  // Check if required libraries are loaded
+  if (typeof $.fn.DataTable === 'undefined') {
+    showAlert('warning', 'DataTables library failed to load. Please check your internet connection and refresh the page.');
+    return;
+  }
+  
   let doctorsTable;
   let doctors = [];
   
@@ -311,12 +317,20 @@ $(document).ready(function() {
             updateSpecializationFilter();
             return json.data;
           } else {
-            showAlert('error', 'Failed to load doctors: ' + json.message);
+            showAlert('error', 'Failed to load doctors: ' + (json.message || 'Unknown error'));
             return [];
           }
         },
         error: function(xhr, error, thrown) {
-          showAlert('error', 'Failed to load doctors: ' + error);
+          console.error('AJAX Error:', xhr.responseText);
+          let errorMsg = 'Failed to load doctors data. ';
+          if (xhr.status === 0) {
+            errorMsg += 'Please check your internet connection or if the server is running.';
+          } else {
+            errorMsg += 'Server error: ' + error;
+          }
+          showAlert('error', errorMsg);
+          return [];
         }
       },
       columns: [
@@ -569,24 +583,25 @@ function clearFilters() {
   doctorsTable.search('').columns().search('').draw();
 }
 
-function showAlert(type, message) {
-  const alertClass = type === 'success' ? 'alert-success' :
-                    type === 'error' ? 'alert-danger' :
-                    type === 'warning' ? 'alert-warning' : 'alert-info';
-  const icon = type === 'success' ? 'fas fa-check' :
-               type === 'error' ? 'fas fa-ban' :
-               type === 'warning' ? 'fas fa-exclamation-triangle' : 'fas fa-info-circle';
-  const alert = `
-    <div class="alert \${alertClass} alert-dismissible">
-      <button type="button" class="close" data-dismiss="alert">&times;</button>
-      <i class="icon \${icon}"></i> \${message}
-    </div>
-  `;
-  $('#alertContainer').html(alert);
-  setTimeout(() => {
-    $('#alertContainer .alert').fadeOut();
-  }, 5000);
-}
+  // Alert and utility functions
+  function showAlert(type, message) {
+    const alertClass = type === 'success' ? 'alert-success' :
+                      type === 'error' ? 'alert-danger' :
+                      type === 'warning' ? 'alert-warning' : 'alert-info';
+    const icon = type === 'success' ? 'fas fa-check' :
+                 type === 'error' ? 'fas fa-ban' :
+                 type === 'warning' ? 'fas fa-exclamation-triangle' : 'fas fa-info-circle';
+    const alert = `
+      <div class="alert ${alertClass} alert-dismissible">
+        <button type="button" class="close" data-dismiss="alert">&times;</button>
+        <i class="icon ${icon}"></i> ${message}
+      </div>
+    `;
+    $('#alertContainer').html(alert);
+    setTimeout(() => {
+      $('#alertContainer .alert').fadeOut();
+    }, 5000);
+  }
 </script>
 EOT;
 
