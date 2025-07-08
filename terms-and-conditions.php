@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Terms and Conditions - PathLab Pro</title>
-    <meta name="description" content="Terms and Conditions for PathLab Pro Laboratory Management System">
-    <meta name="keywords" content="terms, conditions, privacy, pathlab pro, laboratory management">
+    <title>Terms and Conditions - US Fitness</title>
+    <meta name="description" content="Terms and Conditions for US Fitness">
+    <meta name="keywords" content="terms, conditions, privacy, us fitness, fitness, gym">
     
     <?php include 'includes/public-head.php'; ?>
     
