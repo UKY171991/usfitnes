@@ -3,171 +3,91 @@ $page_title = "Test Orders";
 require_once 'includes/header.php';
 require_once 'includes/sidebar.php';
 
-// For demo purposes if database is not available, create mock data
-$database_available = false;
-$error_message = '';
-$test_orders = [];
-$patients = [];
-$tests = [];
-$doctors = [];
-
-// Try to connect to database and fetch real data
-try {
-    if (isset($pdo) && $pdo instanceof PDO) {
-        // Test database connection
-        $pdo->query("SELECT 1");
-        $database_available = true;
-        
-        // Handle form submissions
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $action = $_POST['action'] ?? '';
-            
-            switch ($action) {
-                case 'add':
-                    $stmt = $pdo->prepare("INSERT INTO test_orders (patient_id, test_id, doctor_id, priority, status, notes) VALUES (?, ?, ?, ?, ?, ?)");
-                    $stmt->execute([
-                        $_POST['patient_id'],
-                        $_POST['test_id'],
-                        $_POST['doctor_id'] ?: null,
-                        $_POST['priority'],
-                        'pending',
-                        $_POST['notes'] ?? ''
-                    ]);
-                    $_SESSION['success'] = "Test order added successfully!";
-                    break;
-                    
-                case 'edit':
-                    $stmt = $pdo->prepare("UPDATE test_orders SET patient_id = ?, test_id = ?, doctor_id = ?, priority = ?, status = ?, notes = ? WHERE id = ?");
-                    $stmt->execute([
-                        $_POST['patient_id'],
-                        $_POST['test_id'],
-                        $_POST['doctor_id'] ?: null,
-                        $_POST['priority'],
-                        $_POST['status'],
-                        $_POST['notes'] ?? '',
-                        $_POST['order_id']
-                    ]);
-                    $_SESSION['success'] = "Test order updated successfully!";
-                    break;
-                    
-                case 'delete':
-                    $stmt = $pdo->prepare("DELETE FROM test_orders WHERE id = ?");
-                    $stmt->execute([$_POST['order_id']]);
-                    $_SESSION['success'] = "Test order deleted successfully!";
-                    break;
-            }
-            
-            header("Location: test-orders.php");
-            exit;
+// Handle form submissions
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $action = $_POST['action'] ?? '';
+    
+    try {
+        switch ($action) {
+            case 'add':
+                $stmt = $pdo->prepare("INSERT INTO test_orders (patient_id, test_id, doctor_id, priority, status, notes) VALUES (?, ?, ?, ?, ?, ?)");
+                $stmt->execute([
+                    $_POST['patient_id'],
+                    $_POST['test_id'],
+                    $_POST['doctor_id'] ?: null,
+                    $_POST['priority'],
+                    'pending',
+                    $_POST['notes'] ?? ''
+                ]);
+                $_SESSION['success'] = "Test order added successfully!";
+                break;
+                
+            case 'edit':
+                $stmt = $pdo->prepare("UPDATE test_orders SET patient_id = ?, test_id = ?, doctor_id = ?, priority = ?, status = ?, notes = ? WHERE id = ?");
+                $stmt->execute([
+                    $_POST['patient_id'],
+                    $_POST['test_id'],
+                    $_POST['doctor_id'] ?: null,
+                    $_POST['priority'],
+                    $_POST['status'],
+                    $_POST['notes'] ?? '',
+                    $_POST['order_id']
+                ]);
+                $_SESSION['success'] = "Test order updated successfully!";
+                break;
+                
+            case 'delete':
+                $stmt = $pdo->prepare("DELETE FROM test_orders WHERE id = ?");
+                $stmt->execute([$_POST['order_id']]);
+                $_SESSION['success'] = "Test order deleted successfully!";
+                break;
         }
-
-        // Fetch test orders with related data
-        $query = "SELECT 
-            to.id,
-            to.patient_id,
-            to.test_id,
-            to.doctor_id,
-            to.priority,
-            to.status,
-            to.notes,
-            to.order_date,
-            p.name as patient_name,
-            p.patient_id as patient_mrn,
-            t.name as test_name,
-            t.type as test_type,
-            d.name as doctor_name
-        FROM test_orders to
-        LEFT JOIN patients p ON to.patient_id = p.id
-        LEFT JOIN tests t ON to.test_id = t.id
-        LEFT JOIN doctors d ON to.doctor_id = d.id
-        ORDER BY to.order_date DESC";
-        $test_orders = $pdo->query($query)->fetchAll();
-        
-        // Fetch patients for dropdown
-        $patients = $pdo->query("SELECT id, name, patient_id as mrn FROM patients ORDER BY name")->fetchAll();
-        
-        // Fetch tests for dropdown
-        $tests = $pdo->query("SELECT id, name, type, price FROM tests ORDER BY name")->fetchAll();
-        
-        // Fetch doctors for dropdown
-        $doctors = $pdo->query("SELECT id, name, specialization FROM doctors ORDER BY name")->fetchAll();
-        
+    } catch (Exception $e) {
+        $_SESSION['error'] = "Error: " . $e->getMessage();
     }
-} catch (Exception $e) {
-    $database_available = false;
-    $error_message = "Database connection error: " . $e->getMessage();
+    
+    header("Location: test-orders.php");
+    exit;
 }
 
-// If database is not available, provide mock data for demonstration
-if (!$database_available) {
-    $test_orders = [
-        [
-            'id' => 1,
-            'patient_id' => 1,
-            'test_id' => 1,
-            'doctor_id' => 1,
-            'priority' => 'normal',
-            'status' => 'pending',
-            'notes' => 'Regular checkup',
-            'order_date' => '2025-07-09 10:30:00',
-            'patient_name' => 'John Smith',
-            'patient_mrn' => 'PAT001',
-            'test_name' => 'Complete Blood Count',
-            'test_type' => 'Blood',
-            'doctor_name' => 'Dr. Anderson'
-        ],
-        [
-            'id' => 2,
-            'patient_id' => 2,
-            'test_id' => 2,
-            'doctor_id' => 2,
-            'priority' => 'high',
-            'status' => 'processing',
-            'notes' => 'Follow-up test',
-            'order_date' => '2025-07-09 11:15:00',
-            'patient_name' => 'Jane Johnson',
-            'patient_mrn' => 'PAT002',
-            'test_name' => 'Blood Glucose',
-            'test_type' => 'Blood',
-            'doctor_name' => 'Dr. Brown'
-        ],
-        [
-            'id' => 3,
-            'patient_id' => 3,
-            'test_id' => 3,
-            'doctor_id' => 1,
-            'priority' => 'urgent',
-            'status' => 'completed',
-            'notes' => 'Emergency case',
-            'order_date' => '2025-07-09 09:45:00',
-            'patient_name' => 'Mike Brown',
-            'patient_mrn' => 'PAT003',
-            'test_name' => 'Lipid Profile',
-            'test_type' => 'Blood',
-            'doctor_name' => 'Dr. Anderson'
-        ]
-    ];
+// Fetch test orders with related data
+try {
+    $query = "SELECT 
+        to.id,
+        to.patient_id,
+        to.test_id,
+        to.doctor_id,
+        to.priority,
+        to.status,
+        to.notes,
+        to.order_date,
+        p.name as patient_name,
+        p.patient_id as patient_mrn,
+        t.name as test_name,
+        t.type as test_type,
+        d.name as doctor_name
+    FROM test_orders to
+    LEFT JOIN patients p ON to.patient_id = p.id
+    LEFT JOIN tests t ON to.test_id = t.id
+    LEFT JOIN doctors d ON to.doctor_id = d.id
+    ORDER BY to.order_date DESC";
+    $test_orders = $pdo->query($query)->fetchAll();
     
-    $patients = [
-        ['id' => 1, 'name' => 'John Smith', 'mrn' => 'PAT001'],
-        ['id' => 2, 'name' => 'Jane Johnson', 'mrn' => 'PAT002'],
-        ['id' => 3, 'name' => 'Mike Brown', 'mrn' => 'PAT003'],
-        ['id' => 4, 'name' => 'Sarah Wilson', 'mrn' => 'PAT004']
-    ];
+    // Fetch patients for dropdown
+    $patients = $pdo->query("SELECT id, name, patient_id as mrn FROM patients WHERE status = 'active' ORDER BY name")->fetchAll();
     
-    $tests = [
-        ['id' => 1, 'name' => 'Complete Blood Count', 'type' => 'Blood', 'price' => 50.00],
-        ['id' => 2, 'name' => 'Blood Glucose', 'type' => 'Blood', 'price' => 25.00],
-        ['id' => 3, 'name' => 'Lipid Profile', 'type' => 'Blood', 'price' => 75.00],
-        ['id' => 4, 'name' => 'Liver Function', 'type' => 'Blood', 'price' => 60.00],
-        ['id' => 5, 'name' => 'Urinalysis', 'type' => 'Urine', 'price' => 30.00]
-    ];
+    // Fetch tests for dropdown
+    $tests = $pdo->query("SELECT id, name, type, price FROM tests WHERE status = 'active' ORDER BY name")->fetchAll();
     
-    $doctors = [
-        ['id' => 1, 'name' => 'Dr. Anderson', 'specialization' => 'Cardiology'],
-        ['id' => 2, 'name' => 'Dr. Brown', 'specialization' => 'Internal Medicine'],
-        ['id' => 3, 'name' => 'Dr. Martinez', 'specialization' => 'Pathology']
-    ];
+    // Fetch doctors for dropdown
+    $doctors = $pdo->query("SELECT id, name, specialization FROM doctors WHERE status = 'active' ORDER BY name")->fetchAll();
+    
+} catch (Exception $e) {
+    $error_message = "Database error: " . $e->getMessage();
+    $test_orders = [];
+    $patients = [];
+    $tests = [];
+    $doctors = [];
 }
 ?>
 
@@ -208,14 +128,9 @@ if (!$database_available) {
                 </div>
             <?php endif; ?>
             
-            <?php if (!$database_available): ?>
-                <div class="alert alert-warning alert-dismissible">
-                    <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
-                    <i class="icon fas fa-exclamation-triangle"></i> 
-                    <strong>Demo Mode:</strong> Database connection not available. Showing sample data for demonstration.
-                    <?php if ($error_message): ?>
-                        <br><small><?php echo htmlspecialchars($error_message); ?></small>
-                    <?php endif; ?>
+            <?php if (isset($error_message)): ?>
+                <div class="alert alert-danger">
+                    <i class="icon fas fa-ban"></i> <?php echo $error_message; ?>
                 </div>
             <?php endif; ?>
 
@@ -229,15 +144,9 @@ if (!$database_available) {
                                 Test Orders Management
                             </h3>
                             <div class="card-tools">
-                                <?php if ($database_available): ?>
                                 <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#addOrderModal">
                                     <i class="fas fa-plus"></i> Add New Order
                                 </button>
-                                <?php else: ?>
-                                <button type="button" class="btn btn-secondary btn-sm" disabled title="Database connection required">
-                                    <i class="fas fa-plus"></i> Add New Order (Demo Mode)
-                                </button>
-                                <?php endif; ?>
                             </div>
                         </div>
                         <div class="card-body">
@@ -301,21 +210,12 @@ if (!$database_available) {
                                                     <button type="button" class="btn btn-info btn-sm" onclick="viewOrder(<?php echo $order['id']; ?>)" title="View">
                                                         <i class="fas fa-eye"></i>
                                                     </button>
-                                                    <?php if ($database_available): ?>
                                                     <button type="button" class="btn btn-primary btn-sm" onclick="editOrder(<?php echo htmlspecialchars(json_encode($order)); ?>)" title="Edit">
                                                         <i class="fas fa-edit"></i>
                                                     </button>
                                                     <button type="button" class="btn btn-danger btn-sm" onclick="deleteOrder(<?php echo $order['id']; ?>)" title="Delete">
                                                         <i class="fas fa-trash"></i>
                                                     </button>
-                                                    <?php else: ?>
-                                                    <button type="button" class="btn btn-secondary btn-sm" disabled title="Demo mode">
-                                                        <i class="fas fa-edit"></i>
-                                                    </button>
-                                                    <button type="button" class="btn btn-secondary btn-sm" disabled title="Demo mode">
-                                                        <i class="fas fa-trash"></i>
-                                                    </button>
-                                                    <?php endif; ?>
                                                 </div>
                                             </td>
                                         </tr>
@@ -331,7 +231,6 @@ if (!$database_available) {
     </section>
 </div>
 
-<?php if ($database_available): ?>
 <!-- Add Order Modal -->
 <div class="modal fade" id="addOrderModal" tabindex="-1" aria-labelledby="addOrderModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
@@ -507,7 +406,6 @@ if (!$database_available) {
         </div>
     </div>
 </div>
-<?php endif; ?>
 
 <?php require_once 'includes/footer.php'; ?>
 
@@ -530,7 +428,6 @@ $(function() {
     });
 });
 
-<?php if ($database_available): ?>
 function editOrder(order) {
     // Populate edit modal with order data
     $('#edit_order_id').val(order.id);
@@ -563,10 +460,9 @@ function deleteOrder(orderId) {
         }
     });
 }
-<?php endif; ?>
 
 function viewOrder(orderId) {
-    // Show order details in a modal or redirect to a detail page
-    alert('View Order #' + orderId + ' - Feature would redirect to details page or show modal with order information.');
+    // You can implement a view modal or redirect to a detail page
+    window.location.href = 'view-test-order.php?id=' + orderId;
 }
 </script>
