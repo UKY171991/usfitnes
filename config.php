@@ -79,8 +79,8 @@ CREATE TABLE IF NOT EXISTS `test_categories` (
 CREATE TABLE IF NOT EXISTS `tests` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `test_code` varchar(20) NOT NULL UNIQUE,
-  `test_name` varchar(200) NOT NULL,
-  `category_id` int(11) NOT NULL,
+  `name` varchar(200) NOT NULL,
+  `category_id` int(11) DEFAULT NULL,
   `description` text,
   `normal_range` varchar(100) DEFAULT NULL,
   `unit` varchar(50) DEFAULT NULL,
@@ -221,7 +221,7 @@ try {
     if ($checkAdmin->fetchColumn() == 0) {
         $adminPassword = password_hash('password', PASSWORD_DEFAULT);
         $insertAdmin = $pdo->prepare("
-            INSERT INTO users (username, password, email, full_name, user_type) 
+            INSERT INTO users (username, password, email, name, user_type) 
             VALUES ('admin', ?, 'admin@pathlabpro.com', 'System Administrator', 'admin')
         ");
         $insertAdmin->execute([$adminPassword]);
@@ -256,7 +256,7 @@ try {
         ];
         
         $insertTest = $pdo->prepare("
-            INSERT INTO tests (test_code, test_name, category_id, description, normal_range, unit, price) 
+            INSERT INTO tests (test_code, name, category_id, description, normal_range, unit, price) 
             VALUES (?, ?, ?, ?, ?, ?, ?)
         ");
         foreach ($tests as $test) {
@@ -265,15 +265,15 @@ try {
         
         // Insert sample patients
         $patients = [
-            ['PAT001', 'John Smith', 'John', 'Smith', 'john.smith@email.com', '123-456-7890', '123 Main St', '1985-06-15', 'Male'],
-            ['PAT002', 'Jane Johnson', 'Jane', 'Johnson', 'jane.j@email.com', '987-654-3210', '456 Oak Ave', '1990-12-03', 'Female'],
-            ['PAT003', 'Mike Brown', 'Mike', 'Brown', 'mike.brown@email.com', '555-123-4567', '789 Pine Rd', '1978-09-22', 'Male'],
-            ['PAT004', 'Sarah Wilson', 'Sarah', 'Wilson', 'sarah.w@email.com', '444-555-6666', '321 Elm St', '1988-03-18', 'Female']
+            ['PAT001', 'John Smith', 'john.smith@email.com', '123-456-7890', '123 Main St', '1985-06-15', 'male'],
+            ['PAT002', 'Jane Johnson', 'jane.j@email.com', '987-654-3210', '456 Oak Ave', '1990-12-03', 'female'],
+            ['PAT003', 'Mike Brown', 'mike.brown@email.com', '555-123-4567', '789 Pine Rd', '1978-09-22', 'male'],
+            ['PAT004', 'Sarah Wilson', 'sarah.w@email.com', '444-555-6666', '321 Elm St', '1988-03-18', 'female']
         ];
         
         $insertPatient = $pdo->prepare("
-            INSERT INTO patients (patient_id, full_name, first_name, last_name, email, phone, address, date_of_birth, gender) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO patients (patient_id, name, email, phone, address, date_of_birth, gender) 
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         ");
         foreach ($patients as $patient) {
             $insertPatient->execute($patient);
@@ -281,14 +281,14 @@ try {
         
         // Insert sample doctors
         $doctors = [
-            ['DOC001', 'Dr. Robert', 'Anderson', 'dr.anderson@hospital.com', '111-222-3333', 'Cardiology', 'MD12345'],
-            ['DOC002', 'Dr. Emily', 'Brown', 'dr.brown@clinic.com', '444-555-6666', 'Internal Medicine', 'MD67890'],
-            ['DOC003', 'Dr. David', 'Martinez', 'dr.martinez@medical.com', '777-888-9999', 'Pathology', 'MD11111']
+            ['DOC001', 'Dr. Robert Anderson', 'dr.anderson@hospital.com', '111-222-3333', 'Cardiology', 'MD12345'],
+            ['DOC002', 'Dr. Emily Brown', 'dr.brown@clinic.com', '444-555-6666', 'Internal Medicine', 'MD67890'],
+            ['DOC003', 'Dr. David Martinez', 'dr.martinez@medical.com', '777-888-9999', 'Pathology', 'MD11111']
         ];
         
         $insertDoctor = $pdo->prepare("
-            INSERT INTO doctors (doctor_id, first_name, last_name, email, phone, specialization, license_number) 
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO doctors (doctor_id, name, email, phone, specialization, license_number) 
+            VALUES (?, ?, ?, ?, ?, ?)
         ");
         foreach ($doctors as $doctor) {
             $insertDoctor->execute($doctor);
