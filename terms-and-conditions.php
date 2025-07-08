@@ -7,12 +7,7 @@
     <meta name="description" content="Terms and Conditions for US Fitness Management System">
     <meta name="keywords" content="terms, conditions, privacy, us fitness, fitness management">
     
-    <!-- Google Font: Source Sans Pro -->
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Bootstrap -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/css/bootstrap.min.css">
+    <?php include 'includes/public-head.php'; ?>
     
     <style>
         body {
@@ -168,27 +163,7 @@
     </style>
 </head>
 <body>
-    <!-- Simple Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
-        <div class="container">
-            <a class="navbar-brand" href="index.php">
-                <i class="fas fa-dumbbell mr-2"></i>US Fitness
-            </a>
-            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ml-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="index.php">Home</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="login.php">Login</a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
+    <?php include 'includes/navbar.php'; ?>
 
     <!-- Terms and Conditions Content -->
     <div class="container" style="margin-top: 120px;">
@@ -254,32 +229,8 @@
         </div>
     </div>
 
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="container">
-            <div class="row">
-                <div class="col-md-6">
-                    <h5><i class="fas fa-dumbbell mr-2"></i>US Fitness</h5>
-                    <p class="mb-0">Your premier fitness management platform.</p>
-                </div>
-                <div class="col-md-6">
-                    <h5>Quick Links</h5>
-                    <ul class="list-unstyled">
-                        <li><a href="index.php">Home</a></li>
-                        <li><a href="login.php">Login</a></li>
-                        <li><a href="terms-and-conditions.php">Terms & Conditions</a></li>
-                    </ul>
-                </div>
-            </div>
-            <hr class="my-4">
-            <div class="text-center">
-                <p>&copy; 2025 US Fitness. All rights reserved.</p>
-            </div>
-        </div>
-    </footer>
+    <?php include 'includes/public-footer.php'; ?>
 
-    <!-- Scripts -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/js/bootstrap.bundle.min.js"></script>
+    <?php include 'includes/public-scripts.php'; ?>
 </body>
 </html>
