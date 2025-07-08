@@ -21,15 +21,15 @@ try {
     $pdo_temp->exec("CREATE DATABASE IF NOT EXISTS $dbname");
     $pdo_temp = null;
     
-    // Connect to the database with PDO
+    // Connect to the database using PDO
     $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8", $username, $password);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
     
-    // Also create mysqli connection for backward compatibility
+    // Also create MySQLi connection for backward compatibility
     $conn = new mysqli($host, $username, $password, $dbname);
     if ($conn->connect_error) {
-        die("Connection failed: " . $conn->connect_error);
+        die("MySQLi Connection failed: " . $conn->connect_error);
     }
     $conn->set_charset("utf8");
     
@@ -104,16 +104,15 @@ CREATE TABLE IF NOT EXISTS `doctors` (
   `phone` varchar(20) NOT NULL,
   `specialization` varchar(100) NOT NULL,
   `license_number` varchar(50) DEFAULT NULL,
-  `hospital` varchar(200) DEFAULT NULL,
   `address` text,
+  `hospital` varchar(200) DEFAULT NULL,
   `referral_percentage` decimal(5,2) DEFAULT '0.00',
   `status` enum('active','inactive') DEFAULT 'active',
   `commission_rate` decimal(5,2) DEFAULT '0.00',
   `notes` text,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `doctor_id` (`doctor_id`)
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `test_orders` (
@@ -285,14 +284,14 @@ try {
         
         // Insert sample doctors
         $doctors = [
-            ['DOC001', 'Dr. Robert', 'Anderson', 'dr.anderson@hospital.com', '111-222-3333', 'Cardiology', 'MD12345', 'General Hospital', '123 Medical Center Dr', 10.00, 'active'],
-            ['DOC002', 'Dr. Emily', 'Brown', 'dr.brown@clinic.com', '444-555-6666', 'Internal Medicine', 'MD67890', 'City Medical Clinic', '456 Health St', 15.00, 'active'],
-            ['DOC003', 'Dr. David', 'Martinez', 'dr.martinez@medical.com', '777-888-9999', 'Pathology', 'MD11111', 'PathLab Center', '789 Lab Ave', 20.00, 'active']
+            ['DOC001', 'Dr. Robert', 'Anderson', 'dr.anderson@hospital.com', '111-222-3333', 'Cardiology', 'MD12345'],
+            ['DOC002', 'Dr. Emily', 'Brown', 'dr.brown@clinic.com', '444-555-6666', 'Internal Medicine', 'MD67890'],
+            ['DOC003', 'Dr. David', 'Martinez', 'dr.martinez@medical.com', '777-888-9999', 'Pathology', 'MD11111']
         ];
         
         $insertDoctor = $pdo->prepare("
-            INSERT INTO doctors (doctor_id, first_name, last_name, email, phone, specialization, license_number, hospital, address, referral_percentage, status) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO doctors (doctor_id, first_name, last_name, email, phone, specialization, license_number) 
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         ");
         foreach ($doctors as $doctor) {
             $insertDoctor->execute($doctor);

@@ -10,26 +10,18 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
-// Include database configuration
-require_once 'config.php';
-
-// Set user information variables
-$user_id = $_SESSION['user_id'];
-$username = $_SESSION['username'];
-$full_name = $_SESSION['full_name'];
-$user_type = $_SESSION['user_type'];
-$user_initial = strtoupper(substr($full_name, 0, 1));
-
-// Set page title
+// Set page title and active menu
 $page_title = 'Doctors';
+$active_menu = 'doctors';
 
-// Include header and sidebar for consistent layout
+// Include header and sidebar
 include 'includes/header.php';
 include 'includes/sidebar.php';
 ?>
-<!-- Content Wrapper. Contains page content -->
+
+<!-- Content Wrapper -->
 <div class="content-wrapper">
-  <!-- Content Header (Page header) -->
+  <!-- Content Header -->
   <div class="content-header">
     <div class="container-fluid">
       <div class="row mb-2">
@@ -45,11 +37,13 @@ include 'includes/sidebar.php';
       </div>
     </div>
   </div>
-  <!-- /.content-header -->
 
   <!-- Main content -->
   <section class="content">
     <div class="container-fluid">
+      <!-- Alert Messages -->
+      <div id="alertContainer"></div>
+
       <!-- Stats Row -->
       <div class="row">
         <div class="col-lg-3 col-6">
@@ -61,6 +55,7 @@ include 'includes/sidebar.php';
             <div class="icon">
               <i class="fas fa-user-md"></i>
             </div>
+            <a href="#" class="small-box-footer">View Details <i class="fas fa-arrow-circle-right"></i></a>
           </div>
         </div>
         <div class="col-lg-3 col-6">
@@ -72,6 +67,7 @@ include 'includes/sidebar.php';
             <div class="icon">
               <i class="fas fa-check-circle"></i>
             </div>
+            <a href="#" class="small-box-footer">View Details <i class="fas fa-arrow-circle-right"></i></a>
           </div>
         </div>
         <div class="col-lg-3 col-6">
@@ -83,6 +79,7 @@ include 'includes/sidebar.php';
             <div class="icon">
               <i class="fas fa-stethoscope"></i>
             </div>
+            <a href="#" class="small-box-footer">View Details <i class="fas fa-arrow-circle-right"></i></a>
           </div>
         </div>
         <div class="col-lg-3 col-6">
@@ -94,47 +91,52 @@ include 'includes/sidebar.php';
             <div class="icon">
               <i class="fas fa-paper-plane"></i>
             </div>
+            <a href="#" class="small-box-footer">View Details <i class="fas fa-arrow-circle-right"></i></a>
           </div>
         </div>
       </div>
-      <!-- /.row -->
 
-      <!-- Controls Row -->
-      <div class="row mb-3">
-        <div class="col-md-4 mb-2 mb-md-0">
-          <input type="text" class="form-control" id="searchDoctors" placeholder="Search doctors...">
-        </div>
-        <div class="col-md-4 mb-2 mb-md-0">
-          <select class="form-control" id="filterSpecialization">
-            <option value="">All Specializations</option>
-          </select>
-        </div>
-        <div class="col-md-2 mb-2 mb-md-0">
-          <select class="form-control" id="filterStatus">
-            <option value="">All Status</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-          </select>
-        </div>
-        <div class="col-md-2 text-md-right">
-          <button type="button" class="btn btn-primary" id="addDoctorBtn">
-            <i class="fas fa-plus"></i> Add Doctor
-          </button>
-          <button type="button" class="btn btn-info ml-2" id="refreshBtn">
-            <i class="fas fa-sync"></i> Refresh
-          </button>
-        </div>
-      </div>
-      <!-- /.row -->
-
-      <!-- Doctors Table Card -->
+      <!-- Main Card -->
       <div class="row">
         <div class="col-12">
           <div class="card">
             <div class="card-header">
               <h3 class="card-title">Registered Doctors</h3>
+              <div class="card-tools">
+                <button type="button" class="btn btn-primary btn-sm" id="addDoctorBtn">
+                  <i class="fas fa-plus"></i> Add Doctor
+                </button>
+                <button type="button" class="btn btn-info btn-sm" id="refreshBtn">
+                  <i class="fas fa-refresh"></i> Refresh
+                </button>
+              </div>
             </div>
             <div class="card-body">
+              <!-- Filters -->
+              <div class="row mb-3">
+                <div class="col-md-3">
+                  <input type="text" class="form-control" id="searchDoctors" placeholder="Search doctors...">
+                </div>
+                <div class="col-md-3">
+                  <select class="form-control" id="filterSpecialization">
+                    <option value="">All Specializations</option>
+                  </select>
+                </div>
+                <div class="col-md-3">
+                  <select class="form-control" id="filterStatus">
+                    <option value="">All Status</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                </div>
+                <div class="col-md-3">
+                  <button type="button" class="btn btn-primary" onclick="clearFilters()">
+                    <i class="fas fa-times"></i> Clear Filters
+                  </button>
+                </div>
+              </div>
+
+              <!-- Doctors Table -->
               <div class="table-responsive">
                 <table id="doctorsTable" class="table table-bordered table-striped">
                   <thead>
@@ -147,23 +149,13 @@ include 'includes/sidebar.php';
                       <th>Actions</th>
                     </tr>
                   </thead>
-                  <tbody id="doctorsTableBody">
-                    <tr>
-                      <td colspan="6" class="text-center">
-                        <div class="spinner-border text-primary" role="status">
-                          <span class="sr-only">Loading...</span>
-                        </div>
-                        <p class="mt-2">Loading doctors...</p>
-                      </td>
-                    </tr>
-                  </tbody>
+                  <tbody></tbody>
                 </table>
               </div>
             </div>
           </div>
         </div>
       </div>
-      <!-- /.row -->
     </div>
   </section>
 </div>
@@ -315,8 +307,14 @@ include 'includes/sidebar.php';
 $additional_scripts = <<<EOT
 <script>
 $(document).ready(function() {
-  $('.preloader').fadeOut(200, function() { $(this).remove(); });
+  // FORCE hide preloader immediately to prevent loading screen issue
+  $('.preloader').hide();
   $('body').removeClass('hold-transition');
+  
+  // Ensure preloader is hidden
+  setTimeout(function() {
+    $('.preloader').fadeOut();
+  }, 100);
   
   console.log('Page loaded, starting doctors initialization...');
   
@@ -331,12 +329,29 @@ $(document).ready(function() {
   
   // Initialize DataTable
   function initTable() {
+    // Add custom filtering function
+    $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
+      let specializationFilter = $('#filterSpecialization').val();
+      let statusFilter = $('#filterStatus').val();
+      
+      // Get doctor data safely
+      let doctor = doctors && doctors[dataIndex] ? doctors[dataIndex] : null;
+      
+      if (specializationFilter && doctor && doctor.specialization !== specializationFilter) {
+        return false;
+      }
+      
+      if (statusFilter && doctor && doctor.status !== statusFilter) {
+        return false;
+      }
+      
+      return true;
+    });
+    
     doctorsTable = $('#doctorsTable').DataTable({
       ajax: {
         url: 'api/doctors_api.php',
         dataSrc: function(json) {
-          // Remove loading row after data loads
-          $('#doctorsTableBody').empty();
           if (json.success) {
             doctors = json.data;
             updateStats();
@@ -344,6 +359,7 @@ $(document).ready(function() {
             return json.data;
           } else {
             showAlert('error', 'Failed to load doctors: ' + (json.message || 'Unknown error'));
+            
             // If unauthorized, redirect to login
             if (json.message && json.message.includes('Unauthorized')) {
               setTimeout(() => {
@@ -356,6 +372,7 @@ $(document).ready(function() {
         error: function(xhr, error, thrown) {
           console.error('AJAX Error:', xhr.responseText);
           let errorMsg = 'Failed to load doctors data. ';
+          
           // Handle specific error cases
           if (xhr.status === 401) {
             errorMsg = 'You are not logged in. Redirecting to login page...';
@@ -371,6 +388,7 @@ $(document).ready(function() {
           } else {
             errorMsg += 'Server error: ' + error;
           }
+          
           showAlert('error', errorMsg);
           return [];
         }
@@ -410,7 +428,7 @@ $(document).ready(function() {
           data: null,
           orderable: false,
           render: function(data, type, row) {
-            const doctorId = row.id || row.doctor_id;
+            const doctorId = row.doctor_id || row.id;
             return `
               <div class="btn-group">
                 <button class="btn btn-sm btn-info btn-view" data-id="${doctorId}" title="View">
@@ -429,10 +447,6 @@ $(document).ready(function() {
       ],
       responsive: true,
       pageLength: 25
-    });
-    // Remove loading row after AJAX loads (for extra safety)
-    $('#doctorsTable').on('xhr.dt', function (e, settings, json, xhr) {
-      $('#doctorsTableBody').empty();
     });
   }
 
@@ -483,6 +497,9 @@ $(document).ready(function() {
     let data = Object.fromEntries(formData.entries());
     let isEdit = !!data.id;
     
+    // Show loading state
+    $('#saveDoctorBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Saving...');
+    
     // Rename id field to doctor_id for API compatibility
     if (data.id) {
       data.doctor_id = data.id;
@@ -495,6 +512,7 @@ $(document).ready(function() {
       contentType: 'application/json',
       data: JSON.stringify(data),
       success: function(response) {
+        $('#saveDoctorBtn').prop('disabled', false).html('<i class="fas fa-save"></i> Save Doctor');
         if (response.success) {
           showAlert('success', response.message);
           $('#doctorModal').modal('hide');
@@ -504,7 +522,15 @@ $(document).ready(function() {
         }
       },
       error: function(xhr) {
-        showAlert('error', 'Error saving doctor: ' + xhr.responseText);
+        $('#saveDoctorBtn').prop('disabled', false).html('<i class="fas fa-save"></i> Save Doctor');
+        let errorMsg = 'Error saving doctor';
+        try {
+          let response = JSON.parse(xhr.responseText);
+          errorMsg = response.message || errorMsg;
+        } catch(e) {
+          errorMsg += ': ' + xhr.responseText;
+        }
+        showAlert('error', errorMsg);
       }
     });
   });
@@ -514,10 +540,10 @@ $(document).ready(function() {
     let id = $(this).data('id');
     
     // Find doctor data
-    let doctor = doctors.find(d => d.id == id || d.doctor_id == id);
+    let doctor = doctors.find(d => d.doctor_id == id || d.id == id);
     if (doctor) {
       $('#doctorModalTitle').html('<i class="fas fa-edit"></i> Edit Doctor');
-      $('#doctorId').val(doctor.id || doctor.doctor_id);
+      $('#doctorId').val(doctor.doctor_id || doctor.id);
       $('#firstName').val(doctor.first_name);
       $('#lastName').val(doctor.last_name);
       $('#hospital').val(doctor.hospital || '');
@@ -537,7 +563,7 @@ $(document).ready(function() {
     let id = $(this).data('id');
     
     // Find doctor data
-    let doctor = doctors.find(d => d.id == id || d.doctor_id == id);
+    let doctor = doctors.find(d => d.doctor_id == id || d.id == id);
     if (doctor) {
       const content = `
         <div class="row">
@@ -579,14 +605,19 @@ $(document).ready(function() {
   // Delete doctor
   $('#doctorsTable').on('click', '.btn-delete', function() {
     let id = $(this).data('id');
+    let $btn = $(this);
     
     if (confirm('Are you sure you want to delete this doctor?')) {
+      // Show loading state
+      $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
+      
       $.ajax({
         url: 'api/doctors_api.php',
         type: 'DELETE',
         contentType: 'application/json',
         data: JSON.stringify({ doctor_id: id }),
         success: function(response) {
+          $btn.prop('disabled', false).html('<i class="fas fa-trash"></i>');
           if (response.success) {
             showAlert('success', response.message);
             doctorsTable.ajax.reload();
@@ -595,7 +626,15 @@ $(document).ready(function() {
           }
         },
         error: function(xhr) {
-          showAlert('error', 'Error deleting doctor: ' + xhr.responseText);
+          $btn.prop('disabled', false).html('<i class="fas fa-trash"></i>');
+          let errorMsg = 'Error deleting doctor';
+          try {
+            let response = JSON.parse(xhr.responseText);
+            errorMsg = response.message || errorMsg;
+          } catch(e) {
+            errorMsg += ': ' + xhr.responseText;
+          }
+          showAlert('error', errorMsg);
         }
       });
     }
@@ -612,21 +651,21 @@ $(document).ready(function() {
   });
 
   // Filter by specialization
-  // $('#filterSpecialization').on('change', function() {
-  //   doctorsTable.column(2).search(this.value).draw();
-  // });
+  $('#filterSpecialization').on('change', function() {
+    doctorsTable.draw();
+  });
 
   // Filter by status
-  // $('#filterStatus').on('change', function() {
-  //   doctorsTable.column(6).search(this.value).draw();
-  // });
+  $('#filterStatus').on('change', function() {
+    doctorsTable.draw();
+  });
 });
 
 function clearFilters() {
   $('#searchDoctors').val('');
   $('#filterSpecialization').val('');
   $('#filterStatus').val('');
-  doctorsTable.search('').columns().search('').draw();
+  doctorsTable.search('').draw();
 }
 
   // Alert and utility functions
