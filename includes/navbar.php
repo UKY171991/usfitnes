@@ -10,13 +10,13 @@ if (!function_exists('hasLogo')) {
 <!-- Navigation -->
 <nav class="navbar navbar-expand-lg navbar-light navbar-custom fixed-top">
     <div class="container">
-        <a class="navbar-brand d-flex align-items-center" href="index.php">
+        <a class="navbar-brand d-flex align-items-center" href="<?php echo basename($_SERVER['PHP_SELF']) == 'index.php' ? '#home' : 'index.php'; ?>">
             <?php if (hasLogo()): ?>
-                <img src="<?php echo getLogoPath(); ?>" alt="US Fitness Logo" height="35" class="me-2 mr-2">
-                <span style="font-weight: 700; font-size: 1.8rem;">US Fitness</span>
+                <img src="<?php echo getLogoPath(); ?>" alt="PathLab Pro Logo" height="35" class="me-2 mr-2">
+                <span style="font-weight: 700; font-size: 1.8rem;">PathLab Pro</span>
             <?php else: ?>
-                <i class="fas fa-dumbbell mr-2" style="font-size: 1.8rem; color: var(--primary-color);"></i>
-                <span style="font-weight: 700; font-size: 1.8rem; color: var(--primary-color);">US Fitness</span>
+                <i class="fas fa-microscope mr-2" style="font-size: 1.8rem; color: var(--primary-color);"></i>
+                <span style="font-weight: 700; font-size: 1.8rem; color: var(--primary-color);">PathLab Pro</span>
             <?php endif; ?>
         </a>
         
@@ -27,16 +27,24 @@ if (!function_exists('hasLogo')) {
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav ml-auto align-items-lg-center">
                 <li class="nav-item">
-                    <a class="nav-link" href="index.php"><i class="fas fa-home mr-1"></i>Home</a>
+                    <a class="nav-link" href="<?php echo basename($_SERVER['PHP_SELF']) == 'index.php' ? '#home' : 'index.php#home'; ?>">
+                        <i class="fas fa-home mr-1"></i>Home
+                    </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="#"><i class="fas fa-star mr-1"></i>Classes</a>
+                    <a class="nav-link" href="<?php echo basename($_SERVER['PHP_SELF']) == 'index.php' ? '#features' : 'index.php#features'; ?>">
+                        <i class="fas fa-star mr-1"></i>Features
+                    </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="#"><i class="fas fa-info-circle mr-1"></i>About</a>
+                    <a class="nav-link" href="<?php echo basename($_SERVER['PHP_SELF']) == 'index.php' ? '#about' : 'index.php#about'; ?>">
+                        <i class="fas fa-info-circle mr-1"></i>About
+                    </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="#"><i class="fas fa-envelope mr-1"></i>Contact</a>
+                    <a class="nav-link" href="<?php echo basename($_SERVER['PHP_SELF']) == 'index.php' ? '#contact' : 'index.php#contact'; ?>">
+                        <i class="fas fa-envelope mr-1"></i>Contact
+                    </a>
                 </li>
                 <li class="nav-item ml-lg-3">
                     <a class="btn btn-primary rounded-pill px-4 py-2 font-weight-bold" href="login.php" style="border: none; background: linear-gradient(45deg, #667eea, #764ba2); color: white; text-decoration: none;">
