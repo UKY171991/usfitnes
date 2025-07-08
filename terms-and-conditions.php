@@ -3,11 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Terms and Conditions - PathLab Pro</title>
-    <meta name="description" content="Terms and Conditions for PathLab Pro Laboratory Management System">
-    <meta name="keywords" content="terms, conditions, privacy, pathlab pro, laboratory management">
+    <title>Terms and Conditions - US Fitness</title>
+    <meta name="description" content="Terms and Conditions for US Fitness Management System">
+    <meta name="keywords" content="terms, conditions, privacy, us fitness, fitness management">
     
-    <?php include 'includes/public-head.php'; ?>
+    <!-- Google Font: Source Sans Pro -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Bootstrap -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/css/bootstrap.min.css">
     
     <style>
         body {
@@ -160,99 +165,84 @@
                 font-size: 1.6rem;
             }
         }
+    </style>
 </head>
 <body>
-    <?php include 'includes/navbar.php'; ?>
+    <!-- Simple Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
+        <div class="container">
+            <a class="navbar-brand" href="index.php">
+                <i class="fas fa-dumbbell mr-2"></i>US Fitness
+            </a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ml-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="index.php">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="login.php">Login</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
 
     <!-- Terms and Conditions Content -->
     <div class="container" style="margin-top: 120px;">
         <div class="terms-container">
             <div class="terms-header">
                 <h1 class="terms-title">Terms and Conditions</h1>
-                <p class="terms-subtitle">Last updated: <?php echo date('F j, Y'); ?></p>
-                <p class="text-muted">Please read these terms and conditions carefully before using PathLab Pro services.</p>
+                <p class="terms-subtitle">Last updated: July 9, 2025</p>
+                <p class="text-muted">Please read these terms and conditions carefully before using US Fitness services.</p>
             </div>
 
             <div class="terms-content">
                 <h2>1. Agreement to Terms</h2>
-                <p>By accessing and using PathLab Pro ("the Service"), you accept and agree to be bound by the terms and provision of this agreement. If you do not agree to abide by the above, please do not use this service.</p>
+                <p>By accessing and using US Fitness ("the Service"), you accept and agree to be bound by the terms and provision of this agreement. If you do not agree to abide by the above, please do not use this service.</p>
 
                 <h2>2. Description of Service</h2>
-                <p>PathLab Pro is a comprehensive laboratory management system designed to streamline laboratory operations, manage patient data, handle test results, and facilitate communication between healthcare providers and laboratories.</p>
+                <p>US Fitness is a comprehensive fitness management system designed to help users track their fitness journey, manage workout routines, monitor progress, and connect with fitness professionals.</p>
 
                 <h3>2.1 Service Features</h3>
                 <ul>
-                    <li>Patient management and registration</li>
-                    <li>Test ordering and result management</li>
-                    <li>Equipment tracking and maintenance</li>
-                    <li>Report generation and analytics</li>
-                    <li>User management and access control</li>
-                    <li>Data backup and security features</li>
+                    <li>Member registration and profile management</li>
+                    <li>Workout tracking and scheduling</li>
+                    <li>Equipment usage monitoring</li>
+                    <li>Progress reports and analytics</li>
+                    <li>Trainer-client communication tools</li>
+                    <li>Health and safety guidelines</li>
                 </ul>
 
                 <h2>3. User Accounts and Registration</h2>
-                <p>To access certain features of the Service, you may be required to create an account. You agree to provide accurate, current, and complete information during the registration process and to update such information to keep it accurate, current, and complete.</p>
+                <p>To access certain features of the Service, you may be required to create an account. You agree to provide accurate, current, and complete information during the registration process.</p>
 
-                <h3>3.1 Account Security</h3>
-                <ul>
-                    <li>You are responsible for maintaining the confidentiality of your account credentials</li>
-                    <li>You must notify us immediately of any unauthorized use of your account</li>
-                    <li>We reserve the right to suspend or terminate accounts that violate these terms</li>
-                </ul>
+                <h2>4. Health and Safety Disclaimer</h2>
+                <p>Before beginning any fitness program, please consult with your healthcare provider. US Fitness is not responsible for any injuries that may occur while using our services or facilities.</p>
 
-                <h2>4. Privacy and Data Protection</h2>
-                <p>Your privacy is important to us. We are committed to protecting your personal information and health data in accordance with applicable privacy laws and regulations, including HIPAA compliance where applicable.</p>
+                <h2>5. Privacy and Data Protection</h2>
+                <p>Your privacy is important to us. We are committed to protecting your personal information in accordance with applicable privacy laws and regulations.</p>
 
-                <h3>4.1 Data Collection</h3>
-                <ul>
-                    <li>We collect only the information necessary to provide our services</li>
-                    <li>Patient health information is handled with the highest level of security</li>
-                    <li>Access to sensitive data is restricted to authorized personnel only</li>
-                </ul>
-
-                <h3>4.2 Data Security</h3>
-                <ul>
-                    <li>We implement industry-standard security measures to protect your data</li>
-                    <li>Data is encrypted both in transit and at rest</li>
-                    <li>Regular security audits and updates are performed</li>
-                </ul>
-
-                <h2>5. Acceptable Use</h2>
-                <p>You agree to use the Service only for lawful purposes and in accordance with these Terms. You agree not to use the Service:</p>
-                <ul>
-                    <li>In any way that violates applicable laws or regulations</li>
-                    <li>To transmit or procure the sending of any advertising or promotional material</li>
-                    <li>To impersonate or attempt to impersonate the Company, employees, or other users</li>
-                    <li>To engage in any other conduct that restricts or inhibits anyone's use of the Service</li>
-                </ul>
-
-                <h2>6. Intellectual Property Rights</h2>
-                <p>The Service and its original content, features, and functionality are and will remain the exclusive property of PathLab Pro and its licensors. The Service is protected by copyright, trademark, and other laws.</p>
+                <h2>6. Acceptable Use</h2>
+                <p>You agree to use the Service only for lawful purposes and in accordance with these Terms. Harassment, inappropriate behavior, or misuse of equipment is strictly prohibited.</p>
 
                 <h2>7. Limitation of Liability</h2>
-                <p>In no event shall PathLab Pro, its directors, employees, partners, agents, suppliers, or affiliates be liable for any indirect, incidental, special, consequential, or punitive damages, including without limitation, loss of profits, data, use, goodwill, or other intangible losses, resulting from your use of the Service.</p>
+                <p>US Fitness shall not be liable for any indirect, incidental, special, consequential, or punitive damages resulting from your use of the Service.</p>
 
-                <h2>8. Medical Disclaimer</h2>
-                <p>PathLab Pro is a laboratory management tool and does not provide medical advice, diagnosis, or treatment. The information provided through the Service is for informational purposes only and should not be used as a substitute for professional medical advice.</p>
+                <h2>8. Termination</h2>
+                <p>We may terminate or suspend your account for violations of these terms or for any reason deemed necessary for the safety and security of our members.</p>
 
-                <h2>9. Service Availability</h2>
-                <p>We strive to maintain the Service availability but do not guarantee uninterrupted access. We may temporarily suspend the Service for maintenance, updates, or other operational reasons.</p>
+                <h2>9. Changes to Terms</h2>
+                <p>We reserve the right to modify these Terms at any time. Material changes will be communicated with at least 30 days notice.</p>
 
-                <h2>10. Termination</h2>
-                <p>We may terminate or suspend your account and bar access to the Service immediately, without prior notice or liability, under our sole discretion, for any reason whatsoever, including but not limited to a breach of the Terms.</p>
-
-                <h2>11. Changes to Terms</h2>
-                <p>We reserve the right to modify or replace these Terms at any time. If a revision is material, we will provide at least 30 days notice prior to any new terms taking effect.</p>
-
-                <h2>12. Governing Law</h2>
-                <p>These Terms shall be interpreted and governed by the laws of the jurisdiction in which our company is registered, without regard to its conflict of law provisions.</p>
-
-                <h2>13. Contact Information</h2>
-                <p>If you have any questions about these Terms and Conditions, please contact us at:</p>
+                <h2>10. Contact Information</h2>
+                <p>If you have any questions about these Terms and Conditions, please contact us:</p>
                 <ul>
-                    <li>Email: support@pathlabpro.com</li>
+                    <li>Email: support@usfitness.com</li>
                     <li>Phone: +1 (555) 123-4567</li>
-                    <li>Address: 123 Healthcare Drive, Medical City, HC 12345</li>
+                    <li>Address: 123 Fitness Street, Health City, HC 12345</li>
                 </ul>
 
                 <div class="text-center mt-5">
@@ -261,10 +251,35 @@
                     </a>
                 </div>
             </div>
+        </div>
     </div>
 
-    <?php include 'includes/public-footer.php'; ?>
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5><i class="fas fa-dumbbell mr-2"></i>US Fitness</h5>
+                    <p class="mb-0">Your premier fitness management platform.</p>
+                </div>
+                <div class="col-md-6">
+                    <h5>Quick Links</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="index.php">Home</a></li>
+                        <li><a href="login.php">Login</a></li>
+                        <li><a href="terms-and-conditions.php">Terms & Conditions</a></li>
+                    </ul>
+                </div>
+            </div>
+            <hr class="my-4">
+            <div class="text-center">
+                <p>&copy; 2025 US Fitness. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
 
-    <?php include 'includes/public-scripts.php'; ?>
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
