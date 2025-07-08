@@ -68,7 +68,7 @@ function handleLogin($pdo, $input) {
     }
     try {
         // Check user credentials
-        $stmt = $pdo->prepare("SELECT id, username, password, full_name, user_type FROM users WHERE username = ?");
+        $stmt = $pdo->prepare("SELECT id, username, password, name, user_type FROM users WHERE username = ?");
         $stmt->execute([$username]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
         
@@ -76,7 +76,7 @@ function handleLogin($pdo, $input) {
             // Set session variables
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['username'] = $user['username'];
-            $_SESSION['full_name'] = $user['full_name'];
+            $_SESSION['full_name'] = $user['name'];
             $_SESSION['user_type'] = $user['user_type'];
             $_SESSION['role'] = $user['user_type']; // Ensure both 'role' and 'user_type' are set for compatibility
             
