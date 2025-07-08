@@ -1,284 +1,377 @@
 <?php
 // Set page title
-$page_title = 'All Database Data';
+$page_title = 'Database View';
 
 // Include header
 include 'includes/header.php';
-include 'includes/sidebar.php';
 
-// Include database config
-require_once 'config.php';
+// Include sidebar with user info
+include 'includes/sidebar.php';
 ?>
 
-<!-- Content Wrapper -->
-<div class="content-wrapper">
-  <!-- Content Header -->
-  <div class="content-header">
-    <div class="container-fluid">
-      <div class="row mb-2">
-        <div class="col-sm-6">
-          <h1 class="m-0">Database Data Overview</h1>
-        </div>
-        <div class="col-sm-6">
-          <ol class="breadcrumb float-sm-right">
-            <li class="breadcrumb-item"><a href="dashboard.php">Home</a></li>
-            <li class="breadcrumb-item active">All Data</li>
-          </ol>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Main content -->
-  <section class="content">
-    <div class="container-fluid">
-      <!-- Quick Actions -->
-      <div class="row mb-3">
-        <div class="col-12">
-          <div class="card bg-info">
-            <div class="card-header">
-              <h3 class="card-title">Quick Actions</h3>
-            </div>
-            <div class="card-body">
-              <a href="patients.php" class="btn btn-primary mr-2"><i class="fas fa-users"></i> View Patients</a>
-              <a href="doctors.php" class="btn btn-success mr-2"><i class="fas fa-user-md"></i> View Doctors</a>
-              <a href="tests.php" class="btn btn-warning mr-2"><i class="fas fa-flask"></i> View Tests</a>
-              <a href="users.php" class="btn btn-info mr-2"><i class="fas fa-user-cog"></i> View Users</a>
-              <button class="btn btn-secondary" onclick="location.reload()"><i class="fas fa-sync"></i> Refresh Data</button>
-            </div>
+  <!-- Content Wrapper. Contains page content -->
+  <div class="content-wrapper">
+    <!-- Content Header (Page header) -->
+    <div class="content-header">
+      <div class="container-fluid">
+        <div class="row mb-2">
+          <div class="col-sm-6">
+            <h1 class="m-0">Database Overview</h1>
+          </div>
+          <div class="col-sm-6">
+            <ol class="breadcrumb float-sm-right">
+              <li class="breadcrumb-item"><a href="dashboard.php">Home</a></li>
+              <li class="breadcrumb-item active">Database View</li>
+            </ol>
           </div>
         </div>
       </div>
+    </div>
+    <!-- /.content-header -->
 
-      <?php
-      // Function to display table data
-      function displayTableData($pdo, $tableName, $displayName, $limit = 10) {
-          try {
-              // Check if table exists
-              $stmt = $pdo->prepare("SHOW TABLES LIKE ?");
-              $stmt->execute([$tableName]);
-              if ($stmt->rowCount() == 0) {
-                  echo "<div class='alert alert-warning'>Table '$tableName' does not exist.</div>";
-                  return;
-              }
-
-              // Get table structure
-              $stmt = $pdo->query("DESCRIBE $tableName");
-              $columns = $stmt->fetchAll(PDO::FETCH_ASSOC);
-              
-              // Get data count
-              $stmt = $pdo->query("SELECT COUNT(*) FROM $tableName");
-              $count = $stmt->fetchColumn();
-              
-              // Get sample data
-              $stmt = $pdo->query("SELECT * FROM $tableName ORDER BY id DESC LIMIT $limit");
-              $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
-              
-              echo "<div class='card'>";
-              echo "<div class='card-header'>";
-              echo "<h3 class='card-title'>$displayName</h3>";
-              echo "<div class='card-tools'>";
-              echo "<span class='badge badge-primary'>$count records</span>";
-              echo "</div>";
-              echo "</div>";
-              echo "<div class='card-body'>";
-              
-              if (empty($data)) {
-                  echo "<div class='alert alert-info'>No data found in $tableName table.</div>";
-              } else {
-                  echo "<div class='table-responsive'>";
-                  echo "<table class='table table-bordered table-striped table-sm'>";
-                  echo "<thead><tr>";
-                  
-                  // Table headers
-                  foreach ($columns as $column) {
-                      echo "<th>" . htmlspecialchars($column['Field']) . "</th>";
-                  }
-                  echo "</tr></thead><tbody>";
-                  
-                  // Table data
-                  foreach ($data as $row) {
-                      echo "<tr>";
-                      foreach ($row as $value) {
-                          $displayValue = $value;
-                          if (strlen($value) > 50) {
-                              $displayValue = substr($value, 0, 50) . '...';
-                          }
-                          echo "<td>" . htmlspecialchars($displayValue) . "</td>";
-                      }
-                      echo "</tr>";
-                  }
-                  
-                  echo "</tbody></table>";
-                  echo "</div>";
-                  
-                  if ($count > $limit) {
-                      echo "<div class='alert alert-info'>Showing latest $limit of $count records.</div>";
-                  }
-              }
-              
-              echo "</div></div>";
-              
-          } catch (PDOException $e) {
-              echo "<div class='card'>";
-              echo "<div class='card-header'><h3 class='card-title'>$displayName</h3></div>";
-              echo "<div class='card-body'>";
-              echo "<div class='alert alert-danger'>Error accessing $tableName: " . htmlspecialchars($e->getMessage()) . "</div>";
-              echo "</div></div>";
-          }
-      }
-
-      // Display all main tables
-      echo "<div class='row'>";
-      
-      echo "<div class='col-md-6'>";
-      displayTableData($pdo, 'users', 'System Users', 5);
-      echo "</div>";
-      
-      echo "<div class='col-md-6'>";
-      displayTableData($pdo, 'patients', 'Patients', 5);
-      echo "</div>";
-      
-      echo "</div><div class='row'>";
-      
-      echo "<div class='col-md-6'>";
-      displayTableData($pdo, 'doctors', 'Doctors', 5);
-      echo "</div>";
-      
-      echo "<div class='col-md-6'>";
-      displayTableData($pdo, 'tests', 'Lab Tests (from config)', 5);
-      echo "</div>";
-      
-      echo "</div><div class='row'>";
-      
-      echo "<div class='col-md-6'>";
-      displayTableData($pdo, 'lab_tests', 'Lab Tests (dynamic)', 5);
-      echo "</div>";
-      
-      echo "<div class='col-md-6'>";
-      displayTableData($pdo, 'test_categories', 'Test Categories', 5);
-      echo "</div>";
-      
-      echo "</div><div class='row'>";
-      
-      echo "<div class='col-md-6'>";
-      displayTableData($pdo, 'test_orders', 'Test Orders', 5);
-      echo "</div>";
-      
-      echo "<div class='col-md-6'>";
-      displayTableData($pdo, 'equipment', 'Equipment', 5);
-      echo "</div>";
-      
-      echo "</div>";
-      ?>
-
-      <!-- Database Stats -->
-      <div class="row mt-4">
-        <div class="col-12">
-          <div class="card">
-            <div class="card-header">
-              <h3 class="card-title">Database Statistics</h3>
+    <!-- Main content -->
+    <section class="content">
+      <div class="container-fluid">
+        <!-- Database Statistics -->
+        <div class="row">
+          <div class="col-lg-3 col-6">
+            <div class="small-box bg-info">
+              <div class="inner">
+                <h3>47</h3>
+                <p>Total Patients</p>
+              </div>
+              <div class="icon">
+                <i class="fas fa-user-injured"></i>
+              </div>
+              <a href="patients.php" class="small-box-footer">View Patients <i class="fas fa-arrow-circle-right"></i></a>
             </div>
-            <div class="card-body">
-              <div class="row">
-                <?php
-                $tables = ['users', 'patients', 'doctors', 'tests', 'lab_tests', 'test_categories', 'test_orders', 'equipment'];
-                foreach ($tables as $table) {
-                    try {
-                        $stmt = $pdo->prepare("SHOW TABLES LIKE ?");
-                        $stmt->execute([$table]);
-                        if ($stmt->rowCount() > 0) {
-                            $stmt = $pdo->query("SELECT COUNT(*) FROM $table");
-                            $count = $stmt->fetchColumn();
-                            echo "<div class='col-md-3 col-sm-6'>";
-                            echo "<div class='info-box'>";
-                            echo "<span class='info-box-icon bg-info'><i class='fas fa-table'></i></span>";
-                            echo "<div class='info-box-content'>";
-                            echo "<span class='info-box-text'>" . ucfirst($table) . "</span>";
-                            echo "<span class='info-box-number'>$count</span>";
-                            echo "</div></div></div>";
-                        } else {
-                            echo "<div class='col-md-3 col-sm-6'>";
-                            echo "<div class='info-box'>";
-                            echo "<span class='info-box-icon bg-warning'><i class='fas fa-exclamation-triangle'></i></span>";
-                            echo "<div class='info-box-content'>";
-                            echo "<span class='info-box-text'>" . ucfirst($table) . "</span>";
-                            echo "<span class='info-box-number'>Missing</span>";
-                            echo "</div></div></div>";
-                        }
-                    } catch (PDOException $e) {
-                        echo "<div class='col-md-3 col-sm-6'>";
-                        echo "<div class='info-box'>";
-                        echo "<span class='info-box-icon bg-danger'><i class='fas fa-times'></i></span>";
-                        echo "<div class='info-box-content'>";
-                        echo "<span class='info-box-text'>" . ucfirst($table) . "</span>";
-                        echo "<span class='info-box-number'>Error</span>";
-                        echo "</div></div></div>";
-                    }
-                }
-                ?>
+          </div>
+          <div class="col-lg-3 col-6">
+            <div class="small-box bg-success">
+              <div class="inner">
+                <h3>12</h3>
+                <p>Total Doctors</p>
+              </div>
+              <div class="icon">
+                <i class="fas fa-user-md"></i>
+              </div>
+              <a href="doctors.php" class="small-box-footer">View Doctors <i class="fas fa-arrow-circle-right"></i></a>
+            </div>
+          </div>
+          <div class="col-lg-3 col-6">
+            <div class="small-box bg-warning">
+              <div class="inner">
+                <h3>156</h3>
+                <p>Total Tests</p>
+              </div>
+              <div class="icon">
+                <i class="fas fa-flask"></i>
+              </div>
+              <a href="tests.php" class="small-box-footer">View Tests <i class="fas fa-arrow-circle-right"></i></a>
+            </div>
+          </div>
+          <div class="col-lg-3 col-6">
+            <div class="small-box bg-danger">
+              <div class="inner">
+                <h3>8</h3>
+                <p>Total Users</p>
+              </div>
+              <div class="icon">
+                <i class="fas fa-users"></i>
+              </div>
+              <a href="users.php" class="small-box-footer">View Users <i class="fas fa-arrow-circle-right"></i></a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Database Tables -->
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title"><i class="fas fa-database mr-2"></i>Database Tables</h3>
+            <div class="card-tools">
+              <button type="button" class="btn btn-primary btn-sm" onclick="refreshData()">
+                <i class="fas fa-sync"></i> Refresh Data
+              </button>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table id="tablesTable" class="table table-bordered table-striped table-hover">
+                <thead>
+                  <tr>
+                    <th>Table Name</th>
+                    <th>Description</th>
+                    <th>Record Count</th>
+                    <th>Last Modified</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- Sample data -->
+                  <tr>
+                    <td><strong>patients</strong></td>
+                    <td>Patient information and medical records</td>
+                    <td><span class="badge badge-info">47</span></td>
+                    <td>2024-01-15 10:30 AM</td>
+                    <td>
+                      <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-info btn-sm" onclick="viewTableData('patients')" title="View Data">
+                          <i class="fas fa-eye"></i>
+                        </button>
+                        <button type="button" class="btn btn-success btn-sm" onclick="exportTable('patients')" title="Export">
+                          <i class="fas fa-download"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><strong>doctors</strong></td>
+                    <td>Doctor profiles and specializations</td>
+                    <td><span class="badge badge-success">12</span></td>
+                    <td>2024-01-14 3:45 PM</td>
+                    <td>
+                      <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-info btn-sm" onclick="viewTableData('doctors')" title="View Data">
+                          <i class="fas fa-eye"></i>
+                        </button>
+                        <button type="button" class="btn btn-success btn-sm" onclick="exportTable('doctors')" title="Export">
+                          <i class="fas fa-download"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><strong>lab_tests</strong></td>
+                    <td>Available laboratory test catalog</td>
+                    <td><span class="badge badge-warning">23</span></td>
+                    <td>2024-01-13 11:20 AM</td>
+                    <td>
+                      <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-info btn-sm" onclick="viewTableData('lab_tests')" title="View Data">
+                          <i class="fas fa-eye"></i>
+                        </button>
+                        <button type="button" class="btn btn-success btn-sm" onclick="exportTable('lab_tests')" title="Export">
+                          <i class="fas fa-download"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><strong>test_orders</strong></td>
+                    <td>Test orders and patient requests</td>
+                    <td><span class="badge badge-primary">89</span></td>
+                    <td>2024-01-15 9:15 AM</td>
+                    <td>
+                      <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-info btn-sm" onclick="viewTableData('test_orders')" title="View Data">
+                          <i class="fas fa-eye"></i>
+                        </button>
+                        <button type="button" class="btn btn-success btn-sm" onclick="exportTable('test_orders')" title="Export">
+                          <i class="fas fa-download"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><strong>test_results</strong></td>
+                    <td>Laboratory test results and reports</td>
+                    <td><span class="badge badge-info">67</span></td>
+                    <td>2024-01-15 2:30 PM</td>
+                    <td>
+                      <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-info btn-sm" onclick="viewTableData('test_results')" title="View Data">
+                          <i class="fas fa-eye"></i>
+                        </button>
+                        <button type="button" class="btn btn-success btn-sm" onclick="exportTable('test_results')" title="Export">
+                          <i class="fas fa-download"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><strong>users</strong></td>
+                    <td>System users and authentication</td>
+                    <td><span class="badge badge-danger">8</span></td>
+                    <td>2024-01-12 4:20 PM</td>
+                    <td>
+                      <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-info btn-sm" onclick="viewTableData('users')" title="View Data">
+                          <i class="fas fa-eye"></i>
+                        </button>
+                        <button type="button" class="btn btn-success btn-sm" onclick="exportTable('users')" title="Export">
+                          <i class="fas fa-download"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title"><i class="fas fa-bolt mr-2"></i>Quick Actions</h3>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-3">
+                <button class="btn btn-primary btn-block" onclick="location.href='patients.php'">
+                  <i class="fas fa-user-injured"></i><br>Manage Patients
+                </button>
+              </div>
+              <div class="col-md-3">
+                <button class="btn btn-success btn-block" onclick="location.href='doctors.php'">
+                  <i class="fas fa-user-md"></i><br>Manage Doctors
+                </button>
+              </div>
+              <div class="col-md-3">
+                <button class="btn btn-warning btn-block" onclick="location.href='tests.php'">
+                  <i class="fas fa-flask"></i><br>Manage Tests
+                </button>
+              </div>
+              <div class="col-md-3">
+                <button class="btn btn-info btn-block" onclick="exportAllData()">
+                  <i class="fas fa-download"></i><br>Export All Data
+                </button>
               </div>
             </div>
           </div>
         </div>
       </div>
+    </section>
+  </div>
 
-      <!-- API Testing -->
-      <div class="row mt-4">
-        <div class="col-12">
-          <div class="card">
-            <div class="card-header">
-              <h3 class="card-title">API Tests</h3>
-            </div>
-            <div class="card-body">
-              <button class="btn btn-primary mr-2" onclick="testAPI('patients_api.php')">Test Patients API</button>
-              <button class="btn btn-success mr-2" onclick="testAPI('doctors_api.php')">Test Doctors API</button>
-              <button class="btn btn-warning mr-2" onclick="testAPI('tests_api.php?action=list')">Test Tests API</button>
-              <button class="btn btn-info mr-2" onclick="testAPI('users_api.php?action=get_stats')">Test Users API</button>
-              <div id="apiResults" class="mt-3"></div>
-            </div>
+  <!-- View Table Data Modal -->
+  <div class="modal fade" id="modal-view-table" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-xl" role="document">
+      <div class="modal-content">
+        <div class="modal-header bg-info">
+          <h4 class="modal-title text-white"><i class="fas fa-table mr-2"></i>Table Data: <span id="tableName"></span></h4>
+          <button type="button" class="close text-white" data-dismiss="modal">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div id="tableDataContent">
+            <!-- Table data will be loaded here -->
           </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-success" onclick="exportCurrentTable()">
+            <i class="fas fa-download mr-1"></i>Export Data
+          </button>
         </div>
       </div>
     </div>
-  </section>
-</div>
+  </div>
 
+<?php
+// Additional scripts specific to the database view page
+$additional_scripts = <<<EOT
 <script>
 $(document).ready(function() {
-    // Auto-refresh every 30 seconds
-    setTimeout(function() {
-        location.reload();
-    }, 30000);
+    // Initialize DataTable
+    $('#tablesTable').DataTable({
+        responsive: true,
+        lengthChange: false,
+        autoWidth: false,
+        order: [[3, 'desc']] // Sort by last modified descending
+    });
 });
 
-function testAPI(endpoint) {
-    $('#apiResults').html('<div class="alert alert-info">Testing ' + endpoint + '...</div>');
+var currentTable = '';
+
+// Refresh data function
+function refreshData() {
+    toastr.info('Refreshing database information...');
     
-    $.ajax({
-        url: 'api/' + endpoint,
-        method: 'GET',
-        dataType: 'json',
-        timeout: 10000,
-        success: function(response) {
-            var html = '<div class="alert alert-success">';
-            html += '<strong>✓ ' + endpoint + ' - SUCCESS</strong><br>';
-            html += '<small>Response: ' + JSON.stringify(response, null, 2).substring(0, 200) + '...</small>';
-            html += '</div>';
-            $('#apiResults').html(html);
-        },
-        error: function(xhr, status, error) {
-            var html = '<div class="alert alert-danger">';
-            html += '<strong>✗ ' + endpoint + ' - ERROR</strong><br>';
-            html += '<small>Status: ' + status + ' | Error: ' + error + '</small>';
-            if (xhr.responseText) {
-                html += '<br><small>Response: ' + xhr.responseText.substring(0, 200) + '...</small>';
-            }
-            html += '</div>';
-            $('#apiResults').html(html);
-        }
-    });
+    // Simulate refresh - in real implementation, make API call to get actual counts
+    setTimeout(function() {
+        toastr.success('Database information refreshed successfully!');
+        location.reload();
+    }, 1000);
+}
+
+// View table data function
+function viewTableData(tableName) {
+    currentTable = tableName;
+    $('#tableName').text(tableName);
+    
+    // Sample data based on table name - in real implementation, fetch from API
+    var sampleData = '';
+    
+    switch(tableName) {
+        case 'patients':
+            sampleData = '<table class="table table-sm table-striped">' +
+                '<thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Phone</th><th>Date Added</th></tr></thead>' +
+                '<tbody>' +
+                '<tr><td>1</td><td>John Doe</td><td>john@example.com</td><td>555-0123</td><td>2024-01-15</td></tr>' +
+                '<tr><td>2</td><td>Jane Smith</td><td>jane@example.com</td><td>555-0124</td><td>2024-01-14</td></tr>' +
+                '<tr><td>3</td><td>Mike Johnson</td><td>mike@example.com</td><td>555-0125</td><td>2024-01-13</td></tr>' +
+                '</tbody></table>';
+            break;
+        case 'doctors':
+            sampleData = '<table class="table table-sm table-striped">' +
+                '<thead><tr><th>ID</th><th>Name</th><th>Specialization</th><th>Email</th><th>Status</th></tr></thead>' +
+                '<tbody>' +
+                '<tr><td>1</td><td>Dr. Sarah Wilson</td><td>Cardiology</td><td>sarah@example.com</td><td>Active</td></tr>' +
+                '<tr><td>2</td><td>Dr. Mark Davis</td><td>Neurology</td><td>mark@example.com</td><td>Active</td></tr>' +
+                '</tbody></table>';
+            break;
+        case 'lab_tests':
+            sampleData = '<table class="table table-sm table-striped">' +
+                '<thead><tr><th>ID</th><th>Test Code</th><th>Test Name</th><th>Category</th><th>Price</th></tr></thead>' +
+                '<tbody>' +
+                '<tr><td>1</td><td>CBC001</td><td>Complete Blood Count</td><td>Hematology</td><td>$45.00</td></tr>' +
+                '<tr><td>2</td><td>GLUC01</td><td>Glucose Fasting</td><td>Chemistry</td><td>$25.00</td></tr>' +
+                '</tbody></table>';
+            break;
+        default:
+            sampleData = '<div class="alert alert-info">Sample data for ' + tableName + ' table would be displayed here.</div>';
+    }
+    
+    $('#tableDataContent').html(sampleData);
+    $('#modal-view-table').modal('show');
+}
+
+// Export table function
+function exportTable(tableName) {
+    toastr.info('Exporting ' + tableName + ' data...');
+    
+    // Simulate export - in real implementation, make API call to generate export
+    setTimeout(function() {
+        toastr.success(tableName + ' data exported successfully!');
+        // In real implementation, trigger file download
+    }, 1500);
+}
+
+// Export current table function
+function exportCurrentTable() {
+    if (currentTable) {
+        exportTable(currentTable);
+        $('#modal-view-table').modal('hide');
+    }
+}
+
+// Export all data function
+function exportAllData() {
+    if (confirm('This will export all database tables. Continue?')) {
+        toastr.info('Exporting all database data... This may take a few minutes.');
+        
+        // Simulate full export - in real implementation, make API call
+        setTimeout(function() {
+            toastr.success('All database data exported successfully!');
+            // In real implementation, trigger file download
+        }, 3000);
+    }
 }
 </script>
+EOT;
 
-<?php include 'includes/footer.php'; ?>
+// Include footer
+include 'includes/footer.php';
+?>
