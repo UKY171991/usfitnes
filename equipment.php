@@ -1,10 +1,10 @@
 <?php
-// Set page title and active menu
-$page_title = 'Equipment Management';
-$active_menu = 'equipment';
+// Set page title
+$page_title = 'Equipment';
 
-// Include header and sidebar
+// Include header
 include 'includes/header.php';
+// Include sidebar with user info
 include 'includes/sidebar.php';
 ?>
 
@@ -15,7 +15,7 @@ include 'includes/sidebar.php';
     <div class="container-fluid">
       <div class="row mb-2">
         <div class="col-sm-6">
-          <h1 class="m-0">Equipment Management</h1>
+          <h1 class="m-0"><i class="fas fa-microscope mr-2"></i>Equipment Management</h1>
         </div>
         <div class="col-sm-6">
           <ol class="breadcrumb float-sm-right">
@@ -31,23 +31,583 @@ include 'includes/sidebar.php';
   <section class="content">
     <div class="container-fluid">
       <!-- Stats Row -->
-      <div class="row">
+      <div class="row mb-4">
         <div class="col-lg-3 col-6">
           <div class="small-box bg-info">
             <div class="inner">
-              <h3 id="totalEquipment">0</h3>
+              <h3>15</h3>
               <p>Total Equipment</p>
             </div>
             <div class="icon">
               <i class="fas fa-microscope"></i>
             </div>
-            <a href="#" class="small-box-footer">View Details <i class="fas fa-arrow-circle-right"></i></a>
           </div>
         </div>
         <div class="col-lg-3 col-6">
           <div class="small-box bg-success">
             <div class="inner">
-              <h3 id="operationalEquipment">0</h3>
+              <h3>12</h3>
+              <p>Operational</p>
+            </div>
+            <div class="icon">
+              <i class="fas fa-check-circle"></i>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-3 col-6">
+          <div class="small-box bg-warning">
+            <div class="inner">
+              <h3>2</h3>
+              <p>Under Maintenance</p>
+            </div>
+            <div class="icon">
+              <i class="fas fa-wrench"></i>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-3 col-6">
+          <div class="small-box bg-danger">
+            <div class="inner">
+              <h3>1</h3>
+              <p>Out of Service</p>
+            </div>
+            <div class="icon">
+              <i class="fas fa-exclamation-triangle"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="row mb-3">
+        <div class="col-md-8">
+          <div class="input-group">
+            <input type="text" class="form-control" id="searchInput" placeholder="Search equipment by name, model, or serial number...">
+            <div class="input-group-append">
+              <button class="btn btn-outline-secondary" type="button" id="searchBtn">
+                <i class="fas fa-search"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4 text-right">
+          <button class="btn btn-success" data-toggle="modal" data-target="#addEquipmentModal">
+            <i class="fas fa-plus mr-2"></i>Add Equipment
+          </button>
+          <button class="btn btn-info ml-2" onclick="refreshTable()">
+            <i class="fas fa-sync-alt"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Equipment Table -->
+      <div class="card">
+        <div class="card-body">
+          <div class="table-responsive">
+            <table id="equipmentTable" class="table table-bordered table-striped">
+              <thead>
+                <tr>
+                  <th>Equipment ID</th>
+                  <th>Name</th>
+                  <th>Model</th>
+                  <th>Serial Number</th>
+                  <th>Status</th>
+                  <th>Last Maintenance</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Sample Data -->
+                <tr>
+                  <td>EQ-001</td>
+                  <td>Blood Analyzer</td>
+                  <td>BA-2000X</td>
+                  <td>SN-12345678</td>
+                  <td><span class="badge badge-success">Operational</span></td>
+                  <td>2025-07-01</td>
+                  <td>
+                    <button class="btn btn-sm btn-info" onclick="viewEquipment('EQ-001')">
+                      <i class="fas fa-eye"></i>
+                    </button>
+                    <button class="btn btn-sm btn-warning" onclick="editEquipment('EQ-001')">
+                      <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-sm btn-primary" onclick="maintenanceEquipment('EQ-001')">
+                      <i class="fas fa-wrench"></i>
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteEquipment('EQ-001')">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </td>
+                </tr>
+                <tr>
+                  <td>EQ-002</td>
+                  <td>Microscope</td>
+                  <td>MC-500HD</td>
+                  <td>SN-12345679</td>
+                  <td><span class="badge badge-success">Operational</span></td>
+                  <td>2025-06-15</td>
+                  <td>
+                    <button class="btn btn-sm btn-info" onclick="viewEquipment('EQ-002')">
+                      <i class="fas fa-eye"></i>
+                    </button>
+                    <button class="btn btn-sm btn-warning" onclick="editEquipment('EQ-002')">
+                      <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-sm btn-primary" onclick="maintenanceEquipment('EQ-002')">
+                      <i class="fas fa-wrench"></i>
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteEquipment('EQ-002')">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </td>
+                </tr>
+                <tr>
+                  <td>EQ-003</td>
+                  <td>Centrifuge</td>
+                  <td>CF-1200</td>
+                  <td>SN-12345680</td>
+                  <td><span class="badge badge-warning">Under Maintenance</span></td>
+                  <td>2025-07-08</td>
+                  <td>
+                    <button class="btn btn-sm btn-info" onclick="viewEquipment('EQ-003')">
+                      <i class="fas fa-eye"></i>
+                    </button>
+                    <button class="btn btn-sm btn-warning" onclick="editEquipment('EQ-003')">
+                      <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-sm btn-primary" onclick="maintenanceEquipment('EQ-003')">
+                      <i class="fas fa-wrench"></i>
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteEquipment('EQ-003')">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- Add Equipment Modal -->
+<div class="modal fade" id="addEquipmentModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-success">
+        <h5 class="modal-title text-white"><i class="fas fa-plus mr-2"></i>Add New Equipment</h5>
+        <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="addEquipmentForm">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="equipmentName">Equipment Name *</label>
+                <input type="text" class="form-control" id="equipmentName" required>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="model">Model *</label>
+                <input type="text" class="form-control" id="model" required>
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="serialNumber">Serial Number *</label>
+                <input type="text" class="form-control" id="serialNumber" required>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="manufacturer">Manufacturer</label>
+                <input type="text" class="form-control" id="manufacturer">
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="purchaseDate">Purchase Date</label>
+                <input type="date" class="form-control" id="purchaseDate">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="warrantyExpiry">Warranty Expiry</label>
+                <input type="date" class="form-control" id="warrantyExpiry">
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="status">Status *</label>
+                <select class="form-control" id="status" required>
+                  <option value="Operational">Operational</option>
+                  <option value="Under Maintenance">Under Maintenance</option>
+                  <option value="Out of Service">Out of Service</option>
+                </select>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="location">Location</label>
+                <input type="text" class="form-control" id="location" placeholder="Lab Room 1, Section A">
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="notes">Notes</label>
+            <textarea class="form-control" id="notes" rows="3" placeholder="Additional notes about the equipment"></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-success" onclick="addEquipment()">Add Equipment</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- View Equipment Modal -->
+<div class="modal fade" id="viewEquipmentModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-info">
+        <h5 class="modal-title text-white"><i class="fas fa-eye mr-2"></i>Equipment Details</h5>
+        <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+      </div>
+      <div class="modal-body" id="viewEquipmentContent">
+        <!-- Content loaded dynamically -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Equipment Modal -->
+<div class="modal fade" id="editEquipmentModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-warning">
+        <h5 class="modal-title"><i class="fas fa-edit mr-2"></i>Edit Equipment</h5>
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="editEquipmentForm">
+          <input type="hidden" id="editEquipmentId">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="editEquipmentName">Equipment Name *</label>
+                <input type="text" class="form-control" id="editEquipmentName" required>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="editModel">Model *</label>
+                <input type="text" class="form-control" id="editModel" required>
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="editSerialNumber">Serial Number *</label>
+                <input type="text" class="form-control" id="editSerialNumber" required>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="editManufacturer">Manufacturer</label>
+                <input type="text" class="form-control" id="editManufacturer">
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="editStatus">Status *</label>
+                <select class="form-control" id="editStatus" required>
+                  <option value="Operational">Operational</option>
+                  <option value="Under Maintenance">Under Maintenance</option>
+                  <option value="Out of Service">Out of Service</option>
+                </select>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="editLocation">Location</label>
+                <input type="text" class="form-control" id="editLocation">
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="editNotes">Notes</label>
+            <textarea class="form-control" id="editNotes" rows="3"></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-warning" onclick="updateEquipment()">Update Equipment</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Maintenance Modal -->
+<div class="modal fade" id="maintenanceModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-primary">
+        <h5 class="modal-title text-white"><i class="fas fa-wrench mr-2"></i>Equipment Maintenance</h5>
+        <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="maintenanceForm">
+          <input type="hidden" id="maintenanceEquipmentId">
+          <div class="form-group">
+            <label for="maintenanceType">Maintenance Type *</label>
+            <select class="form-control" id="maintenanceType" required>
+              <option value="">Select Type</option>
+              <option value="Routine Maintenance">Routine Maintenance</option>
+              <option value="Repair">Repair</option>
+              <option value="Calibration">Calibration</option>
+              <option value="Inspection">Inspection</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="maintenanceDate">Maintenance Date *</label>
+            <input type="date" class="form-control" id="maintenanceDate" required>
+          </div>
+          <div class="form-group">
+            <label for="technician">Technician *</label>
+            <input type="text" class="form-control" id="technician" required>
+          </div>
+          <div class="form-group">
+            <label for="maintenanceNotes">Notes</label>
+            <textarea class="form-control" id="maintenanceNotes" rows="3" placeholder="Describe the maintenance performed"></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="recordMaintenance()">Record Maintenance</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<?php include 'includes/footer.php'; ?>
+
+<!-- Scripts -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap4.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+
+<script>
+$(document).ready(function() {
+    // Initialize DataTable
+    $('#equipmentTable').DataTable({
+        responsive: true,
+        pageLength: 25,
+        order: [[1, 'asc']], // Sort by name
+        language: {
+            search: "Search equipment:",
+            lengthMenu: "Show _MENU_ equipment per page"
+        }
+    });
+
+    // Configure toastr
+    toastr.options = {
+        "closeButton": true,
+        "progressBar": true,
+        "timeOut": "3000",
+        "positionClass": "toast-top-right"
+    };
+
+    // Set today's date as default
+    document.getElementById('maintenanceDate').value = new Date().toISOString().split('T')[0];
+});
+
+// Add new equipment
+function addEquipment() {
+    const form = document.getElementById('addEquipmentForm');
+    
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+
+    const equipmentName = document.getElementById('equipmentName').value;
+    const model = document.getElementById('model').value;
+    const serialNumber = document.getElementById('serialNumber').value;
+    const status = document.getElementById('status').value;
+
+    const equipmentId = 'EQ-' + String(Date.now()).slice(-6);
+    const statusBadge = getStatusBadge(status);
+
+    // Add to table
+    const table = $('#equipmentTable').DataTable();
+    table.row.add([
+        equipmentId,
+        equipmentName,
+        model,
+        serialNumber,
+        statusBadge,
+        new Date().toISOString().split('T')[0],
+        `<button class="btn btn-sm btn-info" onclick="viewEquipment('${equipmentId}')">
+           <i class="fas fa-eye"></i>
+         </button>
+         <button class="btn btn-sm btn-warning" onclick="editEquipment('${equipmentId}')">
+           <i class="fas fa-edit"></i>
+         </button>
+         <button class="btn btn-sm btn-primary" onclick="maintenanceEquipment('${equipmentId}')">
+           <i class="fas fa-wrench"></i>
+         </button>
+         <button class="btn btn-sm btn-danger" onclick="deleteEquipment('${equipmentId}')">
+           <i class="fas fa-trash"></i>
+         </button>`
+    ]).draw();
+
+    $('#addEquipmentModal').modal('hide');
+    form.reset();
+    toastr.success('Equipment added successfully!', 'Success');
+}
+
+// View equipment details
+function viewEquipment(equipmentId) {
+    const content = `
+        <div class="row">
+            <div class="col-md-6">
+                <h6>Equipment Information</h6>
+                <p><strong>Equipment ID:</strong> ${equipmentId}</p>
+                <p><strong>Name:</strong> Blood Analyzer</p>
+                <p><strong>Model:</strong> BA-2000X</p>
+                <p><strong>Serial No.:</strong> SN-12345678</p>
+            </div>
+            <div class="col-md-6">
+                <h6>Status & Location</h6>
+                <p><strong>Status:</strong> <span class="badge badge-success">Operational</span></p>
+                <p><strong>Location:</strong> Lab Room 1, Section A</p>
+                <p><strong>Manufacturer:</strong> MedTech Corp</p>
+                <p><strong>Purchase Date:</strong> 2023-01-15</p>
+            </div>
+        </div>
+        <div class="row mt-3">
+            <div class="col-12">
+                <h6>Maintenance History</h6>
+                <p>Last Maintenance: 2025-07-01 - Routine calibration</p>
+                <p>Next Scheduled: 2025-10-01</p>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('viewEquipmentContent').innerHTML = content;
+    $('#viewEquipmentModal').modal('show');
+    toastr.info(`Viewing details for ${equipmentId}`, 'Equipment Details');
+}
+
+// Edit equipment
+function editEquipment(equipmentId) {
+    // Load equipment data (in real app, fetch from API)
+    document.getElementById('editEquipmentId').value = equipmentId;
+    document.getElementById('editEquipmentName').value = 'Blood Analyzer';
+    document.getElementById('editModel').value = 'BA-2000X';
+    document.getElementById('editSerialNumber').value = 'SN-12345678';
+    document.getElementById('editManufacturer').value = 'MedTech Corp';
+    document.getElementById('editStatus').value = 'Operational';
+    document.getElementById('editLocation').value = 'Lab Room 1, Section A';
+    
+    $('#editEquipmentModal').modal('show');
+    toastr.info(`Loading edit form for ${equipmentId}`, 'Edit Equipment');
+}
+
+// Update equipment
+function updateEquipment() {
+    const form = document.getElementById('editEquipmentForm');
+    
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+
+    const equipmentId = document.getElementById('editEquipmentId').value;
+    
+    $('#editEquipmentModal').modal('hide');
+    toastr.success(`Equipment ${equipmentId} updated successfully!`, 'Updated');
+}
+
+// Equipment maintenance
+function maintenanceEquipment(equipmentId) {
+    document.getElementById('maintenanceEquipmentId').value = equipmentId;
+    $('#maintenanceModal').modal('show');
+    toastr.info(`Recording maintenance for ${equipmentId}`, 'Maintenance');
+}
+
+// Record maintenance
+function recordMaintenance() {
+    const form = document.getElementById('maintenanceForm');
+    
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+
+    const equipmentId = document.getElementById('maintenanceEquipmentId').value;
+    const maintenanceType = document.getElementById('maintenanceType').value;
+    
+    $('#maintenanceModal').modal('hide');
+    form.reset();
+    document.getElementById('maintenanceDate').value = new Date().toISOString().split('T')[0];
+    
+    toastr.success(`${maintenanceType} recorded for ${equipmentId}!`, 'Maintenance Recorded');
+}
+
+// Delete equipment
+function deleteEquipment(equipmentId) {
+    if (confirm(`Are you sure you want to delete equipment ${equipmentId}?`)) {
+        const table = $('#equipmentTable').DataTable();
+        table.rows().every(function() {
+            const data = this.data();
+            if (data[0] === equipmentId) {
+                this.remove();
+            }
+        });
+        table.draw();
+        
+        toastr.success(`Equipment ${equipmentId} deleted successfully!`, 'Deleted');
+    }
+}
+
+// Refresh table
+function refreshTable() {
+    $('#equipmentTable').DataTable().ajax.reload();
+    toastr.success('Equipment list refreshed!', 'Refreshed');
+}
+
+// Helper function for status badges
+function getStatusBadge(status) {
+    switch(status) {
+        case 'Operational': return '<span class="badge badge-success">Operational</span>';
+        case 'Under Maintenance': return '<span class="badge badge-warning">Under Maintenance</span>';
+        case 'Out of Service': return '<span class="badge badge-danger">Out of Service</span>';
+        default: return '<span class="badge badge-secondary">Unknown</span>';
+    }
+}
+</script>
               <p>Operational</p>
             </div>
             <div class="icon">
