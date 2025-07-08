@@ -2,6 +2,15 @@
 header('Content-Type: application/json');
 require_once '../config.php';
 
+// Ensure user is logged in
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+if (!isset($_SESSION['user_id'])) {
+    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+    exit;
+}
+
 $action = $_GET['action'] ?? '';
 
 switch ($action) {
@@ -12,8 +21,8 @@ switch ($action) {
                     b.id as booking_id, 
                     c.name as class_name, 
                     u.full_name as member_name, 
-                    b.booking_date, 
-                    c.schedule as class_date
+                    c.schedule as class_date,
+                    b.booking_date
                 FROM bookings b
                 JOIN classes c ON b.class_id = c.id
                 JOIN users u ON b.member_id = u.id
@@ -24,10 +33,17 @@ switch ($action) {
             $stmt->execute();
             $bookings = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
+            // Formatting dates for better display
+            foreach ($bookings as &$booking) {
+                $booking['class_date'] = (new DateTime($booking['class_date']))->format('Y-m-d H:i');
+                $booking['booking_date'] = (new DateTime($booking['booking_date']))->format('Y-m-d H:i');
+            }
+            
             echo json_encode(['success' => true, 'data' => $bookings]);
             
         } catch (PDOException $e) {
-            echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
+            error_log('API Error in get_bookings: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Failed to load booking data.']);
         }
         break;
 
@@ -36,10 +52,6 @@ switch ($action) {
         break;
 }
 ?>
-header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE');
-header('Access-Control-Allow-Headers: Content-Type');
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
