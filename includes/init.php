@@ -11,7 +11,7 @@ require_once __DIR__ . '/../config.php';
 if(!isset($_SESSION['user_id'])) {
     // Only redirect if we're not already on the login page or handling an API request
     $current_page = basename($_SERVER['PHP_SELF']);
-    if($current_page != 'login.php' && $current_page != 'index.php' && $current_page != 'terms-and-conditions.php' && strpos($current_page, '_api.php') === false) {
+    if($current_page != 'login.php' && $current_page != 'index.php' && strpos($current_page, '_api.php') === false) {
         header("Location: login.php");
         exit();
     }

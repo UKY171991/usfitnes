@@ -170,47 +170,89 @@
             <div class="terms-header">
                 <h1 class="terms-title">Terms and Conditions</h1>
                 <p class="terms-subtitle">Last updated: <?php echo date('F j, Y'); ?></p>
-                <p class="text-muted">Please read these terms and conditions carefully before using US Fitness services.</p>
+                <p class="text-muted">Please read these terms and conditions carefully before using PathLab Pro services.</p>
             </div>
 
             <div class="terms-content">
-                <h2>1. Acceptance of Terms</h2>
-                <p>By accessing or using the US Fitness website and services ("the Service"), you agree to be bound by these Terms and Conditions. If you disagree with any part of the terms, you may not access the Service.</p>
+                <h2>1. Agreement to Terms</h2>
+                <p>By accessing and using PathLab Pro ("the Service"), you accept and agree to be bound by the terms and provision of this agreement. If you do not agree to abide by the above, please do not use this service.</p>
 
                 <h2>2. Description of Service</h2>
-                <p>US Fitness provides online and in-person fitness services, including but not limited to workout plans, nutritional guidance, fitness tracking, and educational content related to health and wellness.</p>
+                <p>PathLab Pro is a comprehensive laboratory management system designed to streamline laboratory operations, manage patient data, handle test results, and facilitate communication between healthcare providers and laboratories.</p>
 
-                <h2>3. Health and Medical Disclaimer</h2>
-                <p>The Service offers health, fitness, and nutritional information that is designed for educational purposes only. You should not rely on this information as a substitute for, nor does it replace, professional medical advice, diagnosis, or treatment. If you have any concerns or questions about your health, you should always consult with a physician or other health-care professional.</p>
-                <p>You should be in good physical condition and be able to participate in the exercise. US Fitness is not a licensed medical care provider and represents that it has no expertise in diagnosing, examining, or treating medical conditions of any kind, or in determining the effect of any specific exercise on a medical condition.</p>
+                <h3>2.1 Service Features</h3>
+                <ul>
+                    <li>Patient management and registration</li>
+                    <li>Test ordering and result management</li>
+                    <li>Equipment tracking and maintenance</li>
+                    <li>Report generation and analytics</li>
+                    <li>User management and access control</li>
+                    <li>Data backup and security features</li>
+                </ul>
 
-                <h2>4. User Accounts</h2>
-                <p>To access some features of the Service, you may need to create an account. You are responsible for safeguarding your account credentials and for any activities or actions under your account. You agree to provide accurate and complete information and to keep this information up to date.</p>
+                <h2>3. User Accounts and Registration</h2>
+                <p>To access certain features of the Service, you may be required to create an account. You agree to provide accurate, current, and complete information during the registration process and to update such information to keep it accurate, current, and complete.</p>
 
-                <h2>5. User Conduct</h2>
-                <p>You agree not to use the Service for any unlawful purpose or in any way that could damage, disable, overburden, or impair the Service. You agree not to harass, abuse, or harm another person or group.</p>
+                <h3>3.1 Account Security</h3>
+                <ul>
+                    <li>You are responsible for maintaining the confidentiality of your account credentials</li>
+                    <li>You must notify us immediately of any unauthorized use of your account</li>
+                    <li>We reserve the right to suspend or terminate accounts that violate these terms</li>
+                </ul>
 
-                <h2>6. Intellectual Property</h2>
-                <p>All content included on the Service, such as text, graphics, logos, images, as well as the compilation thereof, and any software used on the site, is the property of US Fitness or its suppliers and protected by copyright and other laws.</p>
+                <h2>4. Privacy and Data Protection</h2>
+                <p>Your privacy is important to us. We are committed to protecting your personal information and health data in accordance with applicable privacy laws and regulations, including HIPAA compliance where applicable.</p>
+
+                <h3>4.1 Data Collection</h3>
+                <ul>
+                    <li>We collect only the information necessary to provide our services</li>
+                    <li>Patient health information is handled with the highest level of security</li>
+                    <li>Access to sensitive data is restricted to authorized personnel only</li>
+                </ul>
+
+                <h3>4.2 Data Security</h3>
+                <ul>
+                    <li>We implement industry-standard security measures to protect your data</li>
+                    <li>Data is encrypted both in transit and at rest</li>
+                    <li>Regular security audits and updates are performed</li>
+                </ul>
+
+                <h2>5. Acceptable Use</h2>
+                <p>You agree to use the Service only for lawful purposes and in accordance with these Terms. You agree not to use the Service:</p>
+                <ul>
+                    <li>In any way that violates applicable laws or regulations</li>
+                    <li>To transmit or procure the sending of any advertising or promotional material</li>
+                    <li>To impersonate or attempt to impersonate the Company, employees, or other users</li>
+                    <li>To engage in any other conduct that restricts or inhibits anyone's use of the Service</li>
+                </ul>
+
+                <h2>6. Intellectual Property Rights</h2>
+                <p>The Service and its original content, features, and functionality are and will remain the exclusive property of PathLab Pro and its licensors. The Service is protected by copyright, trademark, and other laws.</p>
 
                 <h2>7. Limitation of Liability</h2>
-                <p>In no event shall US Fitness, nor its directors, employees, partners, agents, suppliers, or affiliates, be liable for any indirect, incidental, special, consequential or punitive damages, including without limitation, loss of profits, data, use, goodwill, or other intangible losses, resulting from your access to or use of or inability to access or use the Service.</p>
+                <p>In no event shall PathLab Pro, its directors, employees, partners, agents, suppliers, or affiliates be liable for any indirect, incidental, special, consequential, or punitive damages, including without limitation, loss of profits, data, use, goodwill, or other intangible losses, resulting from your use of the Service.</p>
 
-                <h2>8. Termination</h2>
-                <p>We may terminate or suspend your account immediately, without prior notice or liability, for any reason whatsoever, including without limitation if you breach the Terms.</p>
+                <h2>8. Medical Disclaimer</h2>
+                <p>PathLab Pro is a laboratory management tool and does not provide medical advice, diagnosis, or treatment. The information provided through the Service is for informational purposes only and should not be used as a substitute for professional medical advice.</p>
 
-                <h2>9. Changes to Terms</h2>
-                <p>We reserve the right, at our sole discretion, to modify or replace these Terms at any time. We will try to provide at least 30 days' notice prior to any new terms taking effect. What constitutes a material change will be determined at our sole discretion.</p>
+                <h2>9. Service Availability</h2>
+                <p>We strive to maintain the Service availability but do not guarantee uninterrupted access. We may temporarily suspend the Service for maintenance, updates, or other operational reasons.</p>
 
-                <h2>10. Governing Law</h2>
-                <p>These Terms shall be governed and construed in accordance with the laws of our jurisdiction, without regard to its conflict of law provisions.</p>
+                <h2>10. Termination</h2>
+                <p>We may terminate or suspend your account and bar access to the Service immediately, without prior notice or liability, under our sole discretion, for any reason whatsoever, including but not limited to a breach of the Terms.</p>
 
-                <h2>11. Contact Us</h2>
-                <p>If you have any questions about these Terms, please contact us:</p>
+                <h2>11. Changes to Terms</h2>
+                <p>We reserve the right to modify or replace these Terms at any time. If a revision is material, we will provide at least 30 days notice prior to any new terms taking effect.</p>
+
+                <h2>12. Governing Law</h2>
+                <p>These Terms shall be interpreted and governed by the laws of the jurisdiction in which our company is registered, without regard to its conflict of law provisions.</p>
+
+                <h2>13. Contact Information</h2>
+                <p>If you have any questions about these Terms and Conditions, please contact us at:</p>
                 <ul>
-                    <li>Email: support@usfitnes.com</li>
-                    <li>Phone: (123) 456-7890</li>
-                    <li>Address: 123 Fitness Ave, Suite 100, Wellness City, USA</li>
+                    <li>Email: support@pathlabpro.com</li>
+                    <li>Phone: +1 (555) 123-4567</li>
+                    <li>Address: 123 Healthcare Drive, Medical City, HC 12345</li>
                 </ul>
 
                 <div class="text-center mt-5">
