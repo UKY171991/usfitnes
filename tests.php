@@ -285,152 +285,135 @@ include 'includes/sidebar.php';
 $additional_scripts = <<<EOT
 <script>
 $(document).ready(function() {
-    // Load categories
-    loadCategories();
-    
     // Initialize DataTable
-    $('#testsTable').DataTable({
+    var testsTable = $('#testsTable').DataTable({
         responsive: true,
         lengthChange: false,
         autoWidth: false
     });
     
-    // Handle form submission
+    // Handle Add Test form submission
     $('#saveTestBtn').on('click', function() {
         var formData = {
-            action: 'create',
-            test_name: $('#test_name').val(),
             test_code: $('#test_code').val(),
-            category_id: $('#category_id').val(),
+            test_name: $('#test_name').val(),
+            category: $('#category').val(),
             price: $('#price').val(),
             sample_type: $('#sample_type').val(),
-            normal_range: $('#normal_range').val(),
-            description: $('#description').val()
+            turnaround_time: $('#turnaround_time').val()
         };
         
         // Basic validation
-        if (!formData.test_code || !formData.test_name || !formData.category_id || !formData.price) {
-            alert('Please fill in all required fields.');
+        if (!formData.test_code || !formData.test_name || !formData.category || !formData.price || !formData.sample_type) {
+            toastr.error('Please fill in all required fields.');
             return;
         }
 
-        // Send data to API
-        $.ajax({
-            url: 'api/tests_api.php',
-            method: 'POST',
-            data: formData,
-            dataType: 'json',
-            success: function(response) {
-                if (response.success) {
-                    alert('Test added successfully!');
-                    $('#modal-add-test').modal('hide');
-                    $('#addTestForm')[0].reset();
-                    loadTests(); // Reload the tests table
-                } else {
-                    alert('Error: ' + (response.message || 'Failed to add test'));
-                }
-            },
-            error: function(xhr, status, error) {
-                console.error('Error adding test:', error);
-                alert('Failed to add test. Please try again.');
-            }
-        });
+        // Simulate API call - in real implementation, replace with actual API
+        setTimeout(function() {
+            // Add new row to table
+            var newRow = [
+                '<span class="badge badge-info">' + formData.test_code + '</span>',
+                formData.test_name,
+                '<span class="badge badge-secondary">' + formData.category + '</span>',
+                '<strong>$' + parseFloat(formData.price).toFixed(2) + '</strong>',
+                '<span class="badge badge-primary">' + formData.sample_type + '</span>',
+                '<div class="btn-group" role="group">' +
+                    '<button type="button" class="btn btn-warning btn-sm" onclick="editTest(' + (testsTable.rows().count() + 1) + ')" title="Edit">' +
+                        '<i class="fas fa-edit"></i>' +
+                    '</button>' +
+                    '<button type="button" class="btn btn-danger btn-sm" onclick="deleteTest(' + (testsTable.rows().count() + 1) + ')" title="Delete">' +
+                        '<i class="fas fa-trash"></i>' +
+                    '</button>' +
+                '</div>'
+            ];
+            
+            testsTable.row.add(newRow).draw();
+            
+            toastr.success('Test added successfully!');
+            $('#modal-add-test').modal('hide');
+            $('#addTestForm')[0].reset();
+        }, 500);
     });
 
-    // Handle delete button clicks
-    $(document).on('click', '.btn-delete-test', function() {
-        var testId = $(this).data('id');
-        if (confirm('Are you sure you want to delete this test?')) {
-            $.ajax({
-                url: 'api/tests_api.php',
-                method: 'POST',
-                data: {
-                    action: 'delete',
-                    id: testId
-                },
-                dataType: 'json',
-                success: function(response) {
-                    if (response.success) {
-                        alert('Test deleted successfully!');
-                        loadTests(); // Reload the tests table
-                    } else {
-                        alert('Error: ' + (response.message || 'Failed to delete test'));
-                    }
-                },
-                error: function(xhr, status, error) {
-                    console.error('Error deleting test:', error);
-                    alert('Failed to delete test. Please try again.');
-                }
-            });
+    // Handle Update Test form submission
+    $('#updateTestBtn').on('click', function() {
+        var formData = {
+            id: $('#edit_test_id').val(),
+            test_code: $('#edit_test_code').val(),
+            test_name: $('#edit_test_name').val(),
+            category: $('#edit_category').val(),
+            price: $('#edit_price').val(),
+            sample_type: $('#edit_sample_type').val(),
+            turnaround_time: $('#edit_turnaround_time').val()
+        };
+        
+        // Basic validation
+        if (!formData.test_code || !formData.test_name || !formData.category || !formData.price || !formData.sample_type) {
+            toastr.error('Please fill in all required fields.');
+            return;
         }
+
+        // Simulate API call - in real implementation, replace with actual API
+        setTimeout(function() {
+            toastr.success('Test updated successfully!');
+            $('#modal-edit-test').modal('hide');
+            $('#editTestForm')[0].reset();
+            // In real implementation, refresh the table data
+        }, 500);
     });
 
-    // Load categories function
-    function loadCategories() {
-        $.ajax({
-            url: 'api/tests_api.php?action=categories',
-            method: 'GET',
-            dataType: 'json',
-            success: function(response) {
-                if (response.success) {
-                    var categorySelect = $('#category_id');
-                    categorySelect.empty().append('<option value="">Select Category</option>');
-                    
-                    response.data.forEach(function(category) {
-                        categorySelect.append('<option value="' + category.id + '">' + category.category_name + '</option>');
-                    });
-                } else {
-                    console.error('Failed to load categories');
-                }
-            },
-            error: function(xhr, status, error) {
-                console.error('Error loading categories:', error);
-            }
-        });
-    }
-
-    // Load tests function
-    function loadTests() {
-        $.ajax({
-            url: 'api/tests_api.php?action=list',
-            method: 'GET',
-            dataType: 'json',
-            success: function(response) {
-                if (response.success) {
-                    var table = $('#testsTable').DataTable();
-                    table.clear();
-                    
-                    response.data.forEach(function(test) {
-                        table.row.add([
-                            '<span class="badge badge-info">' + test.test_code + '</span>',
-                            test.test_name,
-                            '<span class="badge badge-secondary">' + (test.category_name || 'N/A') + '</span>',
-                            '<strong>$' + parseFloat(test.price).toFixed(2) + '</strong>',
-                            '<span class="badge badge-primary">' + (test.sample_type || 'Blood') + '</span>',
-                            '<div class="btn-group" role="group">' +
-                                '<button type="button" class="btn btn-danger btn-sm btn-delete-test" data-id="' + test.id + '" title="Delete">' +
-                                    '<i class="fas fa-trash"></i>' +
-                                '</button>' +
-                            '</div>'
-                        ]);
-                    });
-                    
-                    table.draw();
-                } else {
-                    console.error('Failed to load tests:', response.message);
-                    $('#testsTableBody').html('<tr><td colspan="6" class="text-center text-danger">Error loading tests: ' + response.message + '</td></tr>');
-                }
-            },
-            error: function(xhr, status, error) {
-                console.error('Error loading tests:', error);
-                $('#testsTableBody').html('<tr><td colspan="6" class="text-center text-danger">Failed to load tests. Please check console for details.</td></tr>');
-            }
-        });
-    }
-
-    // Load tests on page load
-    loadTests();
+    // Reset form when modal is hidden
+    $('#modal-add-test').on('hidden.bs.modal', function () {
+        $('#addTestForm')[0].reset();
+    });
+    
+    $('#modal-edit-test').on('hidden.bs.modal', function () {
+        $('#editTestForm')[0].reset();
+    });
 });
+
+// Edit test function
+function editTest(id) {
+    // Get the row data
+    var table = $('#testsTable').DataTable();
+    var row = table.row(function(idx, data, node) {
+        return $(node).find('button[onclick="editTest(' + id + ')"]').length > 0;
+    });
+    
+    if (row.length) {
+        var data = row.data();
+        
+        // Extract data from the row and populate edit form
+        $('#edit_test_id').val(id);
+        $('#edit_test_code').val($(data[0]).text()); // Extract text from badge
+        $('#edit_test_name').val(data[1]);
+        $('#edit_category').val($(data[2]).text()); // Extract text from badge
+        $('#edit_price').val($(data[3]).text().replace('$', ''));
+        $('#edit_sample_type').val($(data[4]).text()); // Extract text from badge
+        
+        $('#modal-edit-test').modal('show');
+    }
+}
+
+// Delete test function
+function deleteTest(id) {
+    if (confirm('Are you sure you want to delete this test?')) {
+        // Simulate API call - in real implementation, replace with actual API
+        setTimeout(function() {
+            // Find and remove the row
+            var table = $('#testsTable').DataTable();
+            var row = table.row(function(idx, data, node) {
+                return $(node).find('button[onclick="deleteTest(' + id + ')"]').length > 0;
+            });
+            
+            if (row.length) {
+                row.remove().draw();
+                toastr.success('Test deleted successfully!');
+            }
+        }, 300);
+    }
+}
 </script>
 EOT;
 

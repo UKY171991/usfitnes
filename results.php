@@ -1,1009 +1,491 @@
 <?php
-// Set page title and active menu
+// Set page title
 $page_title = 'Test Results';
-$active_menu = 'results';
 
-// Include header and sidebar
+// Include header
 include 'includes/header.php';
+
+// Include sidebar with user info
 include 'includes/sidebar.php';
 ?>
 
-<!-- Content Wrapper -->
-<div class="content-wrapper">
-  <!-- Content Header -->
-  <div class="content-header">
-    <div class="container-fluid">
-      <div class="row mb-2">
-        <div class="col-sm-6">
-          <h1 class="m-0">Test Results</h1>
-        </div>
-        <div class="col-sm-6">
-          <ol class="breadcrumb float-sm-right">
-            <li class="breadcrumb-item"><a href="dashboard.php">Home</a></li>
-            <li class="breadcrumb-item active">Test Results</li>
-          </ol>
+  <!-- Content Wrapper. Contains page content -->
+  <div class="content-wrapper">
+    <!-- Content Header (Page header) -->
+    <div class="content-header">
+      <div class="container-fluid">
+        <div class="row mb-2">
+          <div class="col-sm-6">
+            <h1 class="m-0">Test Results Management</h1>
+          </div>
+          <div class="col-sm-6">
+            <ol class="breadcrumb float-sm-right">
+              <li class="breadcrumb-item"><a href="dashboard.php">Home</a></li>
+              <li class="breadcrumb-item active">Test Results</li>
+            </ol>
+          </div>
         </div>
       </div>
     </div>
-  </div>
+    <!-- /.content-header -->
 
-  <!-- Main content -->
-  <section class="content">
-    <div class="container-fluid">
-      <!-- Stats Row -->
-      <div class="row">
-        <div class="col-lg-3 col-6">
-          <div class="small-box bg-info">
-            <div class="inner">
-              <h3 id="totalResults">0</h3>
-              <p>Total Results</p>
+    <!-- Main content -->
+    <section class="content">
+      <div class="container-fluid">
+        <!-- Test Results DataTable -->
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title"><i class="fas fa-file-medical mr-2"></i>Test Results</h3>
+            <div class="card-tools">
+              <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#modal-add-result">
+                <i class="fas fa-plus"></i> Add Result
+              </button>
             </div>
-            <div class="icon">
-              <i class="fas fa-file-medical"></i>
-            </div>
-            <a href="#" class="small-box-footer">View Details <i class="fas fa-arrow-circle-right"></i></a>
           </div>
-        </div>
-        <div class="col-lg-3 col-6">
-          <div class="small-box bg-warning">
-            <div class="inner">
-              <h3 id="pendingResults">0</h3>
-              <p>Pending Review</p>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table id="resultsTable" class="table table-bordered table-striped table-hover">
+                <thead>
+                  <tr>
+                    <th>Order ID</th>
+                    <th>Patient</th>
+                    <th>Test Name</th>
+                    <th>Result Date</th>
+                    <th>Status</th>
+                    <th>Critical</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- Sample data -->
+                  <tr>
+                    <td><span class="badge badge-info">#ORD001</span></td>
+                    <td>John Doe</td>
+                    <td>Complete Blood Count</td>
+                    <td>2024-01-15</td>
+                    <td><span class="badge badge-success">Completed</span></td>
+                    <td><span class="badge badge-secondary">Normal</span></td>
+                    <td>
+                      <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-info btn-sm" onclick="viewResult(1)" title="View">
+                          <i class="fas fa-eye"></i>
+                        </button>
+                        <button type="button" class="btn btn-warning btn-sm" onclick="editResult(1)" title="Edit">
+                          <i class="fas fa-edit"></i>
+                        </button>
+                        <button type="button" class="btn btn-danger btn-sm" onclick="deleteResult(1)" title="Delete">
+                          <i class="fas fa-trash"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><span class="badge badge-info">#ORD002</span></td>
+                    <td>Jane Smith</td>
+                    <td>Glucose Fasting</td>
+                    <td>2024-01-14</td>
+                    <td><span class="badge badge-warning">Pending</span></td>
+                    <td><span class="badge badge-danger">Critical</span></td>
+                    <td>
+                      <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-info btn-sm" onclick="viewResult(2)" title="View">
+                          <i class="fas fa-eye"></i>
+                        </button>
+                        <button type="button" class="btn btn-warning btn-sm" onclick="editResult(2)" title="Edit">
+                          <i class="fas fa-edit"></i>
+                        </button>
+                        <button type="button" class="btn btn-danger btn-sm" onclick="deleteResult(2)" title="Delete">
+                          <i class="fas fa-trash"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><span class="badge badge-info">#ORD003</span></td>
+                    <td>Mike Johnson</td>
+                    <td>Urinalysis Complete</td>
+                    <td>2024-01-13</td>
+                    <td><span class="badge badge-primary">Verified</span></td>
+                    <td><span class="badge badge-secondary">Normal</span></td>
+                    <td>
+                      <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-info btn-sm" onclick="viewResult(3)" title="View">
+                          <i class="fas fa-eye"></i>
+                        </button>
+                        <button type="button" class="btn btn-warning btn-sm" onclick="editResult(3)" title="Edit">
+                          <i class="fas fa-edit"></i>
+                        </button>
+                        <button type="button" class="btn btn-danger btn-sm" onclick="deleteResult(3)" title="Delete">
+                          <i class="fas fa-trash"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
-            <div class="icon">
-              <i class="fas fa-clock"></i>
-            </div>
-            <a href="#" class="small-box-footer" onclick="filterByStatus('pending')">View Details <i class="fas fa-arrow-circle-right"></i></a>
-          </div>
-        </div>
-        <div class="col-lg-3 col-6">
-          <div class="small-box bg-danger">
-            <div class="inner">
-              <h3 id="criticalResults">0</h3>
-              <p>Critical Results</p>
-            </div>
-            <div class="icon">
-              <i class="fas fa-exclamation-triangle"></i>
-            </div>
-            <a href="#" class="small-box-footer" onclick="filterByCritical('1')">View Details <i class="fas fa-arrow-circle-right"></i></a>
-          </div>
-        </div>
-        <div class="col-lg-3 col-6">
-          <div class="small-box bg-success">
-            <div class="inner">
-              <h3 id="verifiedResults">0</h3>
-              <p>Verified Results</p>
-            </div>
-            <div class="icon">
-              <i class="fas fa-check-circle"></i>
-            </div>
-            <a href="#" class="small-box-footer" onclick="filterByStatus('verified')">View Details <i class="fas fa-arrow-circle-right"></i></a>
           </div>
         </div>
       </div>
+    </section>
+  </div>
 
-      <!-- Main Card -->
-      <div class="row">
-        <div class="col-12">
-          <div class="card">
-            <div class="card-header">
-              <h3 class="card-title">Laboratory Test Results</h3>
-              <div class="card-tools">
-                <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#addResultModal">
-                  <i class="fas fa-plus"></i> Add Result
-                </button>
-                <button type="button" class="btn btn-warning btn-sm" onclick="filterByCritical('1')">
-                  <i class="fas fa-exclamation-triangle"></i> Critical Only
-                </button>
-                <button type="button" class="btn btn-info btn-sm" onclick="exportResults()">
-                  <i class="fas fa-download"></i> Export
-                </button>
+  <!-- Add Result Modal -->
+  <div class="modal fade" id="modal-add-result" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+      <div class="modal-content">
+        <div class="modal-header bg-primary">
+          <h4 class="modal-title text-white"><i class="fas fa-plus mr-2"></i>Add Test Result</h4>
+          <button type="button" class="close text-white" data-dismiss="modal">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <form id="addResultForm">
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="order_id">Order ID <span class="text-danger">*</span></label>
+                  <select class="form-control" id="order_id" name="order_id" required>
+                    <option value="">Select Order</option>
+                    <option value="ORD001">ORD001 - John Doe - CBC</option>
+                    <option value="ORD002">ORD002 - Jane Smith - Glucose</option>
+                    <option value="ORD003">ORD003 - Mike Johnson - Urine</option>
+                  </select>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="result_date">Result Date <span class="text-danger">*</span></label>
+                  <input type="date" class="form-control" id="result_date" name="result_date" required>
+                </div>
               </div>
             </div>
-            <div class="card-body">
-              <!-- Filters -->
-              <div class="row mb-3">
-                <div class="col-md-3">
-                  <div class="input-group input-group-sm">
-                    <input type="text" class="form-control" id="searchInput" placeholder="Search results...">
-                    <div class="input-group-append">
-                      <button class="btn btn-outline-secondary" type="button" onclick="loadResults()">
-                        <i class="fas fa-search"></i>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-                <div class="col-md-2">
-                  <select class="form-control form-control-sm" id="statusFilter" onchange="loadResults()">
-                    <option value="">All Status</option>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="status">Status <span class="text-danger">*</span></label>
+                  <select class="form-control" id="status" name="status" required>
+                    <option value="">Select Status</option>
                     <option value="pending">Pending</option>
                     <option value="completed">Completed</option>
                     <option value="verified">Verified</option>
                   </select>
                 </div>
-                <div class="col-md-2">
-                  <select class="form-control form-control-sm" id="criticalFilter" onchange="loadResults()">
-                    <option value="">All Results</option>
-                    <option value="1">Critical Only</option>
-                    <option value="0">Normal Only</option>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="is_critical">Critical Result</label>
+                  <select class="form-control" id="is_critical" name="is_critical">
+                    <option value="0">Normal</option>
+                    <option value="1">Critical</option>
                   </select>
                 </div>
-                <div class="col-md-2">
-                  <input type="date" class="form-control form-control-sm" id="dateFilter" onchange="loadResults()" placeholder="Filter by date">
-                </div>
-                <div class="col-md-3">
-                  <button class="btn btn-secondary btn-sm" onclick="clearFilters()">
-                    <i class="fas fa-times"></i> Clear Filters
-                  </button>
-                  <button class="btn btn-success btn-sm ml-1" onclick="refreshResults()">
-                    <i class="fas fa-sync"></i> Refresh
-                  </button>
-                </div>
-              </div>
-
-              <!-- Results Table -->
-              <div class="table-responsive">
-                <table id="resultsTable" class="table table-bordered table-striped table-hover">
-                  <thead>
-                    <tr>
-                      <th width="10%">Order ID</th>
-                      <th width="20%">Patient</th>
-                      <th width="15%">Test Name</th>
-                      <th width="10%">Result Date</th>
-                      <th width="10%">Status</th>
-                      <th width="10%">Critical</th>
-                      <th width="15%">Values</th>
-                      <th width="10%">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody id="resultsTableBody">
-                    <!-- Dynamic content will be loaded here -->
-                  </tbody>
-                </table>
-              </div>
-
-              <!-- Loading indicator -->
-              <div id="loadingIndicator" class="text-center p-3" style="display: none;">
-                <i class="fas fa-spinner fa-spin fa-2x"></i>
-                <p class="mt-2">Loading results...</p>
-              </div>
-
-              <!-- Pagination -->
-              <div class="row mt-3">
-                <div class="col-sm-12 col-md-5">
-                  <div id="resultsInfo" class="dataTables_info"></div>
-                </div>
-                <div class="col-sm-12 col-md-7">
-                  <nav>
-                    <ul class="pagination pagination-sm float-right" id="resultsPagination">
-                      <!-- Pagination will be loaded here -->
-                    </ul>
-                  </nav>
-                </div>
               </div>
             </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-</div>
-
-<!-- Add Result Modal -->
-<div class="modal fade" id="addResultModal" tabindex="-1" role="dialog" aria-labelledby="addResultModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg" role="document">
-    <div class="modal-content">
-      <div class="modal-header bg-primary">
-        <h4 class="modal-title" id="addResultModalLabel">
-          <i class="fas fa-plus-circle"></i> Add Test Result
-        </h4>
-        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-      <form id="addResultForm">
-        <div class="modal-body">
-          <div class="row">
-            <div class="col-md-6">
-              <div class="form-group">
-                <label for="add_test_order_id">Test Order <span class="text-danger">*</span></label>
-                <select class="form-control" id="add_test_order_id" name="test_order_id" required>
-                  <option value="">Select Test Order</option>
-                </select>
-                <small class="form-text text-muted">Choose the test order for this result</small>
-              </div>
+            <div class="form-group">
+              <label for="result_values">Result Values <span class="text-danger">*</span></label>
+              <textarea class="form-control" id="result_values" name="result_values" rows="3" 
+                        placeholder="Enter test result values..." required></textarea>
             </div>
-            <div class="col-md-6">
-              <div class="form-group">
-                <label for="add_result_date">Result Date <span class="text-danger">*</span></label>
-                <input type="date" class="form-control" id="add_result_date" name="result_date" required>
-                <small class="form-text text-muted">Date when the result was obtained</small>
-              </div>
-            </div>
-          </div>
-          <div class="row">
-            <div class="col-md-6">
-              <div class="form-group">
-                <label for="add_status">Status <span class="text-danger">*</span></label>
-                <select class="form-control" id="add_status" name="status" required>
-                  <option value="pending">Pending</option>
-                  <option value="completed">Completed</option>
-                  <option value="verified">Verified</option>
-                </select>
-              </div>
-            </div>
-            <div class="col-md-6">
-              <div class="form-group">
-                <label for="add_is_critical">Critical Result</label>
-                <select class="form-control" id="add_is_critical" name="is_critical">
-                  <option value="0">Normal</option>
-                  <option value="1">Critical</option>
-                </select>
-              </div>
-            </div>
-          </div>
-          <div class="form-group">
-            <label for="add_result_values">Result Values <span class="text-danger">*</span></label>
-            <textarea class="form-control" id="add_result_values" name="result_values" rows="4" 
-                      placeholder="Enter test result values, ranges, and measurements..." required></textarea>
-            <small class="form-text text-muted">Include all relevant test values and reference ranges</small>
-          </div>
-          <div class="form-group">
-            <label for="add_notes">Notes</label>
-            <textarea class="form-control" id="add_notes" name="notes" rows="3" 
-                      placeholder="Additional notes or observations..."></textarea>
-          </div>
+          </form>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-dismiss="modal">
-            <i class="fas fa-times"></i> Cancel
-          </button>
-          <button type="submit" class="btn btn-primary" id="addResultBtn">
-            <i class="fas fa-save"></i> Save Result
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="saveResultBtn">
+            <i class="fas fa-save mr-1"></i>Save Result
           </button>
         </div>
-      </form>
+      </div>
     </div>
   </div>
-</div>
 
-<!-- Edit Result Modal -->
-<div class="modal fade" id="editResultModal" tabindex="-1" role="dialog" aria-labelledby="editResultModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg" role="document">
-    <div class="modal-content">
-      <div class="modal-header bg-warning">
-        <h4 class="modal-title" id="editResultModalLabel">
-          <i class="fas fa-edit"></i> Edit Test Result
-        </h4>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-      <form id="editResultForm">
-        <input type="hidden" id="edit_result_id" name="id">
+  <!-- Edit Result Modal -->
+  <div class="modal fade" id="modal-edit-result" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+      <div class="modal-content">
+        <div class="modal-header bg-warning">
+          <h4 class="modal-title text-white"><i class="fas fa-edit mr-2"></i>Edit Test Result</h4>
+          <button type="button" class="close text-white" data-dismiss="modal">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
         <div class="modal-body">
-          <div class="row">
-            <div class="col-md-6">
-              <div class="form-group">
-                <label for="edit_test_order_id">Test Order <span class="text-danger">*</span></label>
-                <select class="form-control" id="edit_test_order_id" name="test_order_id" required>
-                  <option value="">Select Test Order</option>
-                </select>
+          <form id="editResultForm">
+            <input type="hidden" id="edit_result_id" name="id">
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="edit_order_id">Order ID <span class="text-danger">*</span></label>
+                  <select class="form-control" id="edit_order_id" name="order_id" required>
+                    <option value="">Select Order</option>
+                    <option value="ORD001">ORD001 - John Doe - CBC</option>
+                    <option value="ORD002">ORD002 - Jane Smith - Glucose</option>
+                    <option value="ORD003">ORD003 - Mike Johnson - Urine</option>
+                  </select>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="edit_result_date">Result Date <span class="text-danger">*</span></label>
+                  <input type="date" class="form-control" id="edit_result_date" name="result_date" required>
+                </div>
               </div>
             </div>
-            <div class="col-md-6">
-              <div class="form-group">
-                <label for="edit_result_date">Result Date <span class="text-danger">*</span></label>
-                <input type="date" class="form-control" id="edit_result_date" name="result_date" required>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="edit_status">Status <span class="text-danger">*</span></label>
+                  <select class="form-control" id="edit_status" name="status" required>
+                    <option value="">Select Status</option>
+                    <option value="pending">Pending</option>
+                    <option value="completed">Completed</option>
+                    <option value="verified">Verified</option>
+                  </select>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="edit_is_critical">Critical Result</label>
+                  <select class="form-control" id="edit_is_critical" name="is_critical">
+                    <option value="0">Normal</option>
+                    <option value="1">Critical</option>
+                  </select>
+                </div>
               </div>
             </div>
-          </div>
-          <div class="row">
-            <div class="col-md-6">
-              <div class="form-group">
-                <label for="edit_status">Status <span class="text-danger">*</span></label>
-                <select class="form-control" id="edit_status" name="status" required>
-                  <option value="pending">Pending</option>
-                  <option value="completed">Completed</option>
-                  <option value="verified">Verified</option>
-                </select>
-              </div>
+            <div class="form-group">
+              <label for="edit_result_values">Result Values <span class="text-danger">*</span></label>
+              <textarea class="form-control" id="edit_result_values" name="result_values" rows="3" required></textarea>
             </div>
-            <div class="col-md-6">
-              <div class="form-group">
-                <label for="edit_is_critical">Critical Result</label>
-                <select class="form-control" id="edit_is_critical" name="is_critical">
-                  <option value="0">Normal</option>
-                  <option value="1">Critical</option>
-                </select>
-              </div>
-            </div>
-          </div>
-          <div class="form-group">
-            <label for="edit_result_values">Result Values <span class="text-danger">*</span></label>
-            <textarea class="form-control" id="edit_result_values" name="result_values" rows="4" required></textarea>
-          </div>
-          <div class="form-group">
-            <label for="edit_notes">Notes</label>
-            <textarea class="form-control" id="edit_notes" name="notes" rows="3"></textarea>
-          </div>
+          </form>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-dismiss="modal">
-            <i class="fas fa-times"></i> Cancel
-          </button>
-          <button type="submit" class="btn btn-warning" id="editResultBtn">
-            <i class="fas fa-save"></i> Update Result
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-warning" id="updateResultBtn">
+            <i class="fas fa-save mr-1"></i>Update Result
           </button>
         </div>
-      </form>
-    </div>
-  </div>
-</div>
-
-<!-- View Result Modal -->
-<div class="modal fade" id="viewResultModal" tabindex="-1" role="dialog" aria-labelledby="viewResultModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg" role="document">
-    <div class="modal-content">
-      <div class="modal-header bg-info">
-        <h4 class="modal-title" id="viewResultModalLabel">
-          <i class="fas fa-eye"></i> View Test Result Details
-        </h4>
-        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-      <div class="modal-body" id="viewResultContent">
-        <!-- Content will be loaded dynamically -->
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-dismiss="modal">
-          <i class="fas fa-times"></i> Close
-        </button>
-        <button type="button" class="btn btn-primary" onclick="printResult()">
-          <i class="fas fa-print"></i> Print Result
-        </button>
       </div>
     </div>
   </div>
-</div>
 
-<!-- Delete Confirmation Modal -->
-<div class="modal fade" id="deleteResultModal" tabindex="-1" role="dialog" aria-labelledby="deleteResultModalLabel" aria-hidden="true">
-  <div class="modal-dialog" role="document">
-    <div class="modal-content">
-      <div class="modal-header bg-danger">
-        <h4 class="modal-title text-white" id="deleteResultModalLabel">
-          <i class="fas fa-trash"></i> Confirm Delete
-        </h4>
-        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-      <div class="modal-body">
-        <p>Are you sure you want to delete this test result?</p>
-        <div class="alert alert-warning">
-          <i class="fas fa-exclamation-triangle"></i>
-          <strong>Warning:</strong> This action cannot be undone.
+  <!-- View Result Modal -->
+  <div class="modal fade" id="modal-view-result" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+      <div class="modal-content">
+        <div class="modal-header bg-info">
+          <h4 class="modal-title text-white"><i class="fas fa-eye mr-2"></i>View Test Result</h4>
+          <button type="button" class="close text-white" data-dismiss="modal">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body" id="viewResultContent">
+          <!-- Content will be loaded dynamically -->
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-primary" onclick="printResult()">
+            <i class="fas fa-print mr-1"></i>Print Result
+          </button>
         </div>
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-dismiss="modal">
-          <i class="fas fa-times"></i> Cancel
-        </button>
-        <button type="button" class="btn btn-danger" id="confirmDeleteBtn">
-          <i class="fas fa-trash"></i> Delete Result
-        </button>
-      </div>
     </div>
   </div>
-</div>
-
-<!-- JavaScript -->
-<script>
-$(document).ready(function() {
-    // Initialize page
-    loadStats();
-    loadResults();
-    loadTestOrders();
-    
-    // Set default date to today for new results
-    $('#add_result_date').val(new Date().toISOString().split('T')[0]);
-    
-    // Search on Enter key
-    $('#searchInput').on('keypress', function(e) {
-        if (e.which === 13) {
-            loadResults();
-        }
-    });
-    
-    // Auto-refresh every 30 seconds
-    setInterval(function() {
-        if (!$('.modal').hasClass('show')) {
-            loadStats();
-        }
-    }, 30000);
-});
-
-// Global variables
-let currentPage = 1;
-let resultsPerPage = 10;
-let currentFilters = {
-    search: '',
-    status: '',
-    critical: '',
-    date: ''
-};
-
-// Load statistics
-function loadStats() {
-    $.ajax({
-        url: 'api/results_api.php',
-        method: 'GET',
-        data: { action: 'stats' },
-        dataType: 'json',
-        success: function(response) {
-            if (response.success) {
-                const stats = response.data;
-                $('#totalResults').text(stats.total || 0);
-                $('#pendingResults').text(stats.pending || 0);
-                $('#criticalResults').text(stats.critical || 0);
-                $('#verifiedResults').text(stats.verified || 0);
-            }
-        },
-        error: function() {
-            console.log('Error loading statistics');
-        }
-    });
-}
-
-// Load results with filters and pagination
-function loadResults(page = 1) {
-    currentPage = page;
-    
-    // Get current filters
-    currentFilters.search = $('#searchInput').val().trim();
-    currentFilters.status = $('#statusFilter').val();
-    currentFilters.critical = $('#criticalFilter').val();
-    currentFilters.date = $('#dateFilter').val();
-    
-    // Show loading indicator
-    $('#loadingIndicator').show();
-    $('#resultsTableBody').hide();
-    
-    $.ajax({
-        url: 'api/results_api.php',
-        method: 'GET',
-        data: {
-            action: 'read',
-            page: currentPage,
-            limit: resultsPerPage,
-            search: currentFilters.search,
-            status: currentFilters.status,
-            is_critical: currentFilters.critical,
-            date: currentFilters.date
-        },
-        dataType: 'json',
-        success: function(response) {
-            $('#loadingIndicator').hide();
-            $('#resultsTableBody').show();
-            
-            if (response.success) {
-                displayResults(response.data);
-                displayPagination(response.pagination);
-                updateResultsInfo(response.pagination);
-            } else {
-                $('#resultsTableBody').html(`
-                    <tr>
-                        <td colspan="8" class="text-center text-muted py-4">
-                            <i class="fas fa-info-circle fa-2x mb-2"></i><br>
-                            ${response.message || 'No results found'}
-                        </td>
-                    </tr>
-                `);
-                $('#resultsPagination').empty();
-                $('#resultsInfo').text('Showing 0 to 0 of 0 entries');
-            }
-        },
-        error: function() {
-            $('#loadingIndicator').hide();
-            $('#resultsTableBody').show();
-            $('#resultsTableBody').html(`
-                <tr>
-                    <td colspan="8" class="text-center text-danger py-4">
-                        <i class="fas fa-exclamation-triangle fa-2x mb-2"></i><br>
-                        Error loading results. Please try again.
-                    </td>
-                </tr>
-            `);
-        }
-    });
-}
-
-// Display results in table
-function displayResults(results) {
-    let html = '';
-    
-    if (results.length === 0) {
-        html = `
-            <tr>
-                <td colspan="8" class="text-center text-muted py-4">
-                    <i class="fas fa-search fa-2x mb-2"></i><br>
-                    No results found matching your criteria
-                </td>
-            </tr>
-        `;
-    } else {
-        results.forEach(function(result) {
-            // Status badge
-            let statusBadge = '';
-            switch(result.status) {
-                case 'pending':
-                    statusBadge = '<span class="badge badge-warning">Pending</span>';
-                    break;
-                case 'completed':
-                    statusBadge = '<span class="badge badge-info">Completed</span>';
-                    break;
-                case 'verified':
-                    statusBadge = '<span class="badge badge-success">Verified</span>';
-                    break;
-                default:
-                    statusBadge = '<span class="badge badge-secondary">' + result.status + '</span>';
-            }
-            
-            // Critical badge
-            const criticalBadge = result.is_critical == 1 
-                ? '<span class="badge badge-danger"><i class="fas fa-exclamation-triangle"></i> Critical</span>'
-                : '<span class="badge badge-success">Normal</span>';
-            
-            // Truncate result values for display
-            const resultValues = result.result_values 
-                ? (result.result_values.length > 50 
-                    ? result.result_values.substring(0, 50) + '...' 
-                    : result.result_values)
-                : 'N/A';
-            
-            html += `
-                <tr ${result.is_critical == 1 ? 'class="table-warning"' : ''}>
-                    <td>
-                        <strong>${result.order_id || 'N/A'}</strong>
-                    </td>
-                    <td>
-                        <div class="user-panel d-flex align-items-center">
-                            <div class="image">
-                                <i class="fas fa-user-circle fa-2x text-muted"></i>
-                            </div>
-                            <div class="info ml-2">
-                                <strong>${result.patient_name || 'N/A'}</strong>
-                            </div>
-                        </div>
-                    </td>
-                    <td>
-                        <span class="badge badge-primary">${result.test_name || 'N/A'}</span>
-                    </td>
-                    <td>
-                        <small>${formatDate(result.result_date)}</small>
-                    </td>
-                    <td>${statusBadge}</td>
-                    <td>${criticalBadge}</td>
-                    <td>
-                        <small class="text-muted">${resultValues}</small>
-                    </td>
-                    <td>
-                        <div class="btn-group" role="group">
-                            <button type="button" class="btn btn-info btn-sm" onclick="viewResult(${result.id})" title="View Details">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                            <button type="button" class="btn btn-warning btn-sm" onclick="editResult(${result.id})" title="Edit">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button type="button" class="btn btn-danger btn-sm" onclick="confirmDeleteResult(${result.id})" title="Delete">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-            `;
-        });
-    }
-    
-    $('#resultsTableBody').html(html);
-}
-
-// Display pagination
-function displayPagination(pagination) {
-    let html = '';
-    
-    if (pagination.pages > 1) {
-        // Previous button
-        if (pagination.page > 1) {
-            html += `<li class="page-item">
-                <a class="page-link" href="#" onclick="loadResults(${pagination.page - 1})">
-                    <i class="fas fa-chevron-left"></i>
-                </a>
-            </li>`;
-        }
-        
-        // Page numbers
-        const startPage = Math.max(1, pagination.page - 2);
-        const endPage = Math.min(pagination.pages, pagination.page + 2);
-        
-        if (startPage > 1) {
-            html += `<li class="page-item">
-                <a class="page-link" href="#" onclick="loadResults(1)">1</a>
-            </li>`;
-            if (startPage > 2) {
-                html += `<li class="page-item disabled">
-                    <span class="page-link">...</span>
-                </li>`;
-            }
-        }
-        
-        for (let i = startPage; i <= endPage; i++) {
-            const active = i === pagination.page ? 'active' : '';
-            html += `<li class="page-item ${active}">
-                <a class="page-link" href="#" onclick="loadResults(${i})">${i}</a>
-            </li>`;
-        }
-        
-        if (endPage < pagination.pages) {
-            if (endPage < pagination.pages - 1) {
-                html += `<li class="page-item disabled">
-                    <span class="page-link">...</span>
-                </li>`;
-            }
-            html += `<li class="page-item">
-                <a class="page-link" href="#" onclick="loadResults(${pagination.pages})">${pagination.pages}</a>
-            </li>`;
-        }
-        
-        // Next button
-        if (pagination.page < pagination.pages) {
-            html += `<li class="page-item">
-                <a class="page-link" href="#" onclick="loadResults(${pagination.page + 1})">
-                    <i class="fas fa-chevron-right"></i>
-                </a>
-            </li>`;
-        }
-    }
-    
-    $('#resultsPagination').html(html);
-}
-
-// Update results info
-function updateResultsInfo(pagination) {
-    const start = (pagination.page - 1) * pagination.limit + 1;
-    const end = Math.min(pagination.page * pagination.limit, pagination.total);
-    $('#resultsInfo').text(`Showing ${start} to ${end} of ${pagination.total} entries`);
-}
-
-// Load test orders for dropdowns
-function loadTestOrders() {
-    $.ajax({
-        url: 'api/test_orders_api.php',
-        method: 'GET',
-        data: { action: 'read' },
-        dataType: 'json',
-        success: function(response) {
-            if (response.success) {
-                const addSelect = $('#add_test_order_id');
-                const editSelect = $('#edit_test_order_id');
-                
-                addSelect.empty().append('<option value="">Select Test Order</option>');
-                editSelect.empty().append('<option value="">Select Test Order</option>');
-                
-                response.data.forEach(function(order) {
-                    const optionText = `${order.order_id} - ${order.patient_name} (${order.test_name})`;
-                    const option = `<option value="${order.id}">${optionText}</option>`;
-                    addSelect.append(option);
-                    editSelect.append(option);
-                });
-            }
-        },
-        error: function() {
-            showAlert('danger', 'Error loading test orders');
-        }
-    });
-}
-
-// Filter functions
-function filterByStatus(status) {
-    $('#statusFilter').val(status);
-    loadResults(1);
-}
-
-function filterByCritical(critical) {
-    $('#criticalFilter').val(critical);
-    loadResults(1);
-}
-
-function clearFilters() {
-    $('#searchInput').val('');
-    $('#statusFilter').val('');
-    $('#criticalFilter').val('');
-    $('#dateFilter').val('');
-    loadResults(1);
-}
-
-function refreshResults() {
-    loadStats();
-    loadResults(currentPage);
-    showAlert('success', 'Results refreshed successfully');
-}
-
-// Add result form submission
-$('#addResultForm').submit(function(e) {
-    e.preventDefault();
-    
-    const submitBtn = $('#addResultBtn');
-    const originalText = submitBtn.html();
-    submitBtn.html('<i class="fas fa-spinner fa-spin"></i> Saving...').prop('disabled', true);
-    
-    $.ajax({
-        url: 'api/results_api.php',
-        method: 'POST',
-        data: $(this).serialize() + '&action=create',
-        dataType: 'json',
-        success: function(response) {
-            if (response.success) {
-                $('#addResultModal').modal('hide');
-                $('#addResultForm')[0].reset();
-                loadResults(currentPage);
-                loadStats();
-                showAlert('success', 'Test result added successfully!');
-            } else {
-                showAlert('Error adding result: ' + response.message, 'danger');
-            }
-        },
-        error: function() {
-            showAlert('danger', 'Error adding result. Please try again.');
-        },
-        complete: function() {
-            submitBtn.html(originalText).prop('disabled', false);
-        }
-    });
-});
-
-// Edit result
-function editResult(id) {
-    $.ajax({
-        url: 'api/results_api.php',
-        method: 'GET',
-        data: { action: 'read', id: id },
-        dataType: 'json',
-        success: function(response) {
-            if (response.success && response.data.length > 0) {
-                const result = response.data[0];
-                $('#edit_result_id').val(result.id);
-                $('#edit_test_order_id').val(result.test_order_id);
-                $('#edit_result_date').val(result.result_date);
-                $('#edit_status').val(result.status);
-                $('#edit_is_critical').val(result.is_critical);
-                $('#edit_result_values').val(result.result_values);
-                $('#edit_notes').val(result.notes);
-                $('#editResultModal').modal('show');
-            } else {
-                showAlert('danger', 'Result not found');
-            }
-        },
-        error: function() {
-            showAlert('danger', 'Error loading result details');
-        }
-    });
-}
-
-// Edit result form submission
-$('#editResultForm').submit(function(e) {
-    e.preventDefault();
-    
-    const submitBtn = $('#editResultBtn');
-    const originalText = submitBtn.html();
-    submitBtn.html('<i class="fas fa-spinner fa-spin"></i> Updating...').prop('disabled', true);
-    
-    $.ajax({
-        url: 'api/results_api.php',
-        method: 'POST',
-        data: $(this).serialize() + '&action=update',
-        dataType: 'json',
-        success: function(response) {
-            if (response.success) {
-                $('#editResultModal').modal('hide');
-                loadResults(currentPage);
-                loadStats();
-                showAlert('success', 'Test result updated successfully!');
-            } else {
-                showAlert('Error updating result: ' + response.message, 'danger');
-            }
-        },
-        error: function() {
-            showAlert('danger', 'Error updating result. Please try again.');
-        },
-        complete: function() {
-            submitBtn.html(originalText).prop('disabled', false);
-        }
-    });
-});
-
-// View result details
-function viewResult(id) {
-    $.ajax({
-        url: 'api/results_api.php',
-        method: 'GET',
-        data: { action: 'read', id: id },
-        dataType: 'json',
-        success: function(response) {
-            if (response.success && response.data.length > 0) {
-                const result = response.data[0];
-                
-                const statusClass = result.status === 'verified' ? 'success' : 
-                                  result.status === 'completed' ? 'info' : 'warning';
-                
-                const criticalAlert = result.is_critical == 1 ? 
-                    '<div class="alert alert-danger"><i class="fas fa-exclamation-triangle"></i> <strong>CRITICAL RESULT</strong></div>' : '';
-                
-                let html = `
-                    ${criticalAlert}
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="card">
-                                <div class="card-header">
-                                    <h5><i class="fas fa-flask"></i> Test Information</h5>
-                                </div>
-                                <div class="card-body">
-                                    <table class="table table-sm">
-                                        <tr><td><strong>Order ID:</strong></td><td>${result.order_id || 'N/A'}</td></tr>
-                                        <tr><td><strong>Patient:</strong></td><td>${result.patient_name || 'N/A'}</td></tr>
-                                        <tr><td><strong>Test:</strong></td><td>${result.test_name || 'N/A'}</td></tr>
-                                        <tr><td><strong>Result Date:</strong></td><td>${formatDate(result.result_date)}</td></tr>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="card">
-                                <div class="card-header">
-                                    <h5><i class="fas fa-info-circle"></i> Status</h5>
-                                </div>
-                                <div class="card-body">
-                                    <table class="table table-sm">
-                                        <tr><td><strong>Status:</strong></td><td><span class="badge badge-${statusClass}">${result.status}</span></td></tr>
-                                        <tr><td><strong>Critical:</strong></td><td>${result.is_critical == 1 ? '<span class="badge badge-danger">Yes</span>' : '<span class="badge badge-success">No</span>'}</td></tr>
-                                        <tr><td><strong>Created:</strong></td><td>${formatDate(result.created_at)}</td></tr>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                
-                if (result.result_values) {
-                    html += `
-                        <div class="card mt-3">
-                            <div class="card-header">
-                                <h5><i class="fas fa-chart-line"></i> Result Values</h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="alert alert-info mb-0">
-                                    <pre class="mb-0" style="white-space: pre-wrap;">${result.result_values}</pre>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                }
-                
-                if (result.notes) {
-                    html += `
-                        <div class="card mt-3">
-                            <div class="card-header">
-                                <h5><i class="fas fa-sticky-note"></i> Notes</h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="alert alert-secondary mb-0">
-                                    <pre class="mb-0" style="white-space: pre-wrap;">${result.notes}</pre>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                }
-                
-                $('#viewResultContent').html(html);
-                $('#viewResultModal').modal('show');
-            } else {
-                showAlert('danger', 'Result not found');
-            }
-        },
-        error: function() {
-            showAlert('danger', 'Error loading result details');
-        }
-    });
-}
-
-// Delete confirmation
-let resultToDelete = null;
-
-function confirmDeleteResult(id) {
-    resultToDelete = id;
-    $('#deleteResultModal').modal('show');
-}
-
-$('#confirmDeleteBtn').click(function() {
-    if (resultToDelete) {
-        deleteResult(resultToDelete);
-        resultToDelete = null;
-    }
-});
-
-// Delete result
-function deleteResult(id) {
-    const deleteBtn = $('#confirmDeleteBtn');
-    const originalText = deleteBtn.html();
-    deleteBtn.html('<i class="fas fa-spinner fa-spin"></i> Deleting...').prop('disabled', true);
-    
-    $.ajax({
-        url: 'api/results_api.php',
-        method: 'POST',
-        data: { action: 'delete', id: id },
-        dataType: 'json',
-        success: function(response) {
-            if (response.success) {
-                $('#deleteResultModal').modal('hide');
-                loadResults(currentPage);
-                loadStats();
-                showAlert('success', 'Test result deleted successfully!');
-            } else {
-                showAlert('Error deleting result: ' + response.message, 'danger');
-            }
-        },
-        error: function() {
-            showAlert('danger', 'Error deleting result. Please try again.');
-        },
-        complete: function() {
-            deleteBtn.html(originalText).prop('disabled', false);
-        }
-    });
-}
-
-// Export functions
-function exportResults() {
-    showAlert('info', 'Export feature will be available soon.');
-}
-
-function printResult() {
-    window.print();
-}
-
-// Utility functions
-function formatDate(dateStr) {
-    if (!dateStr) return 'N/A';
-    const date = new Date(dateStr);
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-}
-
-function showAlert(type, message) {
-    const alertHtml = `
-        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
-            <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'danger' ? 'exclamation-triangle' : 'info-circle'}"></i>
-            ${message}
-            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
-            </button>
-        </div>
-    `;
-    
-    // Remove existing alerts
-    $('.alert').remove();
-    
-    // Add new alert
-    $('.content-wrapper .content').prepend(alertHtml);
-    
-    // Auto dismiss after 5 seconds
-    setTimeout(function() {
-        $('.alert').fadeOut();
-    }, 5000);
-}
-</script>
 
 <?php
+// Additional scripts specific to the results page
+$additional_scripts = <<<EOT
+<script>
+$(document).ready(function() {
+    // Initialize DataTable
+    var resultsTable = $('#resultsTable').DataTable({
+        responsive: true,
+        lengthChange: false,
+        autoWidth: false
+    });
+    
+    // Handle Add Result form submission
+    $('#saveResultBtn').on('click', function() {
+        var formData = {
+            order_id: $('#order_id').val(),
+            result_date: $('#result_date').val(),
+            status: $('#status').val(),
+            is_critical: $('#is_critical').val(),
+            result_values: $('#result_values').val()
+        };
+        
+        // Basic validation
+        if (!formData.order_id || !formData.result_date || !formData.status || !formData.result_values) {
+            toastr.error('Please fill in all required fields.');
+            return;
+        }
+
+        // Simulate API call - in real implementation, replace with actual API
+        setTimeout(function() {
+            var statusBadge = '';
+            switch(formData.status) {
+                case 'pending': statusBadge = '<span class="badge badge-warning">Pending</span>'; break;
+                case 'completed': statusBadge = '<span class="badge badge-success">Completed</span>'; break;
+                case 'verified': statusBadge = '<span class="badge badge-primary">Verified</span>'; break;
+            }
+            
+            var criticalBadge = formData.is_critical == '1' ? 
+                '<span class="badge badge-danger">Critical</span>' : 
+                '<span class="badge badge-secondary">Normal</span>';
+            
+            // Extract order details from the selected option
+            var orderText = $('#order_id option:selected').text();
+            var orderParts = orderText.split(' - ');
+            var patientName = orderParts[1] || 'Unknown Patient';
+            var testName = orderParts[2] || 'Unknown Test';
+            
+            // Add new row to table
+            var newRow = [
+                '<span class="badge badge-info">#' + formData.order_id + '</span>',
+                patientName,
+                testName,
+                formData.result_date,
+                statusBadge,
+                criticalBadge,
+                '<div class="btn-group" role="group">' +
+                    '<button type="button" class="btn btn-info btn-sm" onclick="viewResult(' + (resultsTable.rows().count() + 1) + ')" title="View">' +
+                        '<i class="fas fa-eye"></i>' +
+                    '</button>' +
+                    '<button type="button" class="btn btn-warning btn-sm" onclick="editResult(' + (resultsTable.rows().count() + 1) + ')" title="Edit">' +
+                        '<i class="fas fa-edit"></i>' +
+                    '</button>' +
+                    '<button type="button" class="btn btn-danger btn-sm" onclick="deleteResult(' + (resultsTable.rows().count() + 1) + ')" title="Delete">' +
+                        '<i class="fas fa-trash"></i>' +
+                    '</button>' +
+                '</div>'
+            ];
+            
+            resultsTable.row.add(newRow).draw();
+            
+            toastr.success('Test result added successfully!');
+            $('#modal-add-result').modal('hide');
+            $('#addResultForm')[0].reset();
+        }, 500);
+    });
+
+    // Handle Update Result form submission
+    $('#updateResultBtn').on('click', function() {
+        var formData = {
+            id: $('#edit_result_id').val(),
+            order_id: $('#edit_order_id').val(),
+            result_date: $('#edit_result_date').val(),
+            status: $('#edit_status').val(),
+            is_critical: $('#edit_is_critical').val(),
+            result_values: $('#edit_result_values').val()
+        };
+        
+        // Basic validation
+        if (!formData.order_id || !formData.result_date || !formData.status || !formData.result_values) {
+            toastr.error('Please fill in all required fields.');
+            return;
+        }
+
+        // Simulate API call - in real implementation, replace with actual API
+        setTimeout(function() {
+            toastr.success('Test result updated successfully!');
+            $('#modal-edit-result').modal('hide');
+            $('#editResultForm')[0].reset();
+            // In real implementation, refresh the table data
+        }, 500);
+    });
+
+    // Reset form when modal is hidden
+    $('#modal-add-result').on('hidden.bs.modal', function () {
+        $('#addResultForm')[0].reset();
+    });
+    
+    $('#modal-edit-result').on('hidden.bs.modal', function () {
+        $('#editResultForm')[0].reset();
+    });
+});
+
+// View result function
+function viewResult(id) {
+    // Sample result details - in real implementation, fetch from API
+    var resultDetails = '<div class="row">' +
+        '<div class="col-md-6"><strong>Order ID:</strong> #ORD00' + id + '</div>' +
+        '<div class="col-md-6"><strong>Patient:</strong> Patient ' + id + '</div>' +
+        '</div><hr>' +
+        '<div class="row">' +
+        '<div class="col-md-6"><strong>Test:</strong> Test Name ' + id + '</div>' +
+        '<div class="col-md-6"><strong>Date:</strong> 2024-01-15</div>' +
+        '</div><hr>' +
+        '<div class="row">' +
+        '<div class="col-12"><strong>Result Values:</strong></div>' +
+        '<div class="col-12">Sample test results and values would be displayed here.</div>' +
+        '</div>';
+    
+    $('#viewResultContent').html(resultDetails);
+    $('#modal-view-result').modal('show');
+}
+
+// Edit result function
+function editResult(id) {
+    // Get the row data
+    var table = $('#resultsTable').DataTable();
+    var row = table.row(function(idx, data, node) {
+        return $(node).find('button[onclick="editResult(' + id + ')"]').length > 0;
+    });
+    
+    if (row.length) {
+        var data = row.data();
+        
+        // Extract data from the row and populate edit form
+        $('#edit_result_id').val(id);
+        $('#edit_order_id').val($(data[0]).text().replace('#', '')); // Extract order ID
+        $('#edit_result_date').val(data[3]);
+        
+        // Extract status from badge
+        var statusText = $(data[4]).text().toLowerCase();
+        $('#edit_status').val(statusText);
+        
+        // Extract critical status from badge
+        var criticalText = $(data[5]).text().toLowerCase();
+        $('#edit_is_critical').val(criticalText === 'critical' ? '1' : '0');
+        
+        // Set sample result values
+        $('#edit_result_values').val('Sample test result values for editing...');
+        
+        $('#modal-edit-result').modal('show');
+    }
+}
+
+// Delete result function
+function deleteResult(id) {
+    if (confirm('Are you sure you want to delete this test result?')) {
+        // Simulate API call - in real implementation, replace with actual API
+        setTimeout(function() {
+            // Find and remove the row
+            var table = $('#resultsTable').DataTable();
+            var row = table.row(function(idx, data, node) {
+                return $(node).find('button[onclick="deleteResult(' + id + ')"]').length > 0;
+            });
+            
+            if (row.length) {
+                row.remove().draw();
+                toastr.success('Test result deleted successfully!');
+            }
+        }, 300);
+    }
+}
+
+// Print result function
+function printResult() {
+    var printContent = $('#viewResultContent').html();
+    var printWindow = window.open('', '_blank');
+    printWindow.document.write('<html><head><title>Test Result</title></head><body>' + printContent + '</body></html>');
+    printWindow.document.close();
+    printWindow.print();
+}
+</script>
+EOT;
+
 // Include footer
 include 'includes/footer.php';
 ?>
