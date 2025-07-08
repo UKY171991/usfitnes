@@ -7,97 +7,482 @@ include 'includes/header.php';
 // Include sidebar with user info
 include 'includes/sidebar.php';
 ?>
-<!-- Ensure jQuery is loaded first -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-<script>
-if (typeof jQuery == 'undefined') {
-  document.write('<script src="js/jquery-3.6.0.min.js"><\/script>');
-}
-</script>
-  <!-- Content Wrapper. Contains page content -->
-  <div class="content-wrapper">
-    <div class="content-header">
-      <div class="container-fluid">
-        <div class="row mb-2">
-          <div class="col-sm-6">
-            <h1 class="m-0">Patient Management</h1>
+
+<!-- Content Wrapper -->
+<div class="content-wrapper">
+  <!-- Content Header -->
+  <div class="content-header">
+    <div class="container-fluid">
+      <div class="row mb-2">
+        <div class="col-sm-6">
+          <h1 class="m-0"><i class="fas fa-user-injured mr-2"></i>Patient Management</h1>
+        </div>
+        <div class="col-sm-6">
+          <ol class="breadcrumb float-sm-right">
+            <li class="breadcrumb-item"><a href="dashboard.php">Home</a></li>
+            <li class="breadcrumb-item active">Patients</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main content -->
+  <section class="content">
+    <div class="container-fluid">
+      <!-- Action Buttons -->
+      <div class="row mb-3">
+        <div class="col-md-8">
+          <div class="input-group">
+            <input type="text" class="form-control" id="searchInput" placeholder="Search patients by name, phone, or ID...">
+            <div class="input-group-append">
+              <button class="btn btn-outline-secondary" type="button" id="searchBtn">
+                <i class="fas fa-search"></i>
+              </button>
+            </div>
           </div>
-          <div class="col-sm-6">
-            <ol class="breadcrumb float-sm-right">
-              <li class="breadcrumb-item"><a href="dashboard.php">Home</a></li>
-              <li class="breadcrumb-item active">Patients</li>
-            </ol>
+        </div>
+        <div class="col-md-4 text-right">
+          <button class="btn btn-success" data-toggle="modal" data-target="#addPatientModal">
+            <i class="fas fa-plus mr-2"></i>Add Patient
+          </button>
+          <button class="btn btn-info ml-2" onclick="refreshTable()">
+            <i class="fas fa-sync-alt"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Patients Table -->
+      <div class="card">
+        <div class="card-body">
+          <div class="table-responsive">
+            <table id="patientsTable" class="table table-bordered table-striped">
+              <thead>
+                <tr>
+                  <th>Patient ID</th>
+                  <th>Name</th>
+                  <th>Phone</th>
+                  <th>Gender</th>
+                  <th>Age</th>
+                  <th>Registration Date</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Sample Data -->
+                <tr>
+                  <td>PAT-001</td>
+                  <td>John Smith</td>
+                  <td>+1-555-0123</td>
+                  <td>Male</td>
+                  <td>35</td>
+                  <td>2025-07-09</td>
+                  <td>
+                    <button class="btn btn-sm btn-info" onclick="viewPatient('PAT-001')">
+                      <i class="fas fa-eye"></i>
+                    </button>
+                    <button class="btn btn-sm btn-warning" onclick="editPatient('PAT-001')">
+                      <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="deletePatient('PAT-001')">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </td>
+                </tr>
+                <tr>
+                  <td>PAT-002</td>
+                  <td>Maria Garcia</td>
+                  <td>+1-555-0124</td>
+                  <td>Female</td>
+                  <td>28</td>
+                  <td>2025-07-08</td>
+                  <td>
+                    <button class="btn btn-sm btn-info" onclick="viewPatient('PAT-002')">
+                      <i class="fas fa-eye"></i>
+                    </button>
+                    <button class="btn btn-sm btn-warning" onclick="editPatient('PAT-002')">
+                      <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="deletePatient('PAT-002')">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
     </div>
-    <section class="content">
-      <div class="container-fluid">
-        <!-- Alert Messages -->
-        <div id="alertContainer"></div>
-        <div class="row mb-3">
-          <div class="col-md-6 mb-2 mb-md-0">
-            <div class="input-group">
-              <input type="text" class="form-control" id="searchInput" placeholder="Search patients...">
-              <div class="input-group-append">
-                <button class="btn btn-outline-secondary" type="button" id="searchBtn">
-                  <i class="fas fa-search"></i>
-                </button>
-              </div>
-            </div>
-          </div>
-          <div class="col-md-3 mb-2 mb-md-0">
-            <button class="btn btn-info w-100" id="refreshBtn" title="Refresh Table">
-              <i class="fas fa-sync-alt"></i> Refresh
-            </button>
-          </div>
-          <div class="col-md-3 text-md-right">
-            <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#addPatientModal">
-              <i class="fas fa-plus"></i> Add New Patient
-            </button>
-          </div>
-        </div>
-        <div class="row">
-          <div class="col-12">
-            <div class="card">
-              <div class="card-body">
-                <div class="table-responsive">
-                  <table id="patientsTable" class="table table-bordered table-striped" style="width:100%">
-                    <thead>
-                      <tr>
-                        <th>ID</th>
-                        <th>Patient ID</th>
-                        <th>Full Name</th>
-                        <th>Phone</th>
-                        <th>Gender</th>
-                        <th>Age</th>
-                        <th>Date of Birth</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <!-- DataTables will populate this -->
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+  </section>
+</div>
+
+<!-- Add Patient Modal -->
+<div class="modal fade" id="addPatientModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-success">
+        <h5 class="modal-title text-white"><i class="fas fa-plus mr-2"></i>Add New Patient</h5>
+        <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
       </div>
-    </section>
+      <div class="modal-body">
+        <form id="addPatientForm">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="firstName">First Name *</label>
+                <input type="text" class="form-control" id="firstName" required>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="lastName">Last Name *</label>
+                <input type="text" class="form-control" id="lastName" required>
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="phone">Phone Number *</label>
+                <input type="tel" class="form-control" id="phone" required>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" class="form-control" id="email">
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-4">
+              <div class="form-group">
+                <label for="gender">Gender *</label>
+                <select class="form-control" id="gender" required>
+                  <option value="">Select Gender</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group">
+                <label for="dateOfBirth">Date of Birth *</label>
+                <input type="date" class="form-control" id="dateOfBirth" required>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group">
+                <label for="bloodGroup">Blood Group</label>
+                <select class="form-control" id="bloodGroup">
+                  <option value="">Select Blood Group</option>
+                  <option value="A+">A+</option>
+                  <option value="A-">A-</option>
+                  <option value="B+">B+</option>
+                  <option value="B-">B-</option>
+                  <option value="AB+">AB+</option>
+                  <option value="AB-">AB-</option>
+                  <option value="O+">O+</option>
+                  <option value="O-">O-</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="address">Address</label>
+            <textarea class="form-control" id="address" rows="2"></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-success" onclick="addPatient()">Add Patient</button>
+      </div>
+    </div>
   </div>
-  <!-- Add Patient Modal -->
-  <div class="modal fade" id="addPatientModal" tabindex="-1" role="dialog">
-    <div class="modal-dialog modal-lg" role="document">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h4 class="modal-title">Add New Patient</h4>
-          <button type="button" class="close" data-dismiss="modal">
-            <span aria-hidden="true">&times;</span>
-          </button>
+</div>
+
+<!-- View Patient Modal -->
+<div class="modal fade" id="viewPatientModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-info">
+        <h5 class="modal-title text-white"><i class="fas fa-eye mr-2"></i>Patient Details</h5>
+        <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+      </div>
+      <div class="modal-body" id="viewPatientContent">
+        <!-- Content loaded dynamically -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Patient Modal -->
+<div class="modal fade" id="editPatientModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-warning">
+        <h5 class="modal-title"><i class="fas fa-edit mr-2"></i>Edit Patient</h5>
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="editPatientForm">
+          <input type="hidden" id="editPatientId">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="editFirstName">First Name *</label>
+                <input type="text" class="form-control" id="editFirstName" required>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="editLastName">Last Name *</label>
+                <input type="text" class="form-control" id="editLastName" required>
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="editPhone">Phone Number *</label>
+                <input type="tel" class="form-control" id="editPhone" required>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="editEmail">Email</label>
+                <input type="email" class="form-control" id="editEmail">
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-4">
+              <div class="form-group">
+                <label for="editGender">Gender *</label>
+                <select class="form-control" id="editGender" required>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group">
+                <label for="editDateOfBirth">Date of Birth *</label>
+                <input type="date" class="form-control" id="editDateOfBirth" required>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group">
+                <label for="editBloodGroup">Blood Group</label>
+                <select class="form-control" id="editBloodGroup">
+                  <option value="">Select Blood Group</option>
+                  <option value="A+">A+</option>
+                  <option value="A-">A-</option>
+                  <option value="B+">B+</option>
+                  <option value="B-">B-</option>
+                  <option value="AB+">AB+</option>
+                  <option value="AB-">AB-</option>
+                  <option value="O+">O+</option>
+                  <option value="O-">O-</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="editAddress">Address</label>
+            <textarea class="form-control" id="editAddress" rows="2"></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-warning" onclick="updatePatient()">Update Patient</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<?php include 'includes/footer.php'; ?>
+
+<!-- Scripts -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap4.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+
+<script>
+$(document).ready(function() {
+    // Initialize DataTable
+    $('#patientsTable').DataTable({
+        responsive: true,
+        pageLength: 25,
+        order: [[5, 'desc']], // Sort by registration date
+        language: {
+            search: "Search patients:",
+            lengthMenu: "Show _MENU_ patients per page"
+        }
+    });
+
+    // Configure toastr
+    toastr.options = {
+        "closeButton": true,
+        "progressBar": true,
+        "timeOut": "3000",
+        "positionClass": "toast-top-right"
+    };
+});
+
+// Add new patient
+function addPatient() {
+    const form = document.getElementById('addPatientForm');
+    
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+
+    const firstName = document.getElementById('firstName').value;
+    const lastName = document.getElementById('lastName').value;
+    const phone = document.getElementById('phone').value;
+    const gender = document.getElementById('gender').value;
+    const dateOfBirth = document.getElementById('dateOfBirth').value;
+
+    // Calculate age
+    const age = calculateAge(dateOfBirth);
+    const patientId = 'PAT-' + String(Date.now()).slice(-6);
+
+    // Add to table
+    const table = $('#patientsTable').DataTable();
+    table.row.add([
+        patientId,
+        `${firstName} ${lastName}`,
+        phone,
+        gender,
+        age,
+        new Date().toISOString().split('T')[0],
+        `<button class="btn btn-sm btn-info" onclick="viewPatient('${patientId}')">
+           <i class="fas fa-eye"></i>
+         </button>
+         <button class="btn btn-sm btn-warning" onclick="editPatient('${patientId}')">
+           <i class="fas fa-edit"></i>
+         </button>
+         <button class="btn btn-sm btn-danger" onclick="deletePatient('${patientId}')">
+           <i class="fas fa-trash"></i>
+         </button>`
+    ]).draw();
+
+    $('#addPatientModal').modal('hide');
+    form.reset();
+    toastr.success('Patient added successfully!', 'Success');
+}
+
+// View patient details
+function viewPatient(patientId) {
+    const content = `
+        <div class="row">
+            <div class="col-md-6">
+                <h6>Personal Information</h6>
+                <p><strong>Patient ID:</strong> ${patientId}</p>
+                <p><strong>Name:</strong> John Smith</p>
+                <p><strong>Phone:</strong> +1-555-0123</p>
+                <p><strong>Email:</strong> john.smith@email.com</p>
+            </div>
+            <div class="col-md-6">
+                <h6>Medical Information</h6>
+                <p><strong>Gender:</strong> Male</p>
+                <p><strong>Age:</strong> 35 years</p>
+                <p><strong>Blood Group:</strong> A+</p>
+                <p><strong>Registration:</strong> 2025-07-09</p>
+            </div>
         </div>
-        <div class="modal-body">
+        <div class="row mt-3">
+            <div class="col-12">
+                <h6>Address</h6>
+                <p>123 Main Street, City, State 12345</p>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('viewPatientContent').innerHTML = content;
+    $('#viewPatientModal').modal('show');
+    toastr.info(`Viewing details for ${patientId}`, 'Patient Details');
+}
+
+// Edit patient
+function editPatient(patientId) {
+    // Load patient data (in real app, fetch from API)
+    document.getElementById('editPatientId').value = patientId;
+    document.getElementById('editFirstName').value = 'John';
+    document.getElementById('editLastName').value = 'Smith';
+    document.getElementById('editPhone').value = '+1-555-0123';
+    document.getElementById('editEmail').value = 'john.smith@email.com';
+    document.getElementById('editGender').value = 'Male';
+    document.getElementById('editDateOfBirth').value = '1990-01-01';
+    document.getElementById('editBloodGroup').value = 'A+';
+    document.getElementById('editAddress').value = '123 Main Street, City, State 12345';
+    
+    $('#editPatientModal').modal('show');
+    toastr.info(`Loading edit form for ${patientId}`, 'Edit Patient');
+}
+
+// Update patient
+function updatePatient() {
+    const form = document.getElementById('editPatientForm');
+    
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+
+    const patientId = document.getElementById('editPatientId').value;
+    
+    $('#editPatientModal').modal('hide');
+    toastr.success(`Patient ${patientId} updated successfully!`, 'Updated');
+}
+
+// Delete patient
+function deletePatient(patientId) {
+    if (confirm(`Are you sure you want to delete patient ${patientId}?`)) {
+        const table = $('#patientsTable').DataTable();
+        table.rows().every(function() {
+            const data = this.data();
+            if (data[0] === patientId) {
+                this.remove();
+            }
+        });
+        table.draw();
+        
+        toastr.success(`Patient ${patientId} deleted successfully!`, 'Deleted');
+    }
+}
+
+// Refresh table
+function refreshTable() {
+    $('#patientsTable').DataTable().ajax.reload();
+    toastr.success('Patient list refreshed!', 'Refreshed');
+}
+
+// Calculate age from date of birth
+function calculateAge(dateOfBirth) {
+    const today = new Date();
+    const birthDate = new Date(dateOfBirth);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+    }
+    
+    return age;
+}
+</script>
           <form id="addPatientForm">
             <div class="row">
               <div class="col-md-6">
