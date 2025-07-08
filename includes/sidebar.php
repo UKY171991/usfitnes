@@ -2,13 +2,8 @@
   <aside class="main-sidebar sidebar-dark-primary elevation-4">    
     <!-- Brand Logo -->
     <a href="dashboard.php" class="brand-link">
-      <?php if (hasLogo()): ?>
-          <img src="<?php echo getLogoPath(); ?>" alt="PathLab Pro Logo" class="brand-image img-circle elevation-3" style="opacity: .8">
-          <span class="brand-text font-weight-light">PathLab Pro</span>
-      <?php else: ?>
-          <i class="fas fa-microscope brand-image" style="font-size: 2rem; color: #007bff; margin-left: 0.5rem;"></i>
-          <span class="brand-text font-weight-bold" style="font-size: 1.2rem; margin-left: 0.5rem;">PathLab Pro</span>
-      <?php endif; ?>
+      <i class="fas fa-dumbbell brand-image" style="font-size: 2rem; color: #007bff; margin-left: 0.5rem;"></i>
+      <span class="brand-text font-weight-bold" style="font-size: 1.2rem; margin-left: 0.5rem;">US Fitness</span>
     </a>
 
     <!-- Sidebar -->
@@ -48,46 +43,17 @@
             </a>
           </li>
 
-          <!-- Patient Management -->
-          <li class="nav-item">
-            <a href="patients.php" class="nav-link <?php echo isActive('patients.php'); ?>">
-              <i class="nav-icon fas fa-user-injured"></i>
-              <p>Patient Management</p>
-            </a>
-          </li>
-
-          <!-- Laboratory Management -->
-          <li class="nav-header">LABORATORY</li>
+          <!-- Fitness Management -->
+          <li class="nav-header">FITNESS</li>
           <li class="nav-item">
             <a href="test-orders.php" class="nav-link <?php echo isActive('test-orders.php'); ?>">
-              <i class="nav-icon fas fa-clipboard-list"></i>
-              <p>
-                Test Orders
-                <span class="right badge badge-primary">New</span>
-              </p>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a href="tests.php" class="nav-link <?php echo isActive('tests.php'); ?>">
-              <i class="nav-icon fas fa-flask"></i>
-              <p>Lab Tests</p>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a href="results.php" class="nav-link <?php echo isActive('results.php'); ?>">
-              <i class="nav-icon fas fa-file-medical"></i>
-              <p>Test Results</p>
+              <i class="nav-icon fas fa-calendar-check"></i>
+              <p>Class Bookings</p>
             </a>
           </li>
 
-          <!-- Staff & Resources -->
-          <li class="nav-header">STAFF & RESOURCES</li>
-          <li class="nav-item">
-            <a href="doctors.php" class="nav-link <?php echo isActive('doctors.php'); ?>">
-              <i class="nav-icon fas fa-user-md"></i>
-              <p>Doctors</p>
-            </a>
-          </li>
+          <!-- Management -->
+          <li class="nav-header">MANAGEMENT</li>
           <?php if($user_type == 'admin'): ?>
           <li class="nav-item">
             <a href="users.php" class="nav-link <?php echo isActive('users.php'); ?>">
@@ -96,27 +62,6 @@
             </a>
           </li>
           <?php endif; ?>
-          <li class="nav-item">
-            <a href="equipment.php" class="nav-link <?php echo isActive('equipment.php'); ?>">
-              <i class="nav-icon fas fa-microscope"></i>
-              <p>Equipment</p>
-            </a>
-          </li>
-
-          <!-- Reports & Analytics -->
-          <li class="nav-header">REPORTS & ANALYTICS</li>
-          <li class="nav-item">
-            <a href="reports.php" class="nav-link <?php echo isActive('reports.php'); ?>">
-              <i class="nav-icon fas fa-chart-line"></i>
-              <p>Reports</p>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a href="view_all_data.php" class="nav-link <?php echo isActive('view_all_data.php'); ?>">
-              <i class="nav-icon fas fa-database"></i>
-              <p>Database View</p>
-            </a>
-          </li>
 
           <!-- System -->
           <li class="nav-header">SYSTEM</li>
