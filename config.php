@@ -59,6 +59,8 @@ CREATE TABLE IF NOT EXISTS `patients` (
   `name` varchar(100) NOT NULL,
   `date_of_birth` date DEFAULT NULL,
   `gender` enum('male','female','other') DEFAULT NULL,
+  `phone` varchar(20) DEFAULT NULL,
+  `email` varchar(100) DEFAULT NULL,
   `address` text,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -262,15 +264,15 @@ try {
         
         // Insert sample patients
         $patients = [
-            ['PAT001', 'John Smith', '123 Main St', '1985-06-15', 'male'],
-            ['PAT002', 'Jane Johnson', '456 Oak Ave', '1990-12-03', 'female'],
-            ['PAT003', 'Mike Brown', '789 Pine Rd', '1978-09-22', 'male'],
-            ['PAT004', 'Sarah Wilson', '321 Elm St', '1988-03-18', 'female']
+            ['PAT001', 'John Smith', '123-456-7890', 'john.smith@email.com', '123 Main St', '1985-06-15', 'male'],
+            ['PAT002', 'Jane Johnson', '987-654-3210', 'jane.j@email.com', '456 Oak Ave', '1990-12-03', 'female'],
+            ['PAT003', 'Mike Brown', '555-123-4567', 'mike.brown@email.com', '789 Pine Rd', '1978-09-22', 'male'],
+            ['PAT004', 'Sarah Wilson', '444-555-6666', 'sarah.w@email.com', '321 Elm St', '1988-03-18', 'female']
         ];
         
         $insertPatient = $pdo->prepare("
-            INSERT INTO patients (patient_id, name, address, date_of_birth, gender) 
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO patients (patient_id, name, phone, email, address, date_of_birth, gender) 
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         ");
         foreach ($patients as $patient) {
             $insertPatient->execute($patient);
