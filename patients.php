@@ -13,51 +13,43 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     switch ($action) {
         case 'add':
             $name = trim($_POST['name'] ?? '');
-            $email = trim($_POST['email'] ?? '');
-            $phone = trim($_POST['phone'] ?? '');
             $date_of_birth = $_POST['date_of_birth'] ?? '';
             $gender = $_POST['gender'] ?? '';
             $address = trim($_POST['address'] ?? '');
-            $emergency_contact = trim($_POST['emergency_contact'] ?? '');
-            $medical_history = trim($_POST['medical_history'] ?? '');
             
-            if ($name && $phone) {
+            if ($name) {
                 // Generate patient ID
                 $stmt = $pdo->query("SELECT COUNT(*) as count FROM patients");
                 $count = $stmt->fetch()['count'] + 1;
                 $patient_id = 'PAT-' . str_pad($count, 4, '0', STR_PAD_LEFT);
                 
-                $stmt = $pdo->prepare("INSERT INTO patients (patient_id, name, email, phone, date_of_birth, gender, address, emergency_contact, medical_history, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())");
-                if ($stmt->execute([$patient_id, $name, $email, $phone, $date_of_birth, $gender, $address, $emergency_contact, $medical_history])) {
+                $stmt = $pdo->prepare("INSERT INTO patients (patient_id, name, date_of_birth, gender, address, created_at) VALUES (?, ?, ?, ?, ?, NOW())");
+                if ($stmt->execute([$patient_id, $name, $date_of_birth, $gender, $address])) {
                     $response = ['success' => true, 'message' => 'Patient added successfully'];
                 } else {
                     $response = ['success' => false, 'message' => 'Error adding patient'];
                 }
             } else {
-                $response = ['success' => false, 'message' => 'Name and phone are required'];
+                $response = ['success' => false, 'message' => 'Name is required'];
             }
             break;
             
         case 'edit':
             $id = $_POST['id'] ?? '';
             $name = trim($_POST['name'] ?? '');
-            $email = trim($_POST['email'] ?? '');
-            $phone = trim($_POST['phone'] ?? '');
             $date_of_birth = $_POST['date_of_birth'] ?? '';
             $gender = $_POST['gender'] ?? '';
             $address = trim($_POST['address'] ?? '');
-            $emergency_contact = trim($_POST['emergency_contact'] ?? '');
-            $medical_history = trim($_POST['medical_history'] ?? '');
             
-            if ($id && $name && $phone) {
-                $stmt = $pdo->prepare("UPDATE patients SET name = ?, email = ?, phone = ?, date_of_birth = ?, gender = ?, address = ?, emergency_contact = ?, medical_history = ? WHERE id = ?");
-                if ($stmt->execute([$name, $email, $phone, $date_of_birth, $gender, $address, $emergency_contact, $medical_history, $id])) {
+            if ($id && $name) {
+                $stmt = $pdo->prepare("UPDATE patients SET name = ?, date_of_birth = ?, gender = ?, address = ? WHERE id = ?");
+                if ($stmt->execute([$name, $date_of_birth, $gender, $address, $id])) {
                     $response = ['success' => true, 'message' => 'Patient updated successfully'];
                 } else {
                     $response = ['success' => false, 'message' => 'Error updating patient'];
                 }
             } else {
-                $response = ['success' => false, 'message' => 'ID, name and phone are required'];
+                $response = ['success' => false, 'message' => 'ID and name are required'];
             }
             break;
             
@@ -128,7 +120,7 @@ $patients = $stmt->fetchAll(PDO::FETCH_ASSOC);
       <div class="row mb-3">
         <div class="col-md-8">
           <div class="input-group">
-            <input type="text" class="form-control" id="searchInput" placeholder="Search patients by name, phone, or ID...">
+            <input type="text" class="form-control" id="searchInput" placeholder="Search patients by name or ID...">
             <div class="input-group-append">
               <button class="btn btn-outline-secondary" type="button" id="searchBtn">
                 <i class="fas fa-search"></i>
@@ -158,10 +150,9 @@ $patients = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <tr>
                   <th>Patient ID</th>
                   <th>Name</th>
-                  <th>Phone</th>
-                  <th>Email</th>
                   <th>Gender</th>
                   <th>Age</th>
+                  <th>Address</th>
                   <th>Registration Date</th>
                   <th>Actions</th>
                 </tr>
@@ -171,8 +162,6 @@ $patients = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <tr>
                   <td><strong><?php echo htmlspecialchars($patient['patient_id']); ?></strong></td>
                   <td><?php echo htmlspecialchars($patient['name']); ?></td>
-                  <td><?php echo htmlspecialchars($patient['phone']); ?></td>
-                  <td><?php echo htmlspecialchars($patient['email'] ?? 'N/A'); ?></td>
                   <td><?php echo ucfirst(htmlspecialchars($patient['gender'] ?? 'N/A')); ?></td>
                   <td>
                     <?php 
@@ -184,6 +173,7 @@ $patients = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     }
                     ?>
                   </td>
+                  <td><?php echo htmlspecialchars($patient['address'] ?? 'N/A'); ?></td>
                   <td><?php echo date('Y-m-d', strtotime($patient['created_at'])); ?></td>
                   <td>
                     <button class="btn btn-sm btn-info" onclick="viewPatient(<?php echo $patient['id']; ?>)">
@@ -228,20 +218,6 @@ $patients = $stmt->fetchAll(PDO::FETCH_ASSOC);
             </div>
             <div class="col-md-6">
               <div class="form-group">
-                <label for="phone">Phone Number *</label>
-                <input type="tel" class="form-control" id="phone" name="phone" required>
-              </div>
-            </div>
-          </div>
-          <div class="row">
-            <div class="col-md-6">
-              <div class="form-group">
-                <label for="email">Email Address</label>
-                <input type="email" class="form-control" id="email" name="email">
-              </div>
-            </div>
-            <div class="col-md-6">
-              <div class="form-group">
                 <label for="date_of_birth">Date of Birth</label>
                 <input type="date" class="form-control" id="date_of_birth" name="date_of_birth">
               </div>
@@ -261,18 +237,10 @@ $patients = $stmt->fetchAll(PDO::FETCH_ASSOC);
             </div>
             <div class="col-md-6">
               <div class="form-group">
-                <label for="emergency_contact">Emergency Contact</label>
-                <input type="text" class="form-control" id="emergency_contact" name="emergency_contact">
+                <label for="address">Address</label>
+                <textarea class="form-control" id="address" name="address" rows="2"></textarea>
               </div>
             </div>
-          </div>
-          <div class="form-group">
-            <label for="address">Address</label>
-            <textarea class="form-control" id="address" name="address" rows="2"></textarea>
-          </div>
-          <div class="form-group">
-            <label for="medical_history">Medical History</label>
-            <textarea class="form-control" id="medical_history" name="medical_history" rows="3" placeholder="Any relevant medical history, allergies, current medications..."></textarea>
           </div>
         </div>
         <div class="modal-footer">
@@ -308,20 +276,6 @@ $patients = $stmt->fetchAll(PDO::FETCH_ASSOC);
             </div>
             <div class="col-md-6">
               <div class="form-group">
-                <label for="edit_phone">Phone Number *</label>
-                <input type="tel" class="form-control" id="edit_phone" name="phone" required>
-              </div>
-            </div>
-          </div>
-          <div class="row">
-            <div class="col-md-6">
-              <div class="form-group">
-                <label for="edit_email">Email Address</label>
-                <input type="email" class="form-control" id="edit_email" name="email">
-              </div>
-            </div>
-            <div class="col-md-6">
-              <div class="form-group">
                 <label for="edit_date_of_birth">Date of Birth</label>
                 <input type="date" class="form-control" id="edit_date_of_birth" name="date_of_birth">
               </div>
@@ -341,18 +295,10 @@ $patients = $stmt->fetchAll(PDO::FETCH_ASSOC);
             </div>
             <div class="col-md-6">
               <div class="form-group">
-                <label for="edit_emergency_contact">Emergency Contact</label>
-                <input type="text" class="form-control" id="edit_emergency_contact" name="emergency_contact">
+                <label for="edit_address">Address</label>
+                <textarea class="form-control" id="edit_address" name="address" rows="2"></textarea>
               </div>
             </div>
-          </div>
-          <div class="form-group">
-            <label for="edit_address">Address</label>
-            <textarea class="form-control" id="edit_address" name="address" rows="2"></textarea>
-          </div>
-          <div class="form-group">
-            <label for="edit_medical_history">Medical History</label>
-            <textarea class="form-control" id="edit_medical_history" name="medical_history" rows="3"></textarea>
           </div>
         </div>
         <div class="modal-footer">
@@ -476,26 +422,15 @@ function viewPatient(id) {
                             <table class="table table-borderless">
                                 <tr><td><strong>Patient ID:</strong></td><td>${patient.patient_id}</td></tr>
                                 <tr><td><strong>Name:</strong></td><td>${patient.name}</td></tr>
-                                <tr><td><strong>Phone:</strong></td><td>${patient.phone}</td></tr>
-                                <tr><td><strong>Email:</strong></td><td>${patient.email || 'N/A'}</td></tr>
                                 <tr><td><strong>Gender:</strong></td><td>${patient.gender ? patient.gender.charAt(0).toUpperCase() + patient.gender.slice(1) : 'N/A'}</td></tr>
                                 <tr><td><strong>Age:</strong></td><td>${age}</td></tr>
-                            </table>
-                        </div>
-                        <div class="col-md-6">
-                            <table class="table table-borderless">
                                 <tr><td><strong>Date of Birth:</strong></td><td>${patient.date_of_birth || 'N/A'}</td></tr>
-                                <tr><td><strong>Emergency Contact:</strong></td><td>${patient.emergency_contact || 'N/A'}</td></tr>
                                 <tr><td><strong>Registration Date:</strong></td><td>${new Date(patient.created_at).toLocaleDateString()}</td></tr>
                             </table>
                         </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-12">
+                        <div class="col-md-6">
                             <h6><strong>Address:</strong></h6>
                             <p>${patient.address || 'No address provided'}</p>
-                            <h6><strong>Medical History:</strong></h6>
-                            <p>${patient.medical_history || 'No medical history recorded'}</p>
                         </div>
                     </div>
                 `;
@@ -523,13 +458,9 @@ function editPatient(id) {
                 var patient = response.data;
                 $('#edit_id').val(patient.id);
                 $('#edit_name').val(patient.name);
-                $('#edit_phone').val(patient.phone);
-                $('#edit_email').val(patient.email || '');
                 $('#edit_date_of_birth').val(patient.date_of_birth || '');
                 $('#edit_gender').val(patient.gender || '');
-                $('#edit_emergency_contact').val(patient.emergency_contact || '');
                 $('#edit_address').val(patient.address || '');
-                $('#edit_medical_history').val(patient.medical_history || '');
                 $('#editPatientModal').modal('show');
             } else {
                 toastr.error(response.message);
