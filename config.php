@@ -47,14 +47,24 @@ try {
 }
 
 // Helper functions for AJAX responses
-function jsonResponse($success, $message, $data = null) {
+function jsonResponse($success, $message, $data = null, $extra = []) {
     header('Content-Type: application/json');
-    echo json_encode([
+    header('Cache-Control: no-cache, must-revalidate');
+    
+    $response = [
         'success' => $success,
         'message' => $message,
         'data' => $data,
-        'timestamp' => date('Y-m-d H:i:s')
-    ]);
+        'timestamp' => date('Y-m-d H:i:s'),
+        'server_time' => time()
+    ];
+    
+    // Merge any extra data
+    if (!empty($extra) && is_array($extra)) {
+        $response = array_merge($response, $extra);
+    }
+    
+    echo json_encode($response, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
     exit;
 }
 
@@ -62,8 +72,9 @@ function validateInput($data, $required_fields = []) {
     $errors = [];
     
     foreach ($required_fields as $field) {
-        if (empty($data[$field])) {
-            $errors[] = ucfirst(str_replace('_', ' ', $field)) . " is required";
+        if (empty($data[$field]) || (is_string($data[$field]) && trim($data[$field]) === '')) {
+            $field_name = ucfirst(str_replace(['_', '-'], ' ', $field));
+            $errors[] = $field_name . " is required";
         }
     }
     
@@ -75,6 +86,83 @@ function sanitizeInput($data) {
         return array_map('sanitizeInput', $data);
     }
     return htmlspecialchars(trim($data), ENT_QUOTES, 'UTF-8');
+}
+
+function validateEmail($email) {
+    return filter_var($email, FILTER_VALIDATE_EMAIL);
+}
+
+function validatePhone($phone) {
+    // Remove all non-digit characters
+    $phone = preg_replace('/\D/', '', $phone);
+    // Check if it's a valid length (10-15 digits)
+    return strlen($phone) >= 10 && strlen($phone) <= 15;
+}
+
+function generateUniqueId($prefix = '', $length = 8) {
+    $characters = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    $result = $prefix;
+    for ($i = 0; $i < $length; $i++) {
+        $result .= $characters[rand(0, strlen($characters) - 1)];
+    }
+    return $result;
+}
+
+function logActivity($user_id, $action, $details = null) {
+    global $pdo;
+    try {
+        $stmt = $pdo->prepare("INSERT INTO activity_logs (user_id, action, details, ip_address, user_agent, created_at) VALUES (?, ?, ?, ?, ?, NOW())");
+        $stmt->execute([
+            $user_id,
+            $action,
+            $details,
+            $_SERVER['REMOTE_ADDR'] ?? 'unknown',
+            $_SERVER['HTTP_USER_AGENT'] ?? 'unknown'
+        ]);
+    } catch (Exception $e) {
+        // Log error but don't break the application
+        error_log("Activity logging failed: " . $e->getMessage());
+    }
+}
+
+function formatDate($date, $format = 'Y-m-d H:i:s') {
+    if (empty($date)) return '';
+    try {
+        return date($format, strtotime($date));
+    } catch (Exception $e) {
+        return $date;
+    }
+}
+
+function formatCurrency($amount, $currency = '$') {
+    return $currency . number_format($amount, 2);
+}
+
+function timeAgo($datetime) {
+    $time = time() - strtotime($datetime);
+    
+    if ($time < 60) return 'just now';
+    if ($time < 3600) return floor($time/60) . 'm ago';
+    if ($time < 86400) return floor($time/3600) . 'h ago';
+    if ($time < 2592000) return floor($time/86400) . 'd ago';
+    
+    return date('M j, Y', strtotime($datetime));
+}
+
+// CORS headers for AJAX requests
+function setCorsHeaders() {
+    header("Access-Control-Allow-Origin: *");
+    header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
+    header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
+    
+    if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
+        exit(0);
+    }
+}
+
+// Handle preflight requests
+if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
+    setCorsHeaders();
 }
 
 // Create database tables if they don't exist
@@ -266,6 +354,31 @@ CREATE TABLE IF NOT EXISTS `equipment_maintenance` (
   PRIMARY KEY (`id`),
   KEY `equipment_id` (`equipment_id`),
   CONSTRAINT `equipment_maintenance_ibfk_1` FOREIGN KEY (`equipment_id`) REFERENCES `equipment` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `activity_logs` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) DEFAULT NULL,
+  `action` varchar(255) NOT NULL,
+  `details` text,
+  `ip_address` varchar(45) DEFAULT NULL,
+  `user_agent` text,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `user_id` (`user_id`),
+  KEY `created_at` (`created_at`),
+  CONSTRAINT `activity_logs_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `system_settings` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `setting_key` varchar(100) NOT NULL UNIQUE,
+  `setting_value` text,
+  `setting_type` enum('string','number','boolean','json') DEFAULT 'string',
+  `description` text,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `setting_key` (`setting_key`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 ";
 

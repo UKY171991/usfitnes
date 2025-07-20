@@ -7,37 +7,220 @@ require_once __DIR__ . '/init.php';
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="csrf-token" content="<?php echo bin2hex(random_bytes(32)); ?>">
   <title>PathLab Pro | <?php echo $page_title ?? 'Laboratory Management System'; ?></title>
 
-  <!-- Google Font: Source Sans Pro -->
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
-  <!-- Font Awesome -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <!-- Tempusdominus Bootstrap 4 -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tempusdominus-bootstrap-4/5.39.0/css/tempusdominus-bootstrap-4.min.css">
-  <!-- iCheck -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/icheck-bootstrap/3.0.1/icheck-bootstrap.min.css">
-  <!-- JQVMap -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqvmap/1.5.1/jqvmap.min.css">
-  <!-- Theme style -->
+  <!-- Preconnect to external domains for performance -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+
+  <!-- Critical CSS - Load first -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- Core Framework CSS -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.2.0/css/adminlte.min.css">
-  <!-- overlayScrollbars -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/overlayscrollbars/1.13.1/css/OverlayScrollbars.min.css">
-  <!-- Daterange picker -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-daterangepicker/3.0.5/daterangepicker.css">
-  <!-- DataTables -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/datatables.net-bs4/1.12.1/dataTables.bootstrap4.min.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/datatables.net-responsive-bs4/2.4.1/responsive.bootstrap4.min.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/datatables.net-buttons-bs4/2.2.3/buttons.bootstrap4.min.css">
-  <!-- Select2 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/css/bootstrap.min.css">
+  
+  <!-- DataTables CSS -->
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap4.min.css">
+  <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap4.min.css">
+  <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.bootstrap4.min.css">
+  
+  <!-- UI Components CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.1.4/toastr.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/select2-bootstrap4-theme/1.0.0/select2-bootstrap4.min.css">
-  <!-- SweetAlert2 -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
-  <!-- Summernote -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.20/summernote-bs4.min.css">
-  <!-- Toastr -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.1.4/toastr.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-daterangepicker/3.0.5/daterangepicker.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tempusdominus-bootstrap-4/5.39.0/css/tempusdominus-bootstrap-4.min.css">
+  
+  <!-- Chart and Visualization CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.css">
+  
+  <!-- Custom PathLab Pro CSS -->
+  <style>
+    :root {
+      --primary-color: #2c5aa0;
+      --secondary-color: #f8f9fa;
+      --success-color: #28a745;
+      --danger-color: #dc3545;
+      --warning-color: #ffc107;
+      --info-color: #17a2b8;
+      --dark-color: #343a40;
+      --light-color: #f8f9fa;
+      --pathlab-blue: #3498db;
+      --pathlab-green: #2ecc71;
+      --pathlab-orange: #f39c12;
+      --pathlab-red: #e74c3c;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f4f6f9;
+    }
+
+    .main-header {
+      background: linear-gradient(135deg, var(--primary-color), var(--pathlab-blue));
+      border-bottom: none;
+    }
+
+    .navbar-light .navbar-brand {
+      color: white !important;
+      font-weight: 600;
+    }
+
+    .main-sidebar {
+      background: linear-gradient(180deg, #2c3e50, #34495e);
+    }
+
+    .nav-sidebar .nav-link {
+      color: rgba(255,255,255,0.8) !important;
+      border-radius: 0.375rem;
+      margin: 0.125rem 0.5rem;
+      padding: 0.625rem 1rem;
+      transition: all 0.3s ease;
+    }
+
+    .nav-sidebar .nav-link:hover,
+    .nav-sidebar .nav-link.active {
+      background: rgba(255,255,255,0.1) !important;
+      color: white !important;
+    }
+
+    .card {
+      border: none;
+      border-radius: 0.75rem;
+      box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075);
+      transition: all 0.3s ease;
+    }
+
+    .card:hover {
+      box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15);
+      transform: translateY(-2px);
+    }
+
+    .btn {
+      border-radius: 0.5rem;
+      font-weight: 500;
+      transition: all 0.3s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 0.25rem 0.5rem rgba(0,0,0,0.15);
+    }
+
+    .modal-content {
+      border: none;
+      border-radius: 1rem;
+    }
+
+    .modal-header {
+      background: linear-gradient(135deg, var(--primary-color), var(--pathlab-blue));
+      color: white;
+      border-radius: 1rem 1rem 0 0;
+    }
+
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      z-index: 9999;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .stat-updated {
+      animation: pulse 1s ease-in-out;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+
+    .auto-saved {
+      background-color: #d4edda !important;
+      border-color: #c3e6cb !important;
+      transition: all 0.3s ease;
+    }
+
+    .fade-in {
+      animation: fadeIn 0.5s ease-in;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .table-responsive {
+      border-radius: 0.5rem;
+    }
+
+    .dataTables_wrapper .dataTables_filter input {
+      border-radius: 0.5rem;
+      border: 1px solid #dee2e6;
+      padding: 0.5rem 1rem;
+    }
+
+    .dataTables_wrapper .dataTables_length select {
+      border-radius: 0.5rem;
+      border: 1px solid #dee2e6;
+      padding: 0.25rem 0.5rem;
+    }
+
+    .toast {
+      backdrop-filter: blur(10px);
+    }
+    
+    .small-box {
+      border-radius: 0.75rem;
+      transition: all 0.3s ease;
+    }
+    
+    .small-box:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15);
+    }
+
+    .info-box {
+      border-radius: 0.75rem;
+      transition: all 0.3s ease;
+    }
+
+    .info-box:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15);
+    }
+
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #c1c1c1;
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #a8a8a8;
+    }
+  </style>
   
   <!-- Custom CSS -->
   <link rel="stylesheet" href="css/custom.css">
@@ -47,7 +230,7 @@ require_once __DIR__ . '/init.php';
   <?php endif; ?>
 </head>
 <body class="hold-transition sidebar-mini layout-fixed">
-<div class="wrapper">
+<div class="wrapper"
   <!-- Preloader -->
   <div class="preloader flex-column justify-content-center align-items-center">
     <?php if (hasLogo()): ?>
