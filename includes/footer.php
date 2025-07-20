@@ -1,53 +1,92 @@
   <footer class="main-footer">
     <div class="float-right d-none d-sm-block">
-      <b>Version</b> 1.0.0
+      <b>Version</b> 1.2.0 | <span class="text-muted">PathLab Pro Dynamic</span>
     </div>
-    <strong>Copyright &copy; 2023-2025 <a href="#" class="text-primary">PathLab Pro</a>.</strong> All rights reserved.
+    <strong>Copyright &copy; 2023-<?php echo date('Y'); ?> <a href="#" class="text-primary">PathLab Pro</a>.</strong> All rights reserved.
   </footer>
 
   <!-- Control Sidebar -->
   <aside class="control-sidebar control-sidebar-dark">
-    <!-- Control sidebar content goes here -->
     <div class="p-3">
-      <h5>Customize</h5>
+      <h5><i class="fas fa-cog mr-2"></i>Settings</h5>
       <hr class="mb-2">
-      <div class="mb-4">
-        <input type="checkbox" value="1" checked="checked" class="mr-1">
-        <span>Dark Mode</span>
+      <div class="mb-3">
+        <label class="form-check-label">
+          <input type="checkbox" class="form-check-input" id="darkModeToggle">
+          <i class="fas fa-moon mr-2"></i>Dark Mode
+        </label>
       </div>
-      <div class="mb-1">
-        <input type="checkbox" value="1" checked="checked" class="mr-1">
-        <span>Fixed Layout</span>
+      <div class="mb-3">
+        <label class="form-check-label">
+          <input type="checkbox" class="form-check-input" id="autoRefresh" checked>
+          <i class="fas fa-sync mr-2"></i>Auto Refresh
+        </label>
       </div>
-      <div class="mb-1">
-        <input type="checkbox" value="1" class="mr-1">
-        <span>Boxed Layout</span>
+      <div class="mb-3">
+        <label class="form-check-label">
+          <input type="checkbox" class="form-check-input" id="soundNotifications">
+          <i class="fas fa-volume-up mr-2"></i>Sound Alerts
+        </label>
       </div>
+      <hr>
+      <button class="btn btn-sm btn-primary btn-block" onclick="DynamicUtils.notify('info', 'Settings saved!')">
+        <i class="fas fa-save mr-1"></i>Save Settings
+      </button>
     </div>
   </aside>
-  <!-- /.control-sidebar -->
 </div>
 <!-- ./wrapper -->
 
-<!-- jQuery -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.0/jquery.min.js"></script>
-<!-- jQuery UI 1.11.4 -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.13.2/jquery-ui.min.js"></script>
-<!-- Resolve conflict in jQuery UI tooltip with Bootstrap tooltip -->
-<script>
-  $.widget.bridge('uibutton', $.ui.button)
-</script>
-<!-- Bootstrap 4 -->
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="globalLoadingOverlay">
+    <div class="d-flex flex-column align-items-center">
+        <div class="spinner-border text-light mb-3" role="status" style="width: 3rem; height: 3rem;">
+            <span class="sr-only">Loading...</span>
+        </div>
+        <div class="text-light">
+            <span id="loadingMessage">Loading...</span>
+        </div>
+    </div>
+</div>
+
+<!-- Core JavaScript Libraries -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.5/jquery.validate.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/js/bootstrap.bundle.min.js"></script>
-<!-- ChartJS -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
-<!-- Sparkline -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-sparklines/2.1.2/jquery.sparkline.min.js"></script>
-<!-- JQVMap -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jqvmap/1.5.1/jquery.vmap.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jqvmap/1.5.1/maps/jquery.vmap.usa.js"></script>
-<!-- jQuery Knob Chart -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jQuery-Knob/1.2.13/jquery.knob.min.js"></script>
+
+<!-- AdminLTE and UI Components -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.2.0/js/adminlte.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.1.4/toastr.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
+<!-- DataTables and Extensions -->
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap4.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap4.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.bootstrap4.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.print.min.js"></script>
+
+<!-- Form and Input Components -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-daterangepicker/3.0.5/daterangepicker.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tempusdominus-bootstrap-4/5.39.0/js/tempusdominus-bootstrap-4.min.js"></script>
+
+<!-- Charts and Visualization -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.min.js"></script>
+
+<!-- Utilities -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootbox.js/6.0.0/bootbox.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.11/clipboard.min.js"></script>
+
+<!-- PathLab Pro Dynamic Utilities -->
+<script src="js/dynamic-utils.js"></script>
 <!-- daterangepicker -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-daterangepicker/3.0.5/daterangepicker.js"></script>
