@@ -3,16 +3,24 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Local Database configuration for development
-// $host = 'localhost';
-// $dbname = 'pathlab_pro';
-// $username = 'root';
-// $password = '';
+// Error reporting for development
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
 
+// Timezone setting
+date_default_timezone_set('America/New_York');
+
+// Database configuration
 $host = 'localhost';
 $dbname = 'u902379465_fitness';
 $username = 'u902379465_fitness';
 $password = '!f#gGC^VKs0';
+
+// Alternative local configuration (uncomment for local development)
+// $host = 'localhost';
+// $dbname = 'pathlab_pro';
+// $username = 'root';
+// $password = '';
 
 try {
     // First create database if it doesn't exist
@@ -22,19 +30,51 @@ try {
     $pdo_temp = null;
     
     // Connect to the database using PDO
-    $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8", $username, $password);
+    $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $username, $password);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+    $pdo->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
     
     // Also create MySQLi connection for backward compatibility
     $conn = new mysqli($host, $username, $password, $dbname);
     if ($conn->connect_error) {
         die("MySQLi Connection failed: " . $conn->connect_error);
     }
-    $conn->set_charset("utf8");
+    $conn->set_charset("utf8mb4");
     
 } catch(PDOException $e) {
     die("Connection failed: " . $e->getMessage());
+}
+
+// Helper functions for AJAX responses
+function jsonResponse($success, $message, $data = null) {
+    header('Content-Type: application/json');
+    echo json_encode([
+        'success' => $success,
+        'message' => $message,
+        'data' => $data,
+        'timestamp' => date('Y-m-d H:i:s')
+    ]);
+    exit;
+}
+
+function validateInput($data, $required_fields = []) {
+    $errors = [];
+    
+    foreach ($required_fields as $field) {
+        if (empty($data[$field])) {
+            $errors[] = ucfirst(str_replace('_', ' ', $field)) . " is required";
+        }
+    }
+    
+    return $errors;
+}
+
+function sanitizeInput($data) {
+    if (is_array($data)) {
+        return array_map('sanitizeInput', $data);
+    }
+    return htmlspecialchars(trim($data), ENT_QUOTES, 'UTF-8');
 }
 
 // Create database tables if they don't exist
@@ -56,16 +96,24 @@ CREATE TABLE IF NOT EXISTS `users` (
 CREATE TABLE IF NOT EXISTS `patients` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `patient_id` varchar(20) NOT NULL UNIQUE,
-  `name` varchar(100) NOT NULL,
+  `first_name` varchar(50) NOT NULL,
+  `last_name` varchar(50) NOT NULL,
   `date_of_birth` date DEFAULT NULL,
   `gender` enum('male','female','other') DEFAULT NULL,
   `phone` varchar(20) DEFAULT NULL,
   `email` varchar(100) DEFAULT NULL,
   `address` text,
+  `emergency_contact` varchar(100) DEFAULT NULL,
+  `emergency_phone` varchar(20) DEFAULT NULL,
+  `blood_group` varchar(5) DEFAULT NULL,
+  `medical_history` text,
+  `allergies` text,
+  `status` enum('active','inactive') DEFAULT 'active',
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `patient_id` (`patient_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `test_categories` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -112,65 +160,76 @@ CREATE TABLE IF NOT EXISTS `doctors` (
 
 CREATE TABLE IF NOT EXISTS `test_orders` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
+  `order_number` varchar(50) NOT NULL UNIQUE,
   `patient_id` int(11) NOT NULL,
-  `test_id` int(11) NOT NULL,
   `doctor_id` int(11) DEFAULT NULL,
   `priority` enum('normal','high','urgent') DEFAULT 'normal',
   `status` enum('pending','processing','completed','cancelled') DEFAULT 'pending',
+  `total_amount` decimal(10,2) DEFAULT '0.00',
+  `discount` decimal(10,2) DEFAULT '0.00',
   `notes` text,
+  `sample_collected_at` timestamp NULL DEFAULT NULL,
+  `collected_by` int(11) DEFAULT NULL,
   `order_date` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
+  UNIQUE KEY `order_number` (`order_number`),
   KEY `patient_id` (`patient_id`),
-  KEY `test_id` (`test_id`),
   KEY `doctor_id` (`doctor_id`),
+  KEY `collected_by` (`collected_by`),
   CONSTRAINT `test_orders_ibfk_1` FOREIGN KEY (`patient_id`) REFERENCES `patients` (`id`),
-  CONSTRAINT `test_orders_ibfk_2` FOREIGN KEY (`test_id`) REFERENCES `tests` (`id`),
-  CONSTRAINT `test_orders_ibfk_3` FOREIGN KEY (`doctor_id`) REFERENCES `doctors` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+  CONSTRAINT `test_orders_ibfk_2` FOREIGN KEY (`doctor_id`) REFERENCES `doctors` (`id`),
+  CONSTRAINT `test_orders_ibfk_3` FOREIGN KEY (`collected_by`) REFERENCES `users` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `test_order_items` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `order_id` int(11) NOT NULL,
+  `test_order_id` int(11) NOT NULL,
   `test_id` int(11) NOT NULL,
   `quantity` int(11) DEFAULT '1',
   `price` decimal(10,2) NOT NULL,
+  `discount` decimal(10,2) DEFAULT '0.00',
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  KEY `order_id` (`order_id`),
+  KEY `test_order_id` (`test_order_id`),
   KEY `test_id` (`test_id`),
-  CONSTRAINT `test_order_items_ibfk_1` FOREIGN KEY (`order_id`) REFERENCES `test_orders` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `test_order_items_ibfk_1` FOREIGN KEY (`test_order_id`) REFERENCES `test_orders` (`id`) ON DELETE CASCADE,
   CONSTRAINT `test_order_items_ibfk_2` FOREIGN KEY (`test_id`) REFERENCES `tests` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `test_results` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `order_id` int(11) NOT NULL,
+  `test_order_id` int(11) NOT NULL,
   `test_id` int(11) NOT NULL,
-  `result_values` text NOT NULL,
+  `patient_id` int(11) NOT NULL,
+  `result_value` text,
   `reference_range` varchar(100) DEFAULT NULL,
-  `status` enum('Normal','Abnormal','Critical') DEFAULT 'Normal',
+  `status` enum('pending','completed','verified','abnormal') DEFAULT 'pending',
   `is_critical` tinyint(1) DEFAULT '0',
-  `notes` text,
-  `technician_id` int(11) DEFAULT NULL,
+  `comments` text,
+  `tested_by` int(11) DEFAULT NULL,
   `verified_by` int(11) DEFAULT NULL,
   `verified_at` timestamp NULL DEFAULT NULL,
+  `result_date` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  KEY `order_id` (`order_id`),
+  KEY `test_order_id` (`test_order_id`),
   KEY `test_id` (`test_id`),
-  KEY `technician_id` (`technician_id`),
+  KEY `patient_id` (`patient_id`),
+  KEY `tested_by` (`tested_by`),
   KEY `verified_by` (`verified_by`),
-  CONSTRAINT `test_results_ibfk_1` FOREIGN KEY (`order_id`) REFERENCES `test_orders` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `test_results_ibfk_1` FOREIGN KEY (`test_order_id`) REFERENCES `test_orders` (`id`) ON DELETE CASCADE,
   CONSTRAINT `test_results_ibfk_2` FOREIGN KEY (`test_id`) REFERENCES `tests` (`id`),
-  CONSTRAINT `test_results_ibfk_3` FOREIGN KEY (`technician_id`) REFERENCES `users` (`id`),
-  CONSTRAINT `test_results_ibfk_4` FOREIGN KEY (`verified_by`) REFERENCES `users` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+  CONSTRAINT `test_results_ibfk_3` FOREIGN KEY (`patient_id`) REFERENCES `patients` (`id`),
+  CONSTRAINT `test_results_ibfk_4` FOREIGN KEY (`tested_by`) REFERENCES `users` (`id`),
+  CONSTRAINT `test_results_ibfk_5` FOREIGN KEY (`verified_by`) REFERENCES `users` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `equipment` (
-  `equipment_id` int(11) NOT NULL AUTO_INCREMENT,
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `equipment_code` varchar(50) NOT NULL UNIQUE,
   `equipment_name` varchar(200) NOT NULL,
   `equipment_type` varchar(100) DEFAULT NULL,
   `model` varchar(100) DEFAULT NULL,
@@ -180,27 +239,34 @@ CREATE TABLE IF NOT EXISTS `equipment` (
   `location` varchar(100) DEFAULT NULL,
   `purchase_date` date DEFAULT NULL,
   `warranty_expiry` date DEFAULT NULL,
-  `status` enum('Working','Under Maintenance','Out of Order','Retired') DEFAULT 'Working',
+  `status` enum('active','inactive','maintenance','broken') DEFAULT 'active',
   `cost` decimal(12,2) DEFAULT NULL,
-  `notes` text,
+  `maintenance_schedule` enum('weekly','monthly','quarterly','yearly') DEFAULT 'monthly',
+  `last_maintenance` date DEFAULT NULL,
+  `next_maintenance` date DEFAULT NULL,
+  `description` text,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`equipment_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `equipment_code` (`equipment_code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `equipment_maintenance` (
-  `maintenance_id` int(11) NOT NULL AUTO_INCREMENT,
+  `id` int(11) NOT NULL AUTO_INCREMENT,
   `equipment_id` int(11) NOT NULL,
-  `maintenance_type` enum('Routine','Calibration','Repair','Emergency') NOT NULL,
+  `maintenance_type` enum('routine','calibration','repair','emergency') NOT NULL,
   `maintenance_date` date NOT NULL,
   `performed_by` varchar(100) DEFAULT NULL,
   `cost` decimal(10,2) DEFAULT '0.00',
-  `notes` text,
+  `description` text,
+  `next_maintenance_date` date DEFAULT NULL,
+  `status` enum('scheduled','in_progress','completed','cancelled') DEFAULT 'scheduled',
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`maintenance_id`),
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
   KEY `equipment_id` (`equipment_id`),
-  CONSTRAINT `equipment_maintenance_ibfk_1` FOREIGN KEY (`equipment_id`) REFERENCES `equipment` (`equipment_id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+  CONSTRAINT `equipment_maintenance_ibfk_1` FOREIGN KEY (`equipment_id`) REFERENCES `equipment` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 ";
 
 try {
@@ -264,15 +330,15 @@ try {
         
         // Insert sample patients
         $patients = [
-            ['PAT001', 'John Smith', '123-456-7890', 'john.smith@email.com', '123 Main St', '1985-06-15', 'male'],
-            ['PAT002', 'Jane Johnson', '987-654-3210', 'jane.j@email.com', '456 Oak Ave', '1990-12-03', 'female'],
-            ['PAT003', 'Mike Brown', '555-123-4567', 'mike.brown@email.com', '789 Pine Rd', '1978-09-22', 'male'],
-            ['PAT004', 'Sarah Wilson', '444-555-6666', 'sarah.w@email.com', '321 Elm St', '1988-03-18', 'female']
+            ['PAT001', 'John', 'Smith', '1985-06-15', 'male', '123-456-7890', 'john.smith@email.com', '123 Main St', 'Jane Smith', '123-456-7891', 'O+'],
+            ['PAT002', 'Jane', 'Johnson', '1990-12-03', 'female', '987-654-3210', 'jane.j@email.com', '456 Oak Ave', 'Bob Johnson', '987-654-3211', 'A+'],
+            ['PAT003', 'Mike', 'Brown', '1978-09-22', 'male', '555-123-4567', 'mike.brown@email.com', '789 Pine Rd', 'Sarah Brown', '555-123-4568', 'B+'],
+            ['PAT004', 'Sarah', 'Wilson', '1988-03-18', 'female', '444-555-6666', 'sarah.w@email.com', '321 Elm St', 'David Wilson', '444-555-6667', 'AB+']
         ];
         
         $insertPatient = $pdo->prepare("
-            INSERT INTO patients (patient_id, name, phone, email, address, date_of_birth, gender) 
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO patients (patient_id, first_name, last_name, date_of_birth, gender, phone, email, address, emergency_contact, emergency_phone, blood_group) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
         foreach ($patients as $patient) {
             $insertPatient->execute($patient);
