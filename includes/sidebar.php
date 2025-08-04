@@ -1,8 +1,8 @@
 <?php
-// Get user information from session
+// Get user information from session - using variables set in init.php
 $user_id = $_SESSION['user_id'] ?? '';
 $full_name = $_SESSION['full_name'] ?? $_SESSION['name'] ?? 'User';
-$user_type = $_SESSION['user_type'] ?? 'user';
+$user_type = $_SESSION['user_type'] ?? $_SESSION['role'] ?? 'user';
 
 // Get user initial for avatar
 $user_initial = strtoupper(substr($full_name, 0, 1));

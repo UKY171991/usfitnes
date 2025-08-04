@@ -1,6 +1,11 @@
 <?php
 // Include initialization file
 require_once __DIR__ . '/init.php';
+
+// Get user information for header
+$user_id = $_SESSION['user_id'] ?? '';
+$full_name = $_SESSION['full_name'] ?? $_SESSION['name'] ?? 'User';
+$user_type = $_SESSION['user_type'] ?? $_SESSION['role'] ?? 'user';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -152,11 +157,6 @@ require_once __DIR__ . '/init.php';
 
 <body class="hold-transition sidebar-mini layout-fixed">
 <div class="wrapper">
-
-  <!-- Preloader -->
-  <div class="preloader flex-column justify-content-center align-items-center">
-    <img class="animation__shake" src="https://via.placeholder.com/60x60/2c5aa0/ffffff?text=P" alt="PathLab Pro" height="60" width="60">
-  </div>
 
   <!-- Navbar -->
   <nav class="main-header navbar navbar-expand navbar-white navbar-light">
