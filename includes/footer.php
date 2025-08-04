@@ -135,6 +135,123 @@
 <!-- PathLab Pro Toaster Alerts -->
 <script src="js/toaster.js"></script>
 
+<!-- Enhanced Sidebar Functionality -->
+<script>
+$(document).ready(function() {
+    // Enhance sidebar navigation
+    initSidebarEnhancements();
+    
+    // Auto-collapse inactive submenus
+    autoCollapseMenus();
+    
+    // Add smooth scrolling to sidebar
+    addSidebarScrolling();
+    
+    // Initialize tooltips for sidebar items
+    initSidebarTooltips();
+});
+
+function initSidebarEnhancements() {
+    // Add hover effects and better navigation
+    $('.nav-sidebar .nav-item > .nav-link').on('mouseenter', function() {
+        if (!$(this).hasClass('active')) {
+            $(this).find('i').addClass('animated pulse');
+        }
+    }).on('mouseleave', function() {
+        $(this).find('i').removeClass('animated pulse');
+    });
+    
+    // Smooth expand/collapse for tree items
+    $('.nav-sidebar .nav-item.has-treeview > .nav-link').on('click', function(e) {
+        e.preventDefault();
+        const parent = $(this).parent();
+        const isOpen = parent.hasClass('menu-open');
+        
+        // Close other open menus in the same section
+        parent.siblings('.has-treeview.menu-open').removeClass('menu-open')
+              .find('.nav-treeview').slideUp(300);
+        
+        if (!isOpen) {
+            parent.addClass('menu-open');
+            parent.find('.nav-treeview').slideDown(300);
+        } else {
+            parent.removeClass('menu-open');
+            parent.find('.nav-treeview').slideUp(300);
+        }
+    });
+}
+
+function autoCollapseMenus() {
+    // Keep only the current page's parent menu open
+    $('.nav-sidebar .nav-item.has-treeview').each(function() {
+        const hasActiveChild = $(this).find('.nav-treeview .nav-link.active').length > 0;
+        if (!hasActiveChild) {
+            $(this).removeClass('menu-open');
+            $(this).find('.nav-treeview').hide();
+        }
+    });
+}
+
+function addSidebarScrolling() {
+    // Add smooth scrolling to active item
+    const activeItem = $('.nav-sidebar .nav-link.active');
+    if (activeItem.length) {
+        $('.sidebar').animate({
+            scrollTop: activeItem.offset().top - $('.sidebar').offset().top + $('.sidebar').scrollTop() - 100
+        }, 500);
+    }
+}
+
+function initSidebarTooltips() {
+    // Add tooltips for collapsed sidebar
+    if ($('body').hasClass('sidebar-collapse')) {
+        $('.nav-sidebar .nav-link').each(function() {
+            const text = $(this).find('p').text().trim();
+            if (text) {
+                $(this).attr('title', text);
+                $(this).tooltip({
+                    placement: 'right',
+                    trigger: 'hover'
+                });
+            }
+        });
+    }
+    
+    // Update tooltips when sidebar is toggled
+    $('[data-widget="pushmenu"]').on('click', function() {
+        setTimeout(function() {
+            $('.nav-sidebar .nav-link').tooltip('dispose');
+            if ($('body').hasClass('sidebar-collapse')) {
+                initSidebarTooltips();
+            }
+        }, 300);
+    });
+}
+
+// Add notification badges update functionality
+function updateNotificationBadges() {
+    // This can be extended to fetch real-time counts
+    $.ajax({
+        url: 'api/notifications.php',
+        method: 'GET',
+        success: function(response) {
+            if (response.success) {
+                // Update badge counts
+                if (response.data.new_orders > 0) {
+                    $('.nav-sidebar').find('a[href*="test-orders"]').find('.badge').text(response.data.new_orders);
+                }
+            }
+        },
+        error: function() {
+            // Silent fail for notifications
+        }
+    });
+}
+
+// Initialize periodic updates
+setInterval(updateNotificationBadges, 30000); // Every 30 seconds
+</script>
+
 <?php if (isset($additional_scripts)): ?>
 <?php echo $additional_scripts; ?>
 <?php endif; ?>

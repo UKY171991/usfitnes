@@ -19,13 +19,12 @@
           <img src="https://via.placeholder.com/160x160/2c5aa0/ffffff?text=<?php echo $user_initial; ?>" class="img-circle elevation-2" alt="User Image">
         </div>
         <div class="info">
-          <a href="settings.php" class="d-block"><?php echo htmlspecialchars($full_name); ?></a>
-          <span class="user-role"><?php echo ucfirst(htmlspecialchars($user_type)); ?></span>
+          <a href="settings.php" class="d-block text-white"><?php echo htmlspecialchars($full_name); ?></a>
+          <small class="text-muted"><?php echo ucfirst(htmlspecialchars($user_type)); ?></small>
         </div>
       </div>
 
 
-      
       <!-- Sidebar Menu -->
       <nav class="mt-2">
         <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
@@ -39,35 +38,63 @@
           </li>
 
           <!-- Patient Management -->
-          <li class="nav-item">
-            <a href="patients.php" class="nav-link <?php echo isActive('patients.php'); ?>">
-              <i class="nav-icon fas fa-user-injured"></i>
-              <p>Patient Management</p>
+          <li class="nav-item has-treeview <?php echo in_array(basename($_SERVER['PHP_SELF']), ['patients.php']) ? 'menu-open' : ''; ?>">
+            <a href="#" class="nav-link <?php echo in_array(basename($_SERVER['PHP_SELF']), ['patients.php']) ? 'active' : ''; ?>">
+              <i class="nav-icon fas fa-users"></i>
+              <p>
+                Patient Management
+                <i class="right fas fa-angle-left"></i>
+              </p>
             </a>
+            <ul class="nav nav-treeview">
+              <li class="nav-item">
+                <a href="patients.php" class="nav-link <?php echo isActive('patients.php'); ?>">
+                  <i class="far fa-circle nav-icon"></i>
+                  <p>All Patients</p>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a href="patients.php?action=add" class="nav-link">
+                  <i class="far fa-circle nav-icon"></i>
+                  <p>Add New Patient</p>
+                </a>
+              </li>
+            </ul>
           </li>
 
           <!-- Laboratory Management -->
-          <li class="nav-header">LABORATORY</li>
-          <li class="nav-item">
-            <a href="test-orders.php" class="nav-link <?php echo isActive('test-orders.php'); ?>">
-              <i class="nav-icon fas fa-clipboard-list"></i>
+          <li class="nav-header">LABORATORY OPERATIONS</li>
+          <li class="nav-item has-treeview <?php echo in_array(basename($_SERVER['PHP_SELF']), ['test-orders.php', 'tests.php', 'results.php']) ? 'menu-open' : ''; ?>">
+            <a href="#" class="nav-link <?php echo in_array(basename($_SERVER['PHP_SELF']), ['test-orders.php', 'tests.php', 'results.php']) ? 'active' : ''; ?>">
+              <i class="nav-icon fas fa-flask"></i>
               <p>
-                Test Orders
-                <span class="right badge badge-primary">New</span>
+                Laboratory Tests
+                <i class="right fas fa-angle-left"></i>
               </p>
             </a>
-          </li>
-          <li class="nav-item">
-            <a href="tests.php" class="nav-link <?php echo isActive('tests.php'); ?>">
-              <i class="nav-icon fas fa-flask"></i>
-              <p>Lab Tests</p>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a href="results.php" class="nav-link <?php echo isActive('results.php'); ?>">
-              <i class="nav-icon fas fa-file-medical"></i>
-              <p>Test Results</p>
-            </a>
+            <ul class="nav nav-treeview">
+              <li class="nav-item">
+                <a href="test-orders.php" class="nav-link <?php echo isActive('test-orders.php'); ?>">
+                  <i class="far fa-circle nav-icon"></i>
+                  <p>
+                    Test Orders
+                    <span class="right badge badge-primary">New</span>
+                  </p>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a href="tests.php" class="nav-link <?php echo isActive('tests.php'); ?>">
+                  <i class="far fa-circle nav-icon"></i>
+                  <p>Available Tests</p>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a href="results.php" class="nav-link <?php echo isActive('results.php'); ?>">
+                  <i class="far fa-circle nav-icon"></i>
+                  <p>Test Results</p>
+                </a>
+              </li>
+            </ul>
           </li>
 
           <!-- Staff & Resources -->
@@ -78,34 +105,66 @@
               <p>Doctors</p>
             </a>
           </li>
+          
+          <li class="nav-item has-treeview <?php echo in_array(basename($_SERVER['PHP_SELF']), ['equipment.php']) ? 'menu-open' : ''; ?>">
+            <a href="#" class="nav-link <?php echo in_array(basename($_SERVER['PHP_SELF']), ['equipment.php']) ? 'active' : ''; ?>">
+              <i class="nav-icon fas fa-microscope"></i>
+              <p>
+                Equipment
+                <i class="right fas fa-angle-left"></i>
+              </p>
+            </a>
+            <ul class="nav nav-treeview">
+              <li class="nav-item">
+                <a href="equipment.php" class="nav-link <?php echo isActive('equipment.php'); ?>">
+                  <i class="far fa-circle nav-icon"></i>
+                  <p>All Equipment</p>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a href="equipment.php?action=maintenance" class="nav-link">
+                  <i class="far fa-circle nav-icon"></i>
+                  <p>Maintenance</p>
+                </a>
+              </li>
+            </ul>
+          </li>
+
           <?php if($user_type == 'admin'): ?>
+          <!-- Admin Only Section -->
+          <li class="nav-header">ADMINISTRATION</li>
           <li class="nav-item">
             <a href="users.php" class="nav-link <?php echo isActive('users.php'); ?>">
-              <i class="nav-icon fas fa-users"></i>
+              <i class="nav-icon fas fa-users-cog"></i>
               <p>User Management</p>
             </a>
           </li>
           <?php endif; ?>
-          <li class="nav-item">
-            <a href="equipment.php" class="nav-link <?php echo isActive('equipment.php'); ?>">
-              <i class="nav-icon fas fa-microscope"></i>
-              <p>Equipment</p>
-            </a>
-          </li>
 
           <!-- Reports & Analytics -->
           <li class="nav-header">REPORTS & ANALYTICS</li>
-          <li class="nav-item">
-            <a href="reports.php" class="nav-link <?php echo isActive('reports.php'); ?>">
-              <i class="nav-icon fas fa-chart-line"></i>
-              <p>Reports</p>
+          <li class="nav-item has-treeview <?php echo in_array(basename($_SERVER['PHP_SELF']), ['reports.php', 'view_all_data.php']) ? 'menu-open' : ''; ?>">
+            <a href="#" class="nav-link <?php echo in_array(basename($_SERVER['PHP_SELF']), ['reports.php', 'view_all_data.php']) ? 'active' : ''; ?>">
+              <i class="nav-icon fas fa-chart-bar"></i>
+              <p>
+                Reports
+                <i class="right fas fa-angle-left"></i>
+              </p>
             </a>
-          </li>
-          <li class="nav-item">
-            <a href="view_all_data.php" class="nav-link <?php echo isActive('view_all_data.php'); ?>">
-              <i class="nav-icon fas fa-database"></i>
-              <p>Database View</p>
-            </a>
+            <ul class="nav nav-treeview">
+              <li class="nav-item">
+                <a href="reports.php" class="nav-link <?php echo isActive('reports.php'); ?>">
+                  <i class="far fa-circle nav-icon"></i>
+                  <p>Generate Reports</p>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a href="view_all_data.php" class="nav-link <?php echo isActive('view_all_data.php'); ?>">
+                  <i class="far fa-circle nav-icon"></i>
+                  <p>Database View</p>
+                </a>
+              </li>
+            </ul>
           </li>
 
           <!-- System -->
@@ -117,8 +176,8 @@
             </a>
           </li>
           <li class="nav-item">
-            <a href="logout.php" class="nav-link">
-              <i class="nav-icon fas fa-sign-out-alt text-danger"></i>
+            <a href="logout.php" class="nav-link text-danger" onclick="return confirm('Are you sure you want to logout?')">
+              <i class="nav-icon fas fa-sign-out-alt"></i>
               <p>Logout</p>
             </a>
           </li>

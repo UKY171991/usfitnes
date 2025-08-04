@@ -220,6 +220,68 @@ require_once __DIR__ . '/init.php';
     ::-webkit-scrollbar-thumb:hover {
       background: #a8a8a8;
     }
+    
+    /* Sidebar Enhancements */
+    .main-sidebar {
+      box-shadow: 0 14px 28px rgba(0,0,0,0.25), 0 10px 10px rgba(0,0,0,0.22);
+    }
+    
+    .nav-sidebar .nav-item > .nav-link {
+      border-radius: 0.5rem;
+      margin: 0.1rem 0.5rem;
+      transition: all 0.3s ease;
+    }
+    
+    .nav-sidebar .nav-item > .nav-link:hover {
+      background-color: rgba(255,255,255,0.1);
+      transform: translateX(5px);
+    }
+    
+    .nav-sidebar .nav-item > .nav-link.active {
+      background-color: var(--primary-color);
+      color: white;
+      box-shadow: 0 2px 10px rgba(44, 90, 160, 0.3);
+    }
+    
+    .nav-header {
+      color: #8fa1b3;
+      font-weight: 600;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 1rem 1rem 0.5rem 1rem;
+    }
+    
+    .nav-treeview > .nav-item > .nav-link {
+      padding-left: 2.5rem;
+      font-size: 0.9rem;
+    }
+    
+    .nav-treeview > .nav-item > .nav-link:hover {
+      background-color: rgba(255,255,255,0.05);
+      padding-left: 2.7rem;
+    }
+    
+    .user-panel .info a {
+      color: #c2c7d0;
+      text-decoration: none;
+    }
+    
+    .user-panel .info a:hover {
+      color: white;
+    }
+    
+    .brand-link:hover {
+      background-color: rgba(255,255,255,0.1);
+      text-decoration: none;
+    }
+    
+    /* Mobile sidebar improvements */
+    @media (max-width: 768px) {
+      .nav-sidebar .nav-item > .nav-link:hover {
+        transform: none;
+      }
+    }
   </style>
   
   <!-- Custom CSS -->
@@ -230,7 +292,7 @@ require_once __DIR__ . '/init.php';
   <?php endif; ?>
 </head>
 <body class="hold-transition sidebar-mini layout-fixed">
-<div class="wrapper"
+<div class="wrapper">
   <!-- Preloader -->
   <div class="preloader flex-column justify-content-center align-items-center">
     <?php if (hasLogo()): ?>
