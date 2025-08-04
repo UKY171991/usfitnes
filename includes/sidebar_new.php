@@ -13,59 +13,14 @@
 
     <!-- Sidebar -->
     <div class="sidebar">
-      <!-- Sidebar user panel (enhanced) -->
+      <!-- Sidebar user panel (optional) -->
       <div class="user-panel mt-3 pb-3 mb-3 d-flex">
         <div class="image">
           <img src="https://via.placeholder.com/160x160/2c5aa0/ffffff?text=<?php echo $user_initial; ?>" class="img-circle elevation-2" alt="User Image">
-          <div class="status-indicator bg-success"></div>
         </div>
         <div class="info">
-          <a href="settings.php" class="d-block text-white">
-            <strong><?php echo htmlspecialchars($full_name); ?></strong>
-          </a>
-          <small class="text-muted d-flex align-items-center">
-            <i class="fas fa-circle text-success mr-1" style="font-size: 0.5rem;"></i>
-            <?php echo ucfirst(htmlspecialchars($user_type)); ?> • Online
-          </small>
-        </div>
-      </div>
-
-      <!-- Quick Search -->
-      <div class="sidebar-search-form mb-3">
-        <div class="input-group">
-          <input type="text" class="form-control form-control-sidebar" placeholder="Search pages..." id="sidebarSearch" autocomplete="off">
-          <div class="input-group-append">
-            <button class="btn btn-sidebar" type="button" id="clearSearch">
-              <i class="fas fa-search"></i>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Quick Stats -->
-      <div class="sidebar-stats mb-3 px-3">
-        <div class="row text-center">
-          <div class="col-4">
-            <div class="stat-item">
-              <i class="fas fa-users text-info"></i>
-              <div class="stat-number" id="quickPatientCount">-</div>
-              <div class="stat-label">Patients</div>
-            </div>
-          </div>
-          <div class="col-4">
-            <div class="stat-item">
-              <i class="fas fa-flask text-warning"></i>
-              <div class="stat-number" id="quickTestCount">-</div>
-              <div class="stat-label">Tests</div>
-            </div>
-          </div>
-          <div class="col-4">
-            <div class="stat-item">
-              <i class="fas fa-user-md text-success"></i>
-              <div class="stat-number" id="quickDoctorCount">-</div>
-              <div class="stat-label">Doctors</div>
-            </div>
-          </div>
+          <a href="settings.php" class="d-block text-white"><?php echo htmlspecialchars($full_name); ?></a>
+          <small class="text-muted"><?php echo ucfirst(htmlspecialchars($user_type)); ?></small>
         </div>
       </div>
 
