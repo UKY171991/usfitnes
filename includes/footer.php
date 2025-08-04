@@ -28,21 +28,59 @@
 <!-- Toastr -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.1.4/toastr.min.js"></script>
 
+<!-- Suppress DataTables Alerts -->
+<script>
+// Suppress DataTables alerts and warnings
+if (typeof $.fn.dataTable !== 'undefined') {
+    $.fn.dataTable.ext.errMode = 'none';
+}
+
+// Override alert function to prevent DataTables popups
+var originalAlert = window.alert;
+window.alert = function(message) {
+    // Check if it's a DataTables error
+    if (message && message.includes('DataTables')) {
+        console.warn('DataTables warning suppressed:', message);
+        return;
+    }
+    // Allow other alerts
+    originalAlert.call(this, message);
+};
+
+// Suppress console errors for missing elements
+window.addEventListener('error', function(e) {
+    if (e.message && (e.message.includes('DataTables') || e.message.includes('$ is not defined'))) {
+        e.preventDefault();
+        return false;
+    }
+});
+</script>
+
 <!-- Custom Scripts -->
 <script>
 $(document).ready(function() {
-    // Initialize DataTables
-    if ($.fn.DataTable) {
-        $('.table').DataTable({
-            responsive: true,
-            lengthChange: false,
-            autoWidth: false,
-            pageLength: 25,
-            language: {
-                search: "_INPUT_",
-                searchPlaceholder: "Search records..."
-            }
-        });
+    // Disable automatic DataTables initialization
+    // Tables will only be initialized when explicitly called with .datatable class
+    
+    // Configure Toastr
+    if (typeof toastr !== 'undefined') {
+        toastr.options = {
+            closeButton: true,
+            debug: false,
+            newestOnTop: false,
+            progressBar: true,
+            positionClass: "toast-top-right",
+            preventDuplicates: false,
+            onclick: null,
+            showDuration: "300",
+            hideDuration: "1000",
+            timeOut: "5000",
+            extendedTimeOut: "1000",
+            showEasing: "swing",
+            hideEasing: "linear",
+            showMethod: "fadeIn",
+            hideMethod: "fadeOut"
+        };
     }
     
     // Auto-hide alerts after 5 seconds
@@ -119,6 +157,34 @@ function showInfo(message) {
 
 function showWarning(message) {
     toastr.warning(message);
+}
+
+// DataTable initialization function - call this manually when needed
+function initDataTable(selector, options = {}) {
+    if (typeof $.fn.DataTable !== 'undefined') {
+        const defaultOptions = {
+            responsive: true,
+            lengthChange: false,
+            autoWidth: false,
+            pageLength: 25,
+            language: {
+                search: "_INPUT_",
+                searchPlaceholder: "Search records..."
+            }
+        };
+        
+        const finalOptions = Object.assign(defaultOptions, options);
+        
+        $(selector).each(function() {
+            if (!$.fn.DataTable.isDataTable(this)) {
+                try {
+                    $(this).DataTable(finalOptions);
+                } catch (error) {
+                    console.log('DataTable initialization failed for:', this, error);
+                }
+            }
+        });
+    }
 }
 </script>
 

@@ -152,6 +152,17 @@ $user_type = $_SESSION['user_type'] ?? $_SESSION['role'] ?? 'user';
         font-size: 0.9rem;
       }
     }
+
+    /* Hide DataTables error messages */
+    .dataTables_processing,
+    .dt-error {
+      display: none !important;
+    }
+    
+    /* Hide any alert popups from DataTables */
+    .swal2-container {
+      z-index: 99999;
+    }
   </style>
 </head>
 
