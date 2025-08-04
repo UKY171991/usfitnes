@@ -14,7 +14,7 @@ date_default_timezone_set('America/New_York');
 $host = 'localhost';
 $dbname = 'u902379465_fitness';
 $username = 'u902379465_fitness';
-$password = '!f#gGC^VKs0';
+$password = '4gS>#RKZV~R';
 
 // Alternative local configuration (uncomment for local development)
 // $host = 'localhost';
