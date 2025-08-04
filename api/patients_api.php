@@ -1,8 +1,4 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
-
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE');
@@ -23,20 +19,22 @@ if (!isset($_SESSION['user_id'])) {
 require_once '../config.php';
 
 $method = $_SERVER['REQUEST_METHOD'];
-$input = json_decode(file_get_contents('php://input'), true);
+$action = $_GET['action'] ?? $_POST['action'] ?? '';
 
 try {
     switch ($method) {
         case 'GET':
-            handleGet($pdo);
+            handleGet($pdo, $action);
             break;
         case 'POST':
-            handlePost($pdo, $input);
+            handlePost($pdo, $action);
             break;
         case 'PUT':
+            $input = json_decode(file_get_contents('php://input'), true);
             handlePut($pdo, $input);
             break;
         case 'DELETE':
+            $input = json_decode(file_get_contents('php://input'), true);
             handleDelete($pdo, $input);
             break;
         default:
@@ -48,6 +46,277 @@ try {
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Server error: ' . $e->getMessage()]);
 }
+
+function handleGet($pdo, $action) {
+    switch ($action) {
+        case 'list':
+            getPatientsLis‍t($pdo);
+            break;
+        case 'get':
+            getPatient($pdo, $_GET['id']);
+            break;
+        case 'stats':
+            getPatientsStats($pdo);
+            break;
+        case 'export':
+            exportPatients($pdo);
+            break;
+        default:
+            echo json_encode(['success' => false, 'message' => 'Invalid action']);
+    }
+}
+
+function handlePost($pdo, $action) {
+    switch ($action) {
+        case 'add':
+            addPatient($pdo, $_POST);
+            break;
+        case 'update':
+            updatePatient($pdo, $_POST);
+            break;
+        case 'get':
+            getPatient($pdo, $_POST['id']);
+            break;
+        default:
+            echo json_encode(['success' => false, 'message' => 'Invalid action']);
+    }
+}
+
+function handlePut($pdo, $input) {
+    updatePatient($pdo, $input);
+}
+
+function handleDelete($pdo, $input) {
+    deletePatient($pdo, $input['id']);
+}
+
+function getPatientsLis‍t($pdo) {
+    try {
+        $stmt = $pdo->query("
+            SELECT id, patient_id, name, phone, email, date_of_birth, gender, address, created_at 
+            FROM patients 
+            ORDER BY created_at DESC
+        ");
+        $patients = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        echo json_encode([
+            'success' => true,
+            'data' => $patients
+        ]);
+    } catch (Exception $e) {
+        echo json_encode([
+            'success' => false,
+            'message' => 'Database error: ' . $e->getMessage()
+        ]);
+    }
+}
+
+function getPatient($pdo, $id) {
+    try {
+        $stmt = $pdo->prepare("SELECT * FROM patients WHERE id = ?");
+        $stmt->execute([$id]);
+        $patient = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if ($patient) {
+            echo json_encode([
+                'success' => true,
+                'data' => $patient
+            ]);
+        } else {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Patient not found'
+            ]);
+        }
+    } catch (Exception $e) {
+        echo json_encode([
+            'success' => false,
+            'message' => 'Database error: ' . $e->getMessage()
+        ]);
+    }
+}
+
+function getPatientsStats($pdo) {
+    try {
+        // Total patients
+        $stmt = $pdo->query("SELECT COUNT(*) as total FROM patients");
+        $total = $stmt->fetch()['total'];
+        
+        // Today's registrations
+        $stmt = $pdo->query("SELECT COUNT(*) as today FROM patients WHERE DATE(created_at) = CURDATE()");
+        $today = $stmt->fetch()['today'];
+        
+        // Male patients
+        $stmt = $pdo->query("SELECT COUNT(*) as male FROM patients WHERE gender = 'male'");
+        $male = $stmt->fetch()['male'];
+        
+        // Female patients
+        $stmt = $pdo->query("SELECT COUNT(*) as female FROM patients WHERE gender = 'female'");
+        $female = $stmt->fetch()['female'];
+        
+        echo json_encode([
+            'success' => true,
+            'data' => [
+                'total' => $total,
+                'today' => $today,
+                'male' => $male,
+                'female' => $female
+            ]
+        ]);
+    } catch (Exception $e) {
+        echo json_encode([
+            'success' => false,
+            'message' => 'Database error: ' . $e->getMessage()
+        ]);
+    }
+}
+
+function addPatient($pdo, $data) {
+    try {
+        $name = trim($data['name'] ?? '');
+        $phone = trim($data['phone'] ?? '') ?: null;
+        $email = trim($data['email'] ?? '') ?: null;
+        $date_of_birth = $data['date_of_birth'] ?: null;
+        $gender = $data['gender'] ?: null;
+        $address = trim($data['address'] ?? '') ?: null;
+        
+        if (empty($name)) {
+            echo json_encode(['success' => false, 'message' => 'Patient name is required']);
+            return;
+        }
+        
+        // Generate unique patient ID
+        $stmt = $pdo->query("SELECT COUNT(*) as count FROM patients");
+        $count = $stmt->fetch()['count'] + 1;
+        $patient_id = 'PAT-' . str_pad($count, 4, '0', STR_PAD_LEFT);
+        
+        // Check if patient ID already exists
+        while (true) {
+            $checkStmt = $pdo->prepare("SELECT id FROM patients WHERE patient_id = ?");
+            $checkStmt->execute([$patient_id]);
+            if (!$checkStmt->fetch()) break;
+            $count++;
+            $patient_id = 'PAT-' . str_pad($count, 4, '0', STR_PAD_LEFT);
+        }
+        
+        $stmt = $pdo->prepare("
+            INSERT INTO patients (patient_id, name, phone, email, date_of_birth, gender, address) 
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ");
+        
+        if ($stmt->execute([$patient_id, $name, $phone, $email, $date_of_birth, $gender, $address])) {
+            echo json_encode([
+                'success' => true,
+                'message' => 'Patient added successfully',
+                'patient_id' => $patient_id
+            ]);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Failed to add patient']);
+        }
+    } catch (Exception $e) {
+        echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
+    }
+}
+
+function updatePatient($pdo, $data) {
+    try {
+        $id = $data['id'] ?? '';
+        $name = trim($data['name'] ?? '');
+        $phone = trim($data['phone'] ?? '') ?: null;
+        $email = trim($data['email'] ?? '') ?: null;
+        $date_of_birth = $data['date_of_birth'] ?: null;
+        $gender = $data['gender'] ?: null;
+        $address = trim($data['address'] ?? '') ?: null;
+        
+        if (empty($id) || empty($name)) {
+            echo json_encode(['success' => false, 'message' => 'Patient ID and name are required']);
+            return;
+        }
+        
+        $stmt = $pdo->prepare("
+            UPDATE patients 
+            SET name = ?, phone = ?, email = ?, date_of_birth = ?, gender = ?, address = ?, updated_at = NOW()
+            WHERE id = ?
+        ");
+        
+        if ($stmt->execute([$name, $phone, $email, $date_of_birth, $gender, $address, $id])) {
+            echo json_encode(['success' => true, 'message' => 'Patient updated successfully']);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Failed to update patient']);
+        }
+    } catch (Exception $e) {
+        echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
+    }
+}
+
+function deletePatient($pdo, $id) {
+    try {
+        if (empty($id)) {
+            echo json_encode(['success' => false, 'message' => 'Patient ID is required']);
+            return;
+        }
+        
+        // Check if patient has any test orders first
+        $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM test_orders WHERE patient_id = ?");
+        $stmt->execute([$id]);
+        $testCount = $stmt->fetch()['count'];
+        
+        if ($testCount > 0) {
+            echo json_encode([
+                'success' => false, 
+                'message' => 'Cannot delete patient with existing test orders. Please remove test orders first.'
+            ]);
+            return;
+        }
+        
+        $stmt = $pdo->prepare("DELETE FROM patients WHERE id = ?");
+        
+        if ($stmt->execute([$id])) {
+            echo json_encode(['success' => true, 'message' => 'Patient deleted successfully']);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Failed to delete patient']);
+        }
+    } catch (Exception $e) {
+        echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
+    }
+}
+
+function exportPatients($pdo) {
+    try {
+        $stmt = $pdo->query("
+            SELECT patient_id, name, phone, email, date_of_birth, gender, address, created_at 
+            FROM patients 
+            ORDER BY created_at DESC
+        ");
+        $patients = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Create CSV content
+        $csv = "Patient ID,Name,Phone,Email,Date of Birth,Gender,Address,Registered Date\n";
+        
+        foreach ($patients as $patient) {
+            $csv .= sprintf(
+                '"%s","%s","%s","%s","%s","%s","%s","%s"' . "\n",
+                $patient['patient_id'],
+                $patient['name'],
+                $patient['phone'] ?? '',
+                $patient['email'] ?? '',
+                $patient['date_of_birth'] ?? '',
+                $patient['gender'] ?? '',
+                $patient['address'] ?? '',
+                $patient['created_at']
+            );
+        }
+        
+        echo json_encode([
+            'success' => true,
+            'data' => $csv,
+            'filename' => 'patients_export_' . date('Y-m-d_H-i-s') . '.csv'
+        ]);
+    } catch (Exception $e) {
+        echo json_encode(['success' => false, 'message' => 'Export error: ' . $e->getMessage()]);
+    }
+}
+?>
 
 function handleGet($pdo) {
     if (isset($_GET['id'])) {
