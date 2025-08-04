@@ -377,8 +377,7 @@ CREATE TABLE IF NOT EXISTS `system_settings` (
   `setting_type` enum('string','number','boolean','json') DEFAULT 'string',
   `description` text,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `setting_key` (`setting_key`)
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 ";
 
