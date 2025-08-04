@@ -7,7 +7,7 @@ if (session_status() === PHP_SESSION_NONE) {
 $host = 'localhost';
 $dbname = 'u902379465_fitness';
 $username = 'u902379465_fitness';
-$password = '!f#gGC^VKs0';
+$password = '4gS>#RKZV~R';
 
 try {
     // First create database if it doesn't exist
