@@ -6,22 +6,6 @@ $user_type = $_SESSION['user_type'] ?? $_SESSION['role'] ?? 'user';
 
 // Get user initial for avatar
 $user_initial = strtoupper(substr($full_name, 0, 1));
-
-// Function to check if current page is active
-function isActive($page) {
-    return basename($_SERVER['PHP_SELF']) === $page ? 'active' : '';
-}
-
-// Check if logo exists
-function hasLogo() {
-    return file_exists('images/logo.png') || file_exists('assets/logo.png');
-}
-
-function getLogoPath() {
-    if (file_exists('images/logo.png')) return 'images/logo.png';
-    if (file_exists('assets/logo.png')) return 'assets/logo.png';
-    return '';
-}
 ?>
 
 <!-- Main Sidebar Container -->
