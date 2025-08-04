@@ -282,6 +282,201 @@ require_once __DIR__ . '/init.php';
         transform: none;
       }
     }
+    
+    /* Enhanced Sidebar Styles */
+    .status-indicator {
+      position: absolute;
+      bottom: 2px;
+      right: 2px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: 2px solid #343a40;
+    }
+    
+    .sidebar-search-form .form-control-sidebar {
+      background-color: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: white;
+      border-radius: 0.5rem;
+    }
+    
+    .sidebar-search-form .form-control-sidebar:focus {
+      background-color: rgba(255,255,255,0.15);
+      border-color: var(--primary-color);
+      color: white;
+    }
+    
+    .sidebar-search-form .btn-sidebar {
+      background-color: transparent;
+      border: 1px solid rgba(255,255,255,0.2);
+      color: #adb5bd;
+      border-radius: 0 0.5rem 0.5rem 0;
+    }
+    
+    .sidebar-stats {
+      background: rgba(255,255,255,0.05);
+      border-radius: 0.5rem;
+      padding: 0.75rem;
+    }
+    
+    .stat-item {
+      text-align: center;
+      color: #adb5bd;
+    }
+    
+    .stat-item i {
+      font-size: 1.2rem;
+      margin-bottom: 0.25rem;
+    }
+    
+    .stat-number {
+      font-weight: bold;
+      font-size: 1rem;
+      color: white;
+    }
+    
+    .stat-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .nav-header {
+      display: flex;
+      align-items: center;
+      font-weight: 700;
+    }
+    
+    .nav-item .badge {
+      font-size: 0.65rem;
+      padding: 0.2rem 0.4rem;
+    }
+    
+    .text-purple {
+      color: #6f42c1 !important;
+    }
+    
+    /* Enhanced hover effects */
+    .nav-sidebar .nav-item > .nav-link:hover i {
+      transform: scale(1.1);
+      transition: transform 0.2s ease;
+    }
+    
+    /* Search functionality styles */
+    .search-highlight {
+      background-color: #ffc107 !important;
+      color: #000 !important;
+    }
+    
+    .nav-item.search-hidden {
+      display: none !important;
+    }
+    
+    /* Enhanced Animations */
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+    
+    @keyframes slideInLeft {
+      from { transform: translateX(-100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    
+    @keyframes fadeInUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    
+    .animated {
+      animation-duration: 0.3s;
+      animation-fill-mode: both;
+    }
+    
+    .pulse {
+      animation-name: pulse;
+    }
+    
+    .slideInLeft {
+      animation-name: slideInLeft;
+    }
+    
+    .fadeInUp {
+      animation-name: fadeInUp;
+    }
+    
+    /* Search highlight */
+    .search-highlight {
+      background-color: #ffc107;
+      color: #212529;
+      padding: 0 2px;
+      border-radius: 2px;
+      font-weight: 600;
+    }
+    
+    /* Enhanced loading states */
+    .loading-spinner {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border: 2px solid #f3f3f3;
+      border-top: 2px solid #007bff;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    /* Enhanced tooltip styles */
+    .tooltip-inner {
+      background-color: #343a40;
+      color: #fff;
+      border-radius: 4px;
+      padding: 8px 12px;
+      font-size: 12px;
+      max-width: 200px;
+    }
+    
+    .tooltip.bs-tooltip-right .arrow::before {
+      border-right-color: #343a40;
+    }
+    
+    /* Mobile enhancements */
+    @media (max-width: 767.98px) {
+      .main-sidebar .user-panel {
+        padding: 0.5rem;
+      }
+      
+      .sidebar-search-wrapper {
+        padding: 0.5rem;
+      }
+      
+      .quick-stats {
+        margin: 0.5rem;
+      }
+      
+      .nav-sidebar .nav-link {
+        padding: 0.5rem 0.75rem;
+      }
+      
+      .nav-sidebar .nav-link p {
+        font-size: 13px;
+      }
+    }
+    
+    /* Print styles */
+    @media print {
+      .main-sidebar,
+      .sidebar-search-wrapper,
+      .quick-stats {
+        display: none !important;
+      }
+    }
   </style>
   
   <!-- Custom CSS -->

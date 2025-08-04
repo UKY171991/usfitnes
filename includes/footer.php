@@ -138,21 +138,24 @@
 <!-- Enhanced Sidebar Functionality -->
 <script>
 $(document).ready(function() {
-    // Enhance sidebar navigation
-    initSidebarEnhancements();
+    // Enhanced sidebar navigation
+    initEnhancedSidebar();
     
-    // Auto-collapse inactive submenus
-    autoCollapseMenus();
+    // Initialize search functionality
+    initSidebarSearch();
     
-    // Add smooth scrolling to sidebar
-    addSidebarScrolling();
+    // Load quick stats
+    loadQuickStats();
     
-    // Initialize tooltips for sidebar items
-    initSidebarTooltips();
+    // Auto-update badges
+    updateSidebarBadges();
+    
+    // Initialize enhanced user experience
+    initSidebarUX();
 });
 
-function initSidebarEnhancements() {
-    // Add hover effects and better navigation
+function initEnhancedSidebar() {
+    // Enhanced hover effects and navigation
     $('.nav-sidebar .nav-item > .nav-link').on('mouseenter', function() {
         if (!$(this).hasClass('active')) {
             $(this).find('i').addClass('animated pulse');
@@ -161,7 +164,7 @@ function initSidebarEnhancements() {
         $(this).find('i').removeClass('animated pulse');
     });
     
-    // Smooth expand/collapse for tree items
+    // Smart expand/collapse for tree items
     $('.nav-sidebar .nav-item.has-treeview > .nav-link').on('click', function(e) {
         e.preventDefault();
         const parent = $(this).parent();
@@ -181,32 +184,98 @@ function initSidebarEnhancements() {
     });
 }
 
-function autoCollapseMenus() {
-    // Keep only the current page's parent menu open
-    $('.nav-sidebar .nav-item.has-treeview').each(function() {
-        const hasActiveChild = $(this).find('.nav-treeview .nav-link.active').length > 0;
-        if (!hasActiveChild) {
-            $(this).removeClass('menu-open');
-            $(this).find('.nav-treeview').hide();
+function initSidebarSearch() {
+    let searchTimeout;
+    
+    $('#sidebarSearch').on('input', function() {
+        clearTimeout(searchTimeout);
+        const searchTerm = $(this).val().toLowerCase();
+        
+        searchTimeout = setTimeout(function() {
+            if (searchTerm === '') {
+                $('.nav-item').removeClass('search-hidden');
+                $('.nav-sidebar p').removeClass('search-highlight');
+                return;
+            }
+            
+            $('.nav-sidebar .nav-item').each(function() {
+                const text = $(this).find('p').text().toLowerCase();
+                const link = $(this).find('.nav-link');
+                
+                if (text.includes(searchTerm)) {
+                    $(this).removeClass('search-hidden');
+                    // Highlight matching text
+                    const originalText = $(this).find('p').first().text();
+                    const regex = new RegExp(`(${searchTerm})`, 'gi');
+                    const highlighted = originalText.replace(regex, '<span class="search-highlight">$1</span>');
+                    $(this).find('p').first().html(highlighted);
+                } else {
+                    $(this).addClass('search-hidden');
+                }
+            });
+        }, 300);
+    });
+    
+    $('#clearSearch').on('click', function() {
+        $('#sidebarSearch').val('').trigger('input');
+    });
+}
+
+function loadQuickStats() {
+    // Load quick statistics for dashboard
+    $.ajax({
+        url: 'api/quick_stats.php',
+        method: 'GET',
+        success: function(response) {
+            if (response.success) {
+                $('#quickPatientCount').text(response.data.patients || '0');
+                $('#quickTestCount').text(response.data.tests || '0');
+                $('#quickDoctorCount').text(response.data.doctors || '0');
+                
+                // Update badges
+                $('#patientBadge').text(response.data.patients || '0');
+                $('#doctorsBadge').text(response.data.doctors || '0');
+            }
+        },
+        error: function() {
+            // Silent fail with placeholder values
+            $('#quickPatientCount').text('0');
+            $('#quickTestCount').text('0');
+            $('#quickDoctorCount').text('0');
         }
     });
 }
 
-function addSidebarScrolling() {
-    // Add smooth scrolling to active item
-    const activeItem = $('.nav-sidebar .nav-link.active');
-    if (activeItem.length) {
-        $('.sidebar').animate({
-            scrollTop: activeItem.offset().top - $('.sidebar').offset().top + $('.sidebar').scrollTop() - 100
-        }, 500);
-    }
+function updateSidebarBadges() {
+    // Update notification badges
+    $.ajax({
+        url: 'api/notifications.php',
+        method: 'GET',
+        success: function(response) {
+            if (response.success) {
+                if (response.data.new_orders > 0) {
+                    $('#ordersBadge').text(response.data.new_orders);
+                }
+                
+                // Update system status
+                const status = response.data.system_status || 'OK';
+                $('#systemStatus').text(status)
+                    .removeClass('badge-success badge-warning badge-danger')
+                    .addClass(status === 'OK' ? 'badge-success' : 
+                             status === 'WARNING' ? 'badge-warning' : 'badge-danger');
+            }
+        },
+        error: function() {
+            // Silent fail
+        }
+    });
 }
 
-function initSidebarTooltips() {
-    // Add tooltips for collapsed sidebar
+function initSidebarUX() {
+    // Add tooltip for collapsed sidebar
     if ($('body').hasClass('sidebar-collapse')) {
         $('.nav-sidebar .nav-link').each(function() {
-            const text = $(this).find('p').text().trim();
+            const text = $(this).find('p').first().text().trim();
             if (text) {
                 $(this).attr('title', text);
                 $(this).tooltip({
@@ -222,34 +291,59 @@ function initSidebarTooltips() {
         setTimeout(function() {
             $('.nav-sidebar .nav-link').tooltip('dispose');
             if ($('body').hasClass('sidebar-collapse')) {
-                initSidebarTooltips();
+                initSidebarUX();
             }
         }, 300);
     });
+    
+    // Auto-scroll to active item
+    const activeItem = $('.nav-sidebar .nav-link.active');
+    if (activeItem.length) {
+        setTimeout(function() {
+            $('.sidebar').animate({
+                scrollTop: activeItem.offset().top - $('.sidebar').offset().top + $('.sidebar').scrollTop() - 100
+            }, 500);
+        }, 300);
+    }
 }
 
-// Add notification badges update functionality
-function updateNotificationBadges() {
-    // This can be extended to fetch real-time counts
-    $.ajax({
-        url: 'api/notifications.php',
-        method: 'GET',
-        success: function(response) {
-            if (response.success) {
-                // Update badge counts
-                if (response.data.new_orders > 0) {
-                    $('.nav-sidebar').find('a[href*="test-orders"]').find('.badge').text(response.data.new_orders);
-                }
-            }
-        },
-        error: function() {
-            // Silent fail for notifications
-        }
+// Helper functions for menu actions
+function showEmergencyContacts() {
+    Swal.fire({
+        title: 'Emergency Contacts',
+        html: `
+            <div class="text-left">
+                <p><strong>Medical Emergency:</strong> 911</p>
+                <p><strong>Lab Emergency:</strong> +1 (555) 123-4567</p>
+                <p><strong>IT Support:</strong> +1 (555) 123-4568</p>
+                <p><strong>Admin Office:</strong> +1 (555) 123-4569</p>
+            </div>
+        `,
+        icon: 'info',
+        confirmButtonText: 'Close'
     });
 }
 
-// Initialize periodic updates
-setInterval(updateNotificationBadges, 30000); // Every 30 seconds
+function showHelp() {
+    Swal.fire({
+        title: 'Help & Support',
+        html: `
+            <div class="text-left">
+                <p><strong>User Manual:</strong> <a href="#" target="_blank">Download PDF</a></p>
+                <p><strong>Video Tutorials:</strong> <a href="#" target="_blank">Watch Online</a></p>
+                <p><strong>Support Email:</strong> support@pathlabpro.com</p>
+                <p><strong>Live Chat:</strong> Available 24/7</p>
+                <hr>
+                <small>PathLab Pro v1.2.0 | Build 2025.08.04</small>
+            </div>
+        `,
+        icon: 'question',
+        confirmButtonText: 'Close'
+    });
+}
+
+// Auto-refresh badges every 30 seconds
+setInterval(updateSidebarBadges, 30000);
 </script>
 
 <?php if (isset($additional_scripts)): ?>
