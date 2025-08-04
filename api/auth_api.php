@@ -86,7 +86,7 @@ function handleLogin($pdo, $input) {
                 'data' => [
                     'user_id' => $user['id'],
                     'username' => $user['username'],
-                    'full_name' => $user['full_name'],
+                    'full_name' => $user['name'],
                     'role' => $user['user_type']
                 ]
             ]);
