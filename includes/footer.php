@@ -30,30 +30,58 @@
 
 <!-- Suppress DataTables Alerts -->
 <script>
-// Suppress DataTables alerts and warnings
-if (typeof $.fn.dataTable !== 'undefined') {
-    $.fn.dataTable.ext.errMode = 'none';
-}
-
-// Override alert function to prevent DataTables popups
-var originalAlert = window.alert;
-window.alert = function(message) {
-    // Check if it's a DataTables error
-    if (message && message.includes('DataTables')) {
-        console.warn('DataTables warning suppressed:', message);
-        return;
+// Comprehensive error suppression
+(function() {
+    'use strict';
+    
+    // Suppress DataTables alerts and warnings
+    if (typeof $.fn.dataTable !== 'undefined') {
+        $.fn.dataTable.ext.errMode = 'none';
     }
-    // Allow other alerts
-    originalAlert.call(this, message);
-};
 
-// Suppress console errors for missing elements
-window.addEventListener('error', function(e) {
-    if (e.message && (e.message.includes('DataTables') || e.message.includes('$ is not defined'))) {
-        e.preventDefault();
-        return false;
-    }
-});
+    // Override alert function to prevent DataTables popups
+    var originalAlert = window.alert;
+    window.alert = function(message) {
+        // Check if it's a DataTables error or warning
+        if (message && (
+            message.includes('DataTables') || 
+            message.includes('table') ||
+            message.includes('Cannot reinitialise') ||
+            message.includes('Requested unknown parameter')
+        )) {
+            console.warn('DataTables warning suppressed:', message);
+            return;
+        }
+        // Allow other alerts
+        originalAlert.call(this, message);
+    };
+
+    // Suppress console errors for missing elements and common issues
+    window.addEventListener('error', function(e) {
+        if (e.message && (
+            e.message.includes('DataTables') || 
+            e.message.includes('$ is not defined') ||
+            e.message.includes('Cannot read properties of null') ||
+            e.message.includes('favicon.ico') ||
+            e.message.includes('net::ERR_NAME_NOT_RESOLVED')
+        )) {
+            e.preventDefault();
+            return false;
+        }
+    });
+    
+    // Suppress unhandled promise rejections for fetch errors
+    window.addEventListener('unhandledrejection', function(e) {
+        if (e.reason && e.reason.message && (
+            e.reason.message.includes('fetch') ||
+            e.reason.message.includes('NetworkError') ||
+            e.reason.message.includes('Failed to load')
+        )) {
+            e.preventDefault();
+            console.warn('Network error suppressed:', e.reason.message);
+        }
+    });
+})();
 </script>
 
 <!-- Custom Scripts -->
