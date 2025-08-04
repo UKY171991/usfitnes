@@ -151,6 +151,33 @@ if(isset($_SESSION['user_id'])) {
       text-decoration: underline;
     }
     
+    #togglePassword {
+      border-radius: 0 8px 8px 0;
+      border: 2px solid #e9ecef;
+      border-left: none;
+      background-color: #f8f9fa;
+      color: #6c757d;
+      transition: all 0.3s ease;
+    }
+    
+    #togglePassword:hover {
+      background-color: #e9ecef;
+      color: var(--primary-color);
+    }
+    
+    #togglePassword:focus {
+      box-shadow: 0 0 0 0.2rem rgba(44, 90, 160, 0.25);
+      border-color: var(--primary-color);
+    }
+    
+    .input-group:focus-within #togglePassword {
+      border-color: var(--primary-color);
+    }
+    
+    .input-group:focus-within .form-control {
+      border-right: none;
+    }
+    
     @media (max-width: 768px) {
       .login-box {
         width: 90%;
@@ -214,6 +241,11 @@ if(isset($_SESSION['user_id'])) {
               </span>
             </div>
             <input type="password" class="form-control" placeholder="Password" id="password" name="password" required>
+            <div class="input-group-append">
+              <button class="btn btn-outline-secondary" type="button" id="togglePassword" title="Show/Hide Password">
+                <i class="fas fa-eye" id="passwordIcon"></i>
+              </button>
+            </div>
           </div>
         </div>
         
@@ -268,6 +300,22 @@ $(document).ready(function() {
     $('#loginForm').on('submit', function(e) {
         e.preventDefault();
         loginUser();
+    });
+    
+    // Handle password toggle
+    $('#togglePassword').on('click', function() {
+        const passwordField = $('#password');
+        const passwordIcon = $('#passwordIcon');
+        
+        if (passwordField.attr('type') === 'password') {
+            passwordField.attr('type', 'text');
+            passwordIcon.removeClass('fa-eye').addClass('fa-eye-slash');
+            $(this).attr('title', 'Hide Password');
+        } else {
+            passwordField.attr('type', 'password');
+            passwordIcon.removeClass('fa-eye-slash').addClass('fa-eye');
+            $(this).attr('title', 'Show Password');
+        }
     });
     
     // Focus on username field
