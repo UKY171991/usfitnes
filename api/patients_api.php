@@ -18,36 +18,344 @@ if (!isset($_SESSION['user_id'])) {
 
 require_once '../config.php';
 
-$method = $_SERVER['REQUEST_METHOD'];
-$action = $_GET['action'] ?? $_POST['action'] ?? '';
-
-try {
-    switch ($method) {
-        case 'GET':
-            handleGet($pdo, $action);
-            break;
-        case 'POST':
-            handlePost($pdo, $action);
-            break;
-        case 'PUT':
-            $input = json_decode(file_get_contents('php://input'), true);
-            handlePut($pdo, $input);
-            break;
-        case 'DELETE':
-            $input = json_decode(file_get_contents('php://input'), true);
-            handleDelete($pdo, $input);
-            break;
-        default:
-            http_response_code(405);
-            echo json_encode(['success' => false, 'message' => 'Method not allowed']);
-            break;
+class PatientsAPI {
+    private $pdo;
+    
+    public function __construct($connection) {
+        $this->pdo = $connection;
     }
-} catch (Exception $e) {
-    http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Server error: ' . $e->getMessage()]);
+    
+    public function handleRequest() {
+        $method = $_SERVER['REQUEST_METHOD'];
+        $action = $_REQUEST['action'] ?? '';
+        
+        try {
+            switch ($method) {
+                case 'GET':
+                    return $this->handleGet($action);
+                case 'POST':
+                    return $this->handlePost($action);
+                default:
+                    http_response_code(405);
+                    return $this->errorResponse('Method not allowed');
+            }
+        } catch (Exception $e) {
+            http_response_code(500);
+            return $this->errorResponse('Server error: ' . $e->getMessage());
+        }
+    }
+    
+    private function handleGet($action) {
+        switch ($action) {
+            case 'list':
+                return $this->getPatientsList();
+            case 'stats':
+                return $this->getPatientStats();
+            case 'get':
+                return $this->getPatient();
+            case 'export':
+                return $this->exportPatients();
+            default:
+                return $this->errorResponse('Invalid action');
+        }
+    }
+    
+    private function handlePost($action) {
+        switch ($action) {
+            case 'add':
+                return $this->addPatient();
+            case 'update':
+                return $this->updatePatient();
+            case 'delete':
+                return $this->deletePatient();
+            default:
+                return $this->errorResponse('Invalid action');
+        }
+    }
+    
+    private function getPatientsList() {
+        try {
+            $sql = "SELECT p.*, 
+                           TIMESTAMPDIFF(YEAR, p.date_of_birth, CURDATE()) as age
+                    FROM patients p 
+                    ORDER BY p.created_at DESC";
+            
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute();
+            $patients = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            // Generate patient ID if not exists
+            foreach ($patients as &$patient) {
+                if (!$patient['patient_id'] || empty($patient['patient_id'])) {
+                    $patient['patient_id'] = 'PAT' . str_pad($patient['id'], 6, '0', STR_PAD_LEFT);
+                }
+            }
+            
+            return $this->successResponse($patients);
+            
+        } catch (Exception $e) {
+            return $this->errorResponse('Error fetching patients: ' . $e->getMessage());
+        }
+    }
+    
+    private function getPatientStats() {
+        try {
+            $stats = [];
+            
+            // Total patients
+            $stmt = $this->pdo->prepare("SELECT COUNT(*) as total FROM patients");
+            $stmt->execute();
+            $stats['total'] = $stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
+            
+            // Today's registrations
+            $stmt = $this->pdo->prepare("SELECT COUNT(*) as today FROM patients WHERE DATE(created_at) = CURDATE()");
+            $stmt->execute();
+            $stats['today'] = $stmt->fetch(PDO::FETCH_ASSOC)['today'] ?? 0;
+            
+            // Male patients
+            $stmt = $this->pdo->prepare("SELECT COUNT(*) as male FROM patients WHERE gender = 'male'");
+            $stmt->execute();
+            $stats['male'] = $stmt->fetch(PDO::FETCH_ASSOC)['male'] ?? 0;
+            
+            // Female patients
+            $stmt = $this->pdo->prepare("SELECT COUNT(*) as female FROM patients WHERE gender = 'female'");
+            $stmt->execute();
+            $stats['female'] = $stmt->fetch(PDO::FETCH_ASSOC)['female'] ?? 0;
+            
+            return $this->successResponse($stats);
+            
+        } catch (Exception $e) {
+            return $this->errorResponse('Error fetching statistics: ' . $e->getMessage());
+        }
+    }
+    
+    private function getPatient() {
+        $id = intval($_GET['id'] ?? 0);
+        
+        if (!$id) {
+            return $this->errorResponse('Patient ID is required');
+        }
+        
+        try {
+            $sql = "SELECT *, TIMESTAMPDIFF(YEAR, date_of_birth, CURDATE()) as age FROM patients WHERE id = ?";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([$id]);
+            
+            if ($patient = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                // Generate patient ID if not exists
+                if (!$patient['patient_id'] || empty($patient['patient_id'])) {
+                    $patient['patient_id'] = 'PAT' . str_pad($patient['id'], 6, '0', STR_PAD_LEFT);
+                }
+                return $this->successResponse($patient);
+            } else {
+                return $this->errorResponse('Patient not found');
+            }
+            
+        } catch (Exception $e) {
+            return $this->errorResponse('Error fetching patient: ' . $e->getMessage());
+        }
+    }
+    
+    private function addPatient() {
+        // Validate required fields
+        $name = trim($_POST['name'] ?? '');
+        if (empty($name)) {
+            return $this->errorResponse('Patient name is required');
+        }
+        
+        $phone = trim($_POST['phone'] ?? '');
+        $email = trim($_POST['email'] ?? '');
+        $date_of_birth = $_POST['date_of_birth'] ?? null;
+        $gender = $_POST['gender'] ?? null;
+        $address = trim($_POST['address'] ?? '');
+        
+        // Validate email if provided
+        if ($email && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return $this->errorResponse('Invalid email address');
+        }
+        
+        try {
+            // Check if patient with same name and phone already exists
+            if ($phone) {
+                $checkStmt = $this->pdo->prepare("SELECT id FROM patients WHERE name = ? AND phone = ?");
+                $checkStmt->execute([$name, $phone]);
+                
+                if ($checkStmt->fetch()) {
+                    return $this->errorResponse('Patient with this name and phone number already exists');
+                }
+            }
+            
+            // Generate patient ID
+            $stmt = $this->pdo->prepare("SELECT MAX(id) as max_id FROM patients");
+            $stmt->execute();
+            $maxId = $stmt->fetch(PDO::FETCH_ASSOC)['max_id'] ?? 0;
+            $patientId = 'PAT' . str_pad($maxId + 1, 6, '0', STR_PAD_LEFT);
+            
+            $sql = "INSERT INTO patients (patient_id, name, phone, email, date_of_birth, gender, address, created_at) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, NOW())";
+            
+            $stmt = $this->pdo->prepare($sql);
+            $result = $stmt->execute([$patientId, $name, $phone, $email, $date_of_birth, $gender, $address]);
+            
+            if ($result) {
+                return $this->successResponse(['id' => $this->pdo->lastInsertId()], 'Patient added successfully');
+            } else {
+                return $this->errorResponse('Failed to add patient');
+            }
+            
+        } catch (Exception $e) {
+            return $this->errorResponse('Error adding patient: ' . $e->getMessage());
+        }
+    }
+    
+    private function updatePatient() {
+        $id = intval($_POST['id'] ?? 0);
+        $name = trim($_POST['name'] ?? '');
+        
+        if (!$id) {
+            return $this->errorResponse('Patient ID is required');
+        }
+        
+        if (empty($name)) {
+            return $this->errorResponse('Patient name is required');
+        }
+        
+        $phone = trim($_POST['phone'] ?? '');
+        $email = trim($_POST['email'] ?? '');
+        $date_of_birth = $_POST['date_of_birth'] ?? null;
+        $gender = $_POST['gender'] ?? null;
+        $address = trim($_POST['address'] ?? '');
+        
+        // Validate email if provided
+        if ($email && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return $this->errorResponse('Invalid email address');
+        }
+        
+        try {
+            // Check if patient exists
+            $checkStmt = $this->pdo->prepare("SELECT id FROM patients WHERE id = ?");
+            $checkStmt->execute([$id]);
+            
+            if (!$checkStmt->fetch()) {
+                return $this->errorResponse('Patient not found');
+            }
+            
+            $sql = "UPDATE patients SET name = ?, phone = ?, email = ?, date_of_birth = ?, gender = ?, address = ?, updated_at = NOW() 
+                    WHERE id = ?";
+            
+            $stmt = $this->pdo->prepare($sql);
+            $result = $stmt->execute([$name, $phone, $email, $date_of_birth, $gender, $address, $id]);
+            
+            if ($result) {
+                return $this->successResponse(['id' => $id], 'Patient updated successfully');
+            } else {
+                return $this->errorResponse('Failed to update patient');
+            }
+            
+        } catch (Exception $e) {
+            return $this->errorResponse('Error updating patient: ' . $e->getMessage());
+        }
+    }
+    
+    private function deletePatient() {
+        $id = intval($_POST['id'] ?? 0);
+        
+        if (!$id) {
+            return $this->errorResponse('Patient ID is required');
+        }
+        
+        try {
+            // Check if patient exists
+            $checkStmt = $this->pdo->prepare("SELECT name FROM patients WHERE id = ?");
+            $checkStmt->execute([$id]);
+            
+            $patient = $checkStmt->fetch(PDO::FETCH_ASSOC);
+            if (!$patient) {
+                return $this->errorResponse('Patient not found');
+            }
+            
+            $stmt = $this->pdo->prepare("DELETE FROM patients WHERE id = ?");
+            $result = $stmt->execute([$id]);
+            
+            if ($result) {
+                return $this->successResponse(['id' => $id], 'Patient "' . $patient['name'] . '" deleted successfully');
+            } else {
+                return $this->errorResponse('Failed to delete patient');
+            }
+            
+        } catch (Exception $e) {
+            return $this->errorResponse('Error deleting patient: ' . $e->getMessage());
+        }
+    }
+    
+    private function exportPatients() {
+        try {
+            $sql = "SELECT patient_id, name, phone, email, date_of_birth, gender, address, created_at FROM patients ORDER BY created_at DESC";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute();
+            $patients = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            // Set headers for CSV download
+            header('Content-Type: text/csv');
+            header('Content-Disposition: attachment; filename="patients_export_' . date('Y-m-d_H-i-s') . '.csv"');
+            
+            $output = fopen('php://output', 'w');
+            
+            // CSV headers
+            fputcsv($output, ['Patient ID', 'Name', 'Phone', 'Email', 'Date of Birth', 'Gender', 'Address', 'Registered Date']);
+            
+            foreach ($patients as $patient) {
+                fputcsv($output, [
+                    $patient['patient_id'] ?? 'PAT' . str_pad($patient['id'], 6, '0', STR_PAD_LEFT),
+                    $patient['name'],
+                    $patient['phone'],
+                    $patient['email'],
+                    $patient['date_of_birth'],
+                    $patient['gender'],
+                    $patient['address'],
+                    $patient['created_at']
+                ]);
+            }
+            
+            fclose($output);
+            exit;
+            
+        } catch (Exception $e) {
+            return $this->errorResponse('Error exporting patients: ' . $e->getMessage());
+        }
+    }
+    
+    private function successResponse($data = null, $message = 'Success') {
+        return [
+            'success' => true,
+            'message' => $message,
+            'data' => $data
+        ];
+    }
+    
+    private function errorResponse($message = 'An error occurred') {
+        return [
+            'success' => false,
+            'message' => $message,
+            'data' => null
+        ];
+    }
 }
 
-function handleGet($pdo, $action) {
+// Handle the request
+try {
+    $api = new PatientsAPI($pdo);
+    $response = $api->handleRequest();
+    echo json_encode($response);
+    
+} catch (Exception $e) {
+    echo json_encode([
+        'success' => false,
+        'message' => 'Server error: ' . $e->getMessage(),
+        'data' => null
+    ]);
+}
+?>
     switch ($action) {
         case 'list':
             getPatientsLis‍t($pdo);
