@@ -30,6 +30,8 @@
 
 <!-- Global JavaScript -->
 <script src="js/global.js"></script>
+<!-- Sidebar Enhancements -->
+<script src="js/sidebar-enhancements.js"></script>
 
 <!-- Suppress DataTables Alerts -->
 <script>
