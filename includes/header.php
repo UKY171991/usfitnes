@@ -104,6 +104,358 @@ $user_type = $_SESSION['user_type'] ?? $_SESSION['role'] ?? 'user';
       bottom: 0 !important;
       width: 250px !important;
       z-index: 1020 !important;
+      box-shadow: 2px 0 6px rgba(0, 0, 0, 0.1) !important;
+      transition: all 0.3s ease !important;
+    }
+    
+    /* Enhanced Brand Link */
+    .brand-link {
+      display: flex !important;
+      align-items: center !important;
+      padding: 1rem 1.5rem !important;
+      background: rgba(0, 0, 0, 0.1) !important;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+      transition: all 0.3s ease !important;
+      text-decoration: none !important;
+    }
+    
+    .brand-link:hover {
+      background: rgba(0, 0, 0, 0.2) !important;
+      text-decoration: none !important;
+      transform: none !important;
+    }
+    
+    .brand-text {
+      color: #ffffff !important;
+      font-weight: 600 !important;
+      font-size: 1.25rem !important;
+      margin-left: 0.75rem !important;
+      transition: all 0.3s ease !important;
+    }
+    
+    .brand-image {
+      width: 35px !important;
+      height: 35px !important;
+      border-radius: 50% !important;
+      transition: all 0.3s ease !important;
+    }
+    
+    .brand-link:hover .brand-image {
+      transform: scale(1.05) !important;
+    }
+    
+    /* Enhanced User Panel */
+    .user-panel {
+      padding: 1.25rem !important;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+      background: rgba(255, 255, 255, 0.05) !important;
+      border-radius: 0.5rem !important;
+      margin: 1rem !important;
+      transition: all 0.3s ease !important;
+    }
+    
+    .user-panel:hover {
+      background: rgba(255, 255, 255, 0.08) !important;
+      transform: translateY(-1px) !important;
+    }
+    
+    .user-panel .image img {
+      width: 45px !important;
+      height: 45px !important;
+      border: 2px solid rgba(255, 255, 255, 0.2) !important;
+      transition: all 0.3s ease !important;
+    }
+    
+    .user-panel:hover .image img {
+      border-color: rgba(255, 255, 255, 0.4) !important;
+      transform: scale(1.05) !important;
+    }
+    
+    .user-panel .info a {
+      color: #ffffff !important;
+      font-weight: 600 !important;
+      font-size: 0.95rem !important;
+      transition: all 0.3s ease !important;
+      text-decoration: none !important;
+    }
+    
+    .user-panel .info a:hover {
+      color: #4b6cb7 !important;
+      text-decoration: none !important;
+    }
+    
+    .user-panel .info small {
+      color: rgba(255, 255, 255, 0.7) !important;
+      font-size: 0.8rem !important;
+      display: block !important;
+      margin-top: 0.25rem !important;
+    }
+    
+    /* Enhanced Navigation Headers */
+    .nav-header {
+      color: rgba(255, 255, 255, 0.6) !important;
+      font-size: 0.75rem !important;
+      font-weight: 700 !important;
+      text-transform: uppercase !important;
+      letter-spacing: 1px !important;
+      padding: 1.25rem 1.5rem 0.75rem !important;
+      margin-top: 1.5rem !important;
+      position: relative !important;
+    }
+    
+    .nav-header:first-of-type {
+      margin-top: 0.5rem !important;
+    }
+    
+    .nav-header::after {
+      content: '' !important;
+      position: absolute !important;
+      bottom: 0 !important;
+      left: 1.5rem !important;
+      right: 1.5rem !important;
+      height: 1px !important;
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0.2) 0%, transparent 100%) !important;
+    }
+    
+    /* Enhanced Navigation Items */
+    .nav-sidebar .nav-item {
+      margin: 0.25rem 0.75rem !important;
+    }
+    
+    .nav-sidebar .nav-link {
+      color: rgba(255, 255, 255, 0.85) !important;
+      border-radius: 0.5rem !important;
+      padding: 0.75rem 1rem !important;
+      transition: all 0.3s ease !important;
+      display: flex !important;
+      align-items: center !important;
+      position: relative !important;
+      overflow: hidden !important;
+    }
+    
+    /* Hover effect with sliding background */
+    .nav-sidebar .nav-link::before {
+      content: '' !important;
+      position: absolute !important;
+      top: 0 !important;
+      left: -100% !important;
+      width: 100% !important;
+      height: 100% !important;
+      background: linear-gradient(135deg, rgba(44, 90, 160, 0.8) 0%, rgba(30, 60, 114, 0.8) 100%) !important;
+      transition: left 0.3s ease !important;
+      z-index: -1 !important;
+    }
+    
+    .nav-sidebar .nav-link:hover::before {
+      left: 0 !important;
+    }
+    
+    .nav-sidebar .nav-link:hover {
+      color: #ffffff !important;
+      transform: translateX(5px) !important;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+    }
+    
+    /* Active state */
+    .nav-sidebar .nav-link.active {
+      background: linear-gradient(135deg, #2c5aa0 0%, #1e3c72 100%) !important;
+      color: #ffffff !important;
+      box-shadow: 0 3px 12px rgba(44, 90, 160, 0.4) !important;
+      transform: translateX(3px) !important;
+    }
+    
+    .nav-sidebar .nav-link.active::before {
+      left: 0 !important;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, transparent 100%) !important;
+    }
+    
+    /* Navigation Icons */
+    .nav-icon {
+      margin-right: 0.75rem !important;
+      width: 1.5rem !important;
+      text-align: center !important;
+      font-size: 1rem !important;
+      transition: all 0.3s ease !important;
+    }
+    
+    .nav-sidebar .nav-link:hover .nav-icon {
+      transform: scale(1.1) !important;
+      color: #4b6cb7 !important;
+    }
+    
+    .nav-sidebar .nav-link.active .nav-icon {
+      color: #ffffff !important;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important;
+    }
+    
+    /* Navigation Text */
+    .nav-sidebar .nav-link p {
+      margin: 0 !important;
+      font-weight: 500 !important;
+      font-size: 0.9rem !important;
+      transition: all 0.3s ease !important;
+    }
+    
+    .nav-sidebar .nav-link:hover p {
+      font-weight: 600 !important;
+    }
+    
+    /* Collapsed Sidebar Styles */
+    .sidebar-mini.sidebar-collapse .main-sidebar {
+      width: 4.6rem !important;
+    }
+    
+    .sidebar-mini.sidebar-collapse .content-wrapper {
+      margin-left: 4.6rem !important;
+    }
+    
+    .sidebar-mini.sidebar-collapse .brand-text {
+      display: none !important;
+    }
+    
+    .sidebar-mini.sidebar-collapse .nav-sidebar .nav-link p {
+      display: none !important;
+    }
+    
+    .sidebar-mini.sidebar-collapse .user-panel .info {
+      display: none !important;
+    }
+    
+    .sidebar-mini.sidebar-collapse .nav-header {
+      display: none !important;
+    }
+    
+    /* Tooltip for collapsed sidebar */
+    .sidebar-mini.sidebar-collapse .nav-sidebar .nav-link {
+      position: relative !important;
+    }
+    
+    .sidebar-mini.sidebar-collapse .nav-sidebar .nav-link:hover::after {
+      content: attr(data-title) !important;
+      position: absolute !important;
+      left: 100% !important;
+      top: 50% !important;
+      transform: translateY(-50%) !important;
+      background: rgba(0, 0, 0, 0.8) !important;
+      color: white !important;
+      padding: 0.5rem 0.75rem !important;
+      border-radius: 0.25rem !important;
+      font-size: 0.8rem !important;
+      white-space: nowrap !important;
+      z-index: 1000 !important;
+      margin-left: 0.5rem !important;
+    }
+    
+    /* Scrollbar for sidebar */
+    .sidebar::-webkit-scrollbar {
+      width: 4px !important;
+    }
+    
+    .sidebar::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.1) !important;
+    }
+    
+    .sidebar::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.3) !important;
+      border-radius: 2px !important;
+    }
+    
+    .sidebar::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.5) !important;
+    }
+    
+    /* Navigation Badges */
+    .nav-sidebar .badge {
+      font-size: 0.7rem !important;
+      padding: 0.25rem 0.5rem !important;
+      border-radius: 0.75rem !important;
+      font-weight: 600 !important;
+      margin-left: auto !important;
+      transition: all 0.3s ease !important;
+    }
+    
+    .nav-sidebar .badge.right {
+      margin-left: auto !important;
+    }
+    
+    .nav-sidebar .nav-link:hover .badge {
+      transform: scale(1.1) !important;
+    }
+    
+    .nav-sidebar .badge-info {
+      background: #17a2b8 !important;
+      color: white !important;
+    }
+    
+    .nav-sidebar .badge-warning {
+      background: #ffc107 !important;
+      color: #212529 !important;
+    }
+    
+    .nav-sidebar .badge-success {
+      background: #28a745 !important;
+      color: white !important;
+    }
+    
+    /* Special Logout Button Styling */
+    .logout-link {
+      border: 1px solid rgba(220, 53, 69, 0.3) !important;
+      margin-top: 1rem !important;
+    }
+    
+    .logout-link::before {
+      background: linear-gradient(135deg, rgba(220, 53, 69, 0.8) 0%, rgba(189, 33, 48, 0.8) 100%) !important;
+    }
+    
+    .logout-link:hover {
+      color: #ffffff !important;
+      border-color: rgba(220, 53, 69, 0.6) !important;
+    }
+    
+    .logout-link:hover .nav-icon {
+      color: #ffffff !important;
+    }
+    
+    /* Enhanced Brand Logo Animation */
+    .brand-link .fas.fa-microscope {
+      color: #4b6cb7 !important;
+      transition: all 0.3s ease !important;
+    }
+    
+    .brand-link:hover .fas.fa-microscope {
+      color: #ffffff !important;
+      transform: rotate(5deg) scale(1.1) !important;
+    }
+    
+    /* Smooth transitions for all sidebar elements */
+    .sidebar * {
+      transition: all 0.3s ease !important;
+    }
+    
+    /* Mobile responsive sidebar */
+    @media (max-width: 768px) {
+      .main-sidebar {
+        transform: translateX(-100%) !important;
+      }
+      
+      .main-sidebar.sidebar-open {
+        transform: translateX(0) !important;
+      }
+      
+      .sidebar-overlay {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        background: rgba(0, 0, 0, 0.5) !important;
+        z-index: 1010 !important;
+        display: none !important;
+      }
+      
+      .sidebar-overlay.active {
+        display: block !important;
+      }
     }
     
     .sidebar-mini.sidebar-collapse .main-sidebar {

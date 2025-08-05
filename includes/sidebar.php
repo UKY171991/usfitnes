@@ -40,7 +40,7 @@ $user_initial = strtoupper(substr($full_name, 0, 1));
         
         <!-- Dashboard -->
         <li class="nav-item">
-          <a href="dashboard.php" class="nav-link <?php echo isActive('dashboard.php'); ?>">
+          <a href="dashboard.php" class="nav-link <?php echo isActive('dashboard.php'); ?>" data-title="Dashboard">
             <i class="nav-icon fas fa-tachometer-alt"></i>
             <p>Dashboard</p>
           </a>
@@ -49,28 +49,34 @@ $user_initial = strtoupper(substr($full_name, 0, 1));
         <!-- Patient Management -->
         <li class="nav-header">PATIENT MANAGEMENT</li>
         <li class="nav-item">
-          <a href="patients.php" class="nav-link <?php echo isActive('patients.php'); ?>">
+          <a href="patients.php" class="nav-link <?php echo isActive('patients.php'); ?>" data-title="Patients">
             <i class="nav-icon fas fa-user-injured"></i>
-            <p>Patients</p>
+            <p>
+              Patients
+              <span class="badge badge-info right" id="patients-count">0</span>
+            </p>
           </a>
         </li>
 
         <!-- Test Management -->
         <li class="nav-header">TEST MANAGEMENT</li>
         <li class="nav-item">
-          <a href="test-orders.php" class="nav-link <?php echo isActive('test-orders.php'); ?>">
+          <a href="test-orders.php" class="nav-link <?php echo isActive('test-orders.php'); ?>" data-title="Test Orders">
             <i class="nav-icon fas fa-clipboard-list"></i>
-            <p>Test Orders</p>
+            <p>
+              Test Orders
+              <span class="badge badge-warning right" id="pending-orders">0</span>
+            </p>
           </a>
         </li>
         <li class="nav-item">
-          <a href="tests.php" class="nav-link <?php echo isActive('tests.php'); ?>">
+          <a href="tests.php" class="nav-link <?php echo isActive('tests.php'); ?>" data-title="Available Tests">
             <i class="nav-icon fas fa-flask"></i>
             <p>Available Tests</p>
           </a>
         </li>
         <li class="nav-item">
-          <a href="results.php" class="nav-link <?php echo isActive('results.php'); ?>">
+          <a href="results.php" class="nav-link <?php echo isActive('results.php'); ?>" data-title="Test Results">
             <i class="nav-icon fas fa-file-medical-alt"></i>
             <p>Test Results</p>
           </a>
@@ -79,7 +85,7 @@ $user_initial = strtoupper(substr($full_name, 0, 1));
         <!-- Staff Management -->
         <li class="nav-header">STAFF MANAGEMENT</li>
         <li class="nav-item">
-          <a href="doctors.php" class="nav-link <?php echo isActive('doctors.php'); ?>">
+          <a href="doctors.php" class="nav-link <?php echo isActive('doctors.php'); ?>" data-title="Doctors">
             <i class="nav-icon fas fa-user-md"></i>
             <p>Doctors</p>
           </a>
@@ -88,7 +94,7 @@ $user_initial = strtoupper(substr($full_name, 0, 1));
         <!-- Equipment -->
         <li class="nav-header">LABORATORY</li>
         <li class="nav-item">
-          <a href="equipment.php" class="nav-link <?php echo isActive('equipment.php'); ?>">
+          <a href="equipment.php" class="nav-link <?php echo isActive('equipment.php'); ?>" data-title="Equipment">
             <i class="nav-icon fas fa-microscope"></i>
             <p>Equipment</p>
           </a>
@@ -97,13 +103,13 @@ $user_initial = strtoupper(substr($full_name, 0, 1));
         <!-- Reports -->
         <li class="nav-header">REPORTS</li>
         <li class="nav-item">
-          <a href="reports.php" class="nav-link <?php echo isActive('reports.php'); ?>">
+          <a href="reports.php" class="nav-link <?php echo isActive('reports.php'); ?>" data-title="Reports">
             <i class="nav-icon fas fa-chart-bar"></i>
             <p>Reports</p>
           </a>
         </li>
         <li class="nav-item">
-          <a href="view_all_data.php" class="nav-link <?php echo isActive('view_all_data.php'); ?>">
+          <a href="view_all_data.php" class="nav-link <?php echo isActive('view_all_data.php'); ?>" data-title="View All Data">
             <i class="nav-icon fas fa-database"></i>
             <p>View All Data</p>
           </a>
@@ -113,15 +119,20 @@ $user_initial = strtoupper(substr($full_name, 0, 1));
         <!-- Admin Only -->
         <li class="nav-header">ADMINISTRATION</li>
         <li class="nav-item">
-          <a href="users.php" class="nav-link <?php echo isActive('users.php'); ?>">
+          <a href="users.php" class="nav-link <?php echo isActive('users.php'); ?>" data-title="User Management">
             <i class="nav-icon fas fa-users-cog"></i>
             <p>User Management</p>
           </a>
         </li>
         <li class="nav-item">
-          <a href="system_status.php" class="nav-link <?php echo isActive('system_status.php'); ?>">
+          <a href="system_status.php" class="nav-link <?php echo isActive('system_status.php'); ?>" data-title="System Status">
             <i class="nav-icon fas fa-server"></i>
-            <p>System Status</p>
+            <p>
+              System Status
+              <span class="badge badge-success right">
+                <i class="fas fa-circle" style="font-size: 0.6rem;"></i>
+              </span>
+            </p>
           </a>
         </li>
         <?php endif; ?>
@@ -129,7 +140,7 @@ $user_initial = strtoupper(substr($full_name, 0, 1));
         <!-- Settings -->
         <li class="nav-header">SYSTEM</li>
         <li class="nav-item">
-          <a href="settings.php" class="nav-link <?php echo isActive('settings.php'); ?>">
+          <a href="settings.php" class="nav-link <?php echo isActive('settings.php'); ?>" data-title="Settings">
             <i class="nav-icon fas fa-cogs"></i>
             <p>Settings</p>
           </a>
@@ -138,15 +149,15 @@ $user_initial = strtoupper(substr($full_name, 0, 1));
         <!-- Public Pages -->
         <li class="nav-header">QUICK ACCESS</li>
         <li class="nav-item">
-          <a href="index.php" class="nav-link <?php echo isActive('index.php'); ?>">
+          <a href="index.php" class="nav-link <?php echo isActive('index.php'); ?>" data-title="Homepage">
             <i class="nav-icon fas fa-home"></i>
             <p>Homepage</p>
           </a>
         </li>
 
         <!-- Logout -->
-        <li class="nav-item">
-          <a href="logout.php" class="nav-link" onclick="return confirm('Are you sure you want to logout?')">
+        <li class="nav-item" style="margin-top: 2rem;">
+          <a href="logout.php" class="nav-link logout-link" onclick="return confirm('Are you sure you want to logout?')" data-title="Logout">
             <i class="nav-icon fas fa-sign-out-alt"></i>
             <p>Logout</p>
           </a>

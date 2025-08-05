@@ -111,6 +111,12 @@ $(document).ready(function() {
         console.log('PathLabPro initialized');
     }
     
+    // Load sidebar counts
+    loadSidebarCounts();
+    
+    // Refresh sidebar counts every 30 seconds
+    setInterval(loadSidebarCounts, 30000);
+    
     // Disable automatic DataTables initialization
     // Tables will only be initialized when explicitly called with .datatable class
     
@@ -238,6 +244,77 @@ function initDataTable(selector, options = {}) {
         });
     }
 }
+
+// Load sidebar counts function
+function loadSidebarCounts() {
+    // Load patients count
+    $.ajax({
+        url: 'api/patients_api.php',
+        method: 'GET',
+        data: { action: 'count' },
+        dataType: 'json',
+        success: function(response) {
+            if (response.success) {
+                $('#patients-count').text(response.data || 0);
+            }
+        },
+        error: function() {
+            $('#patients-count').text('--');
+        }
+    });
+    
+    // Load pending orders count
+    $.ajax({
+        url: 'api/orders_api.php',
+        method: 'GET',
+        data: { action: 'pending_count' },
+        dataType: 'json',
+        success: function(response) {
+            if (response.success) {
+                const count = response.data || 0;
+                $('#pending-orders').text(count);
+                
+                // Hide badge if count is 0
+                if (count === 0) {
+                    $('#pending-orders').hide();
+                } else {
+                    $('#pending-orders').show();
+                }
+            }
+        },
+        error: function() {
+            $('#pending-orders').text('--');
+        }
+    });
+}
+
+// Sidebar toggle for mobile
+function toggleSidebar() {
+    $('.main-sidebar').toggleClass('sidebar-open');
+    $('.sidebar-overlay').toggleClass('active');
+}
+
+// Add sidebar overlay for mobile
+$(document).ready(function() {
+    if (!$('.sidebar-overlay').length) {
+        $('body').append('<div class="sidebar-overlay"></div>');
+    }
+    
+    // Close sidebar when overlay is clicked
+    $(document).on('click', '.sidebar-overlay', function() {
+        toggleSidebar();
+    });
+    
+    // Close sidebar on mobile when a link is clicked
+    $(document).on('click', '.nav-sidebar .nav-link', function() {
+        if ($(window).width() <= 768) {
+            setTimeout(function() {
+                $('.main-sidebar').removeClass('sidebar-open');
+                $('.sidebar-overlay').removeClass('active');
+            }, 100);
+        }
+    });
+});
 </script>
 
 <?php if (isset($additional_scripts)): ?>
