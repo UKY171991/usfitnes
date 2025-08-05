@@ -42,71 +42,280 @@ $user_type = $_SESSION['user_type'] ?? $_SESSION['role'] ?? 'user';
   
   <!-- Page-specific CSS Override -->
   <style>
-    /* Debug: Ensure our styles are loading */
-    .debug-test {
-      background-color: red !important;
-      color: white !important;
-      padding: 10px !important;
-      margin: 10px !important;
+    /* AdminLTE 3 Compatible Design System */
+    :root {
+      --primary: #007bff;
+      --secondary: #6c757d;
+      --success: #28a745;
+      --info: #17a2b8;
+      --warning: #ffc107;
+      --danger: #dc3545;
+      --light: #f8f9fa;
+      --dark: #343a40;
+      --pathlab-primary: #2c5aa0;
+      --pathlab-dark: #1e3c72;
+      --pathlab-light: #4b6cb7;
     }
     
-    /* Force our styles to take precedence over AdminLTE */
-    body.hold-transition {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
-      background-color: #f4f6f9 !important;
+    /* Override AdminLTE colors with PathLab branding */
+    .btn-primary {
+      background-color: var(--pathlab-primary) !important;
+      border-color: var(--pathlab-primary) !important;
     }
     
-    /* Ensure AdminLTE wrapper structure */
-    .wrapper {
-      min-height: 100vh !important;
-      position: relative !important;
+    .btn-primary:hover, .btn-primary:focus {
+      background-color: var(--pathlab-dark) !important;
+      border-color: var(--pathlab-dark) !important;
     }
     
+    /* Main Header - AdminLTE 3 Style */
+    .main-header.navbar {
+      background: linear-gradient(135deg, var(--pathlab-primary) 0%, var(--pathlab-dark) 100%) !important;
+      border-bottom: none !important;
+    }
+    
+    .navbar-light .navbar-nav .nav-link {
+      color: rgba(255,255,255,.8) !important;
+    }
+    
+    .navbar-light .navbar-nav .nav-link:hover {
+      color: rgba(255,255,255,1) !important;
+    }
+    
+    /* Sidebar - AdminLTE 3 Compatible */
+    .main-sidebar {
+      background: #343a40 !important;
+    }
+    
+    .sidebar-dark-primary .nav-sidebar > .nav-item > .nav-link.active {
+      background-color: var(--pathlab-primary) !important;
+      color: #fff !important;
+    }
+    
+    .sidebar-dark-primary .nav-sidebar > .nav-item > .nav-link:hover {
+      background-color: rgba(255,255,255,.1) !important;
+      color: #fff !important;
+    }
+    
+    /* Brand Link */
+    .brand-link {
+      border-bottom: 1px solid #4b545c !important;
+    }
+    
+    .brand-text {
+      font-weight: 300 !important;
+    }
+    
+    /* Content Wrapper */
     .content-wrapper {
-      background: linear-gradient(135deg, #f8f9fa 0%, #e3f2fd 100%) !important;
-      min-height: calc(100vh - 57px) !important;
-      margin-left: 250px !important;
-      padding: 0 !important;
+      background: #f4f4f4 !important;
     }
     
-    /* Fix statistics cards layout */
-    .row {
-      margin-left: -7.5px !important;
-      margin-right: -7.5px !important;
+    /* Cards - AdminLTE 3 Style */
+    .card {
+      box-shadow: 0 0 1px rgba(0,0,0,.125), 0 1px 3px rgba(0,0,0,.2) !important;
+      margin-bottom: 1rem !important;
     }
     
-    .col-lg-3, .col-6 {
-      padding-left: 7.5px !important;
-      padding-right: 7.5px !important;
+    .card-primary .card-header {
+      background-color: var(--pathlab-primary) !important;
+      border-color: var(--pathlab-primary) !important;
     }
     
-    .container-fluid {
-      padding-left: 15px !important;
-      padding-right: 15px !important;
+    .card-header {
+      background-color: transparent !important;
+      border-bottom: 1px solid rgba(0,0,0,.125) !important;
     }
     
-    @media (max-width: 991.98px) {
-      .content-wrapper {
+    /* Small Boxes - AdminLTE 3 Style */
+    .small-box {
+      border-radius: .25rem !important;
+      position: relative !important;
+      display: block !important;
+      margin-bottom: 20px !important;
+      box-shadow: 0 0 1px rgba(0,0,0,.125), 0 1px 3px rgba(0,0,0,.2) !important;
+    }
+    
+    .small-box > .inner {
+      padding: 10px !important;
+    }
+    
+    .small-box > .small-box-footer {
+      position: relative !important;
+      text-align: center !important;
+      padding: 3px 0 !important;
+      color: rgba(255,255,255,.8) !important;
+      background: rgba(0,0,0,.1) !important;
+      text-decoration: none !important;
+      z-index: 10 !important;
+      border-radius: 0 0 .25rem .25rem !important;
+    }
+    
+    .small-box > .small-box-footer:hover {
+      color: #fff !important;
+      background: rgba(0,0,0,.15) !important;
+    }
+    
+    .small-box .icon {
+      transition: all .3s linear !important;
+      position: absolute !important;
+      top: -10px !important;
+      right: 10px !important;
+      z-index: 0 !important;
+      font-size: 90px !important;
+      color: rgba(0,0,0,.15) !important;
+    }
+    
+    .small-box:hover {
+      text-decoration: none !important;
+      color: #fff !important;
+    }
+    
+    .small-box:hover .icon {
+      font-size: 95px !important;
+    }
+    
+    /* Buttons - AdminLTE 3 Consistency */
+    .btn {
+      border-radius: .25rem !important;
+    }
+    
+    .btn-app {
+      border-radius: .25rem !important;
+      position: relative !important;
+      padding: 15px 5px !important;
+      margin: 0 0 10px 10px !important;
+      min-width: 80px !important;
+      height: 60px !important;
+      text-align: center !important;
+      color: #666 !important;
+      border: 1px solid #ddd !important;
+      background-color: #f4f4f4 !important;
+      font-size: 12px !important;
+    }
+    
+    /* Tables - AdminLTE 3 Style */
+    .table-hover tbody tr:hover {
+      background-color: rgba(0,0,0,.075) !important;
+    }
+    
+    /* Forms - AdminLTE 3 Style */
+    .form-control:focus {
+      border-color: var(--pathlab-light) !important;
+      box-shadow: 0 0 0 .2rem rgba(44, 90, 160, .25) !important;
+    }
+    
+    /* Badges */
+    .badge-primary {
+      background-color: var(--pathlab-primary) !important;
+    }
+    
+    /* Breadcrumbs */
+    .breadcrumb {
+      background: transparent !important;
+      margin-bottom: 0 !important;
+    }
+    
+    /* Content Header */
+    .content-header {
+      padding: 15px .5rem 0 .5rem !important;
+    }
+    
+    .content-header h1 {
+      margin: 0 !important;
+      font-size: 1.8em !important;
+      color: #343a40 !important;
+    }
+    
+    /* DataTables Integration */
+    .dataTables_wrapper .dataTables_paginate .paginate_button.current,
+    .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+      color: white !important;
+      border: 1px solid var(--pathlab-primary) !important;
+      background-color: var(--pathlab-primary) !important;
+      background: var(--pathlab-primary) !important;
+    }
+    
+    .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+      color: white !important;
+      border: 1px solid var(--pathlab-light) !important;
+      background-color: var(--pathlab-light) !important;
+      background: var(--pathlab-light) !important;
+    }
+    
+    /* Modal - AdminLTE 3 Style */
+    .modal-header {
+      border-bottom: 1px solid #dee2e6 !important;
+      border-top-left-radius: calc(.3rem - 1px) !important;
+      border-top-right-radius: calc(.3rem - 1px) !important;
+    }
+    
+    .modal-footer {
+      border-top: 1px solid #dee2e6 !important;
+      border-bottom-right-radius: calc(.3rem - 1px) !important;
+      border-bottom-left-radius: calc(.3rem - 1px) !important;
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 767.98px) {
+      .content-wrapper, .main-footer, .main-header {
         margin-left: 0 !important;
+      }
+      
+      body.sidebar-open .content-wrapper,
+      body.sidebar-open .main-footer,
+      body.sidebar-open .main-header {
+        margin-left: 250px !important;
       }
     }
     
-    .main-header.navbar {
-      background: linear-gradient(135deg, #2c5aa0 0%, #1e3c72 100%) !important;
-      border-bottom: 2px solid #4b6cb7 !important;
+    /* Custom PathLab additions while maintaining AdminLTE structure */
+    .info-box {
+      box-shadow: 0 0 1px rgba(0,0,0,.125), 0 1px 3px rgba(0,0,0,.2) !important;
+      border-radius: .25rem !important;
+      background: #fff !important;
+      display: flex !important;
+      margin-bottom: 1rem !important;
+      min-height: 80px !important;
+      padding: .5rem !important;
+      position: relative !important;
+      width: 100% !important;
     }
     
-    .main-sidebar {
-      background: linear-gradient(180deg, #2c3e50 0%, #34495e 100%) !important;
-      position: fixed !important;
-      top: 57px !important;
-      left: 0 !important;
-      bottom: 0 !important;
-      width: 250px !important;
-      z-index: 1020 !important;
-      box-shadow: 2px 0 6px rgba(0, 0, 0, 0.1) !important;
-      transition: all 0.3s ease !important;
+    .info-box .info-box-icon {
+      border-radius: .25rem !important;
+      align-items: center !important;
+      display: flex !important;
+      font-size: 1.875rem !important;
+      justify-content: center !important;
+      text-align: center !important;
+      width: 70px !important;
     }
+    
+    .info-box .info-box-content {
+      display: flex !important;
+      flex-direction: column !important;
+      justify-content: center !important;
+      line-height: 1.8 !important;
+      flex: 1 !important;
+      padding: 0 10px !important;
+    }
+    
+    .progress-description,
+    .info-box-text {
+      display: block !important;
+      font-size: .875rem !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+    }
+    
+    .info-box-number {
+      display: block !important;
+      margin-top: .25rem !important;
+      font-weight: 700 !important;
+    }
+  </style>
     
     /* Enhanced Brand Link */
     .brand-link {
@@ -983,108 +1192,6 @@ $user_type = $_SESSION['user_type'] ?? $_SESSION['role'] ?? 'user';
     }
   </style>
   
-  <!-- Additional Custom CSS -->
-  <style>
-  <!-- Additional Custom CSS -->
-  <style>
-    /* Page-specific overrides can be added here */
-    
-    /* Ensure DataTables responsiveness */
-    .dataTables_wrapper .dataTables_processing {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        width: auto;
-        margin-left: -50px;
-        margin-top: -25px;
-        padding: 1rem 2rem;
-        background: rgba(255, 255, 255, 0.95);
-        border: 1px solid var(--border-color);
-        border-radius: var(--border-radius);
-        box-shadow: var(--box-shadow-lg);
-        font-weight: var(--font-weight-medium);
-        color: var(--primary-color);
-    }
-    
-    /* Custom scrollbar for tables */
-    .dataTables_scrollBody::-webkit-scrollbar {
-        height: 6px;
-    }
-    
-    .dataTables_scrollBody::-webkit-scrollbar-track {
-        background: var(--light);
-    }
-    
-    .dataTables_scrollBody::-webkit-scrollbar-thumb {
-        background: var(--primary-color);
-        border-radius: 3px;
-    }
-    
-    /* Loading spinner for AJAX calls */
-    .ajax-loading {
-        position: relative;
-    }
-    
-    .ajax-loading::after {
-        content: '';
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        width: 20px;
-        height: 20px;
-        margin: -10px 0 0 -10px;
-        border: 2px solid var(--light);
-        border-top: 2px solid var(--primary-color);
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-        z-index: 999;
-    }
-    
-    /* Enhanced form focus states */
-    .form-control:focus {
-        border-color: var(--primary-color) !important;
-        box-shadow: 0 0 0 0.2rem rgba(44, 90, 160, 0.25) !important;
-        transform: translateY(-1px);
-    }
-    
-    /* Button loading state */
-    .btn-loading {
-        pointer-events: none;
-        opacity: 0.8;
-        position: relative;
-    }
-    
-    .btn-loading::before {
-        content: '';
-        position: absolute;
-        left: 50%;
-        top: 50%;
-        width: 16px;
-        height: 16px;
-        margin: -8px 0 0 -8px;
-        border: 2px solid transparent;
-        border-top: 2px solid currentColor;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-    }
-    
-    /* Hide original button text when loading */
-    .btn-loading span {
-        visibility: hidden;
-    }
-    
-    /* Enhanced hover effects for interactive elements */
-    .clickable {
-        cursor: pointer;
-        transition: var(--transition);
-    }
-    
-    .clickable:hover {
-        transform: translateY(-1px);
-        box-shadow: var(--box-shadow-lg);
-    }
-  </style>
-  </style>
 </head>
 
 <body class="hold-transition sidebar-mini layout-fixed">
