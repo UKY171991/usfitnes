@@ -19,11 +19,6 @@ include 'includes/header.php';
 include 'includes/sidebar.php';
 ?>
 
-<!-- Debug CSS Test (remove after testing) -->
-<div class="debug-test" style="position: fixed; top: 10px; right: 10px; z-index: 9999;">
-  CSS is loading!
-</div>
-
 <!-- Content Wrapper -->
 <div class="content-wrapper">
   <!-- Content Header -->

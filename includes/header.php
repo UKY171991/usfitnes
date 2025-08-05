@@ -66,6 +66,23 @@ $user_type = $_SESSION['user_type'] ?? $_SESSION['role'] ?? 'user';
       background: linear-gradient(135deg, #f8f9fa 0%, #e3f2fd 100%) !important;
       min-height: calc(100vh - 57px) !important;
       margin-left: 250px !important;
+      padding: 0 !important;
+    }
+    
+    /* Fix statistics cards layout */
+    .row {
+      margin-left: -7.5px !important;
+      margin-right: -7.5px !important;
+    }
+    
+    .col-lg-3, .col-6 {
+      padding-left: 7.5px !important;
+      padding-right: 7.5px !important;
+    }
+    
+    .container-fluid {
+      padding-left: 15px !important;
+      padding-right: 15px !important;
     }
     
     @media (max-width: 991.98px) {
@@ -200,6 +217,38 @@ $user_type = $_SESSION['user_type'] ?? $_SESSION['role'] ?? 'user';
       border-radius: 0.75rem !important;
       overflow: hidden !important;
       box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
+      margin-top: 0 !important;
+    }
+    
+    .table {
+      margin-bottom: 0 !important;
+      background: white !important;
+      border-collapse: separate !important;
+      border-spacing: 0 !important;
+    }
+    
+    .table tbody td {
+      padding: 0.75rem !important;
+      vertical-align: middle !important;
+      border-top: 1px solid #e9ecef !important;
+      font-size: 0.875rem !important;
+    }
+    
+    .table tbody tr:hover {
+      background-color: rgba(44, 90, 160, 0.05) !important;
+    }
+    
+    /* Table button groups */
+    .btn-group .btn {
+      margin-right: 0 !important;
+      padding: 0.25rem 0.5rem !important;
+      font-size: 0.75rem !important;
+    }
+    
+    .btn-sm {
+      padding: 0.25rem 0.5rem !important;
+      font-size: 0.75rem !important;
+      line-height: 1.25 !important;
     }
     
     .small-box {
@@ -208,6 +257,8 @@ $user_type = $_SESSION['user_type'] ?? $_SESSION['role'] ?? 'user';
       box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
       position: relative !important;
       overflow: hidden !important;
+      margin-bottom: 1rem !important;
+      height: 140px !important;
     }
     
     .small-box:hover {
@@ -216,33 +267,57 @@ $user_type = $_SESSION['user_type'] ?? $_SESSION['role'] ?? 'user';
     }
     
     .small-box .inner {
-      padding: 2rem !important;
+      padding: 1.5rem !important;
       position: relative !important;
       z-index: 2 !important;
+      height: 100% !important;
+      display: flex !important;
+      flex-direction: column !important;
+      justify-content: center !important;
     }
     
     .small-box h3 {
       font-weight: 700 !important;
-      font-size: 2.5rem !important;
-      margin: 0 !important;
+      font-size: 2rem !important;
+      margin: 0 0 0.5rem 0 !important;
       color: white !important;
       text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important;
+      line-height: 1 !important;
     }
     
     .small-box p {
-      font-size: 1.125rem !important;
+      font-size: 1rem !important;
       color: rgba(255, 255, 255, 0.9) !important;
       margin: 0 !important;
       font-weight: 500 !important;
+      line-height: 1.2 !important;
     }
     
     .small-box .icon {
       position: absolute !important;
-      top: 1rem !important;
+      top: 50% !important;
       right: 1rem !important;
-      font-size: 4rem !important;
+      font-size: 3rem !important;
       color: rgba(255, 255, 255, 0.2) !important;
       z-index: 1 !important;
+      transform: translateY(-50%) !important;
+    }
+    
+    /* Fix specific small-box backgrounds */
+    .small-box.bg-info {
+      background: linear-gradient(135deg, #17a2b8 0%, #138496 100%) !important;
+    }
+    
+    .small-box.bg-success {
+      background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%) !important;
+    }
+    
+    .small-box.bg-primary {
+      background: linear-gradient(135deg, #2c5aa0 0%, #1e3c72 100%) !important;
+    }
+    
+    .small-box.bg-danger {
+      background: linear-gradient(135deg, #dc3545 0%, #bd2130 100%) !important;
     }
     
     .modal-content {
@@ -337,18 +412,70 @@ $user_type = $_SESSION['user_type'] ?? $_SESSION['role'] ?? 'user';
       border-color: #2c5aa0 !important;
     }
     
-    /* Loading animation */
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
+    /* Content sections spacing */
+    .content .row {
+      margin-bottom: 1.5rem !important;
     }
     
-    .fa-spin {
+    .content .row.mb-3 {
+      margin-bottom: 1.5rem !important;
+    }
+    
+    /* Card header improvements */
+    .card-header .card-title {
+      display: flex !important;
+      align-items: center !important;
+      gap: 0.5rem !important;
+      margin: 0 !important;
+      font-size: 1.125rem !important;
+    }
+    
+    .card-tools {
+      display: flex !important;
+      gap: 0.5rem !important;
+    }
+    
+    .card-tools .btn-tool {
+      color: var(--primary-color) !important;
+      border: 1px solid var(--primary-color) !important;
+      border-radius: 0.375rem !important;
+      padding: 0.25rem 0.5rem !important;
+      transition: all 0.3s ease !important;
+    }
+    
+    .card-tools .btn-tool:hover {
+      background: var(--primary-color) !important;
+      color: white !important;
+      transform: translateY(-1px) !important;
+    }
+    
+    /* Statistics section spacing */
+    .row.mb-3 {
+      margin-bottom: 1.5rem !important;
+    }
+    
+    /* Filter section improvements */
+    .col-md-6 .row {
+      margin: 0 !important;
+    }
+    
+    .col-md-4 {
+      padding-left: 0.375rem !important;
+      padding-right: 0.375rem !important;
+    }
+    
+    /* Loading spinner for statistics */
+    .fa-spinner.fa-spin {
       animation: spin 1s linear infinite !important;
+      color: rgba(255, 255, 255, 0.8) !important;
     }
     
     /* Responsive improvements */
     @media (max-width: 768px) {
+      .content-wrapper {
+        margin-left: 0 !important;
+      }
+      
       .content-header h1 {
         font-size: 1.5rem !important;
       }
@@ -368,6 +495,74 @@ $user_type = $_SESSION['user_type'] ?? $_SESSION['role'] ?? 'user';
       .content {
         padding: 1rem !important;
       }
+      
+      .col-lg-3 {
+        margin-bottom: 1rem !important;
+      }
+      
+      .btn-group .btn {
+        padding: 0.25rem 0.375rem !important;
+        font-size: 0.75rem !important;
+      }
+      
+      .table {
+        font-size: 0.8rem !important;
+      }
+      
+      .small-box {
+        height: 120px !important;
+      }
+      
+      .small-box .inner {
+        padding: 1rem !important;
+      }
+      
+      .small-box h3 {
+        font-size: 1.5rem !important;
+      }
+      
+      .small-box .icon {
+        font-size: 2.5rem !important;
+      }
+    }
+    
+    @media (max-width: 576px) {
+      .content-header,
+      .content {
+        padding-left: 0.75rem !important;
+        padding-right: 0.75rem !important;
+      }
+      
+      .container-fluid {
+        padding-left: 0.75rem !important;
+        padding-right: 0.75rem !important;
+      }
+      
+      .row {
+        margin-left: -0.375rem !important;
+        margin-right: -0.375rem !important;
+      }
+      
+      .col-lg-3, .col-6 {
+        padding-left: 0.375rem !important;
+        padding-right: 0.375rem !important;
+      }
+      
+      .small-box {
+        height: 100px !important;
+      }
+      
+      .small-box h3 {
+        font-size: 1.25rem !important;
+      }
+      
+      .small-box p {
+        font-size: 0.875rem !important;
+      }
+      
+      .small-box .icon {
+        font-size: 2rem !important;
+      }
     }
     
     /* Ensure proper z-index for navigation */
@@ -380,10 +575,20 @@ $user_type = $_SESSION['user_type'] ?? $_SESSION['role'] ?? 'user';
       transition: margin-left 0.3s ease-in-out !important;
     }
     
-    /* Input group styling */
+    /* Search and filter section styling */
     .input-group {
       border-radius: 0.375rem !important;
       overflow: hidden !important;
+      box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
+      margin-bottom: 1rem !important;
+    }
+    
+    .input-group .form-control {
+      border: 1px solid #dee2e6 !important;
+      border-right: none !important;
+      border-radius: 0 !important;
+      padding: 0.5rem 0.75rem !important;
+      height: auto !important;
     }
     
     .input-group .form-control:not(:last-child) {
@@ -394,6 +599,35 @@ $user_type = $_SESSION['user_type'] ?? $_SESSION['role'] ?? 'user';
     .input-group .btn:not(:first-child) {
       border-top-left-radius: 0 !important;
       border-bottom-left-radius: 0 !important;
+      border-left: none !important;
+    }
+    
+    .input-group-append .btn {
+      border-radius: 0 !important;
+    }
+    
+    .input-group-append .btn:last-child {
+      border-top-right-radius: 0.375rem !important;
+      border-bottom-right-radius: 0.375rem !important;
+    }
+    
+    /* Form controls in filter section */
+    .row .form-control {
+      margin-bottom: 0.5rem !important;
+    }
+    
+    /* Add Patient button styling */
+    .btn-success {
+      background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%) !important;
+      border-color: #28a745 !important;
+      color: white !important;
+      box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
+    }
+    
+    .btn-success:hover {
+      background: linear-gradient(135deg, #1e7e34 0%, #28a745 100%) !important;
+      transform: translateY(-1px) !important;
+      box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
     }
   </style>
   
