@@ -316,7 +316,8 @@ $user_type = $_SESSION['user_type'] ?? $_SESSION['role'] ?? 'user';
       font-weight: 700 !important;
     }
   </style>
-    
+  
+  <style>
     /* Enhanced Brand Link */
     .brand-link {
       display: flex !important;
