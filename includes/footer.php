@@ -28,6 +28,9 @@
 <!-- Toastr -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.1.4/toastr.min.js"></script>
 
+<!-- Global JavaScript -->
+<script src="js/global.js"></script>
+
 <!-- Suppress DataTables Alerts -->
 <script>
 // Comprehensive error suppression

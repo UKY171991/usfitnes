@@ -27,158 +27,120 @@ $user_type = $_SESSION['user_type'] ?? $_SESSION['role'] ?? 'user';
   <!-- Google Fonts -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
   
-  <!-- Custom CSS -->
+  <!-- DataTables CSS -->
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap4.min.css">
+  <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap4.min.css">
+  
+  <!-- Toastr CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/css/toastr.min.css">
+  
+  <!-- SweetAlert2 CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+  
+  <!-- Global Custom CSS -->
+  <link rel="stylesheet" href="css/global.css">
+  
+  <!-- Additional Custom CSS -->
   <style>
-    :root {
-      --primary-color: #2c5aa0;
-      --secondary-color: #f8f9fa;
-      --success-color: #28a745;
-      --danger-color: #dc3545;
-      --warning-color: #ffc107;
-      --info-color: #17a2b8;
-    }
-
-    body {
-      font-family: 'Inter', sans-serif;
-      background-color: #f4f6f9;
-    }
-
-    /* Sidebar Styling */
-    .main-sidebar {
-      background: linear-gradient(180deg, #2c3e50, #34495e);
-    }
-
-    .brand-link {
-      background: rgba(0,0,0,0.1);
-      border-bottom: 1px solid rgba(255,255,255,0.1);
-    }
-
-    .brand-text {
-      color: white !important;
-      font-weight: 600;
-    }
-
-    .user-panel .info a {
-      color: rgba(255,255,255,0.9) !important;
-      font-weight: 500;
-    }
-
-    .nav-header {
-      color: rgba(255,255,255,0.6) !important;
-      font-size: 0.75rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-top: 1rem;
-      margin-bottom: 0.5rem;
-    }
-
-    .nav-sidebar .nav-link {
-      color: rgba(255,255,255,0.8) !important;
-      border-radius: 0.375rem;
-      margin: 0.125rem 0.5rem;
-      padding: 0.625rem 1rem;
-      transition: all 0.3s ease;
-    }
-
-    .nav-sidebar .nav-link:hover {
-      background: rgba(255,255,255,0.1) !important;
-      color: white !important;
-      transform: translateX(2px);
-    }
-
-    .nav-sidebar .nav-link.active {
-      background: linear-gradient(45deg, var(--primary-color), #3498db) !important;
-      color: white !important;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-    }
-
-    .nav-icon {
-      margin-right: 0.5rem;
-      width: 1.25rem;
-      text-align: center;
-    }
-
-    /* Content Area */
-    .content-wrapper {
-      background-color: #f4f6f9;
-    }
-
-    .card {
-      border: none;
-      border-radius: 0.75rem;
-      box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075);
-      transition: all 0.3s ease;
-    }
-
-    .card:hover {
-      box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15);
-    }
-
-    .card-header {
-      background-color: white;
-      border-bottom: 1px solid #e9ecef;
-      font-weight: 600;
-    }
-
-    /* Buttons */
-    .btn {
-      border-radius: 0.375rem;
-      font-weight: 500;
-    }
-
-    .btn-primary {
-      background: var(--primary-color);
-      border-color: var(--primary-color);
-    }
-
-    /* Tables */
-    .table {
-      border-radius: 0.5rem;
-      overflow: hidden;
-    }
-
-    .table thead th {
-      background-color: #f8f9fa;
-      border: none;
-      font-weight: 600;
-      color: #495057;
-    }
-
-    /* Mobile Responsiveness */
-    @media (max-width: 767.98px) {
-      .nav-sidebar .nav-link {
-        padding: 0.5rem 0.75rem;
-      }
-      
-      .nav-sidebar .nav-link p {
-        font-size: 0.9rem;
-      }
-    }
-
-    /* Hide DataTables error messages */
-    .dataTables_processing, 
-    .dt-error,
-    .alert-datatable-error {
-        display: none !important;
+  <!-- Additional Custom CSS -->
+  <style>
+    /* Page-specific overrides can be added here */
+    
+    /* Ensure DataTables responsiveness */
+    .dataTables_wrapper .dataTables_processing {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: auto;
+        margin-left: -50px;
+        margin-top: -25px;
+        padding: 1rem 2rem;
+        background: rgba(255, 255, 255, 0.95);
+        border: 1px solid var(--border-color);
+        border-radius: var(--border-radius);
+        box-shadow: var(--box-shadow-lg);
+        font-weight: var(--font-weight-medium);
+        color: var(--primary-color);
     }
     
-    /* Hide browser error messages */
-    .error-message,
-    .console-error,
-    [class*="error-"],
-    [id*="error-"] {
-        display: none !important;
+    /* Custom scrollbar for tables */
+    .dataTables_scrollBody::-webkit-scrollbar {
+        height: 6px;
     }
     
-    /* Suppress favicon errors */
-    link[rel="icon"]:not([href]),
-    link[rel="shortcut icon"]:not([href]) {
-        display: none;
-    }    /* Hide any alert popups from DataTables */
-    .swal2-container {
-      z-index: 99999;
+    .dataTables_scrollBody::-webkit-scrollbar-track {
+        background: var(--light);
     }
+    
+    .dataTables_scrollBody::-webkit-scrollbar-thumb {
+        background: var(--primary-color);
+        border-radius: 3px;
+    }
+    
+    /* Loading spinner for AJAX calls */
+    .ajax-loading {
+        position: relative;
+    }
+    
+    .ajax-loading::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 20px;
+        height: 20px;
+        margin: -10px 0 0 -10px;
+        border: 2px solid var(--light);
+        border-top: 2px solid var(--primary-color);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        z-index: 999;
+    }
+    
+    /* Enhanced form focus states */
+    .form-control:focus {
+        border-color: var(--primary-color) !important;
+        box-shadow: 0 0 0 0.2rem rgba(44, 90, 160, 0.25) !important;
+        transform: translateY(-1px);
+    }
+    
+    /* Button loading state */
+    .btn-loading {
+        pointer-events: none;
+        opacity: 0.8;
+        position: relative;
+    }
+    
+    .btn-loading::before {
+        content: '';
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 16px;
+        height: 16px;
+        margin: -8px 0 0 -8px;
+        border: 2px solid transparent;
+        border-top: 2px solid currentColor;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+    
+    /* Hide original button text when loading */
+    .btn-loading span {
+        visibility: hidden;
+    }
+    
+    /* Enhanced hover effects for interactive elements */
+    .clickable {
+        cursor: pointer;
+        transition: var(--transition);
+    }
+    
+    .clickable:hover {
+        transform: translateY(-1px);
+        box-shadow: var(--box-shadow-lg);
+    }
+  </style>
   </style>
 </head>
 
