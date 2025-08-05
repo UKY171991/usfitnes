@@ -90,6 +90,27 @@
 <!-- Custom Scripts -->
 <script>
 $(document).ready(function() {
+    // Force CSS refresh to ensure styles load properly
+    console.log('Global CSS and JS system initialized');
+    
+    // Force CSS refresh
+    setTimeout(function() {
+        $('link[href*="global.css"]').each(function() {
+            var $link = $(this);
+            var href = $link.attr('href');
+            if (!href.includes('?v=')) {
+                $link.attr('href', href + '?v=' + Date.now());
+                console.log('Refreshed CSS:', href);
+            }
+        });
+    }, 100);
+    
+    // Initialize global components
+    if (typeof PathLabPro !== 'undefined') {
+        PathLabPro.init();
+        console.log('PathLabPro initialized');
+    }
+    
     // Disable automatic DataTables initialization
     // Tables will only be initialized when explicitly called with .datatable class
     
