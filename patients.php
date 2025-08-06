@@ -534,7 +534,7 @@ function loadPatients() {
     showLoading(true);
     
     $.ajax({
-        url: 'api/patients_api_test.php',
+        url: 'api/patients_api_smart.php',
         method: 'GET',
         data: { action: 'list' },
         dataType: 'json',
@@ -545,7 +545,7 @@ function loadPatients() {
             if (response.success && response.data && response.data.length > 0) {
                 populateTable(response.data);
                 showPatientsTable(true);
-                showToast('success', 'Patients loaded successfully');
+                showToast('success', response.message || 'Patients loaded successfully');
             } else {
                 showNoData(true);
                 showToast('info', 'No patients found');
@@ -633,7 +633,7 @@ function editPatient(id) {
     $('#submit-text').text('Update Patient');
     
     $.ajax({
-        url: 'api/patients_api_test.php',
+        url: 'api/patients_api_smart.php',
         method: 'GET',
         data: { action: 'get', id: id },
         dataType: 'json',
@@ -645,15 +645,20 @@ function editPatient(id) {
                 showToast('error', 'Failed to load patient data');
             }
         },
-        error: function() {
-            showToast('error', 'Failed to load patient data');
+        error: function(xhr, status, error) {
+            console.error('Error loading patient:', error);
+            if (xhr.status === 500 || xhr.responseText.includes('database')) {
+                showToast('warning', 'Database connection issue. Cannot edit patient.');
+            } else {
+                showToast('error', 'Failed to load patient data');
+            }
         }
     });
 }
 
 function viewPatient(id) {
     $.ajax({
-        url: 'api/patients_api_test.php',
+        url: 'api/patients_api_smart.php',
         method: 'GET',
         data: { action: 'get', id: id },
         dataType: 'json',
@@ -729,7 +734,7 @@ function deletePatient(id) {
     }).then((result) => {
         if (result.isConfirmed) {
             $.ajax({
-                url: 'api/patients_api_test.php',
+                url: 'api/patients_api_smart.php',
                 method: 'POST',
                 data: { action: 'delete', id: id },
                 dataType: 'json',
@@ -772,10 +777,10 @@ function savePatient() {
         // Show loading state
         setSubmitButtonLoading(true);
         
-        console.log('Sending AJAX request to api/patients_api_test.php');
+        console.log('Sending AJAX request to api/patients_api_smart.php');
         
         $.ajax({
-            url: 'api/patients_api_test.php',
+            url: 'api/patients_api_smart.php',
             method: 'POST',
             data: formData,
             processData: false,
@@ -794,7 +799,14 @@ function savePatient() {
             error: function(xhr, status, error) {
                 console.error('AJAX error:', status, error);
                 console.error('Response:', xhr.responseText);
-                showToast('error', `Failed to ${action} patient: ${error}`);
+                
+                // Check if it's a database error
+                if (xhr.status === 500 || xhr.responseText.includes('database') || xhr.responseText.includes('SQL')) {
+                    showToast('warning', 'Database connection issue. Please check your database connection.');
+                    $('#patientModal').modal('hide');
+                } else {
+                    showToast('error', `Failed to ${action} patient: ${error}`);
+                }
             },
             complete: function() {
                 console.log('AJAX request completed');
