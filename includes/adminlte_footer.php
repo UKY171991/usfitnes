@@ -82,9 +82,6 @@
 <!-- AdminLTE App -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.2.0/js/adminlte.min.js"></script>
 
-<!-- AdminLTE App -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.2.0/js/adminlte.min.js"></script>
-
 <!-- DataTables & Plugins -->
 <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap4.min.js"></script>
@@ -136,6 +133,13 @@ $(document).ready(function() {
     
     // Initialize theme customization
     initializeThemeCustomization();
+    
+    // Force AdminLTE initialization after page load
+    setTimeout(function() {
+        if (typeof $.AdminLTE !== 'undefined') {
+            $.AdminLTE.init();
+        }
+    }, 100);
 });
 
 // Initialize AdminLTE3 specific features
@@ -145,20 +149,41 @@ function initializeAdminLTE() {
         $('.preloader').fadeOut('slow');
     });
     
+    // Initialize AdminLTE Layout
+    if (typeof $.AdminLTE !== 'undefined') {
+        $.AdminLTE.init();
+    }
+    
     // Sidebar menu state
     if (localStorage.getItem('sidebar-state') === 'collapsed') {
         $('body').addClass('sidebar-collapse');
     }
     
     // Save sidebar state
-    $('[data-widget="pushmenu"]').on('click', function() {
-        setTimeout(function() {
-            if ($('body').hasClass('sidebar-collapse')) {
-                localStorage.setItem('sidebar-state', 'collapsed');
-            } else {
-                localStorage.removeItem('sidebar-state');
-            }
-        }, 300);
+    $('[data-widget="pushmenu"]').on('click', function(e) {
+        e.preventDefault();
+        
+        // Toggle sidebar
+        if ($('body').hasClass('sidebar-collapse')) {
+            $('body').removeClass('sidebar-collapse');
+            localStorage.removeItem('sidebar-state');
+        } else {
+            $('body').addClass('sidebar-collapse');
+            localStorage.setItem('sidebar-state', 'collapsed');
+        }
+    });
+    
+    // Navbar search widget
+    $('[data-widget="navbar-search"]').on('click', function(e) {
+        e.preventDefault();
+        $('.navbar-search-block').toggle();
+        $('.form-control-navbar').focus();
+    });
+    
+    // Close navbar search on X button
+    $('.navbar-search-block .btn-navbar').on('click', function(e) {
+        e.preventDefault();
+        $('.navbar-search-block').hide();
     });
 }
 
