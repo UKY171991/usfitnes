@@ -119,7 +119,7 @@ include 'includes/adminlte_sidebar.php';
           <span aria-hidden="true">&times;</span>
         </button>
       </div>
-      <form id="patientForm">
+      <form id="patientForm" onsubmit="return handleFormSubmit(event);">
         <div class="modal-body">
           <input type="hidden" id="patient_id" name="patient_id">
           
@@ -185,7 +185,7 @@ include 'includes/adminlte_sidebar.php';
           <button type="button" class="btn btn-secondary" data-dismiss="modal">
             <i class="fas fa-times mr-1"></i>Cancel
           </button>
-          <button type="submit" class="btn btn-primary" id="submit-btn">
+          <button type="button" class="btn btn-primary" id="submit-btn" onclick="handleFormSubmit(event);">
             <i class="fas fa-save mr-1"></i>
             <span id="submit-text">Add Patient</span>
           </button>
@@ -316,6 +316,13 @@ $(document).ready(function() {
 function initializePatientsPage() {
     console.log('Initializing patients page...');
     
+    // Check if required elements exist
+    if ($('#patientForm').length === 0) {
+        console.error('Patient form not found, retrying in 500ms...');
+        setTimeout(initializePatientsPage, 500);
+        return;
+    }
+    
     // Configure toastr options
     configureToastr();
     
@@ -325,8 +332,10 @@ function initializePatientsPage() {
     // Load patients data
     loadPatients();
     
-    // Event handlers
-    setupEventHandlers();
+    // Event handlers - with additional delay to ensure DOM is fully ready
+    setTimeout(function() {
+        setupEventHandlers();
+    }, 200);
     
     console.log('Patients page initialized successfully');
 }
@@ -436,14 +445,8 @@ function setupEventHandlers() {
         showToast('info', 'Patient list refreshed');
     });
     
-    // Form submission
-    $('#patientForm').off('submit').on('submit', function(e) {
-        console.log('Form submitted');
-        e.preventDefault();
-        if (validateForm()) {
-            savePatient();
-        }
-    });
+    // Enhanced form submission with multiple handlers
+    setupFormSubmission();
     
     // Modal reset on close
     $('#patientModal').off('hidden.bs.modal').on('hidden.bs.modal', function() {
@@ -469,6 +472,64 @@ function setupEventHandlers() {
     console.log('Event handlers set up successfully');
 }
 
+// Enhanced form submission setup
+function setupFormSubmission() {
+    console.log('Setting up form submission handlers...');
+    
+    // Check if form exists
+    if ($('#patientForm').length === 0) {
+        console.error('Patient form not found for event binding');
+        return;
+    }
+    
+    // Remove any existing handlers
+    $('#patientForm').off('submit.patients');
+    $('#submit-btn').off('click.submitBtn');
+    $(document).off('submit.patientsForm', '#patientForm');
+    
+    // Primary form submission handler
+    $('#patientForm').on('submit.patients', function(e) {
+        console.log('Form submission event triggered');
+        e.preventDefault();
+        e.stopPropagation();
+        
+        if (validateForm()) {
+            savePatient();
+        }
+        
+        return false;
+    });
+    
+    // Additional handler for submit button click
+    $('#submit-btn').on('click.submitBtn', function(e) {
+        console.log('Submit button clicked');
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // Trigger form validation and submission
+        if (validateForm()) {
+            savePatient();
+        }
+        
+        return false;
+    });
+    
+    // Backup handler using document delegation
+    $(document).on('submit.patientsForm', '#patientForm', function(e) {
+        console.log('Delegated form submission handler triggered');
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        
+        if (validateForm()) {
+            savePatient();
+        }
+        
+        return false;
+    });
+    
+    console.log('Form submission handlers setup complete');
+}
+
 // Global functions for onclick handlers
 function refreshPatients() {
     console.log('Refresh patients called');
@@ -476,9 +537,23 @@ function refreshPatients() {
     showToast('info', 'Patient list refreshed');
 }
 
+// Global form submission handler
+function handleFormSubmit(event) {
+    console.log('Global form submit handler called');
+    event.preventDefault();
+    event.stopPropagation();
+    
+    if (validateForm()) {
+        savePatient();
+    }
+    
+    return false;
+}
+
 // Make functions globally available
 window.openPatientModal = openPatientModal;
 window.refreshPatients = refreshPatients;
+window.handleFormSubmit = handleFormSubmit;
 window.viewPatient = viewPatient;
 window.editPatient = editPatient;
 window.deletePatient = deletePatient;
@@ -699,40 +774,63 @@ function deletePatient(id) {
 }
 
 function savePatient() {
-    const formData = new FormData($('#patientForm')[0]);
-    const action = currentPatientId ? 'update' : 'create';
+    console.log('savePatient function called');
     
-    if (currentPatientId) {
-        formData.append('id', currentPatientId);
-    }
-    formData.append('action', action);
-    
-    // Show loading state
-    setSubmitButtonLoading(true);
-    
-    $.ajax({
-        url: 'api/patients_api.php',
-        method: 'POST',
-        data: formData,
-        processData: false,
-        contentType: false,
-        dataType: 'json',
-        success: function(response) {
-            if (response.success) {
-                showToast('success', response.message || `Patient ${action === 'create' ? 'created' : 'updated'} successfully`);
-                $('#patientModal').modal('hide');
-                loadPatients();
-            } else {
-                showToast('error', response.message || `Failed to ${action} patient`);
-            }
-        },
-        error: function() {
-            showToast('error', `Failed to ${action} patient`);
-        },
-        complete: function() {
-            setSubmitButtonLoading(false);
+    try {
+        const formData = new FormData($('#patientForm')[0]);
+        const action = currentPatientId ? 'update' : 'create';
+        
+        console.log('Form data created, action:', action);
+        console.log('Current patient ID:', currentPatientId);
+        
+        if (currentPatientId) {
+            formData.append('id', currentPatientId);
         }
-    });
+        formData.append('action', action);
+        
+        // Log form data for debugging
+        for (let pair of formData.entries()) {
+            console.log('Form field:', pair[0], '=', pair[1]);
+        }
+        
+        // Show loading state
+        setSubmitButtonLoading(true);
+        
+        console.log('Sending AJAX request to api/patients_api.php');
+        
+        $.ajax({
+            url: 'api/patients_api.php',
+            method: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            dataType: 'json',
+            success: function(response) {
+                console.log('AJAX success response:', response);
+                if (response.success) {
+                    showToast('success', response.message || `Patient ${action === 'create' ? 'created' : 'updated'} successfully`);
+                    $('#patientModal').modal('hide');
+                    loadPatients();
+                } else {
+                    showToast('error', response.message || `Failed to ${action} patient`);
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('AJAX error:', status, error);
+                console.error('Response:', xhr.responseText);
+                showToast('error', `Failed to ${action} patient: ${error}`);
+            },
+            complete: function() {
+                console.log('AJAX request completed');
+                setSubmitButtonLoading(false);
+            }
+        });
+        
+    } catch (error) {
+        console.error('Error in savePatient function:', error);
+        showToast('error', 'Error saving patient: ' + error.message);
+        setSubmitButtonLoading(false);
+    }
 }
 
 function validateForm() {
