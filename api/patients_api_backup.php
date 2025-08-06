@@ -16,6 +16,9 @@ if (file_exists('../config_working.php')) {
     require_once '../config.php';
 }
 
+// Check if user is logged in (uncomment for production)
+// requireLogin();
+
 // Function to send JSON response
 function sendResponse($success, $message = '', $data = null) {
     echo json_encode([
@@ -292,5 +295,124 @@ function handleDelete($action) {
     // Parse DELETE data
     parse_str(file_get_contents("php://input"), $_POST);
     handlePost('delete');
+}
+            $last_name = trim($_POST['last_name']);
+            $phone = trim($_POST['phone']);
+            $email = trim($_POST['email'] ?? '');
+            $date_of_birth = $_POST['date_of_birth'] ?? null;
+            $gender = $_POST['gender'] ?? '';
+            $status = 'active';
+            $created_at = date('Y-m-d H:i:s');
+            
+            // Check if patient already exists
+            $check_query = "SELECT id FROM patients WHERE phone = ? AND status != 'deleted'";
+            $check_stmt = mysqli_prepare($conn, $check_query);
+            mysqli_stmt_bind_param($check_stmt, 's', $phone);
+            mysqli_stmt_execute($check_stmt);
+            $check_result = mysqli_stmt_get_result($check_stmt);
+            
+            if (mysqli_fetch_assoc($check_result)) {
+                sendResponse(false, 'A patient with this phone number already exists');
+            }
+            
+            // Insert new patient
+            $query = "INSERT INTO patients (first_name, last_name, phone, email, date_of_birth, gender, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+            
+            $stmt = mysqli_prepare($conn, $query);
+            mysqli_stmt_bind_param($stmt, 'ssssssss', 
+                $first_name, $last_name, $phone, $email, $date_of_birth, 
+                $gender, $status, $created_at
+            );
+            
+            if (mysqli_stmt_execute($stmt)) {
+                $patient_id = mysqli_insert_id($conn);
+                sendResponse(true, 'Patient created successfully', ['id' => $patient_id]);
+            } else {
+                sendResponse(false, 'Failed to create patient: ' . mysqli_error($conn));
+            }
+            break;
+            
+        case 'update':
+            $id = $_POST['id'] ?? 0;
+            if (!$id) {
+                sendResponse(false, 'Patient ID is required');
+            }
+            
+            $required_fields = ['first_name', 'last_name', 'phone'];
+            
+            // Validate required fields
+            foreach ($required_fields as $field) {
+                if (empty($_POST[$field])) {
+                    sendResponse(false, ucfirst(str_replace('_', ' ', $field)) . ' is required');
+                }
+            }
+            
+            // Prepare data
+            $first_name = trim($_POST['first_name']);
+            $last_name = trim($_POST['last_name']);
+            $phone = trim($_POST['phone']);
+            $email = trim($_POST['email'] ?? '');
+            $date_of_birth = $_POST['date_of_birth'] ?? null;
+            $gender = $_POST['gender'] ?? '';
+            $updated_at = date('Y-m-d H:i:s');
+            
+            // Check if phone number is already used by another patient
+            $check_query = "SELECT id FROM patients WHERE phone = ? AND id != ? AND status != 'deleted'";
+            $check_stmt = mysqli_prepare($conn, $check_query);
+            mysqli_stmt_bind_param($check_stmt, 'si', $phone, $id);
+            mysqli_stmt_execute($check_stmt);
+            $check_result = mysqli_stmt_get_result($check_stmt);
+            
+            if (mysqli_fetch_assoc($check_result)) {
+                sendResponse(false, 'Another patient with this phone number already exists');
+            }
+            
+            // Update patient
+            $query = "UPDATE patients SET first_name = ?, last_name = ?, phone = ?, email = ?, date_of_birth = ?, gender = ?, updated_at = ? WHERE id = ? AND status != 'deleted'";
+            
+            $stmt = mysqli_prepare($conn, $query);
+            mysqli_stmt_bind_param($stmt, 'sssssssi', 
+                $first_name, $last_name, $phone, $email, $date_of_birth, 
+                $gender, $updated_at, $id
+            );
+            
+            if (mysqli_stmt_execute($stmt)) {
+                if (mysqli_stmt_affected_rows($stmt) > 0) {
+                    sendResponse(true, 'Patient updated successfully');
+                } else {
+                    sendResponse(false, 'Patient not found or no changes made');
+                }
+            } else {
+                sendResponse(false, 'Failed to update patient: ' . mysqli_error($conn));
+            }
+            break;
+            
+        case 'delete':
+            $id = $_POST['id'] ?? 0;
+            if (!$id) {
+                sendResponse(false, 'Patient ID is required');
+            }
+            
+            // Soft delete - update status to deleted
+            $query = "UPDATE patients SET status = 'deleted', updated_at = ? WHERE id = ? AND status != 'deleted'";
+            $updated_at = date('Y-m-d H:i:s');
+            
+            $stmt = mysqli_prepare($conn, $query);
+            mysqli_stmt_bind_param($stmt, 'si', $updated_at, $id);
+            
+            if (mysqli_stmt_execute($stmt)) {
+                if (mysqli_stmt_affected_rows($stmt) > 0) {
+                    sendResponse(true, 'Patient deleted successfully');
+                } else {
+                    sendResponse(false, 'Patient not found');
+                }
+            } else {
+                sendResponse(false, 'Failed to delete patient: ' . mysqli_error($conn));
+            }
+            break;
+            
+        default:
+            sendResponse(false, 'Invalid action');
+    }
 }
 ?>
