@@ -1,10 +1,10 @@
 <?php
 // Set page title
-$page_title = 'Patients Management';
+$page_title = 'Patients Management - PathLab Pro';
 
-// Include header and sidebar
-include 'includes/header.php';
-include 'includes/sidebar.php';
+// Include AdminLTE header and sidebar
+include 'includes/adminlte_header.php';
+include 'includes/adminlte_sidebar.php';
 ?>
 
 <!-- Content Wrapper -->
@@ -445,7 +445,7 @@ include 'includes/sidebar.php';
   </div>
 </div>
 
-<?php include 'includes/footer.php'; ?>
+<?php include 'includes/adminlte_footer.php'; ?>
 
 <script>
 $(document).ready(function() {

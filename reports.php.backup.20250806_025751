@@ -1,12 +1,12 @@
 <?php
 // Set page title
-$page_title = 'Reports - PathLab Pro';
+$page_title = 'Reports';
 
 // Include header
-include 'includes/adminlte_header.php';
+include 'includes/header.php';
 
 // Include sidebar with user info
-include 'includes/adminlte_sidebar.php';
+include 'includes/sidebar.php';
 ?>
 
   <!-- Content Wrapper. Contains page content -->
@@ -439,5 +439,5 @@ function printReport() {
 EOT;
 
 // Include footer
-include 'includes/adminlte_footer.php';
+include 'includes/footer.php';
 ?>

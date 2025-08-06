@@ -1,11 +1,11 @@
 <?php
 // Set page title
-$page_title = 'Equipment - PathLab Pro';
+$page_title = 'Equipment';
 
 // Include header
-include 'includes/adminlte_header.php';
+include 'includes/header.php';
 // Include sidebar with user info
-include 'includes/adminlte_sidebar.php';
+include 'includes/sidebar.php';
 ?>
 
 <!-- Content Wrapper -->
@@ -409,7 +409,7 @@ include 'includes/adminlte_sidebar.php';
   </div>
 </div>
 
-<?php include 'includes/adminlte_footer.php'; ?>
+<?php include 'includes/footer.php'; ?>
 
 <!-- Scripts -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
@@ -1703,5 +1703,5 @@ function showAlert(type, message) {
 
 <?php
 // Include footer
-include 'includes/adminlte_footer.php';
+include 'includes/footer.php';
 ?>

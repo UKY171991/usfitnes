@@ -15,12 +15,11 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 // Set page title
-$page_title = 'Dashboard';
+$page_title = 'Dashboard - PathLab Pro';
 
-// Include header
-include 'includes/header.php';
-// Include sidebar with user info
-include 'includes/sidebar.php';
+// Include AdminLTE header and sidebar
+include 'includes/adminlte_header.php';
+include 'includes/adminlte_sidebar.php';
 ?>
 
 <!-- Content Wrapper -->
@@ -411,3 +410,5 @@ function updateMonthlyChart(data) {
     }
 }
 </script>
+
+<?php include 'includes/adminlte_footer.php'; ?>
