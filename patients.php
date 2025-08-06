@@ -534,7 +534,7 @@ function loadPatients() {
     showLoading(true);
     
     $.ajax({
-        url: 'api/patients_api_smart.php',
+        url: 'api/patients_api_persistent.php',
         method: 'GET',
         data: { action: 'list' },
         dataType: 'json',
@@ -633,7 +633,7 @@ function editPatient(id) {
     $('#submit-text').text('Update Patient');
     
     $.ajax({
-        url: 'api/patients_api_smart.php',
+        url: 'api/patients_api_persistent.php',
         method: 'GET',
         data: { action: 'get', id: id },
         dataType: 'json',
@@ -658,7 +658,7 @@ function editPatient(id) {
 
 function viewPatient(id) {
     $.ajax({
-        url: 'api/patients_api_smart.php',
+        url: 'api/patients_api_persistent.php',
         method: 'GET',
         data: { action: 'get', id: id },
         dataType: 'json',
@@ -734,7 +734,7 @@ function deletePatient(id) {
     }).then((result) => {
         if (result.isConfirmed) {
             $.ajax({
-                url: 'api/patients_api_smart.php',
+                url: 'api/patients_api_persistent.php',
                 method: 'POST',
                 data: { action: 'delete', id: id },
                 dataType: 'json',
@@ -780,7 +780,7 @@ function savePatient() {
         console.log('Sending AJAX request to api/patients_api_smart.php');
         
         $.ajax({
-            url: 'api/patients_api_smart.php',
+            url: 'api/patients_api_persistent.php',
             method: 'POST',
             data: formData,
             processData: false,
