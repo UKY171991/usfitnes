@@ -120,6 +120,43 @@ $page_title = $page_title ?? 'PathLab Pro - Laboratory Management System';
       border-radius: 0.25rem;
     }
     
+    /* Enhanced sidebar toggle functionality */
+    .main-sidebar {
+      transition: margin-left 0.3s ease-in-out;
+    }
+    
+    .content-wrapper {
+      transition: margin-left 0.3s ease-in-out;
+    }
+    
+    /* Ensure sidebar toggle works properly */
+    .sidebar-collapse .main-sidebar {
+      margin-left: -250px;
+    }
+    
+    .sidebar-collapse .content-wrapper {
+      margin-left: 0;
+    }
+    
+    .sidebar-open .main-sidebar {
+      margin-left: 0;
+    }
+    
+    .sidebar-open .content-wrapper {
+      margin-left: 250px;
+    }
+    
+    /* Force sidebar visibility on larger screens */
+    @media (min-width: 992px) {
+      .sidebar-open .main-sidebar {
+        margin-left: 0 !important;
+      }
+      
+      .sidebar-open .content-wrapper {
+        margin-left: 250px !important;
+      }
+    }
+    
     /* Responsive adjustments */
     @media (max-width: 768px) {
       .content-wrapper, .right-side, .main-footer {
@@ -136,7 +173,7 @@ $page_title = $page_title ?? 'PathLab Pro - Laboratory Management System';
     }
   </style>
 </head>
-<body class="hold-transition sidebar-mini layout-fixed">
+<body class="hold-transition sidebar-mini layout-fixed sidebar-open">
 <div class="wrapper">
 
   <!-- Preloader -->
@@ -150,7 +187,7 @@ $page_title = $page_title ?? 'PathLab Pro - Laboratory Management System';
     <!-- Left navbar links -->
     <ul class="navbar-nav">
       <li class="nav-item">
-        <a class="nav-link" data-widget="pushmenu" href="#" role="button"><i class="fas fa-bars"></i></a>
+        <a class="nav-link" data-widget="pushmenu" href="#" role="button" onclick="toggleSidebar(); return false;"><i class="fas fa-bars"></i></a>
       </li>
       <li class="nav-item d-none d-sm-inline-block">
         <a href="dashboard.php" class="nav-link">Home</a>

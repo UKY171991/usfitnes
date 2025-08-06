@@ -144,6 +144,8 @@ $(document).ready(function() {
 
 // Initialize AdminLTE3 specific features
 function initializeAdminLTE() {
+    console.log('Initializing AdminLTE...');
+    
     // Preloader
     $(window).on('load', function() {
         $('.preloader').fadeOut('slow');
@@ -151,7 +153,10 @@ function initializeAdminLTE() {
     
     // Initialize AdminLTE Layout
     if (typeof $.AdminLTE !== 'undefined') {
+        console.log('AdminLTE object found, initializing...');
         $.AdminLTE.init();
+    } else {
+        console.log('AdminLTE object not found');
     }
     
     // Sidebar menu state
@@ -159,19 +164,8 @@ function initializeAdminLTE() {
         $('body').addClass('sidebar-collapse');
     }
     
-    // Save sidebar state
-    $('[data-widget="pushmenu"]').on('click', function(e) {
-        e.preventDefault();
-        
-        // Toggle sidebar
-        if ($('body').hasClass('sidebar-collapse')) {
-            $('body').removeClass('sidebar-collapse');
-            localStorage.removeItem('sidebar-state');
-        } else {
-            $('body').addClass('sidebar-collapse');
-            localStorage.setItem('sidebar-state', 'collapsed');
-        }
-    });
+    // Enhanced sidebar toggle with multiple fallbacks
+    setupSidebarToggle();
     
     // Navbar search widget
     $('[data-widget="navbar-search"]').on('click', function(e) {
@@ -185,7 +179,78 @@ function initializeAdminLTE() {
         e.preventDefault();
         $('.navbar-search-block').hide();
     });
+    
+    console.log('AdminLTE initialization complete');
 }
+
+// Enhanced sidebar toggle function
+function setupSidebarToggle() {
+    console.log('Setting up sidebar toggle...');
+    
+    // Remove any existing event handlers
+    $('[data-widget="pushmenu"]').off('click.pushmenu');
+    
+    // Add new event handler
+    $('[data-widget="pushmenu"]').on('click.pushmenu', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        console.log('Sidebar toggle clicked');
+        
+        const $body = $('body');
+        
+        // Toggle sidebar collapse class
+        if ($body.hasClass('sidebar-collapse') || $body.hasClass('sidebar-closed')) {
+            $body.removeClass('sidebar-collapse sidebar-closed').addClass('sidebar-open');
+            localStorage.removeItem('sidebar-state');
+            console.log('Sidebar opened');
+        } else {
+            $body.removeClass('sidebar-open').addClass('sidebar-collapse');
+            localStorage.setItem('sidebar-state', 'collapsed');
+            console.log('Sidebar collapsed');
+        }
+        
+        // Trigger resize event for responsive components
+        $(window).trigger('resize');
+        
+        return false;
+    });
+    
+    // Alternative method using direct click handler
+    $('.nav-link[data-widget="pushmenu"]').off('click.pushmenu-alt').on('click.pushmenu-alt', function(e) {
+        e.preventDefault();
+        console.log('Alternative sidebar toggle handler triggered');
+        toggleSidebar();
+        return false;
+    });
+    
+    console.log('Sidebar toggle setup complete');
+}
+
+// Direct sidebar toggle function
+function toggleSidebar() {
+    console.log('Direct toggle sidebar function called');
+    const $body = $('body');
+    
+    if ($body.hasClass('sidebar-collapse')) {
+        $body.removeClass('sidebar-collapse').addClass('sidebar-open');
+        localStorage.removeItem('sidebar-state');
+    } else {
+        $body.removeClass('sidebar-open').addClass('sidebar-collapse');
+        localStorage.setItem('sidebar-state', 'collapsed');
+    }
+    
+    // Trigger resize for DataTables and other responsive components
+    setTimeout(function() {
+        $(window).trigger('resize');
+        if (typeof $.fn.DataTable !== 'undefined') {
+            $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+        }
+    }, 300);
+}
+
+// Make toggleSidebar globally available
+window.toggleSidebar = toggleSidebar;
 
 // Initialize DataTables with consistent settings
 function initializeDataTables() {

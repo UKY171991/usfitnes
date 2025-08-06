@@ -307,10 +307,10 @@ $(document).ready(function() {
     console.log('Document ready - Patients page');
     checkLibraries();
     
-    // Initialize with delay to ensure all libraries are loaded
+    // Wait longer to ensure AdminLTE is fully initialized first
     setTimeout(function() {
         initializePatientsPage();
-    }, 500);
+    }, 1000);
 });
 
 function initializePatientsPage() {
