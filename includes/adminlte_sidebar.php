@@ -58,18 +58,6 @@ function getTreeMenuClass($pages) {
       </div>
     </div>
 
-    <!-- SidebarSearch Form -->
-    <div class="form-inline">
-      <div class="input-group" data-widget="sidebar-search">
-        <input class="form-control form-control-sidebar" type="search" placeholder="Search menu..." aria-label="Search">
-        <div class="input-group-append">
-          <button class="btn btn-sidebar">
-            <i class="fas fa-search fa-fw"></i>
-          </button>
-        </div>
-      </div>
-    </div>
-
     <!-- Sidebar Menu -->
     <nav class="mt-2">
       <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
@@ -98,37 +86,21 @@ function getTreeMenuClass($pages) {
         <!-- Test Management Section -->
         <li class="nav-header">TEST MANAGEMENT</li>
         
-        <li class="nav-item has-treeview <?php echo getTreeMenuClass(['test-orders.php', 'tests.php', 'results.php']); ?>">
-          <a href="#" class="nav-link <?php echo getMenuClass(['test-orders.php', 'tests.php', 'results.php']); ?>">
+        <li class="nav-item">
+          <a href="test-orders.php" class="nav-link <?php echo getMenuClass('test-orders.php'); ?>">
             <i class="nav-icon fas fa-flask"></i>
             <p>
-              Laboratory Tests
-              <i class="right fas fa-angle-left"></i>
+              Test Orders
+              <span class="badge badge-warning right" id="pending-orders">0</span>
             </p>
           </a>
-          <ul class="nav nav-treeview">
-            <li class="nav-item">
-              <a href="test-orders.php" class="nav-link <?php echo getMenuClass('test-orders.php'); ?>">
-                <i class="far fa-circle nav-icon"></i>
-                <p>
-                  Test Orders
-                  <span class="badge badge-warning right" id="pending-orders">0</span>
-                </p>
-              </a>
-            </li>
-            <li class="nav-item">
-              <a href="tests.php" class="nav-link <?php echo getMenuClass('tests.php'); ?>">
-                <i class="far fa-circle nav-icon"></i>
-                <p>Test Types</p>
-              </a>
-            </li>
-            <li class="nav-item">
-              <a href="results.php" class="nav-link <?php echo getMenuClass('results.php'); ?>">
-                <i class="far fa-circle nav-icon"></i>
-                <p>Test Results</p>
-              </a>
-            </li>
-          </ul>
+        </li>
+        
+        <li class="nav-item">
+          <a href="results.php" class="nav-link <?php echo getMenuClass('results.php'); ?>">
+            <i class="nav-icon fas fa-chart-line"></i>
+            <p>Test Results</p>
+          </a>
         </li>
 
         <!-- Medical Staff Section -->
