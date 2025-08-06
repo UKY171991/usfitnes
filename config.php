@@ -178,8 +178,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `patients` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -209,13 +208,13 @@ CREATE TABLE IF NOT EXISTS `test_categories` (
   `description` text,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `tests` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `test_code` varchar(20) NOT NULL UNIQUE,
   `name` varchar(200) NOT NULL,
-  `category_id` int(11) DEFAULT NULL,
+  `category_id` int(11) NOT NULL,
   `description` text,
   `normal_range` varchar(100) DEFAULT NULL,
   `unit` varchar(50) DEFAULT NULL,
@@ -225,9 +224,8 @@ CREATE TABLE IF NOT EXISTS `tests` (
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  KEY `category_id` (`category_id`),
-  CONSTRAINT `tests_ibfk_1` FOREIGN KEY (`category_id`) REFERENCES `test_categories` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+  KEY `category_id` (`category_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `doctors` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -244,7 +242,7 @@ CREATE TABLE IF NOT EXISTS `doctors` (
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `test_orders` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -265,10 +263,7 @@ CREATE TABLE IF NOT EXISTS `test_orders` (
   UNIQUE KEY `order_number` (`order_number`),
   KEY `patient_id` (`patient_id`),
   KEY `doctor_id` (`doctor_id`),
-  KEY `collected_by` (`collected_by`),
-  CONSTRAINT `test_orders_ibfk_1` FOREIGN KEY (`patient_id`) REFERENCES `patients` (`id`),
-  CONSTRAINT `test_orders_ibfk_2` FOREIGN KEY (`doctor_id`) REFERENCES `doctors` (`id`),
-  CONSTRAINT `test_orders_ibfk_3` FOREIGN KEY (`collected_by`) REFERENCES `users` (`id`)
+  KEY `collected_by` (`collected_by`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `test_order_items` (
@@ -281,9 +276,7 @@ CREATE TABLE IF NOT EXISTS `test_order_items` (
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `test_order_id` (`test_order_id`),
-  KEY `test_id` (`test_id`),
-  CONSTRAINT `test_order_items_ibfk_1` FOREIGN KEY (`test_order_id`) REFERENCES `test_orders` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `test_order_items_ibfk_2` FOREIGN KEY (`test_id`) REFERENCES `tests` (`id`)
+  KEY `test_id` (`test_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `test_results` (
@@ -307,12 +300,7 @@ CREATE TABLE IF NOT EXISTS `test_results` (
   KEY `test_id` (`test_id`),
   KEY `patient_id` (`patient_id`),
   KEY `tested_by` (`tested_by`),
-  KEY `verified_by` (`verified_by`),
-  CONSTRAINT `test_results_ibfk_1` FOREIGN KEY (`test_order_id`) REFERENCES `test_orders` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `test_results_ibfk_2` FOREIGN KEY (`test_id`) REFERENCES `tests` (`id`),
-  CONSTRAINT `test_results_ibfk_3` FOREIGN KEY (`patient_id`) REFERENCES `patients` (`id`),
-  CONSTRAINT `test_results_ibfk_4` FOREIGN KEY (`tested_by`) REFERENCES `users` (`id`),
-  CONSTRAINT `test_results_ibfk_5` FOREIGN KEY (`verified_by`) REFERENCES `users` (`id`)
+  KEY `verified_by` (`verified_by`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `equipment` (
@@ -352,8 +340,7 @@ CREATE TABLE IF NOT EXISTS `equipment_maintenance` (
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  KEY `equipment_id` (`equipment_id`),
-  CONSTRAINT `equipment_maintenance_ibfk_1` FOREIGN KEY (`equipment_id`) REFERENCES `equipment` (`id`) ON DELETE CASCADE
+  KEY `equipment_id` (`equipment_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `activity_logs` (
@@ -366,8 +353,7 @@ CREATE TABLE IF NOT EXISTS `activity_logs` (
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `user_id` (`user_id`),
-  KEY `created_at` (`created_at`),
-  CONSTRAINT `activity_logs_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
+  KEY `created_at` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `system_settings` (
@@ -382,12 +368,41 @@ CREATE TABLE IF NOT EXISTS `system_settings` (
 ";
 
 try {
-    // Execute all table creation statements
+    // Execute all table creation statements first
     $statements = array_filter(explode(';', $sql));
     foreach ($statements as $statement) {
         $statement = trim($statement);
         if (!empty($statement)) {
             $pdo->exec($statement);
+        }
+    }
+    
+    // Add foreign key constraints after all tables are created
+    $foreign_keys = [
+        "ALTER TABLE `tests` ADD CONSTRAINT `tests_ibfk_1` FOREIGN KEY (`category_id`) REFERENCES `test_categories` (`id`)",
+        "ALTER TABLE `test_orders` ADD CONSTRAINT `test_orders_ibfk_1` FOREIGN KEY (`patient_id`) REFERENCES `patients` (`id`)",
+        "ALTER TABLE `test_orders` ADD CONSTRAINT `test_orders_ibfk_2` FOREIGN KEY (`doctor_id`) REFERENCES `doctors` (`id`)",
+        "ALTER TABLE `test_orders` ADD CONSTRAINT `test_orders_ibfk_3` FOREIGN KEY (`collected_by`) REFERENCES `users` (`id`)",
+        "ALTER TABLE `test_order_items` ADD CONSTRAINT `test_order_items_ibfk_1` FOREIGN KEY (`test_order_id`) REFERENCES `test_orders` (`id`) ON DELETE CASCADE",
+        "ALTER TABLE `test_order_items` ADD CONSTRAINT `test_order_items_ibfk_2` FOREIGN KEY (`test_id`) REFERENCES `tests` (`id`)",
+        "ALTER TABLE `test_results` ADD CONSTRAINT `test_results_ibfk_1` FOREIGN KEY (`test_order_id`) REFERENCES `test_orders` (`id`) ON DELETE CASCADE",
+        "ALTER TABLE `test_results` ADD CONSTRAINT `test_results_ibfk_2` FOREIGN KEY (`test_id`) REFERENCES `tests` (`id`)",
+        "ALTER TABLE `test_results` ADD CONSTRAINT `test_results_ibfk_3` FOREIGN KEY (`patient_id`) REFERENCES `patients` (`id`)",
+        "ALTER TABLE `test_results` ADD CONSTRAINT `test_results_ibfk_4` FOREIGN KEY (`tested_by`) REFERENCES `users` (`id`)",
+        "ALTER TABLE `test_results` ADD CONSTRAINT `test_results_ibfk_5` FOREIGN KEY (`verified_by`) REFERENCES `users` (`id`)",
+        "ALTER TABLE `equipment_maintenance` ADD CONSTRAINT `equipment_maintenance_ibfk_1` FOREIGN KEY (`equipment_id`) REFERENCES `equipment` (`id`) ON DELETE CASCADE",
+        "ALTER TABLE `activity_logs` ADD CONSTRAINT `activity_logs_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL"
+    ];
+    
+    foreach ($foreign_keys as $fk_sql) {
+        try {
+            $pdo->exec($fk_sql);
+        } catch (PDOException $e) {
+            // Ignore if constraint already exists
+            if (strpos($e->getMessage(), 'Duplicate key name') === false && 
+                strpos($e->getMessage(), 'already exists') === false) {
+                error_log("Foreign key error: " . $e->getMessage());
+            }
         }
     }
     
