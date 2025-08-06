@@ -103,7 +103,6 @@ function handlePost($action) {
             $email = trim($_POST['email'] ?? '');
             $date_of_birth = $_POST['date_of_birth'] ?? null;
             $gender = $_POST['gender'] ?? '';
-            $address = trim($_POST['address'] ?? '');
             $status = 'active';
             $created_at = date('Y-m-d H:i:s');
             
@@ -119,12 +118,12 @@ function handlePost($action) {
             }
             
             // Insert new patient
-            $query = "INSERT INTO patients (first_name, last_name, phone, email, date_of_birth, gender, address, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            $query = "INSERT INTO patients (first_name, last_name, phone, email, date_of_birth, gender, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
             
             $stmt = mysqli_prepare($conn, $query);
-            mysqli_stmt_bind_param($stmt, 'sssssssss', 
+            mysqli_stmt_bind_param($stmt, 'ssssssss', 
                 $first_name, $last_name, $phone, $email, $date_of_birth, 
-                $gender, $address, $status, $created_at
+                $gender, $status, $created_at
             );
             
             if (mysqli_stmt_execute($stmt)) {
@@ -157,7 +156,6 @@ function handlePost($action) {
             $email = trim($_POST['email'] ?? '');
             $date_of_birth = $_POST['date_of_birth'] ?? null;
             $gender = $_POST['gender'] ?? '';
-            $address = trim($_POST['address'] ?? '');
             $updated_at = date('Y-m-d H:i:s');
             
             // Check if phone number is already used by another patient
@@ -172,12 +170,12 @@ function handlePost($action) {
             }
             
             // Update patient
-            $query = "UPDATE patients SET first_name = ?, last_name = ?, phone = ?, email = ?, date_of_birth = ?, gender = ?, address = ?, updated_at = ? WHERE id = ? AND status != 'deleted'";
+            $query = "UPDATE patients SET first_name = ?, last_name = ?, phone = ?, email = ?, date_of_birth = ?, gender = ?, updated_at = ? WHERE id = ? AND status != 'deleted'";
             
             $stmt = mysqli_prepare($conn, $query);
-            mysqli_stmt_bind_param($stmt, 'ssssssssi', 
+            mysqli_stmt_bind_param($stmt, 'sssssssi', 
                 $first_name, $last_name, $phone, $email, $date_of_birth, 
-                $gender, $address, $updated_at, $id
+                $gender, $updated_at, $id
             );
             
             if (mysqli_stmt_execute($stmt)) {
