@@ -119,7 +119,7 @@ include 'includes/adminlte_sidebar.php';
           <span aria-hidden="true">&times;</span>
         </button>
       </div>
-      <form id="patientForm" onsubmit="return handleFormSubmit(event);">
+      <form id="patientForm">
         <div class="modal-body">
           <input type="hidden" id="patient_id" name="patient_id">
           
@@ -185,7 +185,7 @@ include 'includes/adminlte_sidebar.php';
           <button type="button" class="btn btn-secondary" data-dismiss="modal">
             <i class="fas fa-times mr-1"></i>Cancel
           </button>
-          <button type="button" class="btn btn-primary" id="submit-btn" onclick="handleFormSubmit(event);">
+          <button type="button" class="btn btn-primary" id="submit-btn">
             <i class="fas fa-save mr-1"></i>
             <span id="submit-text">Add Patient</span>
           </button>
@@ -483,12 +483,11 @@ function setupFormSubmission() {
     }
     
     // Remove any existing handlers
-    $('#patientForm').off('submit.patients');
-    $('#submit-btn').off('click.submitBtn');
-    $(document).off('submit.patientsForm', '#patientForm');
+    $('#patientForm').off('submit');
+    $('#submit-btn').off('click');
     
     // Primary form submission handler
-    $('#patientForm').on('submit.patients', function(e) {
+    $('#patientForm').on('submit', function(e) {
         console.log('Form submission event triggered');
         e.preventDefault();
         e.stopPropagation();
@@ -500,26 +499,13 @@ function setupFormSubmission() {
         return false;
     });
     
-    // Additional handler for submit button click
-    $('#submit-btn').on('click.submitBtn', function(e) {
+    // Submit button click handler
+    $('#submit-btn').on('click', function(e) {
         console.log('Submit button clicked');
         e.preventDefault();
         e.stopPropagation();
         
         // Trigger form validation and submission
-        if (validateForm()) {
-            savePatient();
-        }
-        
-        return false;
-    });
-    
-    // Backup handler using document delegation
-    $(document).on('submit.patientsForm', '#patientForm', function(e) {
-        console.log('Delegated form submission handler triggered');
-        e.preventDefault();
-        e.stopImmediatePropagation();
-        
         if (validateForm()) {
             savePatient();
         }
@@ -537,23 +523,9 @@ function refreshPatients() {
     showToast('info', 'Patient list refreshed');
 }
 
-// Global form submission handler
-function handleFormSubmit(event) {
-    console.log('Global form submit handler called');
-    event.preventDefault();
-    event.stopPropagation();
-    
-    if (validateForm()) {
-        savePatient();
-    }
-    
-    return false;
-}
-
 // Make functions globally available
 window.openPatientModal = openPatientModal;
 window.refreshPatients = refreshPatients;
-window.handleFormSubmit = handleFormSubmit;
 window.viewPatient = viewPatient;
 window.editPatient = editPatient;
 window.deletePatient = deletePatient;
@@ -562,23 +534,27 @@ function loadPatients() {
     showLoading(true);
     
     $.ajax({
-        url: 'api/patients_api.php',
+        url: 'api/patients_api_test.php',
         method: 'GET',
         data: { action: 'list' },
         dataType: 'json',
         success: function(response) {
             showLoading(false);
+            console.log('Load patients response:', response);
             
             if (response.success && response.data && response.data.length > 0) {
                 populateTable(response.data);
                 showPatientsTable(true);
+                showToast('success', 'Patients loaded successfully');
             } else {
                 showNoData(true);
+                showToast('info', 'No patients found');
             }
         },
         error: function(xhr, status, error) {
             showLoading(false);
             console.error('Error loading patients:', error);
+            console.error('Response:', xhr.responseText);
             showToast('error', 'Failed to load patients. Please try again.');
         }
     });
@@ -657,7 +633,7 @@ function editPatient(id) {
     $('#submit-text').text('Update Patient');
     
     $.ajax({
-        url: 'api/patients_api.php',
+        url: 'api/patients_api_test.php',
         method: 'GET',
         data: { action: 'get', id: id },
         dataType: 'json',
@@ -677,7 +653,7 @@ function editPatient(id) {
 
 function viewPatient(id) {
     $.ajax({
-        url: 'api/patients_api.php',
+        url: 'api/patients_api_test.php',
         method: 'GET',
         data: { action: 'get', id: id },
         dataType: 'json',
@@ -753,7 +729,7 @@ function deletePatient(id) {
     }).then((result) => {
         if (result.isConfirmed) {
             $.ajax({
-                url: 'api/patients_api.php',
+                url: 'api/patients_api_test.php',
                 method: 'POST',
                 data: { action: 'delete', id: id },
                 dataType: 'json',
@@ -796,10 +772,10 @@ function savePatient() {
         // Show loading state
         setSubmitButtonLoading(true);
         
-        console.log('Sending AJAX request to api/patients_api.php');
+        console.log('Sending AJAX request to api/patients_api_test.php');
         
         $.ajax({
-            url: 'api/patients_api.php',
+            url: 'api/patients_api_test.php',
             method: 'POST',
             data: formData,
             processData: false,
