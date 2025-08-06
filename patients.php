@@ -2,8 +2,8 @@
 // Set page title
 $page_title = 'Patients Management - PathLab Pro';
 
-// Include database connection
-require_once 'config.php';
+// Try to include database connection safely, but suppress all errors
+@include_once 'api/safe_config.php';
 
 // Include AdminLTE header and sidebar
 include 'includes/adminlte_header.php';

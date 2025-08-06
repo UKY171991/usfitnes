@@ -248,7 +248,7 @@ CREATE TABLE IF NOT EXISTS `doctors` (
 
 CREATE TABLE IF NOT EXISTS `test_orders` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `order_number` varchar(50) NOT NULL UNIQUE,
+  `order_number` varchar(50) NOT NULL,
   `patient_id` int(11) NOT NULL,
   `doctor_id` int(11) DEFAULT NULL,
   `priority` enum('normal','high','urgent') DEFAULT 'normal',

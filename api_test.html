@@ -1,28 +1,26 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Test Patient API</title>
+    <title>API Test</title>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 </head>
 <body>
-    <h1>Test Patient API</h1>
+    <h2>Testing Smart API</h2>
     <button onclick="testAPI()">Test API</button>
-    <div id="results"></div>
+    <div id="result"></div>
 
     <script>
     function testAPI() {
-        $('#results').html('Testing...');
-        
         $.ajax({
-            url: 'api/patients_api_test.php',
+            url: 'api/patients_api_smart.php',
             method: 'GET',
             data: { action: 'list' },
             dataType: 'json',
             success: function(response) {
-                $('#results').html('<pre>' + JSON.stringify(response, null, 2) + '</pre>');
+                $('#result').html('<pre>' + JSON.stringify(response, null, 2) + '</pre>');
             },
             error: function(xhr, status, error) {
-                $('#results').html('Error: ' + error + '<br>Response: ' + xhr.responseText);
+                $('#result').html('<pre>Error: ' + error + '\nResponse: ' + xhr.responseText + '</pre>');
             }
         });
     }
