@@ -4,488 +4,267 @@ header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE');
 header('Access-Control-Allow-Headers: Content-Type');
 
-// Start session if not already started
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Check if user is logged in
-if (!isset($_SESSION['user_id'])) {
-    http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'Unauthorized access']);
+// Try to use working config first, fallback to regular config
+if (file_exists('../config_working.php')) {
+    require_once '../config_working.php';
+} else {
+    require_once '../config.php';
+}
+
+$method = $_SERVER['REQUEST_METHOD'];
+$action = $_POST['action'] ?? $_GET['action'] ?? '';
+
+// Function to send JSON response
+function sendResponse($success, $message = '', $data = null) {
+    echo json_encode([
+        'success' => $success,
+        'message' => $message,
+        'data' => $data
+    ]);
     exit;
 }
 
-require_once '../config.php';
-
-$method = $_SERVER['REQUEST_METHOD'];
-
 try {
+    // Check database connection
+    if (!isset($pdo) || !$pdo instanceof PDO) {
+        sendResponse(false, 'Database connection failed');
+    }
+    
     switch ($method) {
         case 'GET':
-            handleGet($pdo);
+            handleGet($action);
             break;
         case 'POST':
-            handlePost($pdo);
+            handlePost($action);
             break;
         case 'PUT':
-            handlePut($pdo);
+            handlePut($action);
             break;
         case 'DELETE':
-            handleDelete($pdo);
+            handleDelete($action);
             break;
         default:
-            http_response_code(405);
-            echo json_encode(['success' => false, 'message' => 'Method not allowed']);
-            break;
+            sendResponse(false, 'Method not allowed');
     }
 } catch (Exception $e) {
-    http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Server error: ' . $e->getMessage()]);
+    error_log('Equipment API Error: ' . $e->getMessage());
+    sendResponse(false, 'Server error: ' . $e->getMessage());
 }
 
-function handleGet($pdo) {
-    $action = $_GET['action'] ?? 'list';
+function handleGet($action) {
+    global $pdo;
     
     switch ($action) {
         case 'list':
-            getEquipmentList($pdo);
+            try {
+                $stmt = $pdo->prepare("SELECT * FROM equipment WHERE status != 'deleted' ORDER BY created_at DESC");
+                $stmt->execute();
+                $equipment = $stmt->fetchAll();
+                sendResponse(true, 'Equipment retrieved successfully', $equipment);
+            } catch (Exception $e) {
+                sendResponse(false, 'Error retrieving equipment: ' . $e->getMessage());
+            }
             break;
-        case 'single':
-            getSingleEquipment($pdo);
+            
+        case 'get':
+            $id = $_GET['id'] ?? 0;
+            if (!$id) {
+                sendResponse(false, 'Equipment ID is required');
+            }
+            
+            try {
+                $stmt = $pdo->prepare("SELECT * FROM equipment WHERE id = ? AND status != 'deleted'");
+                $stmt->execute([$id]);
+                $equipment = $stmt->fetch();
+                
+                if ($equipment) {
+                    sendResponse(true, 'Equipment retrieved successfully', $equipment);
+                } else {
+                    sendResponse(false, 'Equipment not found');
+                }
+            } catch (Exception $e) {
+                sendResponse(false, 'Error retrieving equipment: ' . $e->getMessage());
+            }
             break;
-        case 'maintenance':
-            getMaintenanceHistory($pdo);
-            break;
-        case 'categories':
-            getEquipmentCategories($pdo);
-            break;
+            
         default:
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Invalid action']);
-            break;
+            sendResponse(false, 'Invalid action');
     }
 }
 
-function handlePost($pdo) {
-    $action = $_POST['action'] ?? 'add';
+function handlePost($action) {
+    global $pdo;
     
     switch ($action) {
-        case 'add':
-            addEquipment($pdo);
+        case 'create':
+            $required_fields = ['name', 'category'];
+            
+            // Validate required fields
+            foreach ($required_fields as $field) {
+                if (empty($_POST[$field])) {
+                    sendResponse(false, ucfirst(str_replace('_', ' ', $field)) . ' is required');
+                }
+            }
+            
+            // Prepare data
+            $name = sanitizeInput($_POST['name']);
+            $model = !empty($_POST['model']) ? sanitizeInput($_POST['model']) : null;
+            $brand = !empty($_POST['brand']) ? sanitizeInput($_POST['brand']) : null;
+            $category = sanitizeInput($_POST['category']);
+            $serial_number = !empty($_POST['serial_number']) ? sanitizeInput($_POST['serial_number']) : null;
+            $purchase_date = !empty($_POST['purchase_date']) ? $_POST['purchase_date'] : null;
+            $warranty_expiry = !empty($_POST['warranty_expiry']) ? $_POST['warranty_expiry'] : null;
+            $location = !empty($_POST['location']) ? sanitizeInput($_POST['location']) : null;
+            $notes = !empty($_POST['notes']) ? sanitizeInput($_POST['notes']) : null;
+            
+            try {
+                // Check if serial number already exists (if provided)
+                if ($serial_number) {
+                    $stmt = $pdo->prepare("SELECT id FROM equipment WHERE serial_number = ? AND status != 'deleted'");
+                    $stmt->execute([$serial_number]);
+                    if ($stmt->fetch()) {
+                        sendResponse(false, 'Equipment with this serial number already exists');
+                    }
+                }
+                
+                // Insert new equipment
+                $stmt = $pdo->prepare("INSERT INTO equipment (name, model, brand, category, serial_number, purchase_date, warranty_expiry, location, notes, status) 
+                                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')");
+                $stmt->execute([$name, $model, $brand, $category, $serial_number, $purchase_date, $warranty_expiry, $location, $notes]);
+                
+                $id = $pdo->lastInsertId();
+                sendResponse(true, 'Equipment created successfully', ['id' => $id]);
+                
+            } catch (Exception $e) {
+                sendResponse(false, 'Error creating equipment: ' . $e->getMessage());
+            }
             break;
-        case 'maintenance':
-            addMaintenance($pdo);
-            break;
-        default:
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Invalid action']);
-            break;
-    }
-}
-
-function handlePut($pdo) {
-    parse_str(file_get_contents("php://input"), $_PUT);
-    $action = $_PUT['action'] ?? 'update';
-    
-    switch ($action) {
+            
         case 'update':
-            updateEquipment($pdo, $_PUT);
+            $id = $_POST['id'] ?? 0;
+            if (!$id) {
+                sendResponse(false, 'Equipment ID is required');
+            }
+            
+            $required_fields = ['name', 'category'];
+            
+            // Validate required fields
+            foreach ($required_fields as $field) {
+                if (empty($_POST[$field])) {
+                    sendResponse(false, ucfirst(str_replace('_', ' ', $field)) . ' is required');
+                }
+            }
+            
+            // Prepare data
+            $name = sanitizeInput($_POST['name']);
+            $model = !empty($_POST['model']) ? sanitizeInput($_POST['model']) : null;
+            $brand = !empty($_POST['brand']) ? sanitizeInput($_POST['brand']) : null;
+            $category = sanitizeInput($_POST['category']);
+            $serial_number = !empty($_POST['serial_number']) ? sanitizeInput($_POST['serial_number']) : null;
+            $purchase_date = !empty($_POST['purchase_date']) ? $_POST['purchase_date'] : null;
+            $warranty_expiry = !empty($_POST['warranty_expiry']) ? $_POST['warranty_expiry'] : null;
+            $location = !empty($_POST['location']) ? sanitizeInput($_POST['location']) : null;
+            $notes = !empty($_POST['notes']) ? sanitizeInput($_POST['notes']) : null;
+            $status = !empty($_POST['status']) ? $_POST['status'] : 'active';
+            
+            try {
+                // Check if equipment exists
+                $stmt = $pdo->prepare("SELECT id FROM equipment WHERE id = ? AND status != 'deleted'");
+                $stmt->execute([$id]);
+                if (!$stmt->fetch()) {
+                    sendResponse(false, 'Equipment not found');
+                }
+                
+                // Check if serial number already exists for another equipment (if provided)
+                if ($serial_number) {
+                    $stmt = $pdo->prepare("SELECT id FROM equipment WHERE serial_number = ? AND id != ? AND status != 'deleted'");
+                    $stmt->execute([$serial_number, $id]);
+                    if ($stmt->fetch()) {
+                        sendResponse(false, 'Equipment with this serial number already exists');
+                    }
+                }
+                
+                // Update equipment
+                $stmt = $pdo->prepare("UPDATE equipment SET name = ?, model = ?, brand = ?, category = ?, serial_number = ?, 
+                                      purchase_date = ?, warranty_expiry = ?, location = ?, notes = ?, status = ?, updated_at = NOW() WHERE id = ?");
+                $stmt->execute([$name, $model, $brand, $category, $serial_number, $purchase_date, $warranty_expiry, $location, $notes, $status, $id]);
+                
+                sendResponse(true, 'Equipment updated successfully');
+                
+            } catch (Exception $e) {
+                sendResponse(false, 'Error updating equipment: ' . $e->getMessage());
+            }
             break;
-        case 'maintenance':
-            updateMaintenance($pdo, $_PUT);
-            break;
-        default:
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Invalid action']);
-            break;
-    }
-}
-
-function handleDelete($pdo) {
-    parse_str(file_get_contents("php://input"), $_DELETE);
-    $action = $_DELETE['action'] ?? 'delete';
-    
-    switch ($action) {
+            
         case 'delete':
-            deleteEquipment($pdo, $_DELETE);
+            $id = $_POST['id'] ?? 0;
+            if (!$id) {
+                sendResponse(false, 'Equipment ID is required');
+            }
+            
+            try {
+                // Check if equipment exists
+                $stmt = $pdo->prepare("SELECT id FROM equipment WHERE id = ? AND status != 'deleted'");
+                $stmt->execute([$id]);
+                if (!$stmt->fetch()) {
+                    sendResponse(false, 'Equipment not found');
+                }
+                
+                // Soft delete - just change status
+                $stmt = $pdo->prepare("UPDATE equipment SET status = 'deleted', updated_at = NOW() WHERE id = ?");
+                $stmt->execute([$id]);
+                
+                sendResponse(true, 'Equipment deleted successfully');
+                
+            } catch (Exception $e) {
+                sendResponse(false, 'Error deleting equipment: ' . $e->getMessage());
+            }
             break;
+            
         case 'maintenance':
-            deleteMaintenance($pdo, $_DELETE);
+            $id = $_POST['id'] ?? 0;
+            if (!$id) {
+                sendResponse(false, 'Equipment ID is required');
+            }
+            
+            try {
+                // Check if equipment exists
+                $stmt = $pdo->prepare("SELECT id FROM equipment WHERE id = ? AND status != 'deleted'");
+                $stmt->execute([$id]);
+                if (!$stmt->fetch()) {
+                    sendResponse(false, 'Equipment not found');
+                }
+                
+                // Update maintenance dates
+                $last_maintenance = date('Y-m-d');
+                $next_maintenance = !empty($_POST['next_maintenance']) ? $_POST['next_maintenance'] : date('Y-m-d', strtotime('+6 months'));
+                
+                $stmt = $pdo->prepare("UPDATE equipment SET last_maintenance = ?, next_maintenance = ?, updated_at = NOW() WHERE id = ?");
+                $stmt->execute([$last_maintenance, $next_maintenance, $id]);
+                
+                sendResponse(true, 'Equipment maintenance updated successfully');
+                
+            } catch (Exception $e) {
+                sendResponse(false, 'Error updating maintenance: ' . $e->getMessage());
+            }
             break;
+            
         default:
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Invalid action']);
-            break;
+            sendResponse(false, 'Invalid action');
     }
 }
 
-function getEquipmentList($pdo) {
-    try {
-        $stmt = $pdo->query("
-            SELECT 
-                e.*,
-                (SELECT COUNT(*) FROM equipment_maintenance m WHERE m.equipment_id = e.equipment_id) as maintenance_count
-            FROM equipment e
-            ORDER BY e.equipment_name
-        ");
-        $equipment = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
-        echo json_encode(['success' => true, 'data' => $equipment]);
-        
-    } catch (PDOException $e) {
-        http_response_code(500);
-        echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
-    }
+function handlePut($action) {
+    parse_str(file_get_contents("php://input"), $_POST);
+    handlePost($action);
 }
 
-function getSingleEquipment($pdo) {
-    try {
-        $id = $_GET['id'] ?? 0;
-        
-        if (!$id) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Equipment ID is required']);
-            return;
-        }
-        
-        $stmt = $pdo->prepare("
-            SELECT * FROM equipment 
-            WHERE equipment_id = :id
-        ");
-        $stmt->execute(['id' => $id]);
-        $equipment = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        if (!$equipment) {
-            http_response_code(404);
-            echo json_encode(['success' => false, 'message' => 'Equipment not found']);
-            return;
-        }
-        
-        echo json_encode(['success' => true, 'data' => $equipment]);
-        
-    } catch (PDOException $e) {
-        http_response_code(500);
-        echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
-    }
-}
-
-function getMaintenanceHistory($pdo) {
-    try {
-        $id = $_GET['id'] ?? 0;
-        
-        if (!$id) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Equipment ID is required']);
-            return;
-        }
-        
-        $stmt = $pdo->prepare("
-            SELECT * FROM equipment_maintenance 
-            WHERE equipment_id = :id
-            ORDER BY maintenance_date DESC
-        ");
-        $stmt->execute(['id' => $id]);
-        $maintenance = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
-        echo json_encode(['success' => true, 'data' => $maintenance]);
-        
-    } catch (PDOException $e) {
-        http_response_code(500);
-        echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
-    }
-}
-
-function getEquipmentCategories($pdo) {
-    try {
-        $stmt = $pdo->query("
-            SELECT DISTINCT category FROM equipment ORDER BY category
-        ");
-        $categories = $stmt->fetchAll(PDO::FETCH_COLUMN);
-        
-        echo json_encode(['success' => true, 'data' => $categories]);
-        
-    } catch (PDOException $e) {
-        http_response_code(500);
-        echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
-    }
-}
-
-function addEquipment($pdo) {
-    try {
-        $name = $_POST['equipment_name'] ?? '';
-        $model = $_POST['model'] ?? '';
-        $serial = $_POST['serial_number'] ?? '';
-        $category = $_POST['category'] ?? '';
-        $purchase_date = $_POST['purchase_date'] ?? null;
-        $warranty_expiry = $_POST['warranty_expiry'] ?? null;
-        $status = $_POST['status'] ?? 'Working';
-        $notes = $_POST['notes'] ?? '';
-        
-        // Validate inputs
-        if (empty($name)) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Equipment name is required']);
-            return;
-        }
-        
-        $stmt = $pdo->prepare("
-            INSERT INTO equipment (
-                equipment_name, model, serial_number, category, 
-                purchase_date, warranty_expiry, status, notes, created_at
-            ) VALUES (
-                :name, :model, :serial, :category, 
-                :purchase_date, :warranty_expiry, :status, :notes, NOW()
-            )
-        ");
-        
-        $stmt->execute([
-            'name' => $name,
-            'model' => $model,
-            'serial' => $serial,
-            'category' => $category,
-            'purchase_date' => $purchase_date,
-            'warranty_expiry' => $warranty_expiry,
-            'status' => $status,
-            'notes' => $notes
-        ]);
-        
-        $equipmentId = $pdo->lastInsertId();
-        
-        echo json_encode([
-            'success' => true, 
-            'message' => 'Equipment added successfully',
-            'data' => ['equipment_id' => $equipmentId]
-        ]);
-        
-    } catch (PDOException $e) {
-        http_response_code(500);
-        echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
-    }
-}
-
-function updateEquipment($pdo, $data) {
-    try {
-        $id = $data['equipment_id'] ?? 0;
-        $name = $data['equipment_name'] ?? '';
-        $model = $data['model'] ?? '';
-        $serial = $data['serial_number'] ?? '';
-        $category = $data['category'] ?? '';
-        $purchase_date = $data['purchase_date'] ?? null;
-        $warranty_expiry = $data['warranty_expiry'] ?? null;
-        $status = $data['status'] ?? 'Working';
-        $notes = $data['notes'] ?? '';
-        
-        // Validate inputs
-        if (!$id) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Equipment ID is required']);
-            return;
-        }
-        
-        if (empty($name)) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Equipment name is required']);
-            return;
-        }
-        
-        $stmt = $pdo->prepare("
-            UPDATE equipment SET
-                equipment_name = :name,
-                model = :model,
-                serial_number = :serial,
-                category = :category,
-                purchase_date = :purchase_date,
-                warranty_expiry = :warranty_expiry,
-                status = :status,
-                notes = :notes,
-                updated_at = NOW()
-            WHERE equipment_id = :id
-        ");
-        
-        $stmt->execute([
-            'id' => $id,
-            'name' => $name,
-            'model' => $model,
-            'serial' => $serial,
-            'category' => $category,
-            'purchase_date' => $purchase_date,
-            'warranty_expiry' => $warranty_expiry,
-            'status' => $status,
-            'notes' => $notes
-        ]);
-        
-        echo json_encode([
-            'success' => true, 
-            'message' => 'Equipment updated successfully'
-        ]);
-        
-    } catch (PDOException $e) {
-        http_response_code(500);
-        echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
-    }
-}
-
-function deleteEquipment($pdo, $data) {
-    try {
-        $id = $data['equipment_id'] ?? 0;
-        
-        // Validate inputs
-        if (!$id) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Equipment ID is required']);
-            return;
-        }
-        
-        // First delete related maintenance records
-        $stmt = $pdo->prepare("DELETE FROM equipment_maintenance WHERE equipment_id = :id");
-        $stmt->execute(['id' => $id]);
-        
-        // Then delete the equipment
-        $stmt = $pdo->prepare("DELETE FROM equipment WHERE equipment_id = :id");
-        $stmt->execute(['id' => $id]);
-        
-        echo json_encode([
-            'success' => true, 
-            'message' => 'Equipment deleted successfully'
-        ]);
-        
-    } catch (PDOException $e) {
-        http_response_code(500);
-        echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
-    }
-}
-
-function addMaintenance($pdo) {
-    try {
-        $equipment_id = $_POST['equipment_id'] ?? 0;
-        $maintenance_type = $_POST['maintenance_type'] ?? '';
-        $maintenance_date = $_POST['maintenance_date'] ?? date('Y-m-d');
-        $performed_by = $_POST['performed_by'] ?? '';
-        $cost = $_POST['cost'] ?? 0;
-        $notes = $_POST['notes'] ?? '';
-        
-        // Validate inputs
-        if (!$equipment_id) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Equipment ID is required']);
-            return;
-        }
-        
-        if (empty($maintenance_type)) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Maintenance type is required']);
-            return;
-        }
-        
-        $stmt = $pdo->prepare("
-            INSERT INTO equipment_maintenance (
-                equipment_id, maintenance_type, maintenance_date, 
-                performed_by, cost, notes, created_at
-            ) VALUES (
-                :equipment_id, :maintenance_type, :maintenance_date, 
-                :performed_by, :cost, :notes, NOW()
-            )
-        ");
-        
-        $stmt->execute([
-            'equipment_id' => $equipment_id,
-            'maintenance_type' => $maintenance_type,
-            'maintenance_date' => $maintenance_date,
-            'performed_by' => $performed_by,
-            'cost' => $cost,
-            'notes' => $notes
-        ]);
-        
-        $maintenanceId = $pdo->lastInsertId();
-        
-        echo json_encode([
-            'success' => true, 
-            'message' => 'Maintenance record added successfully',
-            'data' => ['maintenance_id' => $maintenanceId]
-        ]);
-        
-    } catch (PDOException $e) {
-        http_response_code(500);
-        echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
-    }
-}
-
-function updateMaintenance($pdo, $data) {
-    try {
-        $maintenance_id = $data['maintenance_id'] ?? 0;
-        $maintenance_type = $data['maintenance_type'] ?? '';
-        $maintenance_date = $data['maintenance_date'] ?? date('Y-m-d');
-        $performed_by = $data['performed_by'] ?? '';
-        $cost = $data['cost'] ?? 0;
-        $notes = $data['notes'] ?? '';
-        
-        // Validate inputs
-        if (!$maintenance_id) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Maintenance ID is required']);
-            return;
-        }
-        
-        if (empty($maintenance_type)) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Maintenance type is required']);
-            return;
-        }
-        
-        $stmt = $pdo->prepare("
-            UPDATE equipment_maintenance SET
-                maintenance_type = :maintenance_type,
-                maintenance_date = :maintenance_date,
-                performed_by = :performed_by,
-                cost = :cost,
-                notes = :notes,
-                updated_at = NOW()
-            WHERE maintenance_id = :maintenance_id
-        ");
-        
-        $stmt->execute([
-            'maintenance_id' => $maintenance_id,
-            'maintenance_type' => $maintenance_type,
-            'maintenance_date' => $maintenance_date,
-            'performed_by' => $performed_by,
-            'cost' => $cost,
-            'notes' => $notes
-        ]);
-        
-        echo json_encode([
-            'success' => true, 
-            'message' => 'Maintenance record updated successfully'
-        ]);
-        
-    } catch (PDOException $e) {
-        http_response_code(500);
-        echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
-    }
-}
-
-function deleteMaintenance($pdo, $data) {
-    try {
-        $maintenance_id = $data['maintenance_id'] ?? 0;
-        
-        // Validate inputs
-        if (!$maintenance_id) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Maintenance ID is required']);
-            return;
-        }
-        
-        $stmt = $pdo->prepare("DELETE FROM equipment_maintenance WHERE maintenance_id = :maintenance_id");
-        $stmt->execute(['maintenance_id' => $maintenance_id]);
-        
-        echo json_encode([
-            'success' => true, 
-            'message' => 'Maintenance record deleted successfully'
-        ]);
-        
-    } catch (PDOException $e) {
-        http_response_code(500);
-        echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
-    }
+function handleDelete($action) {
+    parse_str(file_get_contents("php://input"), $_POST);
+    handlePost('delete');
 }
 ?>
