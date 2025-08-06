@@ -77,10 +77,10 @@ include 'includes/adminlte_sidebar.php';
                   <thead>
                     <tr>
                       <th>ID</th>
-                      <th>Name</th>
-                      <th>Email</th>
+                      <th>Patient Name</th>
                       <th>Phone</th>
-                      <th>Date of Birth</th>
+                      <th>Email</th>
+                      <th>Age</th>
                       <th>Status</th>
                       <th>Actions</th>
                     </tr>
@@ -105,12 +105,12 @@ include 'includes/adminlte_sidebar.php';
 <div class="modal fade" id="patientModal" tabindex="-1" role="dialog" aria-labelledby="patientModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg" role="document">
     <div class="modal-content">
-      <div class="modal-header">
+      <div class="modal-header bg-primary text-white">
         <h5 class="modal-title" id="patientModalLabel">
           <i class="fas fa-user-injured mr-2"></i>
           <span id="modal-title">Add New Patient</span>
         </h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
           <span aria-hidden="true">&times;</span>
         </button>
       </div>
@@ -118,79 +118,74 @@ include 'includes/adminlte_sidebar.php';
         <div class="modal-body">
           <input type="hidden" id="patient_id" name="patient_id">
           
-          <div class="row">
-            <div class="col-md-6">
-              <div class="form-group">
-                <label for="first_name">First Name <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" id="first_name" name="first_name" required>
-              </div>
+          <!-- Essential Patient Information -->
+          <div class="card mb-3">
+            <div class="card-header bg-light">
+              <h6 class="mb-0"><i class="fas fa-user mr-2"></i>Personal Details</h6>
             </div>
-            <div class="col-md-6">
-              <div class="form-group">
-                <label for="last_name">Last Name <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" id="last_name" name="last_name" required>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="form-group">
+                    <label for="first_name">First Name <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="first_name" name="first_name" required>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="form-group">
+                    <label for="last_name">Last Name <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="last_name" name="last_name" required>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-          
-          <div class="row">
-            <div class="col-md-6">
-              <div class="form-group">
-                <label for="email">Email Address</label>
-                <input type="email" class="form-control" id="email" name="email">
-              </div>
-            </div>
-            <div class="col-md-6">
-              <div class="form-group">
-                <label for="phone">Phone Number <span class="text-danger">*</span></label>
-                <input type="tel" class="form-control" id="phone" name="phone" required>
-              </div>
-            </div>
-          </div>
-          
-          <div class="row">
-            <div class="col-md-6">
-              <div class="form-group">
-                <label for="date_of_birth">Date of Birth</label>
-                <input type="date" class="form-control" id="date_of_birth" name="date_of_birth">
-              </div>
-            </div>
-            <div class="col-md-6">
-              <div class="form-group">
-                <label for="gender">Gender</label>
-                <select class="form-control" id="gender" name="gender">
-                  <option value="">Select Gender</option>
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                  <option value="other">Other</option>
-                </select>
+              
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="form-group">
+                    <label for="date_of_birth">Date of Birth</label>
+                    <input type="date" class="form-control" id="date_of_birth" name="date_of_birth">
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="form-group">
+                    <label for="gender">Gender</label>
+                    <select class="form-control" id="gender" name="gender">
+                      <option value="">Select Gender</option>
+                      <option value="male">Male</option>
+                      <option value="female">Female</option>
+                    </select>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
           
-          <div class="form-group">
-            <label for="address">Address</label>
-            <textarea class="form-control" id="address" name="address" rows="3"></textarea>
-          </div>
-          
-          <div class="row">
-            <div class="col-md-6">
+          <!-- Contact Information -->
+          <div class="card">
+            <div class="card-header bg-light">
+              <h6 class="mb-0"><i class="fas fa-phone mr-2"></i>Contact Information</h6>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="form-group">
+                    <label for="phone">Phone Number <span class="text-danger">*</span></label>
+                    <input type="tel" class="form-control" id="phone" name="phone" required>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" class="form-control" id="email" name="email">
+                  </div>
+                </div>
+              </div>
+              
               <div class="form-group">
-                <label for="emergency_contact_name">Emergency Contact Name</label>
-                <input type="text" class="form-control" id="emergency_contact_name" name="emergency_contact_name">
+                <label for="address">Address</label>
+                <textarea class="form-control" id="address" name="address" rows="2" placeholder="Enter patient address"></textarea>
               </div>
             </div>
-            <div class="col-md-6">
-              <div class="form-group">
-                <label for="emergency_contact_phone">Emergency Contact Phone</label>
-                <input type="tel" class="form-control" id="emergency_contact_phone" name="emergency_contact_phone">
-              </div>
-            </div>
-          </div>
-          
-          <div class="form-group">
-            <label for="medical_history">Medical History</label>
-            <textarea class="form-control" id="medical_history" name="medical_history" rows="4"></textarea>
           </div>
         </div>
         
@@ -236,7 +231,221 @@ include 'includes/adminlte_sidebar.php';
   </div>
 </div>
 
-<script>
+    <!-- Custom CSS for enhanced styling -->
+    <style>
+        .patients-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+        
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 8px 8px 0 0;
+        }
+        
+        .modal-header .btn-close {
+            filter: brightness(0) invert(1);
+        }
+        
+        .card-section {
+            background: #f8f9fc;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .form-group label {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 8px;
+        }
+        
+        .form-control {
+            border-radius: 6px;
+            border: 1px solid #e3e6f0;
+            padding: 12px 15px;
+            transition: all 0.3s ease;
+        }
+        
+        .form-control:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 6px;
+            padding: 10px 30px;
+            font-weight: 600;
+        }
+        
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+            transform: translateY(-1px);
+        }
+        
+        .table-responsive {
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        
+        .table thead th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            font-weight: 600;
+            padding: 15px 12px;
+        }
+        
+        .table tbody tr:hover {
+            background-color: #f8f9fc;
+        }
+        
+        .badge {
+            padding: 8px 12px;
+            font-weight: 500;
+            border-radius: 20px;
+        }
+        
+        .btn-group .btn {
+            margin: 0 2px;
+            border-radius: 4px !important;
+        }
+        
+        .loading-overlay {
+            background: rgba(255,255,255,0.9);
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+        }
+        
+        .spinner-border {
+            color: #667eea;
+        }
+        
+        .is-invalid {
+            border-color: #e74a3b !important;
+            box-shadow: 0 0 0 0.2rem rgba(231, 74, 59, 0.25) !important;
+        }
+        
+        .invalid-feedback {
+            display: block;
+            color: #e74a3b;
+            font-size: 0.875rem;
+            margin-top: 5px;
+        }
+        
+        @media (max-width: 768px) {
+            .patients-header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .card-section {
+                padding: 15px;
+            }
+            
+            .btn-group .btn {
+                padding: 5px 8px;
+                font-size: 0.875rem;
+            }
+        }
+    </style>
+
+    <script>
+// PathLab Pro utilities
+const PathLabPro = {
+    notifications: {
+        success: function(message) {
+            if (typeof toastr !== 'undefined') {
+                toastr.success(message);
+            } else {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success!',
+                    text: message,
+                    timer: 3000,
+                    showConfirmButton: false
+                });
+            }
+        },
+        error: function(message) {
+            if (typeof toastr !== 'undefined') {
+                toastr.error(message);
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error!',
+                    text: message
+                });
+            }
+        },
+        warning: function(message) {
+            if (typeof toastr !== 'undefined') {
+                toastr.warning(message);
+            } else {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Warning!',
+                    text: message
+                });
+            }
+        }
+    },
+    modal: {
+        confirm: function(options) {
+            Swal.fire({
+                title: options.title || 'Are you sure?',
+                text: options.text || 'This action cannot be undone.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: options.confirmText || 'Yes, delete it!'
+            }).then((result) => {
+                if (result.isConfirmed && options.callback) {
+                    options.callback();
+                }
+            });
+        }
+    },
+    formatDate: function(dateStr) {
+        if (!dateStr) return '';
+        const date = new Date(dateStr);
+        return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        });
+    },
+    calculateAge: function(birthDate) {
+        if (!birthDate) return '';
+        const today = new Date();
+        const birth = new Date(birthDate);
+        let age = today.getFullYear() - birth.getFullYear();
+        const monthDiff = today.getMonth() - birth.getMonth();
+        
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+            age--;
+        }
+        
+        return age + ' years';
+    }
+};
+
 let patientsTable;
 let currentPatientId = null;
 
@@ -253,21 +462,85 @@ $(document).ready(function() {
                 orderable: false,
                 searchable: false
             }
-        ]
+        ],
+        language: {
+            emptyTable: "No patients found",
+            search: "Search patients:",
+            lengthMenu: "Show _MENU_ patients per page",
+            info: "Showing _START_ to _END_ of _TOTAL_ patients",
+            paginate: {
+                first: "First",
+                last: "Last",
+                next: "Next",
+                previous: "Previous"
+            }
+        }
     });
     
     // Load patients data
     loadPatients();
     
-    // Form submission
+    // Form submission with enhanced validation
     $('#patientForm').on('submit', function(e) {
         e.preventDefault();
-        savePatient();
+        
+        // Clear previous validation
+        $(this).find('.is-invalid').removeClass('is-invalid');
+        
+        // Enhanced validation
+        let isValid = true;
+        
+        // Required fields validation
+        $(this).find('[required]').each(function() {
+            if (!$(this).val().trim()) {
+                isValid = false;
+                $(this).addClass('is-invalid');
+            }
+        });
+        
+        // Phone number validation
+        const phone = $('#phone').val().trim();
+        if (phone && !/^[\d\-\+\(\)\s]+$/.test(phone)) {
+            isValid = false;
+            $('#phone').addClass('is-invalid');
+        }
+        
+        // Email validation
+        const email = $('#email').val().trim();
+        if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            isValid = false;
+            $('#email').addClass('is-invalid');
+        }
+        
+        if (isValid) {
+            savePatient();
+        } else {
+            PathLabPro.notifications.error('Please check the form for errors and try again.');
+        }
     });
     
     // Reset modal on close
     $('#patientModal').on('hidden.bs.modal', function() {
         resetForm();
+    });
+    
+    // Real-time validation feedback
+    $('#phone').on('input', function() {
+        const phone = $(this).val().trim();
+        if (phone && !/^[\d\-\+\(\)\s]+$/.test(phone)) {
+            $(this).addClass('is-invalid');
+        } else {
+            $(this).removeClass('is-invalid');
+        }
+    });
+    
+    $('#email').on('input', function() {
+        const email = $(this).val().trim();
+        if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            $(this).addClass('is-invalid');
+        } else {
+            $(this).removeClass('is-invalid');
+        }
     });
 });
 
@@ -305,35 +578,31 @@ function populateTable(patients) {
     patientsTable.clear();
     
     patients.forEach(function(patient) {
-        const dobFormatted = patient.date_of_birth ? 
-            new Date(patient.date_of_birth).toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric'
-            }) : '';
+        const age = patient.date_of_birth ? 
+            Math.floor((new Date() - new Date(patient.date_of_birth)) / (365.25 * 24 * 60 * 60 * 1000)) : '';
             
         const statusBadge = `<span class="badge badge-${patient.status === 'active' ? 'success' : 'secondary'}">${patient.status.charAt(0).toUpperCase() + patient.status.slice(1)}</span>`;
         
         const actions = `
             <div class="btn-group">
-                <button class="btn btn-info btn-sm" onclick="viewPatient(${patient.id})" title="View">
+                <button class="btn btn-info btn-sm" onclick="viewPatient(${patient.id})" title="View Details">
                     <i class="fas fa-eye"></i>
                 </button>
-                <button class="btn btn-warning btn-sm" onclick="editPatient(${patient.id})" title="Edit">
+                <button class="btn btn-warning btn-sm" onclick="editPatient(${patient.id})" title="Edit Patient">
                     <i class="fas fa-edit"></i>
                 </button>
-                <button class="btn btn-danger btn-sm" onclick="deletePatient(${patient.id})" title="Delete">
+                <button class="btn btn-danger btn-sm" onclick="deletePatient(${patient.id})" title="Delete Patient">
                     <i class="fas fa-trash"></i>
                 </button>
             </div>
         `;
         
         patientsTable.row.add([
-            patient.id,
-            `<strong>${patient.first_name} ${patient.last_name}</strong>`,
-            patient.email || '',
-            patient.phone || '',
-            dobFormatted,
+            `<strong>#${patient.id}</strong>`,
+            `<div><strong>${patient.first_name} ${patient.last_name}</strong><br><small class="text-muted">${patient.gender ? patient.gender.charAt(0).toUpperCase() + patient.gender.slice(1) : ''}</small></div>`,
+            `<a href="tel:${patient.phone}">${patient.phone || ''}</a>`,
+            patient.email ? `<a href="mailto:${patient.email}">${patient.email}</a>` : '<span class="text-muted">Not provided</span>',
+            age ? `${age} years` : '<span class="text-muted">Unknown</span>',
             statusBadge,
             actions
         ]);
@@ -392,22 +661,21 @@ function viewPatient(id) {
                         <div class="col-md-6">
                             <h6><strong>Personal Information</strong></h6>
                             <p><strong>Name:</strong> ${patient.first_name} ${patient.last_name}</p>
-                            <p><strong>Email:</strong> ${patient.email || 'Not provided'}</p>
                             <p><strong>Phone:</strong> ${patient.phone || 'Not provided'}</p>
+                            <p><strong>Email:</strong> ${patient.email || 'Not provided'}</p>
                             <p><strong>Date of Birth:</strong> ${patient.date_of_birth ? new Date(patient.date_of_birth).toLocaleDateString() : 'Not provided'}</p>
                             <p><strong>Gender:</strong> ${patient.gender ? patient.gender.charAt(0).toUpperCase() + patient.gender.slice(1) : 'Not specified'}</p>
-                            <p><strong>Address:</strong> ${patient.address || 'Not provided'}</p>
                         </div>
                         <div class="col-md-6">
-                            <h6><strong>Emergency Contact</strong></h6>
-                            <p><strong>Name:</strong> ${patient.emergency_contact_name || 'Not provided'}</p>
-                            <p><strong>Phone:</strong> ${patient.emergency_contact_phone || 'Not provided'}</p>
+                            <h6><strong>Contact Information</strong></h6>
+                            <p><strong>Address:</strong></p>
+                            <p>${patient.address || 'Not provided'}</p>
                             
-                            <h6><strong>Medical Information</strong></h6>
-                            <p><strong>Medical History:</strong></p>
-                            <p>${patient.medical_history || 'No medical history recorded'}</p>
+                            <h6><strong>Status</strong></h6>
+                            <p><span class="badge badge-${patient.status === 'active' ? 'success' : 'secondary'}">${patient.status.charAt(0).toUpperCase() + patient.status.slice(1)}</span></p>
                             
-                            <p><strong>Status:</strong> <span class="badge badge-${patient.status === 'active' ? 'success' : 'secondary'}">${patient.status.charAt(0).toUpperCase() + patient.status.slice(1)}</span></p>
+                            <h6><strong>Registration Date</strong></h6>
+                            <p>${patient.created_at ? new Date(patient.created_at).toLocaleDateString() : 'Unknown'}</p>
                         </div>
                     </div>
                 `;
@@ -508,14 +776,11 @@ function populateForm(patient) {
     $('#patient_id').val(patient.id);
     $('#first_name').val(patient.first_name);
     $('#last_name').val(patient.last_name);
-    $('#email').val(patient.email);
     $('#phone').val(patient.phone);
+    $('#email').val(patient.email);
     $('#date_of_birth').val(patient.date_of_birth);
     $('#gender').val(patient.gender);
     $('#address').val(patient.address);
-    $('#emergency_contact_name').val(patient.emergency_contact_name);
-    $('#emergency_contact_phone').val(patient.emergency_contact_phone);
-    $('#medical_history').val(patient.medical_history);
 }
 
 // Reset form

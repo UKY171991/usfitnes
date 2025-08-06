@@ -17,37 +17,245 @@ if (!isset($_SESSION['user_id'])) {
 
 require_once '../config.php';
 
-$method = $_SERVER['REQUEST_METHOD'];
-$input = json_decode(file_get_contents('php://input'), true);
-
 try {
-    switch ($method) {
-        case 'GET':
-            handleGet($pdo);
+    $action = $_GET['action'] ?? $_POST['action'] ?? '';
+    
+    switch ($action) {
+        case 'list':
+            getTestOrders($pdo);
             break;
-        case 'POST':
-            handlePost($pdo, $input);
+        case 'get':
+            getTestOrder($pdo);
             break;
-        case 'PUT':
-            handlePut($pdo, $input);
+        case 'create':
+            createTestOrder($pdo);
             break;
-        case 'DELETE':
-            handleDelete($pdo, $input);
+        case 'update':
+            updateTestOrder($pdo);
+            break;
+        case 'delete':
+            deleteTestOrder($pdo);
+            break;
+        case 'get_tests':
+            getTests($pdo);
+            break;
+        case 'get_doctors':
+            getDoctors($pdo);
             break;
         default:
-            http_response_code(405);
-            echo json_encode(['success' => false, 'message' => 'Method not allowed']);
+            echo json_encode(['success' => false, 'message' => 'Invalid action']);
             break;
     }
 } catch (Exception $e) {
-    http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Server error: ' . $e->getMessage()]);
+    error_log("Test Orders API Error: " . $e->getMessage());
+    echo json_encode(['success' => false, 'message' => 'Server error occurred']);
 }
 
-function handleGet($pdo) {
+function getTestOrders($pdo) {
     try {
-        // Get all test orders with patient and test details
         $stmt = $pdo->query("
+            SELECT 
+                to.id,
+                to.patient_id,
+                to.test_id,
+                to.doctor_id,
+                to.priority,
+                to.status,
+                to.notes,
+                to.order_date,
+                p.name as patient_name,
+                p.patient_id as patient_mrn,
+                t.name as test_name,
+                t.type as test_type,
+                d.name as doctor_name
+            FROM test_orders to
+            LEFT JOIN patients p ON to.patient_id = p.id
+            LEFT JOIN tests t ON to.test_id = t.id
+            LEFT JOIN doctors d ON to.doctor_id = d.id
+            ORDER BY to.order_date DESC
+        ");
+        
+        $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        echo json_encode(['success' => true, 'data' => $orders]);
+    } catch (Exception $e) {
+        echo json_encode(['success' => false, 'message' => 'Failed to fetch test orders: ' . $e->getMessage()]);
+    }
+}
+
+function getTestOrder($pdo) {
+    try {
+        $id = $_GET['id'] ?? null;
+        
+        if (!$id) {
+            echo json_encode(['success' => false, 'message' => 'Order ID is required']);
+            return;
+        }
+        
+        $stmt = $pdo->prepare("
+            SELECT 
+                to.*,
+                p.name as patient_name,
+                t.name as test_name,
+                d.name as doctor_name
+            FROM test_orders to
+            LEFT JOIN patients p ON to.patient_id = p.id
+            LEFT JOIN tests t ON to.test_id = t.id
+            LEFT JOIN doctors d ON to.doctor_id = d.id
+            WHERE to.id = ?
+        ");
+        
+        $stmt->execute([$id]);
+        $order = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if ($order) {
+            echo json_encode(['success' => true, 'data' => $order]);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Test order not found']);
+        }
+    } catch (Exception $e) {
+        echo json_encode(['success' => false, 'message' => 'Failed to fetch test order: ' . $e->getMessage()]);
+    }
+}
+
+function createTestOrder($pdo) {
+    try {
+        // Validate required fields
+        $required_fields = ['patient_id', 'test_id', 'priority'];
+        foreach ($required_fields as $field) {
+            if (empty($_POST[$field])) {
+                echo json_encode(['success' => false, 'message' => ucfirst(str_replace('_', ' ', $field)) . ' is required']);
+                return;
+            }
+        }
+        
+        $stmt = $pdo->prepare("
+            INSERT INTO test_orders (patient_id, test_id, doctor_id, priority, status, notes, order_date) 
+            VALUES (?, ?, ?, ?, ?, ?, NOW())
+        ");
+        
+        $result = $stmt->execute([
+            $_POST['patient_id'],
+            $_POST['test_id'],
+            $_POST['doctor_id'] ?: null,
+            $_POST['priority'],
+            $_POST['status'] ?? 'pending',
+            $_POST['notes'] ?? ''
+        ]);
+        
+        if ($result) {
+            echo json_encode(['success' => true, 'message' => 'Test order created successfully']);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Failed to create test order']);
+        }
+    } catch (Exception $e) {
+        echo json_encode(['success' => false, 'message' => 'Failed to create test order: ' . $e->getMessage()]);
+    }
+}
+
+function updateTestOrder($pdo) {
+    try {
+        if (empty($_POST['id'])) {
+            echo json_encode(['success' => false, 'message' => 'Order ID is required']);
+            return;
+        }
+        
+        // Validate required fields
+        $required_fields = ['patient_id', 'test_id', 'priority', 'status'];
+        foreach ($required_fields as $field) {
+            if (empty($_POST[$field])) {
+                echo json_encode(['success' => false, 'message' => ucfirst(str_replace('_', ' ', $field)) . ' is required']);
+                return;
+            }
+        }
+        
+        $stmt = $pdo->prepare("
+            UPDATE test_orders 
+            SET patient_id = ?, test_id = ?, doctor_id = ?, priority = ?, status = ?, notes = ?
+            WHERE id = ?
+        ");
+        
+        $result = $stmt->execute([
+            $_POST['patient_id'],
+            $_POST['test_id'],
+            $_POST['doctor_id'] ?: null,
+            $_POST['priority'],
+            $_POST['status'],
+            $_POST['notes'] ?? '',
+            $_POST['id']
+        ]);
+        
+        if ($result) {
+            echo json_encode(['success' => true, 'message' => 'Test order updated successfully']);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Failed to update test order']);
+        }
+    } catch (Exception $e) {
+        echo json_encode(['success' => false, 'message' => 'Failed to update test order: ' . $e->getMessage()]);
+    }
+}
+
+function deleteTestOrder($pdo) {
+    try {
+        if (empty($_POST['id'])) {
+            echo json_encode(['success' => false, 'message' => 'Order ID is required']);
+            return;
+        }
+        
+        $stmt = $pdo->prepare("DELETE FROM test_orders WHERE id = ?");
+        $result = $stmt->execute([$_POST['id']]);
+        
+        if ($result) {
+            echo json_encode(['success' => true, 'message' => 'Test order deleted successfully']);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Failed to delete test order']);
+        }
+    } catch (Exception $e) {
+        echo json_encode(['success' => false, 'message' => 'Failed to delete test order: ' . $e->getMessage()]);
+    }
+}
+
+function getTests($pdo) {
+    try {
+        $stmt = $pdo->query("SELECT id, name, type FROM tests ORDER BY name");
+        $tests = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // If no tests in database, provide some default ones
+        if (empty($tests)) {
+            $tests = [
+                ['id' => 1, 'name' => 'Complete Blood Count', 'type' => 'Blood'],
+                ['id' => 2, 'name' => 'Blood Glucose', 'type' => 'Blood'],
+                ['id' => 3, 'name' => 'Lipid Profile', 'type' => 'Blood'],
+                ['id' => 4, 'name' => 'Liver Function Test', 'type' => 'Blood'],
+                ['id' => 5, 'name' => 'Urinalysis', 'type' => 'Urine']
+            ];
+        }
+        
+        echo json_encode(['success' => true, 'data' => $tests]);
+    } catch (Exception $e) {
+        echo json_encode(['success' => false, 'message' => 'Failed to fetch tests: ' . $e->getMessage()]);
+    }
+}
+
+function getDoctors($pdo) {
+    try {
+        $stmt = $pdo->query("SELECT id, name, specialization FROM doctors ORDER BY name");
+        $doctors = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // If no doctors in database, provide some default ones
+        if (empty($doctors)) {
+            $doctors = [
+                ['id' => 1, 'name' => 'Dr. Smith', 'specialization' => 'General Medicine'],
+                ['id' => 2, 'name' => 'Dr. Johnson', 'specialization' => 'Cardiology'],
+                ['id' => 3, 'name' => 'Dr. Brown', 'specialization' => 'Pathology']
+            ];
+        }
+        
+        echo json_encode(['success' => true, 'data' => $doctors]);
+    } catch (Exception $e) {
+        echo json_encode(['success' => false, 'message' => 'Failed to fetch doctors: ' . $e->getMessage()]);
+    }
+}
+?>
             SELECT 
                 to.*,
                 p.full_name as patient_name,

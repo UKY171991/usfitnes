@@ -99,14 +99,11 @@ function handlePost($action) {
             // Prepare data
             $first_name = trim($_POST['first_name']);
             $last_name = trim($_POST['last_name']);
-            $email = trim($_POST['email'] ?? '');
             $phone = trim($_POST['phone']);
+            $email = trim($_POST['email'] ?? '');
             $date_of_birth = $_POST['date_of_birth'] ?? null;
             $gender = $_POST['gender'] ?? '';
             $address = trim($_POST['address'] ?? '');
-            $emergency_contact_name = trim($_POST['emergency_contact_name'] ?? '');
-            $emergency_contact_phone = trim($_POST['emergency_contact_phone'] ?? '');
-            $medical_history = trim($_POST['medical_history'] ?? '');
             $status = 'active';
             $created_at = date('Y-m-d H:i:s');
             
@@ -122,13 +119,12 @@ function handlePost($action) {
             }
             
             // Insert new patient
-            $query = "INSERT INTO patients (first_name, last_name, email, phone, date_of_birth, gender, address, emergency_contact_name, emergency_contact_phone, medical_history, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            $query = "INSERT INTO patients (first_name, last_name, phone, email, date_of_birth, gender, address, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
             
             $stmt = mysqli_prepare($conn, $query);
-            mysqli_stmt_bind_param($stmt, 'ssssssssssss', 
-                $first_name, $last_name, $email, $phone, $date_of_birth, 
-                $gender, $address, $emergency_contact_name, $emergency_contact_phone, 
-                $medical_history, $status, $created_at
+            mysqli_stmt_bind_param($stmt, 'sssssssss', 
+                $first_name, $last_name, $phone, $email, $date_of_birth, 
+                $gender, $address, $status, $created_at
             );
             
             if (mysqli_stmt_execute($stmt)) {
@@ -157,14 +153,11 @@ function handlePost($action) {
             // Prepare data
             $first_name = trim($_POST['first_name']);
             $last_name = trim($_POST['last_name']);
-            $email = trim($_POST['email'] ?? '');
             $phone = trim($_POST['phone']);
+            $email = trim($_POST['email'] ?? '');
             $date_of_birth = $_POST['date_of_birth'] ?? null;
             $gender = $_POST['gender'] ?? '';
             $address = trim($_POST['address'] ?? '');
-            $emergency_contact_name = trim($_POST['emergency_contact_name'] ?? '');
-            $emergency_contact_phone = trim($_POST['emergency_contact_phone'] ?? '');
-            $medical_history = trim($_POST['medical_history'] ?? '');
             $updated_at = date('Y-m-d H:i:s');
             
             // Check if phone number is already used by another patient
@@ -179,13 +172,12 @@ function handlePost($action) {
             }
             
             // Update patient
-            $query = "UPDATE patients SET first_name = ?, last_name = ?, email = ?, phone = ?, date_of_birth = ?, gender = ?, address = ?, emergency_contact_name = ?, emergency_contact_phone = ?, medical_history = ?, updated_at = ? WHERE id = ? AND status != 'deleted'";
+            $query = "UPDATE patients SET first_name = ?, last_name = ?, phone = ?, email = ?, date_of_birth = ?, gender = ?, address = ?, updated_at = ? WHERE id = ? AND status != 'deleted'";
             
             $stmt = mysqli_prepare($conn, $query);
-            mysqli_stmt_bind_param($stmt, 'sssssssssssi', 
-                $first_name, $last_name, $email, $phone, $date_of_birth, 
-                $gender, $address, $emergency_contact_name, $emergency_contact_phone, 
-                $medical_history, $updated_at, $id
+            mysqli_stmt_bind_param($stmt, 'ssssssssi', 
+                $first_name, $last_name, $phone, $email, $date_of_birth, 
+                $gender, $address, $updated_at, $id
             );
             
             if (mysqli_stmt_execute($stmt)) {
