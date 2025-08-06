@@ -5,30 +5,6 @@ $page_title = 'Patients Management - PathLab Pro';
 // Include database connection
 require_once 'config.php';
 
-// Get action parameter
-$action = $_GET['action'] ?? 'list';
-$patient_id = $_GET['id'] ?? null;
-
-// Handle form submissions
-if ($_POST) {
-    // Handle patient creation/update
-    // This would typically be in a separate handler file
-}
-
-// Get patients data
-$patients = [];
-try {
-    $query = "SELECT * FROM patients WHERE status != 'deleted' ORDER BY created_at DESC";
-    $result = mysqli_query($conn, $query);
-    if ($result) {
-        while ($row = mysqli_fetch_assoc($result)) {
-            $patients[] = $row;
-        }
-    }
-} catch (Exception $e) {
-    error_log("Patients query error: " . $e->getMessage());
-}
-
 // Include AdminLTE header and sidebar
 include 'includes/adminlte_header.php';
 include 'includes/adminlte_sidebar.php';
@@ -64,8 +40,7 @@ include 'includes/adminlte_sidebar.php';
   <section class="content">
     <div class="container-fluid">
       
-      <?php if ($action === 'list'): ?>
-      <!-- List View -->
+      <!-- Patients List -->
       <div class="row">
         <div class="col-12">
           <div class="card">
@@ -75,22 +50,29 @@ include 'includes/adminlte_sidebar.php';
                 All Patients
               </h3>
               <div class="card-tools">
-                <a href="?action=add" class="btn btn-primary btn-sm">
+                <button type="button" class="btn btn-primary btn-sm" onclick="openPatientModal()">
                   <i class="fas fa-plus mr-1"></i>Add New Patient
-                </a>
+                </button>
               </div>
             </div>
             <div class="card-body">
-              <?php if (empty($patients)): ?>
-                <div class="text-center p-4">
-                  <i class="fas fa-user-injured fa-3x text-muted mb-3"></i>
-                  <h5 class="text-muted">No Patients Found</h5>
-                  <p class="text-muted">Start by adding your first patient to the system.</p>
-                  <a href="?action=add" class="btn btn-primary">
-                    <i class="fas fa-plus mr-2"></i>Add First Patient
-                  </a>
+              <div id="loading" class="text-center p-4" style="display: none;">
+                <div class="spinner-border text-primary" role="status">
+                  <span class="sr-only">Loading...</span>
                 </div>
-              <?php else: ?>
+                <p class="mt-2">Loading patients...</p>
+              </div>
+              
+              <div id="no-data" class="text-center p-4" style="display: none;">
+                <i class="fas fa-user-injured fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">No Patients Found</h5>
+                <p class="text-muted">Start by adding your first patient to the system.</p>
+                <button type="button" class="btn btn-primary" onclick="openPatientModal()">
+                  <i class="fas fa-plus mr-2"></i>Add First Patient
+                </button>
+              </div>
+              
+              <div id="patients-table-container" style="display: none;">
                 <table id="patientsTable" class="table table-bordered table-striped">
                   <thead>
                     <tr>
@@ -103,193 +85,15 @@ include 'includes/adminlte_sidebar.php';
                       <th>Actions</th>
                     </tr>
                   </thead>
-                  <tbody>
-                    <?php foreach ($patients as $patient): ?>
-                    <tr>
-                      <td><?php echo htmlspecialchars($patient['id'] ?? ''); ?></td>
-                      <td>
-                        <strong><?php echo htmlspecialchars(($patient['first_name'] ?? '') . ' ' . ($patient['last_name'] ?? '')); ?></strong>
-                      </td>
-                      <td><?php echo htmlspecialchars($patient['email'] ?? ''); ?></td>
-                      <td><?php echo htmlspecialchars($patient['phone'] ?? ''); ?></td>
-                      <td><?php echo $patient['date_of_birth'] ? date('M d, Y', strtotime($patient['date_of_birth'])) : ''; ?></td>
-                      <td>
-                        <?php
-                        $status = $patient['status'] ?? 'active';
-                        $badge_class = $status === 'active' ? 'badge-success' : 'badge-secondary';
-                        echo "<span class=\"badge {$badge_class}\">" . ucfirst($status) . "</span>";
-                        ?>
-                      </td>
-                      <td>
-                        <div class="btn-group">
-                          <a href="?action=view&id=<?php echo $patient['id']; ?>" class="btn btn-info btn-sm">
-                            <i class="fas fa-eye"></i>
-                          </a>
-                          <a href="?action=edit&id=<?php echo $patient['id']; ?>" class="btn btn-warning btn-sm">
-                            <i class="fas fa-edit"></i>
-                          </a>
-                          <button class="btn btn-danger btn-sm" onclick="deletePatient(<?php echo $patient['id']; ?>)">
-                            <i class="fas fa-trash"></i>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                    <?php endforeach; ?>
+                  <tbody id="patients-tbody">
+                    <!-- Data will be loaded via AJAX -->
                   </tbody>
                 </table>
-              <?php endif; ?>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <?php elseif ($action === 'add' || $action === 'edit'): ?>
-      <!-- Add/Edit Form -->
-      <div class="row">
-        <div class="col-md-8 offset-md-2">
-          <div class="card">
-            <div class="card-header">
-              <h3 class="card-title">
-                <i class="fas fa-<?php echo $action === 'add' ? 'plus' : 'edit'; ?> mr-1"></i>
-                <?php echo $action === 'add' ? 'Add New' : 'Edit'; ?> Patient
-              </h3>
-              <div class="card-tools">
-                <a href="?" class="btn btn-secondary btn-sm">
-                  <i class="fas fa-arrow-left mr-1"></i>Back to List
-                </a>
-              </div>
-            </div>
-            <form id="patientForm" method="POST">
-              <div class="card-body">
-                <div class="row">
-                  <div class="col-md-6">
-                    <div class="form-group">
-                      <label for="first_name">First Name <span class="text-danger">*</span></label>
-                      <input type="text" class="form-control" id="first_name" name="first_name" required>
-                    </div>
-                  </div>
-                  <div class="col-md-6">
-                    <div class="form-group">
-                      <label for="last_name">Last Name <span class="text-danger">*</span></label>
-                      <input type="text" class="form-control" id="last_name" name="last_name" required>
-                    </div>
-                  </div>
-                </div>
-                
-                <div class="row">
-                  <div class="col-md-6">
-                    <div class="form-group">
-                      <label for="email">Email Address</label>
-                      <input type="email" class="form-control" id="email" name="email">
-                    </div>
-                  </div>
-                  <div class="col-md-6">
-                    <div class="form-group">
-                      <label for="phone">Phone Number <span class="text-danger">*</span></label>
-                      <input type="tel" class="form-control" id="phone" name="phone" required>
-                    </div>
-                  </div>
-                </div>
-                
-                <div class="row">
-                  <div class="col-md-6">
-                    <div class="form-group">
-                      <label for="date_of_birth">Date of Birth <span class="text-danger">*</span></label>
-                      <input type="date" class="form-control" id="date_of_birth" name="date_of_birth" required>
-                    </div>
-                  </div>
-                  <div class="col-md-6">
-                    <div class="form-group">
-                      <label for="gender">Gender</label>
-                      <select class="form-control" id="gender" name="gender">
-                        <option value="">Select Gender</option>
-                        <option value="male">Male</option>
-                        <option value="female">Female</option>
-                        <option value="other">Other</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-                
-                <div class="form-group">
-                  <label for="address">Address</label>
-                  <textarea class="form-control" id="address" name="address" rows="3"></textarea>
-                </div>
-                
-                <div class="row">
-                  <div class="col-md-6">
-                    <div class="form-group">
-                      <label for="emergency_contact_name">Emergency Contact Name</label>
-                      <input type="text" class="form-control" id="emergency_contact_name" name="emergency_contact_name">
-                    </div>
-                  </div>
-                  <div class="col-md-6">
-                    <div class="form-group">
-                      <label for="emergency_contact_phone">Emergency Contact Phone</label>
-                      <input type="tel" class="form-control" id="emergency_contact_phone" name="emergency_contact_phone">
-                    </div>
-                  </div>
-                </div>
-                
-                <div class="form-group">
-                  <label for="medical_history">Medical History</label>
-                  <textarea class="form-control" id="medical_history" name="medical_history" rows="4"></textarea>
-                </div>
-              </div>
-              
-              <div class="card-footer">
-                <button type="submit" class="btn btn-primary">
-                  <i class="fas fa-save mr-1"></i>
-                  <?php echo $action === 'add' ? 'Add' : 'Update'; ?> Patient
-                </button>
-                <a href="?" class="btn btn-secondary">
-                  <i class="fas fa-times mr-1"></i>Cancel
-                </a>
-              </div>
-            </form>
-          </div>
-        </div>
-      </div>
-      
-      <?php elseif ($action === 'view'): ?>
-      <!-- View Patient Details -->
-      <div class="row">
-        <div class="col-md-8 offset-md-2">
-          <div class="card">
-            <div class="card-header">
-              <h3 class="card-title">
-                <i class="fas fa-user mr-1"></i>
-                Patient Details
-              </h3>
-              <div class="card-tools">
-                <a href="?" class="btn btn-secondary btn-sm">
-                  <i class="fas fa-arrow-left mr-1"></i>Back to List
-                </a>
-                <a href="?action=edit&id=<?php echo $patient_id; ?>" class="btn btn-warning btn-sm">
-                  <i class="fas fa-edit mr-1"></i>Edit
-                </a>
-              </div>
-            </div>
-            <div class="card-body">
-              <div class="text-center mb-4">
-                <div class="user-image bg-primary rounded-circle d-inline-flex align-items-center justify-content-center" 
-                     style="width: 80px; height: 80px; font-size: 2rem; font-weight: bold; color: white;">
-                  P
-                </div>
-                <h4 class="mt-2">Patient Name</h4>
-                <p class="text-muted">Patient ID: #<?php echo $patient_id; ?></p>
-              </div>
-              
-              <!-- Patient information would be loaded here -->
-              <div class="alert alert-info">
-                <i class="fas fa-info-circle mr-2"></i>
-                Patient details will be displayed here when integrated with the database.
               </div>
             </div>
           </div>
         </div>
       </div>
-      <?php endif; ?>
       
     </div><!-- /.container-fluid -->
   </section>
@@ -297,50 +101,341 @@ include 'includes/adminlte_sidebar.php';
 </div>
 <!-- /.content-wrapper -->
 
+<!-- Patient Modal -->
+<div class="modal fade" id="patientModal" tabindex="-1" role="dialog" aria-labelledby="patientModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="patientModalLabel">
+          <i class="fas fa-user-injured mr-2"></i>
+          <span id="modal-title">Add New Patient</span>
+        </h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <form id="patientForm">
+        <div class="modal-body">
+          <input type="hidden" id="patient_id" name="patient_id">
+          
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="first_name">First Name <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="first_name" name="first_name" required>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="last_name">Last Name <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="last_name" name="last_name" required>
+              </div>
+            </div>
+          </div>
+          
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="email">Email Address</label>
+                <input type="email" class="form-control" id="email" name="email">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="phone">Phone Number <span class="text-danger">*</span></label>
+                <input type="tel" class="form-control" id="phone" name="phone" required>
+              </div>
+            </div>
+          </div>
+          
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="date_of_birth">Date of Birth</label>
+                <input type="date" class="form-control" id="date_of_birth" name="date_of_birth">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="gender">Gender</label>
+                <select class="form-control" id="gender" name="gender">
+                  <option value="">Select Gender</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="address">Address</label>
+            <textarea class="form-control" id="address" name="address" rows="3"></textarea>
+          </div>
+          
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="emergency_contact_name">Emergency Contact Name</label>
+                <input type="text" class="form-control" id="emergency_contact_name" name="emergency_contact_name">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="emergency_contact_phone">Emergency Contact Phone</label>
+                <input type="tel" class="form-control" id="emergency_contact_phone" name="emergency_contact_phone">
+              </div>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="medical_history">Medical History</label>
+            <textarea class="form-control" id="medical_history" name="medical_history" rows="4"></textarea>
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">
+            <i class="fas fa-times mr-1"></i>Cancel
+          </button>
+          <button type="submit" class="btn btn-primary" id="submit-btn">
+            <i class="fas fa-save mr-1"></i>
+            <span id="submit-text">Add Patient</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- View Patient Modal -->
+<div class="modal fade" id="viewPatientModal" tabindex="-1" role="dialog" aria-labelledby="viewPatientModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="viewPatientModalLabel">
+          <i class="fas fa-user mr-2"></i>
+          Patient Details
+        </h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body" id="view-patient-content">
+        <!-- Patient details will be loaded here -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">
+          <i class="fas fa-times mr-1"></i>Close
+        </button>
+        <button type="button" class="btn btn-warning" onclick="editPatientFromView()">
+          <i class="fas fa-edit mr-1"></i>Edit Patient
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
+let patientsTable;
+let currentPatientId = null;
+
 $(document).ready(function() {
-    // Initialize DataTable for patients list
-    if ($('#patientsTable').length) {
-        $('#patientsTable').DataTable({
-            responsive: true,
-            autoWidth: false,
-            pageLength: 25,
-            order: [[0, 'desc']], // Order by ID descending
-            columnDefs: [
-                { 
-                    targets: -1, // Last column (Actions)
-                    orderable: false,
-                    searchable: false
-                }
-            ]
-        });
-    }
+    // Initialize DataTable
+    patientsTable = $('#patientsTable').DataTable({
+        responsive: true,
+        autoWidth: false,
+        pageLength: 25,
+        order: [[0, 'desc']],
+        columnDefs: [
+            { 
+                targets: -1,
+                orderable: false,
+                searchable: false
+            }
+        ]
+    });
     
-    // Form validation
+    // Load patients data
+    loadPatients();
+    
+    // Form submission
     $('#patientForm').on('submit', function(e) {
         e.preventDefault();
-        
-        // Basic validation
-        let isValid = true;
-        $(this).find('[required]').each(function() {
-            if (!$(this).val().trim()) {
-                isValid = false;
-                $(this).addClass('is-invalid');
-            } else {
-                $(this).removeClass('is-invalid');
-            }
-        });
-        
-        if (isValid) {
-            // Submit form (you would typically send this to a handler)
-            PathLabPro.notifications.success('Patient saved successfully!');
-            // window.location.href = '?';
-        } else {
-            PathLabPro.notifications.error('Please fill in all required fields.');
-        }
+        savePatient();
+    });
+    
+    // Reset modal on close
+    $('#patientModal').on('hidden.bs.modal', function() {
+        resetForm();
     });
 });
 
+// Load patients via AJAX
+function loadPatients() {
+    $('#loading').show();
+    $('#patients-table-container').hide();
+    $('#no-data').hide();
+    
+    $.ajax({
+        url: 'api/patients_api.php',
+        method: 'GET',
+        data: { action: 'list' },
+        dataType: 'json',
+        success: function(response) {
+            $('#loading').hide();
+            
+            if (response.success && response.data && response.data.length > 0) {
+                populateTable(response.data);
+                $('#patients-table-container').show();
+            } else {
+                $('#no-data').show();
+            }
+        },
+        error: function(xhr, status, error) {
+            $('#loading').hide();
+            console.error('Error loading patients:', error);
+            PathLabPro.notifications.error('Failed to load patients');
+        }
+    });
+}
+
+// Populate DataTable with patients data
+function populateTable(patients) {
+    patientsTable.clear();
+    
+    patients.forEach(function(patient) {
+        const dobFormatted = patient.date_of_birth ? 
+            new Date(patient.date_of_birth).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            }) : '';
+            
+        const statusBadge = `<span class="badge badge-${patient.status === 'active' ? 'success' : 'secondary'}">${patient.status.charAt(0).toUpperCase() + patient.status.slice(1)}</span>`;
+        
+        const actions = `
+            <div class="btn-group">
+                <button class="btn btn-info btn-sm" onclick="viewPatient(${patient.id})" title="View">
+                    <i class="fas fa-eye"></i>
+                </button>
+                <button class="btn btn-warning btn-sm" onclick="editPatient(${patient.id})" title="Edit">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn btn-danger btn-sm" onclick="deletePatient(${patient.id})" title="Delete">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        `;
+        
+        patientsTable.row.add([
+            patient.id,
+            `<strong>${patient.first_name} ${patient.last_name}</strong>`,
+            patient.email || '',
+            patient.phone || '',
+            dobFormatted,
+            statusBadge,
+            actions
+        ]);
+    });
+    
+    patientsTable.draw();
+}
+
+// Open patient modal for adding new patient
+function openPatientModal() {
+    currentPatientId = null;
+    $('#modal-title').text('Add New Patient');
+    $('#submit-text').text('Add Patient');
+    resetForm();
+    $('#patientModal').modal('show');
+}
+
+// Edit patient
+function editPatient(id) {
+    currentPatientId = id;
+    $('#modal-title').text('Edit Patient');
+    $('#submit-text').text('Update Patient');
+    
+    // Load patient data
+    $.ajax({
+        url: 'api/patients_api.php',
+        method: 'GET',
+        data: { action: 'get', id: id },
+        dataType: 'json',
+        success: function(response) {
+            if (response.success && response.data) {
+                populateForm(response.data);
+                $('#patientModal').modal('show');
+            } else {
+                PathLabPro.notifications.error('Failed to load patient data');
+            }
+        },
+        error: function() {
+            PathLabPro.notifications.error('Failed to load patient data');
+        }
+    });
+}
+
+// View patient details
+function viewPatient(id) {
+    $.ajax({
+        url: 'api/patients_api.php',
+        method: 'GET',
+        data: { action: 'get', id: id },
+        dataType: 'json',
+        success: function(response) {
+            if (response.success && response.data) {
+                const patient = response.data;
+                const content = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><strong>Personal Information</strong></h6>
+                            <p><strong>Name:</strong> ${patient.first_name} ${patient.last_name}</p>
+                            <p><strong>Email:</strong> ${patient.email || 'Not provided'}</p>
+                            <p><strong>Phone:</strong> ${patient.phone || 'Not provided'}</p>
+                            <p><strong>Date of Birth:</strong> ${patient.date_of_birth ? new Date(patient.date_of_birth).toLocaleDateString() : 'Not provided'}</p>
+                            <p><strong>Gender:</strong> ${patient.gender ? patient.gender.charAt(0).toUpperCase() + patient.gender.slice(1) : 'Not specified'}</p>
+                            <p><strong>Address:</strong> ${patient.address || 'Not provided'}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><strong>Emergency Contact</strong></h6>
+                            <p><strong>Name:</strong> ${patient.emergency_contact_name || 'Not provided'}</p>
+                            <p><strong>Phone:</strong> ${patient.emergency_contact_phone || 'Not provided'}</p>
+                            
+                            <h6><strong>Medical Information</strong></h6>
+                            <p><strong>Medical History:</strong></p>
+                            <p>${patient.medical_history || 'No medical history recorded'}</p>
+                            
+                            <p><strong>Status:</strong> <span class="badge badge-${patient.status === 'active' ? 'success' : 'secondary'}">${patient.status.charAt(0).toUpperCase() + patient.status.slice(1)}</span></p>
+                        </div>
+                    </div>
+                `;
+                
+                $('#view-patient-content').html(content);
+                currentPatientId = id;
+                $('#viewPatientModal').modal('show');
+            } else {
+                PathLabPro.notifications.error('Failed to load patient details');
+            }
+        },
+        error: function() {
+            PathLabPro.notifications.error('Failed to load patient details');
+        }
+    });
+}
+
+// Edit patient from view modal
+function editPatientFromView() {
+    if (currentPatientId) {
+        $('#viewPatientModal').modal('hide');
+        setTimeout(() => {
+            editPatient(currentPatientId);
+        }, 500);
+    }
+}
+
+// Delete patient
 function deletePatient(id) {
     PathLabPro.modal.confirm({
         title: 'Delete Patient',
@@ -348,11 +443,86 @@ function deletePatient(id) {
         confirmButtonText: 'Yes, delete it!'
     }).then((result) => {
         if (result.isConfirmed) {
-            // Delete patient logic here
-            PathLabPro.notifications.success('Patient deleted successfully!');
-            // Reload page or remove row
+            $.ajax({
+                url: 'api/patients_api.php',
+                method: 'POST',
+                data: { action: 'delete', id: id },
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success) {
+                        PathLabPro.notifications.success(response.message);
+                        loadPatients();
+                    } else {
+                        PathLabPro.notifications.error(response.message);
+                    }
+                },
+                error: function() {
+                    PathLabPro.notifications.error('Failed to delete patient');
+                }
+            });
         }
     });
+}
+
+// Save patient (create or update)
+function savePatient() {
+    const formData = new FormData($('#patientForm')[0]);
+    const action = currentPatientId ? 'update' : 'create';
+    
+    if (currentPatientId) {
+        formData.append('id', currentPatientId);
+    }
+    formData.append('action', action);
+    
+    // Disable submit button
+    $('#submit-btn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-1"></i>Saving...');
+    
+    $.ajax({
+        url: 'api/patients_api.php',
+        method: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        dataType: 'json',
+        success: function(response) {
+            if (response.success) {
+                PathLabPro.notifications.success(response.message);
+                $('#patientModal').modal('hide');
+                loadPatients();
+            } else {
+                PathLabPro.notifications.error(response.message);
+            }
+        },
+        error: function() {
+            PathLabPro.notifications.error('Failed to save patient');
+        },
+        complete: function() {
+            // Re-enable submit button
+            $('#submit-btn').prop('disabled', false).html(`<i class="fas fa-save mr-1"></i>${currentPatientId ? 'Update' : 'Add'} Patient`);
+        }
+    });
+}
+
+// Populate form with patient data
+function populateForm(patient) {
+    $('#patient_id').val(patient.id);
+    $('#first_name').val(patient.first_name);
+    $('#last_name').val(patient.last_name);
+    $('#email').val(patient.email);
+    $('#phone').val(patient.phone);
+    $('#date_of_birth').val(patient.date_of_birth);
+    $('#gender').val(patient.gender);
+    $('#address').val(patient.address);
+    $('#emergency_contact_name').val(patient.emergency_contact_name);
+    $('#emergency_contact_phone').val(patient.emergency_contact_phone);
+    $('#medical_history').val(patient.medical_history);
+}
+
+// Reset form
+function resetForm() {
+    $('#patientForm')[0].reset();
+    $('#patientForm').find('.is-invalid').removeClass('is-invalid');
+    currentPatientId = null;
 }
 </script>
 
