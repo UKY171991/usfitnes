@@ -50,10 +50,10 @@ include 'includes/adminlte_sidebar.php';
                 All Patients
               </h3>
               <div class="card-tools">
-                <button type="button" class="btn btn-primary btn-sm" id="addPatientBtn">
+                <button type="button" class="btn btn-primary btn-sm" id="addPatientBtn" onclick="openPatientModal()">
                   <i class="fas fa-plus mr-1"></i>Add New Patient
                 </button>
-                <button type="button" class="btn btn-success btn-sm ml-1" id="refreshBtn">
+                <button type="button" class="btn btn-success btn-sm ml-1" id="refreshBtn" onclick="refreshPatients()">
                   <i class="fas fa-sync-alt mr-1"></i>Refresh
                 </button>
               </div>
@@ -70,7 +70,7 @@ include 'includes/adminlte_sidebar.php';
                 <i class="fas fa-user-injured fa-3x text-muted mb-3"></i>
                 <h5 class="text-muted">No Patients Found</h5>
                 <p class="text-muted">Start by adding your first patient to the system.</p>
-                <button type="button" class="btn btn-primary" id="addFirstPatientBtn">
+                <button type="button" class="btn btn-primary" id="addFirstPatientBtn" onclick="openPatientModal()">
                   <i class="fas fa-plus mr-2"></i>Add First Patient
                 </button>
               </div>
@@ -294,7 +294,31 @@ include 'includes/adminlte_sidebar.php';
 let patientsTable;
 let currentPatientId = null;
 
+// Debug function to check if libraries are loaded
+function checkLibraries() {
+    console.log('jQuery loaded:', typeof $ !== 'undefined');
+    console.log('Bootstrap loaded:', typeof $.fn.modal !== 'undefined');
+    console.log('DataTables loaded:', typeof $.fn.DataTable !== 'undefined');
+    console.log('Toastr loaded:', typeof toastr !== 'undefined');
+    console.log('SweetAlert2 loaded:', typeof Swal !== 'undefined');
+}
+
 $(document).ready(function() {
+    console.log('Document ready - Patients page');
+    checkLibraries();
+    
+    // Initialize with delay to ensure all libraries are loaded
+    setTimeout(function() {
+        initializePatientsPage();
+    }, 500);
+});
+
+function initializePatientsPage() {
+    console.log('Initializing patients page...');
+    
+    // Configure toastr options
+    configureToastr();
+    
     // Initialize DataTable
     initializeDataTable();
     
@@ -304,9 +328,8 @@ $(document).ready(function() {
     // Event handlers
     setupEventHandlers();
     
-    // Configure toastr options
-    configureToastr();
-});
+    console.log('Patients page initialized successfully');
+}
 
 function configureToastr() {
     if (typeof toastr !== 'undefined') {
@@ -331,6 +354,8 @@ function configureToastr() {
 }
 
 function showToast(type, message, title = '') {
+    console.log('Showing toast:', type, message);
+    
     if (typeof toastr !== 'undefined') {
         switch(type) {
             case 'success':
@@ -346,7 +371,7 @@ function showToast(type, message, title = '') {
                 toastr.info(message, title || 'Info');
                 break;
         }
-    } else {
+    } else if (typeof Swal !== 'undefined') {
         // Fallback to SweetAlert2
         Swal.fire({
             icon: type,
@@ -355,6 +380,10 @@ function showToast(type, message, title = '') {
             timer: 3000,
             showConfirmButton: false
         });
+    } else {
+        // Fallback to console and alert
+        console.log('Toast:', type, message);
+        alert(type.toUpperCase() + ': ' + message);
     }
 }
 
@@ -392,19 +421,24 @@ function initializeDataTable() {
 }
 
 function setupEventHandlers() {
+    console.log('Setting up event handlers...');
+    
     // Add patient button handlers
-    $('#addPatientBtn, #addFirstPatientBtn').on('click', function() {
+    $('#addPatientBtn, #addFirstPatientBtn').off('click').on('click', function() {
+        console.log('Add patient button clicked');
         openPatientModal();
     });
     
     // Refresh button
-    $('#refreshBtn').on('click', function() {
+    $('#refreshBtn').off('click').on('click', function() {
+        console.log('Refresh button clicked');
         loadPatients();
         showToast('info', 'Patient list refreshed');
     });
     
     // Form submission
-    $('#patientForm').on('submit', function(e) {
+    $('#patientForm').off('submit').on('submit', function(e) {
+        console.log('Form submitted');
         e.preventDefault();
         if (validateForm()) {
             savePatient();
@@ -412,24 +446,42 @@ function setupEventHandlers() {
     });
     
     // Modal reset on close
-    $('#patientModal').on('hidden.bs.modal', function() {
+    $('#patientModal').off('hidden.bs.modal').on('hidden.bs.modal', function() {
+        console.log('Modal closed, resetting form');
         resetForm();
     });
     
     // Edit from view modal
-    $('#editFromViewBtn').on('click', function() {
+    $('#editFromViewBtn').off('click').on('click', function() {
+        console.log('Edit from view button clicked');
         editPatientFromView();
     });
     
     // Real-time validation
-    $('#phone').on('input', function() {
+    $('#phone').off('input').on('input', function() {
         validatePhone($(this));
     });
     
-    $('#email').on('input', function() {
+    $('#email').off('input').on('input', function() {
         validateEmail($(this));
     });
+    
+    console.log('Event handlers set up successfully');
 }
+
+// Global functions for onclick handlers
+function refreshPatients() {
+    console.log('Refresh patients called');
+    loadPatients();
+    showToast('info', 'Patient list refreshed');
+}
+
+// Make functions globally available
+window.openPatientModal = openPatientModal;
+window.refreshPatients = refreshPatients;
+window.viewPatient = viewPatient;
+window.editPatient = editPatient;
+window.deletePatient = deletePatient;
 
 function loadPatients() {
     showLoading(true);
@@ -493,11 +545,35 @@ function populateTable(patients) {
 }
 
 function openPatientModal() {
-    currentPatientId = null;
-    $('#modal-title').text('Add New Patient');
-    $('#submit-text').text('Add Patient');
-    resetForm();
-    $('#patientModal').modal('show');
+    console.log('Opening patient modal...');
+    
+    try {
+        currentPatientId = null;
+        $('#modal-title').text('Add New Patient');
+        $('#submit-text').text('Add Patient');
+        resetForm();
+        
+        // Check if modal exists
+        if ($('#patientModal').length === 0) {
+            console.error('Patient modal not found in DOM');
+            showToast('error', 'Modal not found. Please refresh the page.');
+            return;
+        }
+        
+        // Check if Bootstrap modal is available
+        if (typeof $.fn.modal === 'undefined') {
+            console.error('Bootstrap modal not loaded');
+            showToast('error', 'Modal functionality not available. Please refresh the page.');
+            return;
+        }
+        
+        $('#patientModal').modal('show');
+        console.log('Patient modal opened successfully');
+        
+    } catch (error) {
+        console.error('Error opening patient modal:', error);
+        showToast('error', 'Error opening modal: ' + error.message);
+    }
 }
 
 function editPatient(id) {
