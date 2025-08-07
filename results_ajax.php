@@ -146,9 +146,9 @@ function getContent() {
                             <div class="form-group">
                                 <label for="resultStatus">Status</label>
                                 <select class="form-control" id="resultStatus" name="status">
-                                    <option value="normal">Normal</option>
-                                    <option value="abnormal">Abnormal</option>
-                                    <option value="critical">Critical</option>
+                                    <option value="completed">Completed</option>
+                                    <option value="pending">Pending</option>
+                                    <option value="reviewed">Reviewed</option>
                                 </select>
                             </div>
                         </div>
@@ -227,9 +227,9 @@ $(document).ready(function() {
                 data: 'status',
                 render: function(data, type, row) {
                     let badgeClass = 'secondary';
-                    if (data === 'normal') badgeClass = 'success';
-                    else if (data === 'abnormal') badgeClass = 'warning';
-                    else if (data === 'critical') badgeClass = 'danger';
+                    if (data === 'completed') badgeClass = 'success';
+                    else if (data === 'pending') badgeClass = 'warning';
+                    else if (data === 'reviewed') badgeClass = 'info';
                     
                     return `<span class="badge badge-${badgeClass}">${data || 'N/A'}</span>`;
                 }
