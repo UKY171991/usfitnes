@@ -420,40 +420,53 @@ try {
     }
     
     // Insert sample data if tables are empty
-    $checkPatients = $pdo->prepare("SELECT COUNT(*) FROM patients");
-    $checkPatients->execute();
-    
-    if ($checkPatients->fetchColumn() == 0) {
-        // Insert test categories
-        $categories = [
-            ['Hematology', 'Blood related tests'],
-            ['Biochemistry', 'Chemical analysis of body fluids'],
-            ['Microbiology', 'Infectious disease testing'],
-            ['Immunology', 'Immune system related tests'],
-            ['Pathology', 'Tissue and cellular analysis']
-        ];
+    try {
+        // Insert test categories if empty
+        $checkCategories = $pdo->prepare("SELECT COUNT(*) FROM test_categories");
+        $checkCategories->execute();
         
-        $insertCategory = $pdo->prepare("INSERT INTO test_categories (category_name, description) VALUES (?, ?)");
-        foreach ($categories as $category) {
-            $insertCategory->execute($category);
+        if ($checkCategories->fetchColumn() == 0) {
+            $categories = [
+                ['Hematology', 'Blood related tests'],
+                ['Biochemistry', 'Chemical analysis of body fluids'],
+                ['Microbiology', 'Infectious disease testing'],
+                ['Immunology', 'Immune system related tests'],
+                ['Pathology', 'Tissue and cellular analysis']
+            ];
+            
+            $insertCategory = $pdo->prepare("INSERT INTO test_categories (category_name, description) VALUES (?, ?)");
+            foreach ($categories as $category) {
+                $insertCategory->execute($category);
+            }
         }
         
-        // Insert sample tests
-        $tests = [
-            ['CBC001', 'Complete Blood Count', 1, 'Full blood analysis including RBC, WBC, platelets', '4.5-5.5 million/μL', 'cells/μL', 25.00],
-            ['GLU001', 'Fasting Blood Glucose', 2, 'Blood sugar level measurement', '70-100 mg/dL', 'mg/dL', 15.00],
-            ['LIP001', 'Lipid Profile', 2, 'Cholesterol and triglycerides analysis', 'Total: <200 mg/dL', 'mg/dL', 35.00],
-            ['HBA1C', 'HbA1c', 2, 'Average blood glucose over 3 months', '<5.7%', '%', 40.00],
-            ['URI001', 'Urine Analysis', 2, 'Complete urine examination', 'Normal', 'Various', 20.00]
-        ];
+        // Insert sample tests if empty
+        $checkTests = $pdo->prepare("SELECT COUNT(*) FROM tests");
+        $checkTests->execute();
         
-        $insertTest = $pdo->prepare("
-            INSERT INTO tests (test_code, name, category_id, description, normal_range, unit, price) 
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        ");
-        foreach ($tests as $test) {
-            $insertTest->execute($test);
+        if ($checkTests->fetchColumn() == 0) {
+            $tests = [
+                ['CBC001', 'Complete Blood Count', 1, 'Full blood analysis including RBC, WBC, platelets', '4.5-5.5 million/μL', 'cells/μL', 25.00],
+                ['GLU001', 'Fasting Blood Glucose', 2, 'Blood sugar level measurement', '70-100 mg/dL', 'mg/dL', 15.00],
+                ['LIP001', 'Lipid Profile', 2, 'Cholesterol and triglycerides analysis', 'Total: <200 mg/dL', 'mg/dL', 35.00],
+                ['HBA1C', 'HbA1c', 2, 'Average blood glucose over 3 months', '<5.7%', '%', 40.00],
+                ['URI001', 'Urine Analysis', 2, 'Complete urine examination', 'Normal', 'Various', 20.00]
+            ];
+            
+            $insertTest = $pdo->prepare("
+                INSERT INTO tests (test_code, name, category_id, description, normal_range, unit, price) 
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            ");
+            foreach ($tests as $test) {
+                $insertTest->execute($test);
+            }
         }
+        
+        // Insert sample patients if empty
+        $checkPatients = $pdo->prepare("SELECT COUNT(*) FROM patients");
+        $checkPatients->execute();
+        
+        if ($checkPatients->fetchColumn() == 0) {
         
         // Insert sample patients
         $patients = [
@@ -470,8 +483,13 @@ try {
         foreach ($patients as $patient) {
             $insertPatient->execute($patient);
         }
-        
-        // Insert sample doctors
+    }
+    
+    // Insert sample doctors if empty
+    $checkDoctors = $pdo->prepare("SELECT COUNT(*) FROM doctors");
+    $checkDoctors->execute();
+    
+    if ($checkDoctors->fetchColumn() == 0) {
         $doctors = [
             ['DOC001', 'Dr. Robert Anderson', 'dr.anderson@hospital.com', '111-222-3333', 'Cardiology', 'MD12345'],
             ['DOC002', 'Dr. Emily Brown', 'dr.brown@clinic.com', '444-555-6666', 'Internal Medicine', 'MD67890'],
@@ -487,6 +505,10 @@ try {
         }
         
         echo "PathLab Pro local database setup completed successfully!";
+    } catch(PDOException $e) {
+        // Log the error but don't stop the application
+        error_log("Sample data insertion error: " . $e->getMessage());
+        // Continue without sample data if there are conflicts
     }
     
 } catch(PDOException $e) {
