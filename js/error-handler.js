@@ -8,11 +8,11 @@ window.addEventListener('error', function(e) {
     console.error('JavaScript Error:', e.error);
     console.error('Source:', e.filename, 'Line:', e.lineno, 'Column:', e.colno);
     
-    // Show user-friendly error message
-    if (typeof showToast === 'function') {
-        showToast('error', 'A JavaScript error occurred. Please refresh the page if you continue to experience issues.');
-    } else {
-        console.error('Error handler: showToast function not available');
+    // Show user-friendly error message only for critical errors
+    if (e.error && e.error.message && !e.error.message.includes('Script error')) {
+        if (typeof showToast === 'function') {
+            showToast('error', 'A JavaScript error occurred. The page may not function properly.');
+        }
     }
     
     return false; // Don't prevent default error handling

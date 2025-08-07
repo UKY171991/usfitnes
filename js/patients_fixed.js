@@ -152,29 +152,7 @@ function initializePatientsDataTable() {
             ],
             pageLength: 25,
             responsive: true,
-            dom: 'Bfrtip',
-            buttons: [
-                {
-                    extend: 'copy',
-                    className: 'btn btn-primary btn-sm',
-                    text: '<i class="fas fa-copy"></i> Copy'
-                },
-                {
-                    extend: 'csv',
-                    className: 'btn btn-success btn-sm',
-                    text: '<i class="fas fa-file-csv"></i> CSV'
-                },
-                {
-                    extend: 'excel',
-                    className: 'btn btn-success btn-sm',
-                    text: '<i class="fas fa-file-excel"></i> Excel'
-                },
-                {
-                    extend: 'pdf',
-                    className: 'btn btn-danger btn-sm',
-                    text: '<i class="fas fa-file-pdf"></i> PDF'
-                }
-            ],
+            // Removed problematic buttons and dom configuration
             language: {
                 processing: '<div class="spinner-border text-primary" role="status"><span class="sr-only">Loading...</span></div>',
                 emptyTable: 'No patients found',
@@ -426,10 +404,53 @@ function printPatientDetails() {
     `);
     
     newWindow.document.close();
+    newWindow.print();
+}
+
+// Export patients function (replaces DataTables buttons functionality)
+function exportPatients() {
+    try {
+        // Simple CSV export
+        const csvContent = "data:text/csv;charset=utf-8,";
+        const rows = [];
+        
+        // Add headers
+        rows.push(["ID", "Name", "Phone", "Blood Group", "Age", "Gender", "Status"].join(","));
+        
+        // Get current table data
+        if (patientsTable) {
+            patientsTable.rows().every(function(rowIdx, tableLoop, rowLoop) {
+                const data = this.data();
+                rows.push([
+                    data.id || '',
+                    data.full_name || '',
+                    data.phone || '',
+                    data.blood_group || '',
+                    calculateAge(data.date_of_birth) || '',
+                    data.gender || '',
+                    data.status || ''
+                ].join(","));
+            });
+        }
+        
+        const csvString = csvContent + rows.join("\\n");
+        const encodedUri = encodeURI(csvString);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", "patients_export.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        showToast('success', 'Patients data exported successfully');
+    } catch (error) {
+        console.error('Export error:', error);
+        showToast('error', 'Failed to export patients data');
+    }
 }
 
 // Enhanced initialization with better error handling
-function waitForInitialization(callback, maxAttempts = 20, currentAttempt = 0) {
+function waitForInitialization(callback, maxAttempts = 10, currentAttempt = 0) {
     if (currentAttempt >= maxAttempts) {
         console.error('Failed to initialize patients page after ' + maxAttempts + ' attempts');
         showToast('error', 'Failed to initialize patients page. Please refresh the page.');
@@ -452,7 +473,7 @@ function waitForInitialization(callback, maxAttempts = 20, currentAttempt = 0) {
         console.log('Waiting for dependencies... attempt ' + (currentAttempt + 1));
         setTimeout(() => {
             waitForInitialization(callback, maxAttempts, currentAttempt + 1);
-        }, 250);
+        }, 500);
     }
 }
 

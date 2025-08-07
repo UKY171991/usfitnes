@@ -4,7 +4,7 @@
  */
 
 // Enhanced library loading with retry mechanism
-function waitForLibraries(callback, maxAttempts = 10, currentAttempt = 0) {
+function waitForLibraries(callback, maxAttempts = 5, currentAttempt = 0) {
     if (currentAttempt >= maxAttempts) {
         console.error('Failed to load required libraries after ' + maxAttempts + ' attempts');
         alert('JavaScript libraries failed to load. Please refresh the page.');
@@ -21,7 +21,7 @@ function waitForLibraries(callback, maxAttempts = 10, currentAttempt = 0) {
         console.log('Waiting for libraries... attempt ' + (currentAttempt + 1));
         setTimeout(() => {
             waitForLibraries(callback, maxAttempts, currentAttempt + 1);
-        }, 200);
+        }, 1000);
     }
 }
 
