@@ -104,8 +104,8 @@ function getContent() {
                         </div>
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label for="testType">Test Type *</label>
-                                <select class="form-control" id="testType" name="test_type" required>
+                                <label for="testName">Test Name *</label>
+                                <select class="form-control" id="testName" name="test_name" required>
                                     <option value="">Select Test</option>
                                     <option value="CBC">Complete Blood Count (CBC)</option>
                                     <option value="LFT">Liver Function Test (LFT)</option>
@@ -210,7 +210,7 @@ $(document).ready(function() {
                 }
             },
             { 
-                data: 'test_type',
+                data: 'test_name',
                 defaultContent: 'N/A'
             },
             { 
