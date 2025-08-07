@@ -21,7 +21,7 @@ $breadcrumbs = [
     ['title' => 'Patients']
 ];
 $additional_css = ['css/patients.css'];
-$additional_js = ['js/patients.js'];
+$additional_js = ['js/patients_fixed.js'];
 
 ob_start();
 ?>

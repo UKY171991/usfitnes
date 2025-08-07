@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Console Debug - PathLab Pro</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .error { color: red; font-weight: bold; }
+        .success { color: green; font-weight: bold; }
+        .warning { color: orange; font-weight: bold; }
+        .info { color: blue; }
+        .console-output { 
+            background: #f5f5f5; 
+            padding: 10px; 
+            border-left: 4px solid #ccc; 
+            margin: 10px 0; 
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>JavaScript Console Debug Tool</h1>
+    <p>This page will help debug JavaScript library loading issues.</p>
+    
+    <div id="debug-output"></div>
+    <div id="console-log" class="console-output"></div>
+    
+    <hr>
+    <button onclick="testLibraries()">Test All Libraries</button>
+    <button onclick="testPatientsFunctions()">Test Patients Functions</button>
+    <button onclick="clearLog()">Clear Log</button>
+    
+    <!-- jQuery -->
+    <script>
+        // Override console methods to capture output
+        const originalConsole = {
+            log: console.log,
+            error: console.error,
+            warn: console.warn,
+            info: console.info
+        };
+        
+        const logOutput = document.getElementById('console-log');
+        
+        function addToLog(type, message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${type.toUpperCase()}: ${message}\n`;
+            logOutput.textContent += logEntry;
+            logOutput.scrollTop = logOutput.scrollHeight;
+            
+            // Call original console method
+            originalConsole[type](message);
+        }
+        
+        console.log = (msg) => addToLog('log', msg);
+        console.error = (msg) => addToLog('error', msg);
+        console.warn = (msg) => addToLog('warn', msg);
+        console.info = (msg) => addToLog('info', msg);
+        
+        function clearLog() {
+            logOutput.textContent = '';
+        }
+        
+        console.log('Debug tool initialized');
+    </script>
+    
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script>
+        console.log('jQuery script loaded');
+        if (typeof jQuery !== 'undefined') {
+            console.log('jQuery is available: ' + jQuery.fn.jquery);
+        } else {
+            console.error('jQuery failed to load');
+        }
+    </script>
+    
+    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap4.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.1.4/toastr.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/limonte-sweetalert2/11.7.28/sweetalert2.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.2.0/js/adminlte.min.js"></script>
+    <script src="js/init.js"></script>
+    <script src="js/patients_fixed.js"></script>
+    
+    <script>
+        function testLibraries() {
+            const output = document.getElementById('debug-output');
+            let html = '<h3>Library Test Results:</h3><ul>';
+            
+            const libraries = [
+                { name: 'jQuery', test: () => typeof jQuery !== 'undefined', version: () => jQuery.fn.jquery },
+                { name: 'jQuery UI', test: () => typeof jQuery !== 'undefined' && jQuery.ui, version: () => jQuery.ui ? jQuery.ui.version : 'N/A' },
+                { name: 'Bootstrap', test: () => typeof bootstrap !== 'undefined' || (typeof jQuery !== 'undefined' && jQuery.fn.modal), version: () => '4.6.2' },
+                { name: 'DataTables', test: () => typeof jQuery !== 'undefined' && jQuery.fn.DataTable, version: () => jQuery.fn.DataTable ? jQuery.fn.DataTable.version : 'N/A' },
+                { name: 'Select2', test: () => typeof jQuery !== 'undefined' && jQuery.fn.select2, version: () => '4.0.13' },
+                { name: 'Toastr', test: () => typeof toastr !== 'undefined', version: () => '2.1.4' },
+                { name: 'SweetAlert2', test: () => typeof Swal !== 'undefined', version: () => Swal.version },
+                { name: 'AdminLTE', test: () => typeof AdminLTE !== 'undefined' || (typeof jQuery !== 'undefined' && jQuery.AdminLTE), version: () => '3.2.0' }
+            ];
+            
+            libraries.forEach(lib => {
+                const isLoaded = lib.test();
+                const status = isLoaded ? 'success' : 'error';
+                const version = isLoaded ? lib.version() : 'Not loaded';
+                html += `<li class="${status}">${lib.name}: ${isLoaded ? 'LOADED' : 'FAILED'} (${version})</li>`;
+                
+                if (isLoaded) {
+                    console.log(`✓ ${lib.name} loaded successfully (${version})`);
+                } else {
+                    console.error(`✗ ${lib.name} failed to load`);
+                }
+            });
+            
+            html += '</ul>';
+            output.innerHTML = html;
+        }
+        
+        function testPatientsFunctions() {
+            console.log('Testing patients-specific functions...');
+            
+            const functions = [
+                'showToast',
+                'CrudOperations', 
+                'FormHandler',
+                'initializePatientsPage',
+                'showAddPatientModal',
+                'editPatient',
+                'deletePatient',
+                'viewPatient'
+            ];
+            
+            functions.forEach(funcName => {
+                if (typeof window[funcName] !== 'undefined') {
+                    console.log(`✓ ${funcName} is available`);
+                } else {
+                    console.error(`✗ ${funcName} is not defined`);
+                }
+            });
+        }
+        
+        // Run initial test when page loads
+        setTimeout(() => {
+            console.log('Running automatic library test...');
+            testLibraries();
+            testPatientsFunctions();
+        }, 2000);
+    </script>
+</body>
+</html>

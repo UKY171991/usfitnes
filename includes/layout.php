@@ -263,10 +263,8 @@
 <!-- AdminLTE App -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.2.0/js/adminlte.min.js"></script>
 
-<!-- Global JS -->
-<script src="js/global.js"></script>
-<script src="js/common.js"></script>
-<script src="js/toaster.js"></script>
+<!-- Core Initialization (Must load first) -->
+<script src="js/init.js"></script>
 
 <?php
 // Load additional JS files
@@ -276,108 +274,6 @@ if (isset($additional_js) && is_array($additional_js)) {
     }
 }
 ?>
-
-<script>
-// Initialize AdminLTE layout
-$(function () {
-    // Initialize tooltips
-    $('[data-toggle="tooltip"]').tooltip();
-    
-    // Initialize popovers  
-    $('[data-toggle="popover"]').popover();
-    
-    // Initialize Select2
-    $('.select2').select2({
-        theme: 'bootstrap4',
-        width: '100%'
-    });
-    
-    // Configure Toastr
-    toastr.options = {
-        "closeButton": true,
-        "debug": false,
-        "newestOnTop": true,
-        "progressBar": true,
-        "positionClass": "toast-top-right",
-        "preventDuplicates": false,
-        "onclick": null,
-        "showDuration": "300",
-        "hideDuration": "1000",
-        "timeOut": "5000",
-        "extendedTimeOut": "1000",
-        "showEasing": "swing",
-        "hideEasing": "linear",
-        "showMethod": "fadeIn",
-        "hideMethod": "fadeOut"
-    };
-    
-    // Remove preloader when page loads
-    $(window).on('load', function() {
-        $('.preloader').fadeOut(500);
-    });
-    
-    // Load notifications
-    loadNotifications();
-    
-    // Refresh notifications every 30 seconds
-    setInterval(loadNotifications, 30000);
-});
-
-// Global logout function
-function logout() {
-    Swal.fire({
-        title: 'Logout Confirmation',
-        text: 'Are you sure you want to logout?',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33',
-        confirmButtonText: 'Yes, logout!'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            showLoading();
-            window.location.href = 'logout.php';
-        }
-    });
-}
-
-// Load notifications
-function loadNotifications() {
-    $.ajax({
-        url: 'api/notifications_api.php',
-        type: 'GET',
-        dataType: 'json',
-        success: function(response) {
-            if (response.success) {
-                updateNotificationUI(response.data);
-            }
-        }
-    });
-}
-
-// Update notification UI
-function updateNotificationUI(notifications) {
-    const count = notifications.length;
-    $('#notification-count').text(count);
-    
-    let html = '';
-    if (count > 0) {
-        notifications.forEach(function(notification) {
-            html += `
-                <a href="#" class="dropdown-item">
-                    <i class="${notification.icon} mr-2"></i> ${notification.message}
-                    <span class="float-right text-muted text-sm">${notification.time}</span>
-                </a>
-                <div class="dropdown-divider"></div>
-            `;
-        });
-    } else {
-        html = '<a href="#" class="dropdown-item"><i class="fas fa-info-circle mr-2"></i> No new notifications</a>';
-    }
-    
-    $('#notifications-container').html(html);
-}
-</script>
 
 </body>
 </html>

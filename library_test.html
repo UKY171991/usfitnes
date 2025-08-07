@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Library Test - PathLab Pro</title>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- AdminLTE Theme style -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.2.0/css/adminlte.min.css">
+    
+    <!-- DataTables -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap4.min.css">
+    
+    <!-- Select2 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css">
+    
+    <!-- Toastr -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.1.4/toastr.min.css">
+    
+    <!-- SweetAlert2 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/limonte-sweetalert2/11.7.28/sweetalert2.min.css">
+</head>
+<body class="hold-transition sidebar-mini layout-fixed">
+
+<div class="wrapper">
+    <div class="content-wrapper" style="margin-left: 0;">
+        <section class="content">
+            <div class="container-fluid">
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Library Loading Test</h3>
+                            </div>
+                            <div class="card-body">
+                                <div id="test-results"></div>
+                                <button type="button" class="btn btn-primary" onclick="runTests()">
+                                    <i class="fas fa-play"></i> Run Tests
+                                </button>
+                                <button type="button" class="btn btn-success" onclick="testToast()">
+                                    <i class="fas fa-bell"></i> Test Toast
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+</div>
+
+<!-- jQuery -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+<!-- jQuery UI -->
+<script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+
+<!-- Bootstrap 4 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/js/bootstrap.bundle.min.js"></script>
+
+<!-- DataTables & Plugins -->
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap4.min.js"></script>
+
+<!-- Select2 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+
+<!-- Toastr -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.1.4/toastr.min.js"></script>
+
+<!-- SweetAlert2 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/limonte-sweetalert2/11.7.28/sweetalert2.min.js"></script>
+
+<!-- AdminLTE App -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.2.0/js/adminlte.min.js"></script>
+
+<!-- Core Initialization -->
+<script src="js/init.js"></script>
+
+<script>
+function runTests() {
+    const results = [];
+    
+    // Test jQuery
+    results.push({
+        name: 'jQuery',
+        status: typeof jQuery !== 'undefined',
+        version: typeof jQuery !== 'undefined' ? jQuery.fn.jquery : 'Not loaded'
+    });
+    
+    // Test Bootstrap
+    results.push({
+        name: 'Bootstrap',
+        status: typeof bootstrap !== 'undefined' || (typeof jQuery !== 'undefined' && jQuery.fn.modal),
+        version: 'Bootstrap 4.6.2'
+    });
+    
+    // Test DataTables
+    results.push({
+        name: 'DataTables',
+        status: typeof jQuery !== 'undefined' && jQuery.fn.DataTable,
+        version: typeof jQuery !== 'undefined' && jQuery.fn.DataTable ? jQuery.fn.DataTable.version : 'Not loaded'
+    });
+    
+    // Test Select2
+    results.push({
+        name: 'Select2',
+        status: typeof jQuery !== 'undefined' && jQuery.fn.select2,
+        version: 'Select2 4.0.13'
+    });
+    
+    // Test Toastr
+    results.push({
+        name: 'Toastr',
+        status: typeof toastr !== 'undefined',
+        version: typeof toastr !== 'undefined' ? '2.1.4' : 'Not loaded'
+    });
+    
+    // Test SweetAlert2
+    results.push({
+        name: 'SweetAlert2',
+        status: typeof Swal !== 'undefined',
+        version: typeof Swal !== 'undefined' ? Swal.version : 'Not loaded'
+    });
+    
+    // Test AdminLTE
+    results.push({
+        name: 'AdminLTE',
+        status: typeof AdminLTE !== 'undefined' || (typeof jQuery !== 'undefined' && jQuery.AdminLTE),
+        version: 'AdminLTE 3.2.0'
+    });
+    
+    displayResults(results);
+}
+
+function displayResults(results) {
+    let html = '<div class="table-responsive"><table class="table table-bordered table-striped">';
+    html += '<thead><tr><th>Library</th><th>Status</th><th>Version</th></tr></thead><tbody>';
+    
+    results.forEach(result => {
+        const statusBadge = result.status ? 
+            '<span class="badge badge-success"><i class="fas fa-check"></i> Loaded</span>' : 
+            '<span class="badge badge-danger"><i class="fas fa-times"></i> Not Loaded</span>';
+        
+        html += `<tr>
+            <td><strong>${result.name}</strong></td>
+            <td>${statusBadge}</td>
+            <td>${result.version}</td>
+        </tr>`;
+    });
+    
+    html += '</tbody></table></div>';
+    
+    document.getElementById('test-results').innerHTML = html;
+    
+    // Summary
+    const loaded = results.filter(r => r.status).length;
+    const total = results.length;
+    
+    if (loaded === total) {
+        showToast('success', `All ${total} libraries loaded successfully!`);
+    } else {
+        showToast('warning', `${loaded}/${total} libraries loaded. Some libraries are missing.`);
+    }
+}
+
+function testToast() {
+    if (typeof showToast !== 'undefined') {
+        showToast('info', 'Toast notification is working!', 'Test Success');
+    } else {
+        alert('showToast function is not available');
+    }
+}
+
+// Run tests when page loads
+$(document).ready(function() {
+    console.log('Library test page loaded');
+    setTimeout(runTests, 1000); // Wait a bit for all libraries to load
+});
+</script>
+
+</body>
+</html>
