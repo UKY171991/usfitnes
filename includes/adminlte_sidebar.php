@@ -97,7 +97,7 @@ function getTreeMenuClass($pages) {
         </li>
         
         <li class="nav-item">
-          <a href="results.php" class="nav-link <?php echo getMenuClass('results.php'); ?>">
+          <a href="results_ajax.php" class="nav-link <?php echo getMenuClass('results_ajax.php'); ?>">
             <i class="nav-icon fas fa-chart-line"></i>
             <p>Test Results</p>
           </a>
@@ -165,8 +165,8 @@ function getTreeMenuClass($pages) {
         <!-- Administration Section -->
         <li class="nav-header">ADMINISTRATION</li>
         
-        <li class="nav-item has-treeview <?php echo getTreeMenuClass(['settings.php', 'users.php', 'backup.php', 'system.php']); ?>">
-          <a href="#" class="nav-link <?php echo getMenuClass(['settings.php', 'users.php', 'backup.php', 'system.php']); ?>">
+        <li class="nav-item has-treeview <?php echo getTreeMenuClass(['settings.php', 'users_ajax.php', 'backup.php', 'system.php']); ?>">
+          <a href="#" class="nav-link <?php echo getMenuClass(['settings.php', 'users_ajax.php', 'backup.php', 'system.php']); ?>">
             <i class="nav-icon fas fa-cogs"></i>
             <p>
               System
@@ -181,7 +181,7 @@ function getTreeMenuClass($pages) {
               </a>
             </li>
             <li class="nav-item">
-              <a href="users.php" class="nav-link <?php echo getMenuClass('users.php'); ?>">
+              <a href="users_ajax.php" class="nav-link <?php echo getMenuClass('users_ajax.php'); ?>">
                 <i class="far fa-circle nav-icon"></i>
                 <p>User Management</p>
               </a>

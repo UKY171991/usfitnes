@@ -161,7 +161,7 @@ function getContent() {
                     
                     <div class="form-group">
                         <label for="resultDate">Result Date *</label>
-                        <input type="date" class="form-control" id="resultDate" name="result_date" required>
+                        <input type="datetime-local" class="form-control" id="resultDate" name="result_date" required>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -181,8 +181,14 @@ function getContent() {
 
 <script>
 $(document).ready(function() {
-    // Set today's date as default
-    $('#resultDate').val(new Date().toISOString().substr(0, 10));
+    // Set today's date and time as default
+    const now = new Date();
+    const isoString = now.getFullYear() + '-' + 
+                      String(now.getMonth() + 1).padStart(2, '0') + '-' + 
+                      String(now.getDate()).padStart(2, '0') + 'T' + 
+                      String(now.getHours()).padStart(2, '0') + ':' + 
+                      String(now.getMinutes()).padStart(2, '0');
+    $('#resultDate').val(isoString);
     
     // Initialize DataTable
     let resultsTable = $('#resultsTable').DataTable({
@@ -312,9 +318,10 @@ $(document).ready(function() {
         $.ajax({
             url: 'api/results_api.php',
             type: 'POST',
-            data: formData,
+            data: { action: 'create' },
             processData: false,
-            contentType: false,
+            contentType: 'application/x-www-form-urlencoded',
+            data: $(this).serialize(),
             success: function(response) {
                 if (response.success) {
                     toastr.success(response.message);
@@ -363,7 +370,7 @@ $(document).ready(function() {
                     // Populate form
                     $('#resultId').val(result.id);
                     $('#patientId').val(result.patient_id);
-                    $('#testType').val(result.test_type);
+                    $('#testName').val(result.test_name);
                     $('#resultValue').val(result.result_value);
                     $('#unit').val(result.unit);
                     $('#referenceRange').val(result.reference_range);
@@ -429,7 +436,13 @@ $(document).ready(function() {
         $('#resultForm')[0].reset();
         $('#resultId').val('');
         $('#formAction').val('add');
-        $('#resultDate').val(new Date().toISOString().substr(0, 10));
+        const now = new Date();
+        const isoString = now.getFullYear() + '-' + 
+                          String(now.getMonth() + 1).padStart(2, '0') + '-' + 
+                          String(now.getDate()).padStart(2, '0') + 'T' + 
+                          String(now.getHours()).padStart(2, '0') + ':' + 
+                          String(now.getMinutes()).padStart(2, '0');
+        $('#resultDate').val(isoString);
     }
 
     // Auto-refresh table every 30 seconds
