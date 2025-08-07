@@ -483,28 +483,29 @@ try {
         foreach ($patients as $patient) {
             $insertPatient->execute($patient);
         }
-    }
-    
-    // Insert sample doctors if empty
-    $checkDoctors = $pdo->prepare("SELECT COUNT(*) FROM doctors");
-    $checkDoctors->execute();
-    
-    if ($checkDoctors->fetchColumn() == 0) {
-        $doctors = [
-            ['DOC001', 'Dr. Robert Anderson', 'dr.anderson@hospital.com', '111-222-3333', 'Cardiology', 'MD12345'],
-            ['DOC002', 'Dr. Emily Brown', 'dr.brown@clinic.com', '444-555-6666', 'Internal Medicine', 'MD67890'],
-            ['DOC003', 'Dr. David Martinez', 'dr.martinez@medical.com', '777-888-9999', 'Pathology', 'MD11111']
-        ];
         
-        $insertDoctor = $pdo->prepare("
-            INSERT INTO doctors (doctor_id, name, email, phone, specialization, license_number) 
-            VALUES (?, ?, ?, ?, ?, ?)
-        ");
-        foreach ($doctors as $doctor) {
-            $insertDoctor->execute($doctor);
+        // Insert sample doctors if empty
+        $checkDoctors = $pdo->prepare("SELECT COUNT(*) FROM doctors");
+        $checkDoctors->execute();
+        
+        if ($checkDoctors->fetchColumn() == 0) {
+            $doctors = [
+                ['DOC001', 'Dr. Robert Anderson', 'dr.anderson@hospital.com', '111-222-3333', 'Cardiology', 'MD12345'],
+                ['DOC002', 'Dr. Emily Brown', 'dr.brown@clinic.com', '444-555-6666', 'Internal Medicine', 'MD67890'],
+                ['DOC003', 'Dr. David Martinez', 'dr.martinez@medical.com', '777-888-9999', 'Pathology', 'MD11111']
+            ];
+            
+            $insertDoctor = $pdo->prepare("
+                INSERT INTO doctors (doctor_id, name, email, phone, specialization, license_number) 
+                VALUES (?, ?, ?, ?, ?, ?)
+            ");
+            foreach ($doctors as $doctor) {
+                $insertDoctor->execute($doctor);
+            }
         }
         
-        echo "PathLab Pro local database setup completed successfully!";
+    } // Close the patients check condition
+        
     } catch(PDOException $e) {
         // Log the error but don't stop the application
         error_log("Sample data insertion error: " . $e->getMessage());
