@@ -27,34 +27,6 @@ try {
         }
     }
     
-    // Ensure patients table exists with sample data for testing
-    $pdo->exec("CREATE TABLE IF NOT EXISTS patients (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        first_name VARCHAR(100) NOT NULL,
-        last_name VARCHAR(100) NOT NULL,
-        phone VARCHAR(20),
-        email VARCHAR(100),
-        date_of_birth DATE,
-        gender ENUM('male', 'female', 'other'),
-        address TEXT,
-        emergency_contact VARCHAR(200),
-        medical_history TEXT,
-        status ENUM('active', 'inactive') DEFAULT 'active',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-    )");
-    
-    // Add sample data if table is empty
-    $count = $pdo->query("SELECT COUNT(*) FROM patients")->fetchColumn();
-    if ($count == 0) {
-        $pdo->exec("INSERT INTO patients (first_name, last_name, phone, email, date_of_birth, gender, address, status) VALUES
-            ('John', 'Doe', '+1234567890', 'john.doe@email.com', '1985-03-15', 'male', '123 Main St, City', 'active'),
-            ('Jane', 'Smith', '+0987654321', 'jane.smith@email.com', '1990-07-22', 'female', '456 Oak Ave, Town', 'active'),
-            ('Mike', 'Johnson', '+5555555555', 'mike.j@email.com', '1978-11-08', 'male', '789 Pine Rd, Village', 'inactive'),
-            ('Sarah', 'Wilson', '+4444444444', 'sarah.w@email.com', '1992-02-14', 'female', '321 Elm St, City', 'active')
-        ");
-    }
-    
     // DataTables parameters
     $draw = intval($_POST['draw'] ?? 1);
     $start = intval($_POST['start'] ?? 0);
@@ -91,7 +63,8 @@ try {
     $totalRecords = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
     
     // Get data with pagination
-    $dataQuery = "SELECT id, first_name, last_name, phone, email, date_of_birth, gender, status, address, created_at
+    $dataQuery = "SELECT id, first_name, last_name, phone, email, date_of_birth, gender, status, 
+                         address, emergency_contact, medical_history, created_at, updated_at
                   FROM patients 
                   $whereClause 
                   ORDER BY $orderBy $orderDir 
@@ -127,7 +100,10 @@ try {
             'gender' => $patient['gender'] ?: '',
             'status' => $patient['status'] ?: 'active',
             'address' => $patient['address'] ?: '',
-            'created_at' => $patient['created_at']
+            'emergency_contact' => $patient['emergency_contact'] ?: '',
+            'medical_history' => $patient['medical_history'] ?: '',
+            'created_at' => $patient['created_at'],
+            'updated_at' => $patient['updated_at'] ?: $patient['created_at']
         ];
     }
     
