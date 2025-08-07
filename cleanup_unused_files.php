@@ -1,11 +1,22 @@
 <?php
 /**
  * PathLab Pro - Cleanup Unused Files
- * This script removes unused backup and duplicate files
+ * ADMIN ACCESS ONLY
  */
+
+// Secure admin access check
+require_once 'admin/secure_access.php';
+$secureAccess = SecureAdminAccess::getInstance();
+$secureAccess->checkAdminAccess();
+
+// Log the access attempt
+logActivity($_SESSION['user_id'], 'File Cleanup Access', 'Admin accessed file cleanup tool');
 
 // Files to be removed (backup and unused files)
 $filesToRemove = [
+    // Old CRUD operations file
+    'js/crud-operations.js',
+    
     // Backup files
     'patients_backup.php',
     'patients_clean.php', 
@@ -54,40 +65,102 @@ $filesToRemove = [
     'includes/adminlte_template_header_modern.php'
 ];
 
-echo "<h2>PathLab Pro - File Cleanup</h2>\n";
-echo "<p>Removing unused backup and duplicate files...</p>\n";
-
-$removedCount = 0;
-$notFoundCount = 0;
-
-foreach ($filesToRemove as $file) {
-    if (file_exists($file)) {
-        if (unlink($file)) {
-            echo "<span style='color: green;'>✓ Removed: $file</span><br>\n";
-            $removedCount++;
-        } else {
-            echo "<span style='color: red;'>✗ Failed to remove: $file</span><br>\n";
-        }
-    } else {
-        echo "<span style='color: gray;'>- Not found: $file</span><br>\n";
-        $notFoundCount++;
-    }
-}
-
-echo "<hr>\n";
-echo "<h3>Summary:</h3>\n";
-echo "<p>Files removed: <strong>$removedCount</strong></p>\n";
-echo "<p>Files not found: <strong>$notFoundCount</strong></p>\n";
-echo "<p>Total files processed: <strong>" . count($filesToRemove) . "</strong></p>\n";
-
-echo "<hr>\n";
-echo "<h3>Remaining Core Files:</h3>\n";
-echo "<ul>\n";
-echo "<li><strong>Main Pages:</strong> patients.php, doctors.php, test-orders.php, equipment.php, dashboard.php</li>\n";
-echo "<li><strong>API Files:</strong> api/patients_api.php, api/doctors_api.php, api/test_orders_api.php, api/equipment_api.php</li>\n";
-echo "<li><strong>AJAX Files:</strong> ajax/patients_datatable.php, ajax/doctors_datatable.php, ajax/test_orders_datatable.php, ajax/equipment_datatable.php</li>\n";
-echo "<li><strong>Config:</strong> config.php, api.txt</li>\n";
-echo "</ul>\n";
-
-echo "<p><strong>Cleanup completed successfully!</strong></p>\n";
 ?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PathLab Pro - File Cleanup</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f8f9fa; margin: 0; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .header { text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid #dc3545; }
+        .admin-info { background: #d4edda; border: 1px solid #c3e6cb; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+        .success { color: green; }
+        .error { color: red; }
+        .not-found { color: gray; }
+        .btn { background: #dc3545; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block; margin: 5px; border: none; cursor: pointer; }
+        .btn:hover { background: #c82333; }
+        h1 { color: #dc3545; margin-bottom: 10px; }
+        h2 { color: #495057; border-bottom: 1px solid #dee2e6; padding-bottom: 10px; }
+        .file-list { max-height: 400px; overflow-y: auto; border: 1px solid #dee2e6; padding: 15px; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🗑️ PathLab Pro - File Cleanup</h1>
+            <p><strong>Administrator:</strong> <?php echo htmlspecialchars($_SESSION['name'] ?? 'Unknown Admin'); ?></p>
+            <p><strong>Access Time:</strong> <?php echo date('Y-m-d H:i:s'); ?></p>
+        </div>
+
+        <div class="admin-info">
+            <strong>🛡️ Security Notice:</strong> This tool will remove unused backup and duplicate files to clean up the system.
+        </div>
+
+        <?php if (isset($_POST['confirm_cleanup'])): ?>
+            <h2>Cleanup Results:</h2>
+            <div class="file-list">
+                <?php
+                $removedCount = 0;
+                $notFoundCount = 0;
+
+                foreach ($filesToRemove as $file) {
+                    if (file_exists($file)) {
+                        if (unlink($file)) {
+                            echo "<span class='success'>✓ Removed: $file</span><br>\n";
+                            $removedCount++;
+                        } else {
+                            echo "<span class='error'>✗ Failed to remove: $file</span><br>\n";
+                        }
+                    } else {
+                        echo "<span class='not-found'>- Not found: $file</span><br>\n";
+                        $notFoundCount++;
+                    }
+                }
+                ?>
+            </div>
+            
+            <h2>Summary:</h2>
+            <p><strong>Files removed:</strong> <?php echo $removedCount; ?></p>
+            <p><strong>Files not found:</strong> <?php echo $notFoundCount; ?></p>
+            <p><strong>Total files processed:</strong> <?php echo count($filesToRemove); ?></p>
+            
+            <div class="admin-info">
+                <strong>✅ Cleanup completed successfully!</strong> The system has been cleaned of unused files.
+            </div>
+            
+        <?php else: ?>
+            <h2>Files to be Removed:</h2>
+            <div class="file-list">
+                <?php foreach ($filesToRemove as $file): ?>
+                    <div>
+                        <?php if (file_exists($file)): ?>
+                            <span class="error">🗑️ <?php echo $file; ?></span>
+                        <?php else: ?>
+                            <span class="not-found">❌ <?php echo $file; ?> (not found)</span>
+                        <?php endif; ?>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+            
+            <h2>Confirm Cleanup</h2>
+            <p><strong>Warning:</strong> This action will permanently delete the listed files. Make sure you have backups if needed.</p>
+            
+            <form method="POST">
+                <input type="hidden" name="confirm_cleanup" value="1">
+                <button type="submit" class="btn" onclick="return confirm('Are you sure you want to delete these files? This action cannot be undone.')">
+                    🗑️ Confirm Cleanup
+                </button>
+            </form>
+        <?php endif; ?>
+        
+        <div style="margin-top: 30px; text-align: center;">
+            <a href="dashboard.php" style="background: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;">
+                🏠 Return to Dashboard
+            </a>
+        </div>
+    </div>
+</body>
+</html>

@@ -116,18 +116,18 @@ try {
         
         // Actions buttons
         $actions = "
-            <div class='btn-group btn-group-sm'>
-                <button type='button' class='btn btn-info btn-sm' onclick='viewTestOrder({$order['id']})' title='View'>
+            <div class='btn-group btn-group-sm' role='group'>
+                <button type='button' class='btn btn-success btn-sm' onclick='viewTestOrder({$order['id']})' title='View' data-toggle='tooltip'>
                     <i class='fas fa-eye'></i>
                 </button>
         ";
         
         if ($order['status'] !== 'cancelled' && $order['status'] !== 'completed') {
             $actions .= "
-                <button type='button' class='btn btn-warning btn-sm' onclick='openTestOrderModal({$order['id']})' title='Edit'>
+                <button type='button' class='btn btn-info btn-sm' onclick='editTestOrder({$order['id']})' title='Edit' data-toggle='tooltip'>
                     <i class='fas fa-edit'></i>
                 </button>
-                <button type='button' class='btn btn-danger btn-sm' onclick='deleteTestOrder({$order['id']})' title='Cancel'>
+                <button type='button' class='btn btn-danger btn-sm' onclick='deleteTestOrder({$order['id']})' title='Cancel' data-toggle='tooltip'>
                     <i class='fas fa-times'></i>
                 </button>
             ";

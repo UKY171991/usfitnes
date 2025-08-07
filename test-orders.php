@@ -50,13 +50,16 @@ include 'includes/adminlte_sidebar.php';
                 <i class="fas fa-list mr-2"></i>All Test Orders
               </h3>
               <div class="card-tools">
-                <button type="button" class="btn btn-info btn-sm" data-toggle="modal" data-target="#testOrderModal" onclick="openTestOrderModal()">
+                <button type="button" class="btn btn-info btn-sm" onclick="openAddModal()">
                   <i class="fas fa-plus mr-1"></i>Create Order
+                </button>
+                <button type="button" class="btn btn-outline-secondary btn-sm ml-1" onclick="refreshTable()">
+                  <i class="fas fa-sync-alt mr-1"></i>Refresh
                 </button>
               </div>
             </div>
             <div class="card-body">
-              <table id="testOrdersTable" class="table table-bordered table-striped">
+              <table id="testOrdersTable" class="table table-bordered table-striped table-hover">
                 <thead>
                   <tr>
                     <th>Order #</th>
@@ -85,16 +88,19 @@ include 'includes/adminlte_sidebar.php';
 <div class="modal fade" id="testOrderModal" tabindex="-1" role="dialog" aria-labelledby="testOrderModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-xl" role="document">
     <div class="modal-content">
-      <div class="modal-header">
-        <h4 class="modal-title" id="testOrderModalLabel">Create Test Order</h4>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+      <div class="modal-header bg-info">
+        <h4 class="modal-title text-white" id="testOrderModalLabel">
+          <i class="fas fa-vials mr-2"></i>Create Test Order
+        </h4>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
           <span aria-hidden="true">&times;</span>
         </button>
       </div>
       <form id="testOrderForm">
         <div class="modal-body">
-          <input type="hidden" id="testOrderId" name="id">
+          <input type="hidden" name="id" id="testOrderId">
           
+          <!-- Patient and Doctor Selection -->
           <div class="row">
             <div class="col-md-6">
               <div class="form-group">
@@ -102,6 +108,7 @@ include 'includes/adminlte_sidebar.php';
                 <select class="form-control select2" id="patientSelect" name="patient_id" required style="width: 100%;">
                   <option value="">Select Patient</option>
                 </select>
+                <div class="invalid-feedback">Please select a patient.</div>
               </div>
             </div>
             <div class="col-md-6">
@@ -114,6 +121,7 @@ include 'includes/adminlte_sidebar.php';
             </div>
           </div>
           
+          <!-- Order Details -->
           <div class="row">
             <div class="col-md-6">
               <div class="form-group">
@@ -133,22 +141,30 @@ include 'includes/adminlte_sidebar.php';
             </div>
           </div>
           
+          <!-- Tests Selection -->
           <div class="form-group">
             <label>Tests <span class="text-danger">*</span></label>
             <div class="card">
-              <div class="card-body">
+              <div class="card-header">
+                <h5 class="card-title mb-0">Available Tests</h5>
+              </div>
+              <div class="card-body" style="max-height: 300px; overflow-y: auto;">
                 <div id="testsContainer">
-                  <!-- Tests will be loaded here -->
+                  <div class="text-center">
+                    <i class="fas fa-spinner fa-spin"></i> Loading tests...
+                  </div>
                 </div>
               </div>
             </div>
           </div>
           
+          <!-- Notes -->
           <div class="form-group">
             <label for="notes">Notes</label>
-            <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+            <textarea class="form-control" id="notes" name="notes" rows="3" placeholder="Additional notes for this test order"></textarea>
           </div>
           
+          <!-- Pricing -->
           <div class="row">
             <div class="col-md-6">
               <div class="form-group">
@@ -173,10 +189,19 @@ include 'includes/adminlte_sidebar.php';
               </div>
             </div>
           </div>
+          
+          <!-- Final Amount Display -->
+          <div class="alert alert-info">
+            <strong>Final Amount: $<span id="finalAmount">0.00</span></strong>
+          </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-info">Create Order</button>
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">
+            <i class="fas fa-times mr-1"></i>Cancel
+          </button>
+          <button type="submit" class="btn btn-info">
+            <i class="fas fa-save mr-1"></i>Create Order
+          </button>
         </div>
       </form>
     </div>
@@ -186,68 +211,72 @@ include 'includes/adminlte_sidebar.php';
 <script>
 $(document).ready(function() {
     // Initialize DataTable
-    $('#testOrdersTable').DataTable({
-        processing: true,
-        serverSide: true,
+    window.testOrdersTable = initDataTable('#testOrdersTable', {
         ajax: {
             url: 'ajax/test_orders_datatable.php',
             type: 'POST'
-          
-                coor);
-                toastr.error('Failed 
-            }
         },
         columns: [
-            { data: 'order_numb
+            { data: 'order_number', width: '120px' },
             { data: 'patient_name' },
             { data: 'doctor_name' },
-            { data: 'test_count' },
-          
-            { data: 'priority' },
-            { data: 'or
-            { data: 'act
-       
-    
-        pageLength: 25,
-        responsive: true
+            { data: 'test_count', width: '80px' },
+            { data: 'status', width: '100px' },
+            { data: 'priority', width: '80px' },
+            { data: 'order_date', width: '120px' },
+            { data: 'actions', orderable: false, searchable: false, width: '120px' }
+        ]
     });
     
-    
-    $('.select2').select2({
-        theme: 'bootstrap4'
+    // Handle form submission
+    handleAjaxForm('#testOrderForm', 'api/test_orders_api.php', function(response) {
+        $('#testOrderModal').modal('hide');
+        window.testOrdersTable.ajax.reload();
     });
     
-    // on
-    {
-        e.preventDefault();
-        saveTestOrder();
-    });
-    
-    // Load patients
-    $(' {
-    ;
+    // Load data when modal opens
+    $('#testOrderModal').on('show.bs.modal', function() {
+        loadPatients();
         loadDoctors();
         loadTests();
     });
     
-   
-n() {
+    // Calculate total when discount changes
+    $('#discount').on('input', function() {
         calculateTotal();
     });
 });
 
-function openTestOrderModal(id
-    if (id) {
-        // Edit mod
-        $('#testOrderModalLabel').text('Edit Test Order');
-        loadTestOrderData(id);
-    } else {
-        // Add mode
-     t Order');
- et();
+function openAddModal() {
+    resetModalForm('testOrderModal');
+    $('#testOrderModalLabel').html('<i class="fas fa-vials mr-2"></i>Create Test Order');
+    $('#orderDate').val(new Date().toISOString().slice(0, 16));
+    $('#testOrderModal').modal('show');
+}
 
-        $('#orderDate').v
-    }
+function editTestOrder(id) {
+    $('#testOrderModalLabel').html('<i class="fas fa-vials mr-2"></i>Edit Test Order');
+    
+    loadDataForEdit(id, 'api/test_orders_api.php', function(data) {
+        populateForm('#testOrderForm', data);
+        $('#testOrderModal').modal('show');
+    });
+}
+
+function deleteTestOrder(id) {
+    handleAjaxDelete(id, 'api/test_orders_api.php', 'test order', function() {
+        window.testOrdersTable.ajax.reload();
+    });
+}
+
+function viewTestOrder(id) {
+    // View functionality can be implemented later
+    showToast('info', 'View test order functionality coming soon');
+}
+
+function refreshTable() {
+    window.testOrdersTable.ajax.reload();
+    showToast('info', 'Table refreshed');
 }
 
 function loadPatients() {
@@ -257,15 +286,15 @@ function loadPatients() {
         data: { limit: 1000, status: 'active' },
         success: function(response) {
             if (response.success) {
-                con;
-             ;
-         nt) {
-       ;
- 
-  }
+                const select = $('#patientSelect');
+                select.empty().append('<option value="">Select Patient</option>');
+                response.data.patients.forEach(function(patient) {
+                    select.append(`<option value="${patient.id}">${patient.full_name} (${patient.patient_id})</option>`);
+                });
+            }
         },
-        erroction() {
-            toastr.error('Failed to
+        error: function() {
+            showToast('error', 'Failed to load patients');
         }
     });
 }
@@ -274,18 +303,18 @@ function loadDoctors() {
     $.ajax({
         url: 'api/doctors_api.php',
         type: 'GET',
-        data: { lim
-        succe
-         
-       ');
- on>');
-tor) {
-                    se);
-              });
+        data: { limit: 1000, status: 'active' },
+        success: function(response) {
+            if (response.success) {
+                const select = $('#doctorSelect');
+                select.empty().append('<option value="">Select Doctor</option>');
+                response.data.doctors.forEach(function(doctor) {
+                    select.append(`<option value="${doctor.id}">${doctor.name} - ${doctor.specialization}</option>`);
+                });
             }
         },
         error: function() {
-            toastr.error('Failed to
+            showToast('error', 'Failed to load doctors');
         }
     });
 }
@@ -299,111 +328,92 @@ function loadTests() {
                 const container = $('#testsContainer');
                 container.empty();
                 
-                respon{
+                if (response.data.tests.length === 0) {
+                    container.html('<div class="text-center text-muted">No tests available</div>');
+                    return;
+                }
+                
+                response.data.tests.forEach(function(test) {
                     const testHtml = `
-                   >
-             " 
-         ">
-       .id}">
- e}
-}</small>
-                           
-                  div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input test-checkbox" type="checkbox" value="${test.id}" 
+                                   id="test_${test.id}" data-price="${test.price}" onchange="calculateTotal()">
+                            <label class="form-check-label" for="test_${test.id}">
+                                <strong>${test.name}</strong> - $${test.price}
+                                ${test.description ? '<br><small class="text-muted">' + test.description + '</small>' : ''}
+                            </label>
+                        </div>
                     `;
                     container.append(testHtml);
-       
-     }
+                });
+            }
         },
         error: function() {
-    ');
+            $('#testsContainer').html('<div class="text-center text-danger">Failed to load tests</div>');
+            showToast('error', 'Failed to load tests');
         }
-   });
+    });
 }
 
 function calculateTotal() {
     let total = 0;
-    $('.test-checkbox:checked').each(funct) {
-       
+    $('.test-checkbox:checked').each(function() {
+        total += parseFloat($(this).data('price')) || 0;
     });
     
-    const discount = parseFloat($('#discount').val()) ||;
-    const final
+    const discount = parseFloat($('#discount').val()) || 0;
+    const finalTotal = Math.max(0, total - discount);
     
-    ;
+    $('#totalAmount').val(total.toFixed(2));
+    $('#finalAmount').text(finalTotal.toFixed(2));
 }
 
-funcer() {
-    const selectedTests = [];
+// Override form submission to include selected tests
+$('#testOrderForm').off('submit').on('submit', function(e) {
+    e.preventDefault();
     
-        sele));
+    const selectedTests = [];
+    $('.test-checkbox:checked').each(function() {
+        selectedTests.push($(this).val());
     });
     
-    if (selectedTests.l
-        toastr.error('Pleas
+    if (selectedTests.length === 0) {
+        showToast('error', 'Please select at least one test');
         return;
     }
     
-    const formData = new FormData($('#testOrderFo
-    formData.append('tests', JSON.stringify(selecte
+    const formData = new FormData(this);
+    formData.append('tests', JSON.stringify(selectedTests));
     
-    const isEdit = $== '';
+    const isEdit = $('#testOrderId').val() !== '';
+    const submitBtn = $(this).find('button[type="submit"]');
+    const originalText = submitBtn.html();
+    
+    submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Saving...');
     
     $.ajax({
-        ur,
-        type: isEdit ? 'PUT
+        url: 'api/test_orders_api.php',
+        type: isEdit ? 'PUT' : 'POST',
         data: formData,
-        p: false,
-       ,
- ) {
-cess) {
-                toastr.successe);
-               ide');
-                $('#testOrdersT
+        processData: false,
+        contentType: false,
+        success: function(response) {
+            if (response.success) {
+                showToast('success', response.message);
+                $('#testOrderModal').modal('hide');
+                window.testOrdersTable.ajax.reload();
             } else {
-                toastr.esage);
+                showToast('error', response.message);
             }
         },
         error: function() {
-            toastr.error('Error saving test ');
+            showToast('error', 'Error saving test order');
+        },
+        complete: function() {
+            submitBtn.prop('disabled', false).html(originalText);
         }
     });
-}
-
-function deleteTestOrder(id) {
-    Swal.fire({
-        title: 'Are you sure?',
-        text: "This will cancel the test orr!",
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: 
-        cancelButtonColor: '#d33',
-        confirmButtonit!'
-    }).then((resul => {
-        if (result.isConfirmed) {
-            $.ajax({
-                u
-               'DELETE',
-         id: id },
-       {
- {
-         ge);
-();
-                    } else {
-                   e);
-                    }
-                },
-                error: function() {
-                    toast
-                }
-            });
-        }
-    });
-}
-
-function viewTestOrder(id) {
-    // View test order details (can be implemented later)
-    toastr.info('View tes;
-}
+});
 </script>
 
-<?php include 'includes/adminlte_temp> ?p';footer.phlate_
+<?php include 'includes/adminlte_template_footer.php'; ?>

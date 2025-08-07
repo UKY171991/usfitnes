@@ -105,8 +105,8 @@
 <!-- InputMask -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.inputmask/5.0.8/jquery.inputmask.min.js"></script>
 
-<!-- PathLab Pro CRUD Operations -->
-<script src="js/crud-operations.js?v=<?php echo time(); ?>"></script>
+<!-- PathLab Pro Common AJAX Functions -->
+<script src="js/common-ajax.js?v=<?php echo time(); ?>"></script>
 
 <!-- Custom PathLab Pro Scripts -->
 <script>
