@@ -1,7 +1,21 @@
 <?php
 require_once 'includes/adminlte_template.php';
 
-// Patients page content function
+                        <tbody>
+                            <?php foreach ($patients as $patient): 
+                                $age = "N/A";
+                                if (!empty($patient['date_of_birth'])) {
+                                    try {
+                                        $birthDate = new DateTime($patient['date_of_birth']);
+                                        $today = new DateTime('today');
+                                        $age = $birthDate->diff($today)->y;
+                                    } catch (Exception $e) {
+                                        $age = "N/A";
+                                    }
+                                }
+                            ?>
+                            <tr>
+                                <td><strong><?php echo htmlspecialchars($patient['patient_id'] ?? ''); ?></strong></td>e content function
 function patientsContent() {
     global $pdo;
     

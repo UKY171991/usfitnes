@@ -33,7 +33,7 @@ function getTreeMenuClass($pages) {
 <!-- Main Sidebar Container -->
 <aside class="main-sidebar sidebar-dark-primary elevation-4">
   <!-- Brand Logo -->
-  <a href="dashboard.php" class="brand-link">
+  <a href="dashboard_new.php" class="brand-link">
     <?php if (function_exists('hasLogo') && hasLogo()): ?>
       <img src="<?php echo getLogoPath(); ?>" alt="PathLab Pro Logo" class="brand-image img-circle elevation-3" style="opacity: .8">
     <?php else: ?>
@@ -64,7 +64,7 @@ function getTreeMenuClass($pages) {
         
         <!-- Dashboard -->
         <li class="nav-item">
-          <a href="dashboard.php" class="nav-link <?php echo getMenuClass('dashboard.php'); ?>">
+          <a href="dashboard_new.php" class="nav-link <?php echo getMenuClass(['dashboard.php', 'dashboard_new.php']); ?>">
             <i class="nav-icon fas fa-tachometer-alt"></i>
             <p>Dashboard</p>
           </a>
@@ -74,7 +74,7 @@ function getTreeMenuClass($pages) {
         <li class="nav-header">PATIENT MANAGEMENT</li>
         
         <li class="nav-item">
-          <a href="patients.php" class="nav-link <?php echo getMenuClass('patients.php'); ?>">
+          <a href="patients_ajax.php" class="nav-link <?php echo getMenuClass(['patients.php', 'patients_ajax.php']); ?>">
             <i class="nav-icon fas fa-user-injured"></i>
             <p>
               Patients
@@ -107,7 +107,7 @@ function getTreeMenuClass($pages) {
         <li class="nav-header">MEDICAL STAFF</li>
         
         <li class="nav-item">
-          <a href="doctors.php" class="nav-link <?php echo getMenuClass('doctors.php'); ?>">
+          <a href="doctors_ajax.php" class="nav-link <?php echo getMenuClass(['doctors.php', 'doctors_ajax.php']); ?>">
             <i class="nav-icon fas fa-user-md"></i>
             <p>
               Doctors
@@ -120,7 +120,7 @@ function getTreeMenuClass($pages) {
         <li class="nav-header">EQUIPMENT</li>
         
         <li class="nav-item">
-          <a href="equipment.php" class="nav-link <?php echo getMenuClass('equipment.php'); ?>">
+          <a href="equipment_ajax.php" class="nav-link <?php echo getMenuClass(['equipment.php', 'equipment_ajax.php']); ?>">
             <i class="nav-icon fas fa-tools"></i>
             <p>
               Equipment
