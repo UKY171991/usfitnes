@@ -1,249 +1,217 @@
 <?php
-session_start();
-require_once 'includes/config.php';
+require_once 'config.php';
 
-// Check if user is logged in
-if (!isset($_SESSION['user_id'])) {
-    header('Location: login.php');
-    exit();
-}
-
+$current_page = 'patients';
 $page_title = 'Patients Management';
-$breadcrumbs = [
-    ['title' => 'Home', 'url' => 'dashboard.php'],
-    ['title' => 'Patients']
-];
-$additional_css = ['css/patients.css'];
-$additional_js = ['js/patients.js'];
-
-ob_start();
 ?>
 
-<div class="row">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <div class="card-header-actions">
-                    <div>
-                        <h3 class="card-title">
-                            <i class="fas fa-users mr-2"></i>
-                            Patients Management
-                        </h3>
-                    </div>
-                    <div>
-                        <button type="button" class="btn btn-primary btn-sm" onclick="showAddPatientModal()">
-                            <i class="fas fa-plus mr-1"></i> Add Patient
-                        </button>
-                        <button type="button" class="btn btn-success btn-sm" onclick="exportPatients()">
-                            <i class="fas fa-download mr-1"></i> Export
-                        </button>
-                        <button type="button" class="btn btn-info btn-sm" onclick="refreshTable()">
-                            <i class="fas fa-sync mr-1"></i> Refresh
-                        </button>
-                    </div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title><?= $page_title ?> - USFitness Lab</title>
+
+    <!-- Google Font: Source Sans Pro -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- AdminLTE -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/css/adminlte.min.css">
+    <!-- DataTables -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap4.min.css">
+    <!-- Toastr -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/custom.css">
+</head>
+<body class="hold-transition sidebar-mini layout-fixed">
+<div class="wrapper">
+
+    <!-- Preloader -->
+    <div class="preloader flex-column justify-content-center align-items-center">
+        <img class="animation__shake" src="img/logo.png" alt="USFitnessLogo" height="60" width="60">
+    </div>
+
+    <!-- Navbar -->
+    <nav class="main-header navbar navbar-expand navbar-white navbar-light">
+        <!-- Left navbar links -->
+        <ul class="navbar-nav">
+            <li class="nav-item">
+                <a class="nav-link" data-widget="pushmenu" href="#" role="button"><i class="fas fa-bars"></i></a>
+            </li>
+        </ul>
+
+        <!-- Right navbar links -->
+        <ul class="navbar-nav ml-auto">
+            <!-- User Menu -->
+            <li class="nav-item dropdown">
+                <a class="nav-link" data-toggle="dropdown" href="#">
+                    <i class="far fa-user"></i>
+                    <span class="ml-1">Admin</span>
+                </a>
+                <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
+                    <a href="#" class="dropdown-item" onclick="logout()">
+                        <i class="fas fa-sign-out-alt mr-2"></i> Logout
+                    </a>
                 </div>
-                
-                <!-- Filters -->
-                <div class="card-header-filters">
-                    <div class="row">
-                        <div class="col-md-3 col-sm-6 mb-2">
-                            <select class="form-control select2" id="statusFilter" onchange="filterTable()">
-                                <option value="">All Status</option>
-                                <option value="active">Active</option>
-                                <option value="inactive">Inactive</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3 col-sm-6 mb-2">
-                            <select class="form-control select2" id="bloodGroupFilter" onchange="filterTable()">
-                                <option value="">All Blood Groups</option>
-                                <option value="A+">A+</option>
-                                <option value="A-">A-</option>
-                                <option value="B+">B+</option>
-                                <option value="B-">B-</option>
-                                <option value="AB+">AB+</option>
-                                <option value="AB-">AB-</option>
-                                <option value="O+">O+</option>
-                                <option value="O-">O-</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3 col-sm-6 mb-2">
-                            <input type="date" class="form-control" id="dateFromFilter" onchange="filterTable()" placeholder="From Date">
-                        </div>
-                        <div class="col-md-3 col-sm-6 mb-2">
-                            <input type="date" class="form-control" id="dateToFilter" onchange="filterTable()" placeholder="To Date">
-                        </div>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- Main Sidebar Container -->
+    <aside class="main-sidebar sidebar-dark-primary elevation-4">
+        <!-- Brand Logo -->
+        <a href="dashboard.php" class="brand-link">
+            <img src="img/logo.png" alt="USFitness Logo" class="brand-image img-circle elevation-3" style="opacity: .8">
+            <span class="brand-text font-weight-light">USFitness Lab</span>
+        </a>
+
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <!-- Sidebar Menu -->
+            <nav class="mt-2">
+                <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
+                    <li class="nav-item">
+                        <a href="dashboard.php" class="nav-link">
+                            <i class="nav-icon fas fa-tachometer-alt"></i>
+                            <p>Dashboard</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="patients.php" class="nav-link active">
+                            <i class="nav-icon fas fa-users"></i>
+                            <p>Patients</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="doctors.php" class="nav-link">
+                            <i class="nav-icon fas fa-user-md"></i>
+                            <p>Doctors</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="test-orders.php" class="nav-link">
+                            <i class="nav-icon fas fa-clipboard-list"></i>
+                            <p>Test Orders</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="results.php" class="nav-link">
+                            <i class="nav-icon fas fa-vial"></i>
+                            <p>Test Results</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="equipment.php" class="nav-link">
+                            <i class="nav-icon fas fa-tools"></i>
+                            <p>Equipment</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="users.php" class="nav-link">
+                            <i class="nav-icon fas fa-user-cog"></i>
+                            <p>Users</p>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </aside>
+
+    <!-- Content Wrapper -->
+    <div class="content-wrapper">
+        <!-- Content Header -->
+        <div class="content-header">
+            <div class="container-fluid">
+                <div class="row mb-2">
+                    <div class="col-sm-6">
+                        <h1 class="m-0">Patients Management</h1>
                     </div>
-                </div>
-            </div>
-            
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table id="patientsTable" class="table table-bordered table-striped table-hover">
-                        <thead class="thead-dark">
-                            <tr>
-                                <th>ID</th>
-                                <th>Name</th>
-                                <th>Phone</th>
-                                <th>Blood Group</th>
-                                <th>Age</th>
-                                <th>Gender</th>
-                                <th>Status</th>
-                                <th>Created Date</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Data loaded via AJAX -->
-                        </tbody>
-                    </table>
+                    <div class="col-sm-6">
+                        <ol class="breadcrumb float-sm-right">
+                            <li class="breadcrumb-item"><a href="dashboard.php">Dashboard</a></li>
+                            <li class="breadcrumb-item active">Patients</li>
+                        </ol>
+                    </div>
                 </div>
             </div>
         </div>
+
+        <!-- Main content -->
+        <section class="content">
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">All Patients</h3>
+                                <div class="card-tools">
+                                    <button type="button" class="btn btn-primary" onclick="addPatient()">
+                                        <i class="fas fa-plus"></i> Add New Patient
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <table id="patients-table" class="table table-bordered table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Name</th>
+                                            <th>Email</th>
+                                            <th>Phone</th>
+                                            <th>Date of Birth</th>
+                                            <th>Gender</th>
+                                            <th>Created</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Data will be loaded via AJAX -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
     </div>
+
+    <!-- Footer -->
+    <footer class="main-footer">
+        <strong>Copyright &copy; 2025 <a href="#">USFitness Lab</a>.</strong>
+        All rights reserved.
+        <div class="float-right d-none d-sm-inline-block">
+            <b>Environment:</b> <?= getEnvironment() ?>
+        </div>
+    </footer>
 </div>
 
-<!-- Add/Edit Patient Modal -->
-<div class="modal fade" id="patientModal" tabindex="-1" role="dialog" aria-labelledby="patientModalLabel" aria-hidden="true">
+<!-- Global Modal -->
+<div class="modal fade" id="globalModal" tabindex="-1" role="dialog">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="patientModalLabel">Add Patient</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <form id="patientForm" data-ajax="true" data-api-url="patients_api.php">
-                <div class="modal-body">
-                    <input type="hidden" id="patient_id" name="patient_id">
-                    <input type="hidden" name="action" value="save">
-                    
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="first_name">First Name <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="first_name" name="first_name" required>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="last_name">Last Name <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="last_name" name="last_name" required>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="phone">Phone <span class="text-danger">*</span></label>
-                                <input type="tel" class="form-control" id="phone" name="phone" required>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="email">Email</label>
-                                <input type="email" class="form-control" id="email" name="email">
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="form-group">
-                                <label for="age">Age <span class="text-danger">*</span></label>
-                                <input type="number" class="form-control" id="age" name="age" min="1" max="120" required>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="form-group">
-                                <label for="gender">Gender <span class="text-danger">*</span></label>
-                                <select class="form-control select2" id="gender" name="gender" required>
-                                    <option value="">Select Gender</option>
-                                    <option value="male">Male</option>
-                                    <option value="female">Female</option>
-                                    <option value="other">Other</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="form-group">
-                                <label for="blood_group">Blood Group</label>
-                                <select class="form-control select2" id="blood_group" name="blood_group">
-                                    <option value="">Select Blood Group</option>
-                                    <option value="A+">A+</option>
-                                    <option value="A-">A-</option>
-                                    <option value="B+">B+</option>
-                                    <option value="B-">B-</option>
-                                    <option value="AB+">AB+</option>
-                                    <option value="AB-">AB-</option>
-                                    <option value="O+">O+</option>
-                                    <option value="O-">O-</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-12">
-                            <div class="form-group">
-                                <label for="address">Address</label>
-                                <textarea class="form-control" id="address" name="address" rows="3" data-auto-resize></textarea>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="status">Status <span class="text-danger">*</span></label>
-                                <select class="form-control select2" id="status" name="status" required>
-                                    <option value="active">Active</option>
-                                    <option value="inactive">Inactive</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">
-                        <i class="fas fa-times mr-1"></i> Cancel
-                    </button>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save mr-1"></i> Save Patient
-                    </button>
-                </div>
-            </form>
+            <!-- Content will be loaded here -->
         </div>
     </div>
 </div>
 
-<!-- View Patient Modal -->
-<div class="modal fade" id="viewPatientModal" tabindex="-1" role="dialog" aria-labelledby="viewPatientModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="viewPatientModalLabel">Patient Details</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body" id="patientDetailsContent">
-                <!-- Patient details loaded via AJAX -->
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">
-                    <i class="fas fa-times mr-1"></i> Close
-                </button>
-                <button type="button" class="btn btn-primary" onclick="printPatientDetails()">
-                    <i class="fas fa-print mr-1"></i> Print
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
+<!-- jQuery -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<!-- Bootstrap 4 -->
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
+<!-- AdminLTE App -->
+<script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
+<!-- DataTables -->
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap4.min.js"></script>
+<!-- Toastr -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+<!-- Custom Global JS -->
+<script src="js/global.js"></script>
+<!-- Patients JS -->
+<script src="js/patients.js"></script>
 
-<?php
-$content = ob_get_clean();
-require_once 'includes/layout.php';
-?>
+</body>
+</html>

@@ -1,676 +1,124 @@
-PathLab Pro - API Documentation
-=====================================
+# USFitness Lab API Documentation
 
-Base URL: /api/
-Response Format: JSON
-Last Updated: 2025-08-07
+## API Endpoints
 
-IMPORTANT: All pages now use AdminLTE3 template with AJAX operations
-- All forms are handled via modals
-- All data tables use server-side processing
-- All CRUD operations use AJAX
-- Toaster notifications for all events
-- Advanced pagination and filtering
+### Dashboard API (`/api/dashboard_api.php`)
+- **GET/POST** `?action=get_counts` - Get dashboard statistics
+  - Returns: total_patients, todays_orders, pending_results, total_doctors
+- **GET/POST** `?action=get_recent_activities` - Get recent activities 
+  - Params: limit (default: 10)
+- **GET/POST** `?action=get_recent_orders` - Get recent test orders
+  - Params: limit (default: 10)
+- **GET/POST** `?action=get_monthly_stats` - Get monthly statistics for charts
 
-Authentication:
-- All API endpoints require valid session
-- Returns 401 if not authenticated
+### Patients API (`/api/patients_api.php`)
+- **POST** `action=list` - Get patients list (DataTables)
+  - Params: draw, start, length, search
+  - Returns: DataTables format response
+- **GET** `action=add_form` - Get add patient form HTML
+- **GET** `action=edit_form&id=X` - Get edit patient form HTML
+- **GET** `action=view&id=X` - Get patient details view HTML
+- **POST** `action=save` - Save patient (add/update)
+  - Fields: id (for update), name*, email, phone, date_of_birth, gender
+- **POST** `action=delete&id=X` - Delete patient
 
-Standard Response Format:
+### Doctors API (`/api/doctors_api.php`)
+- **POST** `action=list` - Get doctors list (DataTables)
+- **GET** `action=add_form` - Get add doctor form HTML
+- **GET** `action=edit_form&id=X` - Get edit doctor form HTML  
+- **GET** `action=view&id=X` - Get doctor details view HTML
+- **POST** `action=save` - Save doctor (add/update)
+  - Fields: id, name*, email, phone, specialization, license_number
+- **POST** `action=delete&id=X` - Delete doctor
+
+### Test Orders API (`/api/test_orders_api.php`)
+- **POST** `action=list` - Get test orders list (DataTables)
+- **GET** `action=add_form` - Get add test order form HTML
+- **GET** `action=edit_form&id=X` - Get edit test order form HTML
+- **GET** `action=view&id=X` - Get test order details view HTML
+- **POST** `action=save` - Save test order (add/update)
+  - Fields: id, order_number*, patient_id*, doctor_id, status
+- **POST** `action=delete&id=X` - Delete test order
+
+### Users API (`/api/users_api.php`)
+- **POST** `action=list` - Get users list (DataTables)
+- **GET** `action=add_form` - Get add user form HTML
+- **GET** `action=edit_form&id=X` - Get edit user form HTML
+- **POST** `action=save` - Save user (add/update)
+  - Fields: id, username*, email*, password (for new), role
+- **POST** `action=delete&id=X` - Delete user
+
+## AJAX Files (`/ajax/`)
+
+### Patients AJAX (`/ajax/patients_datatable.php`)
+- DataTables server-side processing for patients
+
+### Doctors AJAX (`/ajax/doctors_datatable.php`)
+- DataTables server-side processing for doctors
+
+### Test Orders AJAX (`/ajax/test_orders_datatable.php`)
+- DataTables server-side processing for test orders
+
+### Users AJAX (`/ajax/users_datatable.php`)
+- DataTables server-side processing for users
+
+## Response Format
+
+### Success Response
+```json
 {
-  "success": true/false,
-  "message": "Response message",
-  "data": {...},
-  "timestamp": "2025-08-07 12:00:00",
-  "server_time": 1723028800
+    "success": true,
+    "message": "Operation completed successfully",
+    "data": {...}
 }
+```
 
-=== PATIENTS API ===
-File: /api/patients_api.php
-
-1. LIST PATIENTS
-   Endpoint: GET /api/patients_api.php?action=list
-   Parameters:
-   - page (optional): Page number (default: 1)
-   - limit (optional): Records per page (default: 10)
-   - search (optional): Search term
-   - status (optional): Filter by status
-   - blood_group (optional): Filter by blood group
-   Response Fields:
-   - id: Patient ID
-   - patient_id: Unique patient identifier
-   - first_name: First name
-   - last_name: Last name
-   - phone: Phone number
-   - email: Email address
-   - date_of_birth: Date of birth
-   - age: Calculated age
-   - gender: Gender (male/female/other)
-   - blood_group: Blood group (A+, A-, B+, B-, AB+, AB-, O+, O-)
-   - status: Status (active/inactive)
-   - address: Address
-   - notes: Notes
-   - created_at: Creation timestamp
-
-2. GET PATIENT
-   Endpoint: GET /api/patients_api.php?action=get&id={id}
-   Parameters:
-   - id: Patient ID
-   Response: Single patient object
-
-3. CREATE PATIENT
-   Endpoint: POST /api/patients_api.php?action=create
-   Required Fields:
-   - first_name: First name (required)
-   - last_name: Last name (required)
-   - phone: Phone number (required)
-   - email: Email address (optional)
-   - date_of_birth: Date of birth (YYYY-MM-DD)
-   - gender: Gender (male/female/other)
-   - blood_group: Blood group
-   - status: Status (active/inactive, default: active)
-   - address: Address (optional)
-   - notes: Notes (optional)
-
-4. UPDATE PATIENT
-   Endpoint: POST /api/patients_api.php?action=update
-   Required Fields: Same as create + id field
-
-5. DELETE PATIENT
-   Endpoint: POST /api/patients_api.php?action=delete
-   Parameters:
-   - id: Patient ID to delete
-
-=== DOCTORS API ===
-File: /api/doctors_api.php
-
-1. LIST DOCTORS
-   Endpoint: GET /api/doctors_api.php?action=list
-   Response Fields:
-   - id: Doctor ID
-   - doctor_id: Unique doctor identifier
-   - first_name: First name
-   - last_name: Last name
-   - specialization: Medical specialization
-   - phone: Phone number
-   - email: Email address
-   - status: Status (active/inactive)
-   - created_at: Creation timestamp
-
-2. GET DOCTOR
-   Endpoint: GET /api/doctors_api.php?action=get&id={id}
-
-3. CREATE DOCTOR
-   Endpoint: POST /api/doctors_api.php?action=create
-   Required Fields:
-   - first_name: First name (required)
-   - last_name: Last name (required)
-   - specialization: Medical specialization (required)
-   - phone: Phone number (required)
-   - email: Email address (required)
-   - status: Status (active/inactive, default: active)
-
-4. UPDATE DOCTOR
-   Endpoint: POST /api/doctors_api.php?action=update
-
-5. DELETE DOCTOR
-   Endpoint: POST /api/doctors_api.php?action=delete
-
-=== DASHBOARD API ===
-File: /api/dashboard_api.php
-
-1. GET DASHBOARD STATS
-   Endpoint: GET /api/dashboard_api.php?action=stats
-   Response Fields:
-   - total_patients: Total patient count
-   - todays_tests: Today's test count
-   - pending_results: Pending results count
-   - monthly_revenue: Monthly revenue
-   - recent_activities: Array of recent activities
-   - monthly_stats: Monthly statistics for charts
-
-=== AJAX ENDPOINTS ===
-Files in /ajax/ folder for DataTable server-side processing
-
-1. PATIENTS DATATABLE
-   File: /ajax/patients_datatable.php
-   Method: POST
-   Parameters:
-   - draw: DataTable draw counter
-   - start: Start record for pagination
-   - length: Records per page
-   - search_value: Search term
-   - order_column: Column to order by
-   - order_dir: Order direction (asc/desc)
-   - status: Status filter
-   - blood_group: Blood group filter
-   - registration_date: Date filter
-
-2. DOCTORS DATATABLE
-   File: /ajax/doctors_datatable.php
-   Similar parameters as patients
-
-=== JAVASCRIPT CLASSES ===
-Files: /js/common.js, /js/global.js
-
-1. CrudOperations Class
-   Constructor: new CrudOperations(apiEndpoint, entityName)
-   Methods:
-   - save(formData, isUpdate): Create or update
-   - get(id): Get single record
-   - delete(id): Delete record
-   - list(params): List all records
-
-2. FormHandler Class
-   Constructor: new FormHandler(formSelector, apiEndpoint, options)
-   Methods:
-   - handleSubmit(): Handle form submission
-   - validateForm(): Validate form data
-   - showLoader()/hideLoader(): Loading states
-
-3. Helper Functions
-   - showToast(type, message): Show toast notification
-   - showConfirmDialog(): Show confirmation dialog
-   - formatDate()/formatDateTime(): Date formatting
-   - validateEmail()/validatePhone(): Validation helpers
-
-=== CURRENT SYSTEM STATUS ===
-✅ AdminLTE3 Template: Fully implemented
-✅ AJAX Operations: All CRUD operations via AJAX
-✅ Modal Forms: All forms use Bootstrap modals
-✅ Server-side DataTables: Advanced pagination & filtering
-✅ Toast Notifications: Toastr.js for all user feedback
-✅ File Organization: Proper separation (api/, ajax/, js/, css/)
-✅ External CSS/JS: No inline code
-✅ Responsive Design: Mobile-friendly AdminLTE3
-✅ Security: Session validation, input sanitization
-✅ Error Handling: Comprehensive error management
-
-=== TROUBLESHOOTING ===
-Common Issues:
-1. "jQuery is not defined": Ensure jQuery loads before other scripts
-2. "showToast is not defined": Include common.js before page-specific JS
-3. DataTable errors: Check ajax endpoint and column definitions
-4. Modal not showing: Verify modal HTML structure and Bootstrap CSS/JS
-5. CRUD operations failing: Check API endpoints and authentication
-
-POST /api/patients_api_improved.php
-Action: save
-Fields:
-- patient_id (optional, for updates)
-- first_name (required, 2-50 chars)
-- last_name (required, 2-50 chars) 
-- phone (required, 10-15 digits, unique)
-- email (optional, valid email format)
-- age (required, 1-120)
-- gender (required: male/female/other)
-- blood_group (optional: A+/A-/B+/B-/AB+/AB-/O+/O-)
-- address (optional, text)
-- status (required: active/inactive)
-
-POST /api/patients_api_improved.php
-Action: get
-Fields:
-- id (required, patient ID)
-
-POST /api/patients_api_improved.php  
-Action: delete
-Fields:
-- id (required, patient ID)
-
-GET /api/patients_api_improved.php
-Action: list
-Parameters:
-- search (optional, search term)
-- limit (optional, default 50)
-- offset (optional, default 0)
-
-GET /api/patients_api_improved.php
-Action: export
-Parameters:
-- status (optional, filter by status)
-- blood_group (optional, filter by blood group)
-- date_from (optional, YYYY-MM-DD)
-- date_to (optional, YYYY-MM-DD)
-
-=== DOCTORS API ===
-File: /api/doctors_api_improved.php
-
-POST /api/doctors_api_improved.php
-Action: save
-Fields:
-- doctor_id (optional, for updates)
-- first_name (required, 2-50 chars)
-- last_name (required, 2-50 chars)
-- phone (required, 10-15 digits, unique)
-- email (optional, valid email format)
-- specialization (required, text)
-- license_number (required, unique)
-- hospital_affiliation (optional, text)
-- status (required: active/inactive)
-
-POST /api/doctors_api_improved.php
-Action: get
-Fields:
-- id (required, doctor ID)
-
-POST /api/doctors_api_improved.php
-Action: delete  
-Fields:
-- id (required, doctor ID)
-
-GET /api/doctors_api_improved.php
-Action: list
-Parameters:
-- search (optional, search term)
-- specialization (optional, filter by specialization)
-- status (optional, filter by status)
-- limit (optional, default 50)
-- offset (optional, default 0)
-
-=== TEST ORDERS API ===
-File: /api/test_orders_api_improved.php
-
-POST /api/test_orders_api_improved.php
-Action: save
-Fields:
-- order_id (optional, for updates)
-- patient_id (required)
-- doctor_id (required)
-- test_type (required)
-- priority (required: normal/urgent/stat)
-- notes (optional, text)
-- status (required: pending/in-progress/completed/cancelled)
-
-POST /api/test_orders_api_improved.php
-Action: get
-Fields:
-- id (required, order ID)
-
-POST /api/test_orders_api_improved.php
-Action: delete
-Fields:
-- id (required, order ID)
-
-=== RESULTS API ===
-File: /api/results_api_improved.php
-
-POST /api/results_api_improved.php
-Action: save
-Fields:
-- result_id (optional, for updates)
-- order_id (required)
-- test_values (required, JSON format)
-- reference_ranges (required, JSON format)
-- abnormal_flags (optional, JSON format)
-- comments (optional, text)
-- technician_id (required)
-- verified_by (optional, doctor ID)
-- status (required: draft/pending/verified/delivered)
-
-=== EQUIPMENT API ===
-File: /api/equipment_api_improved.php
-
-POST /api/equipment_api_improved.php
-Action: save
-Fields:
-- equipment_id (optional, for updates)
-- name (required, 2-100 chars)
-- model (required, text)
-- serial_number (required, unique)
-- manufacturer (required, text)
-- purchase_date (required, YYYY-MM-DD)
-- warranty_expiry (optional, YYYY-MM-DD)
-- maintenance_schedule (optional, text)
-- status (required: active/maintenance/inactive)
-
-=== USERS API ===
-File: /api/users_api_improved.php
-
-POST /api/users_api_improved.php
-Action: save
-Fields:
-- user_id (optional, for updates)
-- username (required, 3-50 chars, unique)
-- email (required, valid email, unique)
-- password (required for new users, min 8 chars)
-- first_name (required, 2-50 chars)
-- last_name (required, 2-50 chars)
-- role (required: admin/technician/receptionist)
-- status (required: active/inactive)
-
-=== DASHBOARD API ===
-File: /api/dashboard_api.php
-
-GET /api/dashboard_api.php
-Action: stats
-Returns: Dashboard statistics (counts, charts data)
-
-GET /api/dashboard_api.php
-Action: recent_activities
-Parameters:
-- limit (optional, default 10)
-
-=== REPORTS API ===
-File: /api/reports_api.php
-
-GET /api/reports_api.php
-Action: generate
-Parameters:
-- type (required: daily/weekly/monthly/custom)
-- date_from (required for custom)
-- date_to (required for custom)
-- format (optional: json/pdf/excel, default json)
-
-=== NOTIFICATIONS API ===
-File: /api/notifications_api.php
-
-GET /api/notifications_api.php
-Returns: Array of user notifications
-
-POST /api/notifications_api.php
-Action: mark_read
-Fields:
-- notification_ids (required, array of IDs)
-
-=== AJAX DATATABLE FILES ===
-
-All DataTable AJAX files are in /ajax/ directory:
-- patients_datatable.php (Server-side processing for patients table)
-- doctors_datatable.php (Server-side processing for doctors table)  
-- test_orders_datatable.php (Server-side processing for test orders table)
-- results_datatable.php (Server-side processing for results table)
-- equipment_datatable.php (Server-side processing for equipment table)
-- users_datatable.php (Server-side processing for users table)
-
-DataTable Request Format:
-- draw (DataTables draw counter)
-- start (Starting record number)
-- length (Number of records per page)
-- search[value] (Global search value)
-- order[0][column] (Column index to order by)
-- order[0][dir] (Order direction: asc/desc)
-- Custom filters as additional POST parameters
-
-DataTable Response Format:
+### Error Response
+```json
 {
-  "draw": 1,
-  "recordsTotal": 100,
-  "recordsFiltered": 50,
-  "data": [...]
+    "success": false,
+    "message": "Error description"
 }
-
-=== COMMON JAVASCRIPT FUNCTIONS ===
-
-Global functions available on all pages:
-- showLoading() / hideLoading()
-- showSuccessToast(message, title)
-- showErrorToast(message, title)  
-- showInfoToast(message, title)
-- showWarningToast(message, title)
-- makeAjaxRequest(options)
-- submitForm(formSelector, apiUrl, options)
-- deleteRecord(id, apiUrl, options)
-- initializeDataTable(selector, options)
-- formatDate(dateString, format)
-- formatCurrency(amount, currency)
-- getStatusBadge(status)
-
-=== CSS FRAMEWORK ===
-
-Using AdminLTE 3.2.0 with:
-- Bootstrap 4.6.2
-- Font Awesome 6.0.0
-- DataTables 1.13.6
-- Select2 4.0.13
-- Toastr 2.1.4
-- SweetAlert2 11.7.28
-
-=== SECURITY FEATURES ===
-
-- Session-based authentication
-- CSRF protection on forms
-- SQL injection prevention (prepared statements)
-- XSS protection (input sanitization)
-- File upload validation
-- Access control by user roles
-
-=== ERROR HANDLING ===
-
-All APIs return consistent error responses:
-- HTTP status codes (400, 401, 404, 500)
-- Error messages in JSON format
-- Logging to server error log
-- User-friendly error display via toastr
-
-=== TESTING ENDPOINTS ===
-
-GET /api/debug_api.php - System health check
-GET /api/system_status.php - Detailed system status
-- Get all patients with pagination
-- Parameters: page, limit, search, status
-- Returns: patients list with pagination info
-
-POST /api/patients_api.php
-- Create new patient
-- Required: first_name, last_name, phone
-- Optional: email, date_of_birth, gender, address, blood_group, emergency_contact, emergency_phone, medical_history, allergies, status
-
-PUT /api/patients_api.php
-- Update existing patient
-- Required: id + fields to update
-- Fields: first_name, last_name, phone, email, date_of_birth, gender, address, blood_group, emergency_contact, emergency_phone, medical_history, allergies, status
-
-DELETE /api/patients_api.php
-- Delete patient
-- Required: id
-
-GET /api/patients_api.php?action=get&id={id}
-- Get single patient details
-- Returns: Complete patient record with all fields
-
-GET /api/patients_api.php?action=list
-- Get patients list for dropdowns
-- Returns: Simple list with id and name
-
-=== DOCTORS API ===
-
-GET /api/doctors_api.php
-- Get all doctors with pagination
-- Parameters: page, limit, search, status
-- Returns: doctors list with pagination info
-
-POST /api/doctors_api.php
-- Create new doctor
-- Required: name, phone, specialization
-- Optional: email, license_number, hospital, address, notes, status
-
-PUT /api/doctors_api.php
-- Update existing doctor
-- Required: id + fields to update
-- Fields: name, phone, specialization, email, license_number, hospital, address, notes, status
-
-DELETE /api/doctors_api.php
-- Delete doctor
-- Required: id
-
-GET /api/doctors_api.php?action=get&id={id}
-- Get single doctor details
-- Returns: Complete doctor record with all fields
-
-GET /api/doctors_api.php?action=list
-- Get doctors list for dropdowns
-- Returns: Simple list with id and name
-
-=== TEST ORDERS API ===
-
-GET /api/test_orders_api.php
-- Get all test orders with pagination
-- Parameters: page, limit, search, status, patient_id
-- Returns: test orders list with pagination info
-
-POST /api/test_orders_api.php
-- Create new test order
-- Required: patient_id, tests[] (JSON array of test IDs)
-- Optional: doctor_id, priority, notes, order_date, discount
-
-PUT /api/test_orders_api.php
-- Update test order
-- Required: id + fields to update
-- Fields: status, priority, notes, discount
-
-DELETE /api/test_orders_api.php
-- Cancel test order (sets status to 'cancelled')
-- Required: id
-
-GET /api/test_orders_api.php?action=get&id={id}
-- Get single test order details
-- Returns: Complete order with items and patient/doctor info
-
-=== RESULTS API ===
-
-GET /api/results_api.php
-- Get test results with pagination
-- Parameters: page, limit, search, status, patient_id, order_id
-
-POST /api/results_api.php
-- Add/Update test results
-- Required: test_order_id, test_id, result_value
-- Optional: comments, is_critical
-
-=== EQUIPMENT API ===
-
-GET /api/equipment_api.php
-- Get all equipment with pagination
-- Parameters: page, limit, search, status, category
-- Returns: equipment list with pagination info
-
-POST /api/equipment_api.php
-- Add new equipment
-- Required: equipment_name
-- Optional: equipment_type, model, serial_number, manufacturer, category, location, purchase_date, warranty_expiry, cost, maintenance_schedule, description, status
-
-PUT /api/equipment_api.php
-- Update equipment
-- Required: id + fields to update
-- Fields: equipment_name, equipment_type, model, serial_number, manufacturer, category, location, purchase_date, warranty_expiry, status, cost, maintenance_schedule, last_maintenance, next_maintenance, description
-
-DELETE /api/equipment_api.php
-- Delete equipment
-- Required: id
-
-GET /api/equipment_api.php?action=get&id={id}
-- Get single equipment details
-- Returns: Complete equipment record with all fields
-
-=== USERS API ===
-
-GET /api/users_api.php
-- Get all users with pagination
-- Parameters: page, limit, search, user_type, status
-- Returns: users list with pagination info
-
-POST /api/users_api.php
-- Create new user
-- Required: name, email, username, password, user_type
-- Optional: phone, status
-
-PUT /api/users_api.php
-- Update existing user
-- Required: id + fields to update
-- Fields: name, email, username, user_type, phone, status
-- Note: password is optional for updates
-
-DELETE /api/users_api.php
-- Delete user
-- Required: id
-
-GET /api/users_api.php?action=get&id={id}
-- Get single user details
-- Returns: Complete user record with all fields
-
-POST /api/users_api.php?action=reset_password
-- Reset user password
-- Required: user_id, new_password, confirm_password
-
-GET /api/users_api.php?action=export
-- Export users data
-- Parameters: format (csv, excel, pdf), filters
-
-=== DASHBOARD API ===
-
-GET /api/dashboard_api.php?action=stats
-- Get dashboard statistics
-- Returns: total_patients, todays_tests, pending_results, total_doctors
-
-GET /api/dashboard_api.php?action=monthly_stats
-- Get monthly statistics for charts
-- Returns: labels[], values[]
-
-GET /api/dashboard_api.php?action=recent_orders
-- Get recent test orders (last 5)
-- Returns: recent orders with patient names and status
-
-GET /api/dashboard_api.php?action=alerts
-- Get system alerts
-- Returns: system alerts with type, title, message, icon
-
-GET /api/get_counts.php
-- Get quick counts for dashboard cards (legacy)
-
-GET /api/get_monthly_stats.php
-- Get monthly statistics for charts (legacy)
-
-=== SYSTEM API ===
-
-GET /api/system_api.php
-- Get system status and settings
-
-POST /api/system_api.php
-- Update system settings
-- Required: setting_key, setting_value
-
-=== AUTHENTICATION API ===
-
-POST /api/auth_api.php?action=login
-- User login
-- Required: username, password
-
-POST /api/auth_api.php?action=logout
-- User logout
-
-POST /api/auth_api.php?action=change_password
-- Change user password
-- Required: current_password, new_password
-
-=== REPORTS API ===
-
-GET /api/reports_api.php
-- Generate various reports
-- Parameters: type, date_from, date_to, format
-
-=== TESTS API ===
-
-GET /api/tests_api.php?action=list
-- Get available tests for dropdowns
-- Returns: tests list with id, name, price
-
-=== NOTIFICATIONS API ===
-
-GET /api/notifications_api.php
-- Get user notifications
-
-POST /api/notifications_api.php
-- Mark notifications as read
-- Required: notification_ids[]
-
-Error Codes:
-- 200: Success
-- 400: Bad Request
-- 401: Unauthorized
-- 403: Forbidden
-- 404: Not Found
-- 422: Validation Error
-- 500: Internal Server Error
-
-Last Updated: 2025-01-07
+```
+
+## Important Fields Only
+
+### Patient Fields
+- name* (required)
+- email
+- phone  
+- date_of_birth
+- gender
+
+### Doctor Fields
+- name* (required)
+- email
+- phone
+- specialization
+- license_number
+
+### Test Order Fields
+- order_number* (auto-generated)
+- patient_id* (required)
+- doctor_id
+- status (pending, processing, completed, cancelled)
+
+### User Fields
+- username* (required)
+- email* (required)
+- password* (for new users)
+- role (admin, staff)
+
+## Table Columns (Important Only)
+
+### Patients Table
+- ID, Name, Email, Phone, Gender, Actions
+
+### Doctors Table  
+- ID, Name, Email, Specialization, Actions
+
+### Test Orders Table
+- Order#, Patient, Doctor, Status, Date, Actions
+
+### Users Table
+- ID, Username, Email, Role, Actions

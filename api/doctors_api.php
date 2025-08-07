@@ -1,338 +1,278 @@
 <?php
-require_once '../includes/config.php';
+/**
+ * Doctors API - AdminLTE3 AJAX Handler
+ */
 
-// Set JSON header
+require_once '../config.php';
 header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE');
-header('Access-Control-Allow-Headers: Content-Type');
-
-// Check if user is logged in
-if (!isset($_SESSION['user_id'])) {
-    http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'Unauthorized access']);
-    exit;
-}
-
-$action = $_REQUEST['action'] ?? '';
 
 try {
+    $action = $_REQUEST['action'] ?? '';
+    
     switch ($action) {
         case 'list':
-            listDoctors();
+            echo json_encode(getDoctorsList());
             break;
-        case 'get':
-            getDoctor();
+            
+        case 'add_form':
+            echo getDoctorForm();
             break;
-        case 'add':
-        case 'create':
-            addDoctor();
+            
+        case 'edit_form':
+            $id = (int)($_REQUEST['id'] ?? 0);
+            echo getDoctorForm($id);
             break;
-        case 'update':
-            updateDoctor();
+            
+        case 'view':
+            $id = (int)($_REQUEST['id'] ?? 0);
+            echo getDoctorView($id);
             break;
+            
+        case 'save':
+            echo json_encode(saveDoctor());
+            break;
+            
         case 'delete':
-            deleteDoctor();
+            $id = (int)($_REQUEST['id'] ?? 0);
+            echo json_encode(deleteDoctor($id));
             break;
+            
         default:
-            throw new Exception('Invalid action');
+            echo json_encode(getDoctorsList());
     }
+    
 } catch (Exception $e) {
-    error_log("Doctors API Error: " . $e->getMessage());
     echo json_encode([
         'success' => false,
         'message' => $e->getMessage()
     ]);
 }
 
-function listDoctors() {
-    global $pdo;
-    
-    $stmt = $pdo->prepare("
-        SELECT id, doctor_id, first_name, last_name, specialization, 
-               phone, email, license_number, status, created_at
-        FROM doctors 
-        WHERE status = 'active' 
-        ORDER BY created_at DESC
-    ");
-    $stmt->execute();
-    $doctors = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-    echo json_encode([
-        'success' => true,
-        'data' => $doctors,
-        'total' => count($doctors)
-    ]);
+function getDoctorsList() {
+    try {
+        $conn = getDatabaseConnection();
+        
+        $draw = (int)($_POST['draw'] ?? 1);
+        $start = (int)($_POST['start'] ?? 0);
+        $length = (int)($_POST['length'] ?? 25);
+        $search = $_POST['search']['value'] ?? '';
+        
+        $where = "1=1";
+        $params = [];
+        
+        if (!empty($search)) {
+            $where .= " AND (name LIKE ? OR email LIKE ? OR specialization LIKE ?)";
+            $searchParam = "%{$search}%";
+            $params = [$searchParam, $searchParam, $searchParam];
+        }
+        
+        $stmt = $conn->prepare("SELECT COUNT(*) FROM doctors WHERE {$where}");
+        $stmt->execute($params);
+        $totalRecords = $stmt->fetchColumn();
+        
+        $sql = "SELECT id, name, email, phone, specialization, license_number, created_at FROM doctors WHERE {$where} ORDER BY id DESC LIMIT {$start}, {$length}";
+        $stmt = $conn->prepare($sql);
+        $stmt->execute($params);
+        $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        return [
+            'draw' => $draw,
+            'recordsTotal' => $totalRecords,
+            'recordsFiltered' => $totalRecords,
+            'data' => $data
+        ];
+        
+    } catch (Exception $e) {
+        return [
+            'draw' => 1,
+            'recordsTotal' => 0,
+            'recordsFiltered' => 0,
+            'data' => []
+        ];
+    }
 }
 
-function getDoctor() {
-    global $pdo;
+function getDoctorForm($id = 0) {
+    $doctor = null;
+    $title = 'Add New Doctor';
     
-    $id = $_GET['id'] ?? 0;
-    if (!$id) {
-        throw new Exception('Doctor ID is required');
+    if ($id > 0) {
+        $conn = getDatabaseConnection();
+        $stmt = $conn->prepare("SELECT * FROM doctors WHERE id = ?");
+        $stmt->execute([$id]);
+        $doctor = $stmt->fetch(PDO::FETCH_ASSOC);
+        $title = 'Edit Doctor';
     }
     
-    $stmt = $pdo->prepare("
-        SELECT * FROM doctors 
-        WHERE id = ? AND status = 'active'
-    ");
+    ob_start();
+    ?>
+    <div class="modal-header">
+        <h4 class="modal-title"><?= $title ?></h4>
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+    </div>
+    <form id="doctorForm" action="api/doctors_api.php" method="POST" onsubmit="return saveDoctor()">
+        <div class="modal-body">
+            <input type="hidden" name="action" value="save">
+            <?php if ($doctor): ?>
+                <input type="hidden" name="id" value="<?= $doctor['id'] ?>">
+            <?php endif; ?>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Doctor Name *</label>
+                        <input type="text" class="form-control" name="name" 
+                               value="<?= htmlspecialchars($doctor['name'] ?? '') ?>" required>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" class="form-control" name="email" 
+                               value="<?= htmlspecialchars($doctor['email'] ?? '') ?>">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Phone</label>
+                        <input type="text" class="form-control" name="phone" 
+                               value="<?= htmlspecialchars($doctor['phone'] ?? '') ?>">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Specialization</label>
+                        <input type="text" class="form-control" name="specialization" 
+                               value="<?= htmlspecialchars($doctor['specialization'] ?? '') ?>">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>License Number</label>
+                        <input type="text" class="form-control" name="license_number" 
+                               value="<?= htmlspecialchars($doctor['license_number'] ?? '') ?>">
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save Doctor</button>
+        </div>
+    </form>
+    <?php
+    return ob_get_clean();
+}
+
+function getDoctorView($id) {
+    $conn = getDatabaseConnection();
+    $stmt = $conn->prepare("SELECT * FROM doctors WHERE id = ?");
     $stmt->execute([$id]);
     $doctor = $stmt->fetch(PDO::FETCH_ASSOC);
     
     if (!$doctor) {
-        throw new Exception('Doctor not found');
+        return '<div class="modal-body">Doctor not found.</div>';
     }
     
-    echo json_encode([
-        'success' => true,
-        'data' => $doctor
-    ]);
+    ob_start();
+    ?>
+    <div class="modal-header">
+        <h4 class="modal-title">Doctor Details</h4>
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+    </div>
+    <div class="modal-body">
+        <table class="table table-striped">
+            <tr><th width="150">ID:</th><td><?= $doctor['id'] ?></td></tr>
+            <tr><th>Name:</th><td><?= htmlspecialchars($doctor['name']) ?></td></tr>
+            <tr><th>Email:</th><td><?= htmlspecialchars($doctor['email'] ?: 'N/A') ?></td></tr>
+            <tr><th>Phone:</th><td><?= htmlspecialchars($doctor['phone'] ?: 'N/A') ?></td></tr>
+            <tr><th>Specialization:</th><td><?= htmlspecialchars($doctor['specialization'] ?: 'N/A') ?></td></tr>
+            <tr><th>License:</th><td><?= htmlspecialchars($doctor['license_number'] ?: 'N/A') ?></td></tr>
+            <tr><th>Created:</th><td><?= date('M j, Y g:i A', strtotime($doctor['created_at'])) ?></td></tr>
+        </table>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary" onclick="editDoctor(<?= $doctor['id'] ?>)">Edit</button>
+    </div>
+    <?php
+    return ob_get_clean();
 }
 
-function addDoctor() {
-    global $pdo;
-    
-    // Validate required fields
-    $required = ['first_name', 'last_name', 'specialization', 'phone'];
-    foreach ($required as $field) {
-        if (empty($_POST[$field])) {
-            throw new Exception(ucfirst(str_replace('_', ' ', $field)) . ' is required');
+function saveDoctor() {
+    try {
+        $conn = getDatabaseConnection();
+        
+        $id = (int)($_POST['id'] ?? 0);
+        $name = trim($_POST['name'] ?? '');
+        $email = trim($_POST['email'] ?? '');
+        $phone = trim($_POST['phone'] ?? '');
+        $specialization = trim($_POST['specialization'] ?? '');
+        $license_number = trim($_POST['license_number'] ?? '');
+        
+        if (empty($name)) {
+            throw new Exception('Doctor name is required');
         }
-    }
-    
-    // Sanitize inputs
-    $first_name = trim($_POST['first_name']);
-    $last_name = trim($_POST['last_name']);
-    $specialization = trim($_POST['specialization']);
-    $phone = trim($_POST['phone']);
-    $email = trim($_POST['email']) ?: null;
-    $license_number = trim($_POST['license_number']) ?: null;
-    
-    // Validate email format
-    if ($email && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        throw new Exception('Invalid email format');
-    }
-    
-    // Validate phone format (basic validation)
-    if (!preg_match('/^[\d\-\+\(\)\s]+$/', $phone)) {
-        throw new Exception('Invalid phone format');
-    }
-    
-    // Generate unique doctor ID
-    $doctor_id = generateDoctorId();
-    
-    // Check for duplicates
-    $stmt = $pdo->prepare("SELECT id FROM doctors WHERE phone = ? AND status = 'active'");
-    $stmt->execute([$phone]);
-    if ($stmt->fetch()) {
-        throw new Exception('Phone number already exists');
-    }
-    
-    if ($email) {
-        $stmt = $pdo->prepare("SELECT id FROM doctors WHERE email = ? AND status = 'active'");
-        $stmt->execute([$email]);
-        if ($stmt->fetch()) {
-            throw new Exception('Email address already exists');
+        
+        if ($email && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            throw new Exception('Please enter a valid email address');
         }
-    }
-    
-    if ($license_number) {
-        $stmt = $pdo->prepare("SELECT id FROM doctors WHERE license_number = ? AND status = 'active'");
-        $stmt->execute([$license_number]);
-        if ($stmt->fetch()) {
-            throw new Exception('License number already exists');
+        
+        if ($id > 0) {
+            $sql = "UPDATE doctors SET name = ?, email = ?, phone = ?, specialization = ?, license_number = ? WHERE id = ?";
+            $params = [$name, $email, $phone, $specialization, $license_number, $id];
+            $message = 'Doctor updated successfully';
+        } else {
+            $sql = "INSERT INTO doctors (name, email, phone, specialization, license_number) VALUES (?, ?, ?, ?, ?)";
+            $params = [$name, $email, $phone, $specialization, $license_number];
+            $message = 'Doctor added successfully';
         }
+        
+        $stmt = $conn->prepare($sql);
+        $stmt->execute($params);
+        
+        return [
+            'success' => true,
+            'message' => $message
+        ];
+        
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => $e->getMessage()
+        ];
     }
-    
-    // Insert doctor
-    $stmt = $pdo->prepare("
-        INSERT INTO doctors (
-            doctor_id, first_name, last_name, specialization, 
-            phone, email, license_number, status, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, 'active', NOW())
-    ");
-    
-    $result = $stmt->execute([
-        $doctor_id,
-        $first_name,
-        $last_name,
-        $specialization,
-        $phone,
-        $email,
-        $license_number
-    ]);
-    
-    if (!$result) {
-        throw new Exception('Failed to add doctor');
-    }
-    
-    echo json_encode([
-        'success' => true,
-        'message' => 'Doctor added successfully',
-        'doctor_id' => $doctor_id,
-        'id' => $pdo->lastInsertId()
-    ]);
 }
 
-function updateDoctor() {
-    global $pdo;
-    
-    $id = $_POST['id'] ?? 0;
-    if (!$id) {
-        throw new Exception('Doctor ID is required');
-    }
-    
-    // Validate required fields
-    $required = ['first_name', 'last_name', 'specialization', 'phone'];
-    foreach ($required as $field) {
-        if (empty($_POST[$field])) {
-            throw new Exception(ucfirst(str_replace('_', ' ', $field)) . ' is required');
+function deleteDoctor($id) {
+    try {
+        $conn = getDatabaseConnection();
+        
+        $stmt = $conn->prepare("SELECT COUNT(*) FROM test_orders WHERE doctor_id = ?");
+        $stmt->execute([$id]);
+        if ($stmt->fetchColumn() > 0) {
+            throw new Exception('Cannot delete doctor with existing test orders');
         }
+        
+        $stmt = $conn->prepare("DELETE FROM doctors WHERE id = ?");
+        $stmt->execute([$id]);
+        
+        return [
+            'success' => true,
+            'message' => 'Doctor deleted successfully'
+        ];
+        
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => $e->getMessage()
+        ];
     }
-    
-    // Sanitize inputs
-    $first_name = trim($_POST['first_name']);
-    $last_name = trim($_POST['last_name']);
-    $specialization = trim($_POST['specialization']);
-    $phone = trim($_POST['phone']);
-    $email = trim($_POST['email']) ?: null;
-    $license_number = trim($_POST['license_number']) ?: null;
-    
-    // Validate email format
-    if ($email && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        throw new Exception('Invalid email format');
-    }
-    
-    // Validate phone format
-    if (!preg_match('/^[\d\-\+\(\)\s]+$/', $phone)) {
-        throw new Exception('Invalid phone format');
-    }
-    
-    // Check if doctor exists
-    $stmt = $pdo->prepare("SELECT id FROM doctors WHERE id = ? AND status = 'active'");
-    $stmt->execute([$id]);
-    if (!$stmt->fetch()) {
-        throw new Exception('Doctor not found');
-    }
-    
-    // Check for duplicate phone (excluding current doctor)
-    $stmt = $pdo->prepare("SELECT id FROM doctors WHERE phone = ? AND id != ? AND status = 'active'");
-    $stmt->execute([$phone, $id]);
-    if ($stmt->fetch()) {
-        throw new Exception('Phone number already exists');
-    }
-    
-    // Check for duplicate email (excluding current doctor)
-    if ($email) {
-        $stmt = $pdo->prepare("SELECT id FROM doctors WHERE email = ? AND id != ? AND status = 'active'");
-        $stmt->execute([$email, $id]);
-        if ($stmt->fetch()) {
-            throw new Exception('Email address already exists');
-        }
-    }
-    
-    // Check for duplicate license (excluding current doctor)
-    if ($license_number) {
-        $stmt = $pdo->prepare("SELECT id FROM doctors WHERE license_number = ? AND id != ? AND status = 'active'");
-        $stmt->execute([$license_number, $id]);
-        if ($stmt->fetch()) {
-            throw new Exception('License number already exists');
-        }
-    }
-    
-    // Update doctor
-    $stmt = $pdo->prepare("
-        UPDATE doctors SET 
-            first_name = ?, last_name = ?, specialization = ?, 
-            phone = ?, email = ?, license_number = ?, updated_at = NOW()
-        WHERE id = ?
-    ");
-    
-    $result = $stmt->execute([
-        $first_name,
-        $last_name,
-        $specialization,
-        $phone,
-        $email,
-        $license_number,
-        $id
-    ]);
-    
-    if (!$result) {
-        throw new Exception('Failed to update doctor');
-    }
-    
-    echo json_encode([
-        'success' => true,
-        'message' => 'Doctor updated successfully'
-    ]);
-}
-
-function deleteDoctor() {
-    global $pdo;
-    
-    $id = $_POST['id'] ?? 0;
-    if (!$id) {
-        throw new Exception('Doctor ID is required');
-    }
-    
-    // Check if doctor exists
-    $stmt = $pdo->prepare("SELECT id FROM doctors WHERE id = ? AND status = 'active'");
-    $stmt->execute([$id]);
-    if (!$stmt->fetch()) {
-        throw new Exception('Doctor not found');
-    }
-    
-    // Soft delete (update status instead of actual delete)
-    $stmt = $pdo->prepare("UPDATE doctors SET status = 'deleted', updated_at = NOW() WHERE id = ?");
-    $result = $stmt->execute([$id]);
-    
-    if (!$result) {
-        throw new Exception('Failed to delete doctor');
-    }
-    
-    echo json_encode([
-        'success' => true,
-        'message' => 'Doctor deleted successfully'
-    ]);
-}
-
-function generateDoctorId() {
-    global $pdo;
-    
-    // Try to get the last doctor ID number
-    $stmt = $pdo->query("
-        SELECT doctor_id FROM doctors 
-        WHERE doctor_id LIKE 'DR%' 
-        ORDER BY CAST(SUBSTRING(doctor_id, 3) AS UNSIGNED) DESC 
-        LIMIT 1
-    ");
-    
-    $lastId = $stmt->fetchColumn();
-    
-    if ($lastId && preg_match('/DR(\d+)/', $lastId, $matches)) {
-        $nextNumber = intval($matches[1]) + 1;
-    } else {
-        $nextNumber = 1;
-    }
-    
-    $newId = 'DR' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
-    
-    // Ensure uniqueness
-    $attempts = 0;
-    while ($attempts < 10) {
-        $stmt = $pdo->prepare("SELECT id FROM doctors WHERE doctor_id = ?");
-        $stmt->execute([$newId]);
-        if (!$stmt->fetch()) {
-            return $newId;
-        }
-        $nextNumber++;
-        $newId = 'DR' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
-        $attempts++;
-    }
-    
-    // Fallback to random if sequential fails
-    return 'DR' . str_pad(rand(1000, 9999), 4, '0', STR_PAD_LEFT);
 }
 ?>

@@ -1,0 +1,134 @@
+# PathLab Pro - Balanced Security Configuration
+# This provides security while allowing the application to function
+
+RewriteEngine On
+
+# Environment Detection
+SetEnvIf Host "localhost" ENVIRONMENT=local
+SetEnvIf Host "\.local$" ENVIRONMENT=local  
+SetEnvIf Host "\.dev$" ENVIRONMENT=local
+SetEnvIf Remote_Addr "127\.0\.0\.1" ENVIRONMENT=local
+SetEnvIf Remote_Addr "::1" ENVIRONMENT=local
+
+# Allow main application files
+<Files "*.php">
+    # Allow all PHP files by default
+    Require all granted
+</Files>
+
+# Protect very sensitive files only
+<Files "config.php">
+    # Allow includes but log direct access attempts
+    <If "%{THE_REQUEST} =~ m#\s/+[^\s]*config\.php#">
+        Require all denied
+    </If>
+</Files>
+
+# Environment-specific protections
+<Files "environment_status.php">
+    # Allow in development, block in production
+    <RequireAny>
+        Require env ENVIRONMENT=local
+        Require ip 127.0.0.1
+        Require ip ::1
+    </RequireAny>
+</Files>
+
+<Files "test.php">
+    # Test files only in development
+    <RequireAny>
+        Require env ENVIRONMENT=local
+        Require ip 127.0.0.1
+        Require ip ::1
+    </RequireAny>
+</Files>
+
+# Protect database and setup files
+<FilesMatch "(database_setup|cleanup|setup_database)\.php$">
+    <RequireAny>
+        Require env ENVIRONMENT=local
+        Require ip 127.0.0.1
+        Require ip ::1
+    </RequireAny>
+</FilesMatch>
+
+# Protect backup and log files
+<FilesMatch "\.(sql|bak|backup|log)$">
+    Require all denied
+</FilesMatch>
+
+# Protect sensitive file types
+<FilesMatch "\.(env|ini|conf|config|htpasswd)$">
+    Require all denied
+</FilesMatch>
+
+# Protect version control files
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+# Allow API directory
+<Directory "api">
+    Require all granted
+</Directory>
+
+# Allow includes but prevent direct browsing
+<Directory "includes">
+    # Block direct HTTP requests but allow PHP includes
+    <If "%{THE_REQUEST} =~ m#\s/+[^\s]*includes/#">
+        Require all denied
+    </If>
+</Directory>
+
+# Allow CSS, JS, and images
+<Directory "css">
+    Require all granted
+</Directory>
+
+<Directory "js">
+    Require all granted
+</Directory>
+
+<Directory "img">
+    Require all granted
+</Directory>
+
+# Security headers
+<IfModule mod_headers.c>
+    # Basic security headers
+    Header always set X-Content-Type-Options nosniff
+    Header always set X-XSS-Protection "1; mode=block"
+    
+    # Environment-specific headers
+    <If "env('ENVIRONMENT') == 'local'">
+        Header always set X-Frame-Options SAMEORIGIN
+    </If>
+    <Else>
+        Header always set X-Frame-Options DENY
+        Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    </Else>
+</IfModule>
+
+# Enable compression for better performance
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/plain text/html text/css application/javascript application/json
+</IfModule>
+
+# Browser caching for static assets
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css "access plus 1 month"
+    ExpiresByType application/javascript "access plus 1 month"
+    ExpiresByType image/png "access plus 1 month"
+    ExpiresByType image/jpg "access plus 1 month"
+    ExpiresByType image/jpeg "access plus 1 month"
+    ExpiresByType image/gif "access plus 1 month"
+    ExpiresByType image/svg+xml "access plus 1 month"
+</IfModule>
+
+# Custom error pages (only in production)
+<If "env('ENVIRONMENT') != 'local'">
+    ErrorDocument 403 /error_pages/403.html
+    ErrorDocument 404 /error_pages/404.html
+    ErrorDocument 500 /error_pages/500.html
+</If>

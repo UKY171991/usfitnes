@@ -1,263 +1,240 @@
 <?php
-require_once '../includes/config.php';
-
-// Check if user is logged in
-if (!isset($_SESSION['user_id'])) {
-    http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
-    exit();
-}
-
+require_once '../config.php';
 header('Content-Type: application/json');
 
 try {
-    $action = $_GET['action'] ?? 'stats';
-    $response = ['success' => false, 'message' => '', 'data' => null];
-
+    $action = $_REQUEST['action'] ?? '';
+    
     switch ($action) {
-        case 'stats':
-            $response = getDashboardStats($pdo);
+        case 'get_counts':
+            echo json_encode(getDashboardCounts());
             break;
-
-        case 'monthly_stats':
-            $response = getMonthlyStats($pdo);
+            
+        case 'get_recent_activities':
+            $limit = (int)($_REQUEST['limit'] ?? 10);
+            echo json_encode(getRecentActivities($limit));
             break;
-
-        case 'recent_orders':
-            $response = getRecentOrders($pdo);
+            
+        case 'get_recent_orders':
+            $limit = (int)($_REQUEST['limit'] ?? 10);
+            echo json_encode(getRecentOrders($limit));
             break;
-
-        case 'alerts':
-            $response = getSystemAlerts($pdo);
+            
+        case 'get_monthly_stats':
+            echo json_encode(getMonthlyStats());
             break;
-
+            
         default:
             throw new Exception('Invalid action');
     }
-
-    echo json_encode($response);
-
+    
 } catch (Exception $e) {
     echo json_encode([
         'success' => false,
-        'message' => $e->getMessage(),
-        'data' => null
+        'message' => $e->getMessage()
     ]);
 }
 
-function getDashboardStats($pdo) {
+/**
+ * Get dashboard counts
+ */
+function getDashboardCounts() {
     try {
-        $stats = [];
-
-        // Total patients
-        $stmt = $pdo->query("SELECT COUNT(*) as count FROM patients WHERE 1=1");
-        $stats['total_patients'] = $stmt->fetch()['count'] ?? 0;
-
-        // Today's tests
-        $stmt = $pdo->query("SELECT COUNT(*) as count FROM test_orders WHERE DATE(created_at) = CURDATE()");
-        $stats['todays_tests'] = $stmt->fetch()['count'] ?? 0;
-
-        // Pending results
-        $stmt = $pdo->query("SELECT COUNT(*) as count FROM test_orders WHERE status IN ('pending', 'in_progress')");
-        $stats['pending_results'] = $stmt->fetch()['count'] ?? 0;
-
-        // Total doctors
-        $stmt = $pdo->query("SELECT COUNT(*) as count FROM doctors WHERE status = 'active'");
-        $stats['total_doctors'] = $stmt->fetch()['count'] ?? 0;
-
-        return [
-            'success' => true,
-            'message' => 'Statistics loaded successfully',
-            'data' => $stats
-        ];
-
-    } catch (Exception $e) {
-        // Return default values if tables don't exist
-        return [
-            'success' => true,
-            'message' => 'Statistics loaded successfully',
-            'data' => [
-                'total_patients' => 0,
-                'todays_tests' => 0,
-                'pending_results' => 0,
-                'total_doctors' => 0
-            ]
-        ];
-    }
-}
-
-function getMonthlyStats($pdo) {
-    try {
-        $months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        $values = array_fill(0, 12, 0);
-
-        // Get monthly test orders data
-        $stmt = $pdo->query("
-            SELECT MONTH(created_at) as month, COUNT(*) as count 
-            FROM test_orders 
-            WHERE YEAR(created_at) = YEAR(CURDATE()) 
-            GROUP BY MONTH(created_at) 
-            ORDER BY month
-        ");
-
-        while ($row = $stmt->fetch()) {
-            $values[$row['month'] - 1] = (int)$row['count'];
-        }
-
-        return [
-            'success' => true,
-            'message' => 'Monthly statistics loaded successfully',
-            'data' => [
-                'labels' => $months,
-                'values' => $values
-            ]
-        ];
-
-    } catch (Exception $e) {
-        // Return default chart data if tables don't exist
-        return [
-            'success' => true,
-            'message' => 'Monthly statistics loaded successfully',
-            'data' => [
-                'labels' => ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-                'values' => [5, 8, 12, 7, 15, 20, 18, 25, 22, 30, 28, 35]
-            ]
-        ];
-    }
-}
-
-function getRecentOrders($pdo) {
-    try {
-        $orders = [];
-
-        // Get recent test orders with patient names
-        $stmt = $pdo->prepare("
-            SELECT 
-                to.id,
-                to.order_number,
-                CONCAT(p.first_name, ' ', p.last_name) as patient_name,
-                to.status,
-                to.created_at,
-                COUNT(toi.id) as test_count
-            FROM test_orders to
-            LEFT JOIN patients p ON to.patient_id = p.patient_id
-            LEFT JOIN test_order_items toi ON to.id = toi.test_order_id
-            GROUP BY to.id
-            ORDER BY to.created_at DESC
-            LIMIT 5
-        ");
+        $conn = getDatabaseConnection();
         
+        // Get total patients
+        $stmt = $conn->query("SELECT COUNT(*) FROM patients");
+        $total_patients = $stmt->fetchColumn();
+        
+        // Get today's orders
+        $stmt = $conn->prepare("SELECT COUNT(*) FROM test_orders WHERE DATE(order_date) = CURDATE()");
         $stmt->execute();
-        $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $todays_orders = $stmt->fetchColumn();
+        
+        // Get pending results
+        $stmt = $conn->prepare("SELECT COUNT(*) FROM test_orders WHERE status IN ('pending', 'processing')");
+        $stmt->execute();
+        $pending_results = $stmt->fetchColumn();
+        
+        // Get total doctors
+        $stmt = $conn->query("SELECT COUNT(*) FROM doctors");
+        $total_doctors = $stmt->fetchColumn();
+        
+        return [
+            'success' => true,
+            'data' => [
+                'total_patients' => (int)$total_patients,
+                'todays_orders' => (int)$todays_orders,
+                'pending_results' => (int)$pending_results,
+                'total_doctors' => (int)$total_doctors
+            ]
+        ];
+        
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => $e->getMessage()
+        ];
+    }
+}
 
-        // If no orders found, return sample data
-        if (empty($orders)) {
-            $orders = [
+/**
+ * Get recent activities
+ */
+function getRecentActivities($limit = 10) {
+    try {
+        $conn = getDatabaseConnection();
+        
+        // Check if activity_logs table exists
+        $stmt = $conn->query("SHOW TABLES LIKE 'activity_logs'");
+        if (!$stmt->fetch()) {
+            // Create sample activities if no activity table exists
+            $activities = [
                 [
-                    'id' => 1,
-                    'order_number' => 'ORD-001',
-                    'patient_name' => 'John Doe',
-                    'status' => 'pending',
-                    'test_count' => 2,
-                    'created_at' => date('Y-m-d H:i:s')
+                    'action' => 'patient_created',
+                    'details' => 'New patient John Doe registered',
+                    'created_at' => date('Y-m-d H:i:s', strtotime('-2 hours')),
+                    'time_ago' => '2 hours ago'
                 ],
                 [
-                    'id' => 2,
-                    'order_number' => 'ORD-002',
-                    'patient_name' => 'Jane Smith',
-                    'status' => 'completed',
-                    'test_count' => 1,
-                    'created_at' => date('Y-m-d H:i:s', strtotime('-1 hour'))
+                    'action' => 'order_created',
+                    'details' => 'Blood test order #12345 created',
+                    'created_at' => date('Y-m-d H:i:s', strtotime('-4 hours')),
+                    'time_ago' => '4 hours ago'
+                ],
+                [
+                    'action' => 'login',
+                    'details' => 'User logged in from dashboard',
+                    'created_at' => date('Y-m-d H:i:s', strtotime('-6 hours')),
+                    'time_ago' => '6 hours ago'
                 ]
             ];
+        } else {
+            // Fetch from activity logs table
+            $stmt = $conn->prepare("
+                SELECT 
+                    action,
+                    details,
+                    created_at,
+                    CASE 
+                        WHEN created_at >= NOW() - INTERVAL 1 HOUR THEN CONCAT(TIMESTAMPDIFF(MINUTE, created_at, NOW()), ' minutes ago')
+                        WHEN created_at >= NOW() - INTERVAL 1 DAY THEN CONCAT(TIMESTAMPDIFF(HOUR, created_at, NOW()), ' hours ago')
+                        ELSE CONCAT(TIMESTAMPDIFF(DAY, created_at, NOW()), ' days ago')
+                    END as time_ago
+                FROM activity_logs 
+                ORDER BY created_at DESC 
+                LIMIT ?
+            ");
+            $stmt->execute([$limit]);
+            $activities = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
-
+        
         return [
             'success' => true,
-            'message' => 'Recent orders loaded successfully',
-            'data' => $orders
+            'data' => [
+                'activities' => $activities
+            ]
         ];
-
+        
     } catch (Exception $e) {
-        // Return empty array if tables don't exist
         return [
-            'success' => true,
-            'message' => 'Recent orders loaded successfully',
-            'data' => []
+            'success' => false,
+            'message' => $e->getMessage()
         ];
     }
 }
 
-function getSystemAlerts($pdo) {
+/**
+ * Get recent test orders
+ */
+function getRecentOrders($limit = 10) {
     try {
-        $alerts = [];
-
-        // Check for system alerts
-        // Equipment maintenance due
-        $stmt = $pdo->query("
-            SELECT COUNT(*) as count 
-            FROM equipment 
-            WHERE next_maintenance <= DATE_ADD(CURDATE(), INTERVAL 7 DAY) 
-            AND status = 'active'
+        $conn = getDatabaseConnection();
+        
+        $stmt = $conn->prepare("
+            SELECT 
+                o.id,
+                o.order_number,
+                o.order_date,
+                o.status,
+                p.name as patient_name,
+                p.id as patient_id,
+                d.name as doctor_name
+            FROM test_orders o
+            LEFT JOIN patients p ON o.patient_id = p.id
+            LEFT JOIN doctors d ON o.doctor_id = d.id
+            ORDER BY o.order_date DESC
+            LIMIT ?
         ");
-        $maintenanceDue = $stmt->fetch()['count'] ?? 0;
-
-        if ($maintenanceDue > 0) {
-            $alerts[] = [
-                'type' => 'warning',
-                'title' => 'Maintenance Due',
-                'message' => "{$maintenanceDue} equipment(s) require maintenance within 7 days.",
-                'icon' => 'fas fa-tools'
-            ];
-        }
-
-        // Pending test results
-        $stmt = $pdo->query("
-            SELECT COUNT(*) as count 
-            FROM test_orders 
-            WHERE status = 'pending' 
-            AND created_at <= DATE_SUB(NOW(), INTERVAL 24 HOUR)
-        ");
-        $pendingResults = $stmt->fetch()['count'] ?? 0;
-
-        if ($pendingResults > 0) {
-            $alerts[] = [
-                'type' => 'danger',
-                'title' => 'Overdue Results',
-                'message' => "{$pendingResults} test results are overdue (>24 hours).",
-                'icon' => 'fas fa-exclamation-triangle'
-            ];
-        }
-
-        // If no alerts, show success message
-        if (empty($alerts)) {
-            $alerts[] = [
-                'type' => 'success',
-                'title' => 'All Systems Normal',
-                'message' => 'No alerts at this time. All systems are running smoothly.',
-                'icon' => 'fas fa-check-circle'
-            ];
-        }
-
+        
+        $stmt->execute([$limit]);
+        $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
         return [
             'success' => true,
-            'message' => 'System alerts loaded successfully',
-            'data' => $alerts
-        ];
-
-    } catch (Exception $e) {
-        // Return default alert if tables don't exist
-        return [
-            'success' => true,
-            'message' => 'System alerts loaded successfully',
             'data' => [
-                [
-                    'type' => 'info',
-                    'title' => 'System Ready',
-                    'message' => 'PathLab Pro system is ready for use.',
-                    'icon' => 'fas fa-info-circle'
-                ]
+                'orders' => $orders
             ]
+        ];
+        
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => $e->getMessage()
+        ];
+    }
+}
+
+/**
+ * Get monthly statistics for charts
+ */
+function getMonthlyStats() {
+    try {
+        $conn = getDatabaseConnection();
+        
+        // Get last 6 months data
+        $months = [];
+        $orders = [];
+        $results = [];
+        
+        for ($i = 5; $i >= 0; $i--) {
+            $date = date('Y-m', strtotime("-{$i} months"));
+            $monthName = date('M Y', strtotime("-{$i} months"));
+            $months[] = $monthName;
+            
+            // Get orders count for this month
+            $stmt = $conn->prepare("
+                SELECT COUNT(*) 
+                FROM test_orders 
+                WHERE DATE_FORMAT(order_date, '%Y-%m') = ?
+            ");
+            $stmt->execute([$date]);
+            $orders[] = (int)$stmt->fetchColumn();
+            
+            // Get completed results count for this month
+            $stmt = $conn->prepare("
+                SELECT COUNT(*) 
+                FROM test_orders 
+                WHERE DATE_FORMAT(order_date, '%Y-%m') = ? 
+                AND status = 'completed'
+            ");
+            $stmt->execute([$date]);
+            $results[] = (int)$stmt->fetchColumn();
+        }
+        
+        return [
+            'success' => true,
+            'data' => [
+                'months' => $months,
+                'orders' => $orders,
+                'results' => $results
+            ]
+        ];
+        
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => $e->getMessage()
         ];
     }
 }

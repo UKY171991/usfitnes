@@ -1,6 +1,10 @@
 // Doctors Management JavaScript - AdminLTE3 with AJAX
 // PathLab Pro - Complete Doctor Management System
 
+/**
+ * Doctors Management JavaScript - AdminLTE3 AJAX
+ */
+
 let doctorsTable;
 
 // Initialize doctors page when DOM is ready

@@ -1,53 +1,103 @@
 <?php
-session_start();
-require_once 'includes/config.php';
+require_once 'includes/header.php';
+require_once 'config.php';
 
-// Check if user is logged in
 if (!isset($_SESSION['user_id'])) {
     header('Location: login.php');
-    exit();
+    exit;
 }
-
-$page_title = 'Doctors Management';
-$breadcrumbs = [
-    ['title' => 'Home', 'url' => 'dashboard.php'],
-    ['title' => 'Doctors']
-];
-$additional_css = ['css/doctors.css'];
-$additional_js = ['js/doctors.js'];
-
-ob_start();
 ?>
 
-<div class="row">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <div class="card-header-actions">
-                    <div>
-                        <h3 class="card-title">
-                            <i class="fas fa-user-md mr-2"></i>
-                            Doctors Management
-                        </h3>
-                    </div>
-                    <div>
-                        <button type="button" class="btn btn-primary btn-sm" onclick="showAddDoctorModal()">
-                            <i class="fas fa-plus mr-1"></i> Add Doctor
-                        </button>
-                        <button type="button" class="btn btn-success btn-sm" onclick="exportDoctors()">
-                            <i class="fas fa-download mr-1"></i> Export
-                        </button>
-                        <button type="button" class="btn btn-info btn-sm" onclick="refreshTable()">
-                            <i class="fas fa-sync mr-1"></i> Refresh
+<!-- Content Wrapper -->
+<div class="content-wrapper">
+    <!-- Content Header -->
+    <div class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-2">
+                <div class="col-sm-6">
+                    <h1 class="m-0">Doctors Management</h1>
+                </div>
+                <div class="col-sm-6">
+                    <ol class="breadcrumb float-sm-right">
+                        <li class="breadcrumb-item"><a href="dashboard.php">Home</a></li>
+                        <li class="breadcrumb-item active">Doctors</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main content -->
+    <section class="content">
+        <div class="container-fluid">
+            
+            <!-- Doctors Card -->
+            <div class="card card-primary">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-user-md mr-2"></i>
+                        Doctors Directory
+                    </h3>
+                    <div class="card-tools">
+                        <button type="button" class="btn btn-light btn-sm" onclick="addDoctor()">
+                            <i class="fas fa-plus"></i> Add New Doctor
                         </button>
                     </div>
                 </div>
-                
-                <!-- Filters -->
-                <div class="card-header-filters">
-                    <div class="row">
-                        <div class="col-md-3 col-sm-6 mb-2">
-                            <select class="form-control select2" id="statusFilter" onchange="filterTable()">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table id="doctorsTable" class="table table-bordered table-striped">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Phone</th>
+                                    <th>Specialization</th>
+                                    <th>License</th>
+                                    <th>Created Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+</div>
+
+<!-- Doctor Modal -->
+<div class="modal fade" id="doctorModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content" id="doctorModalContent">
+            <!-- Content loaded via AJAX -->
+        </div>
+    </div>
+</div>
+
+<?php require_once 'includes/footer.php'; ?>
+
+<!-- AdminLTE Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
+
+<!-- DataTables Scripts -->
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap4.min.js"></script>
+
+<!-- Toastr Scripts -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+
+<!-- SweetAlert2 Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<!-- Doctors Custom Scripts -->
+<script src="js/doctors.js"></script>
+
+</body>
+</html>
                                 <option value="">All Status</option>
                                 <option value="active">Active</option>
                                 <option value="inactive">Inactive</option>

@@ -1,143 +1,98 @@
 <?php
-require_once '../includes/config.php';
+/**
+ * Patients DataTable AJAX Handler
+ * USFitness Lab - AdminLTE3
+ */
 
-// Check if user is logged in
-if (!isset($_SESSION['user_id'])) {
-    http_response_code(401);
-    echo json_encode(['error' => 'Unauthorized']);
-    exit();
-}
+require_once '../config.php';
+header('Content-Type: application/json');
 
 try {
-    // Get DataTable parameters
-    $draw = intval($_POST['draw'] ?? 1);
-    $start = intval($_POST['start'] ?? 0);
-    $length = intval($_POST['length'] ?? 10);
-    $search_value = $_POST['search_value'] ?? '';
-    $order_column = $_POST['order_column'] ?? 'patient_id';
-    $order_dir = $_POST['order_dir'] ?? 'desc';
+    $conn = getDatabaseConnection();
     
-    // Get custom filters
-    $status_filter = $_POST['status'] ?? '';
-    $blood_group_filter = $_POST['blood_group'] ?? '';
-    $date_filter = $_POST['registration_date'] ?? '';
-
-    // Validate order direction
-    $order_dir = in_array(strtolower($order_dir), ['asc', 'desc']) ? $order_dir : 'desc';
+    // DataTables parameters
+    $draw = (int)($_POST['draw'] ?? 1);
+    $start = (int)($_POST['start'] ?? 0);
+    $length = (int)($_POST['length'] ?? 25);
+    $search = $_POST['search']['value'] ?? '';
+    $orderColumn = (int)($_POST['order'][0]['column'] ?? 0);
+    $orderDir = $_POST['order'][0]['dir'] ?? 'desc';
     
-    // Allowed columns for ordering
-    $allowed_columns = ['patient_id', 'first_name', 'last_name', 'phone', 'blood_group', 'status', 'created_at'];
-    $order_column = in_array($order_column, $allowed_columns) ? $order_column : 'patient_id';
-
-    // Base query
-    $base_query = "FROM patients WHERE 1=1";
+    // Column mapping
+    $columns = ['id', 'name', 'email', 'phone', 'gender', 'created_at'];
+    $orderBy = $columns[$orderColumn] ?? 'id';
+    
+    // Build query
+    $where = "1=1";
     $params = [];
-
+    
     // Search functionality
-    if (!empty($search_value)) {
-        $base_query .= " AND (first_name LIKE ? OR last_name LIKE ? OR phone LIKE ? OR email LIKE ? OR CONCAT(first_name, ' ', last_name) LIKE ?)";
-        $search_param = "%$search_value%";
-        $params = array_merge($params, [$search_param, $search_param, $search_param, $search_param, $search_param]);
+    if (!empty($search)) {
+        $where .= " AND (name LIKE ? OR email LIKE ? OR phone LIKE ?)";
+        $searchParam = "%{$search}%";
+        $params = [$searchParam, $searchParam, $searchParam];
     }
     
-    // Status filter
-    if (!empty($status_filter)) {
-        $base_query .= " AND status = ?";
-        $params[] = $status_filter;
-    }
-    
-    // Blood group filter
-    if (!empty($blood_group_filter)) {
-        $base_query .= " AND blood_group = ?";
-        $params[] = $blood_group_filter;
-    }
-    
-    // Date filter
-    if (!empty($date_filter)) {
-        $base_query .= " AND DATE(created_at) = ?";
-        $params[] = $date_filter;
-    }
-
-    // Get total records (without filters)
-    $total_query = "SELECT COUNT(*) as total FROM patients";
-    $stmt = $pdo->prepare($total_query);
-    $stmt->execute();
-    $total_records = $stmt->fetch()['total'];
-
-    // Get filtered records count
-    $filtered_query = "SELECT COUNT(*) as total $base_query";
-    $stmt = $pdo->prepare($filtered_query);
+    // Get total records
+    $stmt = $conn->prepare("SELECT COUNT(*) FROM patients WHERE {$where}");
     $stmt->execute($params);
-    $filtered_records = $stmt->fetch()['total'];
-
-    // Get data
-    $data_query = "SELECT 
-        patient_id, 
-        first_name, 
-        last_name, 
-        phone, 
-        email, 
-        date_of_birth, 
-        gender, 
-        blood_group, 
-        address,
-        emergency_contact,
-        emergency_phone,
-        medical_history,
-        allergies,
-        status, 
-        created_at,
-        updated_at
-        $base_query 
-        ORDER BY $order_column $order_dir 
-        LIMIT $start, $length";
-        
-    $stmt = $pdo->prepare($data_query);
+    $totalRecords = $stmt->fetchColumn();
+    
+    // Get filtered data
+    $sql = "SELECT id, name, email, phone, gender, created_at 
+            FROM patients 
+            WHERE {$where} 
+            ORDER BY {$orderBy} {$orderDir} 
+            LIMIT {$start}, {$length}";
+    
+    $stmt = $conn->prepare($sql);
     $stmt->execute($params);
     $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-    // Format data for DataTable
-    $formatted_data = [];
+    
+    // Format data for DataTables
+    $formattedData = [];
     foreach ($data as $row) {
-        $formatted_data[] = [
-            'patient_id' => (int)$row['patient_id'],
-            'first_name' => htmlspecialchars($row['first_name']),
-            'last_name' => htmlspecialchars($row['last_name']),
-            'phone' => htmlspecialchars($row['phone']),
-            'email' => htmlspecialchars($row['email'] ?? ''),
-            'date_of_birth' => $row['date_of_birth'],
-            'gender' => $row['gender'],
-            'blood_group' => $row['blood_group'],
-            'address' => htmlspecialchars($row['address'] ?? ''),
-            'emergency_contact' => htmlspecialchars($row['emergency_contact'] ?? ''),
-            'emergency_phone' => htmlspecialchars($row['emergency_phone'] ?? ''),
-            'medical_history' => htmlspecialchars($row['medical_history'] ?? ''),
-            'allergies' => htmlspecialchars($row['allergies'] ?? ''),
-            'status' => $row['status'],
-            'created_at' => $row['created_at'],
-            'updated_at' => $row['updated_at']
+        $formattedData[] = [
+            'id' => $row['id'],
+            'name' => htmlspecialchars($row['name']),
+            'email' => htmlspecialchars($row['email'] ?: 'N/A'),
+            'phone' => htmlspecialchars($row['phone'] ?: 'N/A'),
+            'gender' => ucfirst($row['gender'] ?: 'N/A'),
+            'created_at' => date('M j, Y', strtotime($row['created_at'])),
+            'actions' => generateActionButtons($row['id'], $row['name'])
         ];
     }
-
-    // Return JSON response
-    echo json_encode([
-        'draw' => $draw,
-        'recordsTotal' => (int)$total_records,
-        'recordsFiltered' => (int)$filtered_records,
-        'data' => $formatted_data,
-        'success' => true
-    ]);
-
-} catch (Exception $e) {
-    error_log("Patients DataTable Error: " . $e->getMessage());
     
     echo json_encode([
-        'draw' => $draw ?? 1,
+        'draw' => $draw,
+        'recordsTotal' => $totalRecords,
+        'recordsFiltered' => $totalRecords,
+        'data' => $formattedData
+    ]);
+    
+} catch (Exception $e) {
+    echo json_encode([
+        'draw' => 1,
         'recordsTotal' => 0,
         'recordsFiltered' => 0,
         'data' => [],
-        'success' => false,
-        'error' => 'Failed to load patients data'
+        'error' => $e->getMessage()
     ]);
+}
+
+function generateActionButtons($id, $name) {
+    return '
+        <div class="btn-group" role="group">
+            <button type="button" class="btn btn-sm btn-info" onclick="viewPatient(' . $id . ')" title="View">
+                <i class="fas fa-eye"></i>
+            </button>
+            <button type="button" class="btn btn-sm btn-warning" onclick="editPatient(' . $id . ')" title="Edit">
+                <i class="fas fa-edit"></i>
+            </button>
+            <button type="button" class="btn btn-sm btn-danger" onclick="deletePatient(' . $id . ', \'' . addslashes($name) . '\')" title="Delete">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+    ';
 }
 ?>

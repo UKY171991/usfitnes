@@ -1,4 +1,4 @@
-# Simple .htaccess for development
+# Simple .htaccess for development - rename original to .htaccess.backup
 RewriteEngine On
 
 # Allow all PHP files in development
@@ -14,3 +14,8 @@ RewriteEngine On
 <Files ".htpasswd">
     Require all denied
 </Files>
+
+# Allow everything else for now
+<Directory ".">
+    Require all granted
+</Directory>

@@ -3,24 +3,86 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Error reporting for development
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
-
 // Timezone setting
 date_default_timezone_set('America/New_York');
 
-// Database configuration
-$host = 'localhost';
-$dbname = 'u902379465_fitness';
-$username = 'u902379465_fitness';
-$password = '4gS>#RKZV~R';
+// Auto-detect environment based on server characteristics
+$is_local = false;
 
-// Alternative local configuration (uncomment for local development)
-// $host = 'localhost';
-// $dbname = 'pathlab_pro';
-// $username = 'root';
-// $password = '';
+// Check multiple conditions to determine if running locally
+if (
+    // Check if running on localhost
+    ($_SERVER['SERVER_NAME'] ?? '') === 'localhost' ||
+    ($_SERVER['HTTP_HOST'] ?? '') === 'localhost' ||
+    strpos(($_SERVER['HTTP_HOST'] ?? ''), 'localhost') !== false ||
+    
+    // Check for local IP addresses
+    in_array(($_SERVER['SERVER_ADDR'] ?? ''), ['127.0.0.1', '::1']) ||
+    
+    // Check for XAMPP/WAMP/MAMP indicators
+    (defined('ABSPATH') && strpos(ABSPATH, 'xampp') !== false) ||
+    (defined('ABSPATH') && strpos(ABSPATH, 'wamp') !== false) ||
+    (defined('ABSPATH') && strpos(ABSPATH, 'mamp') !== false) ||
+    
+    // Check document root for local development indicators
+    strpos(($_SERVER['DOCUMENT_ROOT'] ?? ''), 'xampp') !== false ||
+    strpos(($_SERVER['DOCUMENT_ROOT'] ?? ''), 'wamp') !== false ||
+    strpos(($_SERVER['DOCUMENT_ROOT'] ?? ''), 'htdocs') !== false ||
+    
+    // Check for development domains
+    strpos(($_SERVER['HTTP_HOST'] ?? ''), '.local') !== false ||
+    strpos(($_SERVER['HTTP_HOST'] ?? ''), '.dev') !== false ||
+    
+    // Check if database is accessible with root user (typical local setup)
+    (function_exists('mysqli_connect') && @mysqli_connect('localhost', 'root', ''))
+) {
+    $is_local = true;
+}
+
+// Database configuration based on environment
+if ($is_local) {
+    // Local development configuration
+    $host = 'localhost';
+    $dbname = 'usfitness';
+    $username = 'root';
+    $password = '';
+    $environment = 'LOCAL';
+} else {
+    // Live/Production configuration
+    $host = 'localhost';
+    $dbname = 'u902379465_fitness';
+    $username = 'u902379465_fitness';
+    $password = '4gS>#RKZV~R';
+    $environment = 'LIVE';
+}
+
+// Environment-specific settings
+if ($is_local) {
+    // Development environment settings
+    error_reporting(E_ALL);
+    ini_set('display_errors', 1);
+    ini_set('log_errors', 1);
+    ini_set('error_log', __DIR__ . '/logs/error.log');
+} else {
+    // Production environment settings
+    error_reporting(E_ERROR | E_WARNING | E_PARSE);
+    ini_set('display_errors', 0);
+    ini_set('log_errors', 1);
+    ini_set('error_log', '/home/u902379465/public_html/logs/error.log');
+}
+
+// Create logs directory if it doesn't exist (for local development)
+$log_dir = __DIR__ . '/logs';
+if ($is_local && !is_dir($log_dir)) {
+    mkdir($log_dir, 0755, true);
+}
+
+// Log environment detection for debugging
+if ($is_local) {
+    error_log("Environment detected: LOCAL - Host: " . ($_SERVER['HTTP_HOST'] ?? 'unknown') . " - DB: $dbname");
+} else {
+    error_log("Environment detected: LIVE - Host: " . ($_SERVER['HTTP_HOST'] ?? 'unknown') . " - DB: $dbname");
+}
 
 try {
     // First create database if it doesn't exist
@@ -46,8 +108,23 @@ try {
     die("Connection failed: " . $e->getMessage());
 }
 
+// Database connection function for APIs
+function getDatabaseConnection() {
+    global $host, $dbname, $username, $password;
+    
+    try {
+        $conn = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $username, $password);
+        $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $conn->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+        return $conn;
+    } catch(PDOException $e) {
+        throw new Exception("Database connection failed: " . $e->getMessage());
+    }
+}
+
 // Helper functions for AJAX responses
 function jsonResponse($success, $message, $data = null, $extra = []) {
+    global $environment;
     header('Content-Type: application/json');
     header('Cache-Control: no-cache, must-revalidate');
     
@@ -55,6 +132,7 @@ function jsonResponse($success, $message, $data = null, $extra = []) {
         'success' => $success,
         'message' => $message,
         'data' => $data,
+        'environment' => $environment,
         'timestamp' => date('Y-m-d H:i:s'),
         'server_time' => time()
     ];
@@ -66,6 +144,40 @@ function jsonResponse($success, $message, $data = null, $extra = []) {
     
     echo json_encode($response, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
     exit;
+}
+
+// Function to check if running in local environment
+function isLocal() {
+    global $is_local;
+    return $is_local;
+}
+
+// Function to get current environment
+function getEnvironment() {
+    global $environment;
+    return $environment;
+}
+
+// Function to get environment-specific configuration
+function getConfig($key = null) {
+    global $host, $dbname, $username, $password, $environment, $is_local;
+    
+    $config = [
+        'database' => [
+            'host' => $host,
+            'dbname' => $dbname,
+            'username' => $username,
+            'password' => $password
+        ],
+        'environment' => $environment,
+        'is_local' => $is_local,
+        'debug_mode' => $is_local,
+        'base_url' => $is_local ? 'http://localhost/usfitnes/' : 'https://usfitnes.com/',
+        'upload_path' => $is_local ? __DIR__ . '/uploads/' : '/home/u902379465/public_html/uploads/',
+        'max_file_size' => $is_local ? '10MB' : '5MB'
+    ];
+    
+    return $key ? ($config[$key] ?? null) : $config;
 }
 
 function validateInput($data, $required_fields = []) {

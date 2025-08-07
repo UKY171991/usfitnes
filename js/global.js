@@ -1,517 +1,351 @@
-// Global JavaScript functions for PathLab Pro
-// AdminLTE3 Template with AJAX Operations
+/**
+ * Global JavaScript functions for USFitness Lab
+ * Handles common AJAX operations, modals, and utilities
+ */
 
 // Global variables
-let currentPage = 1;
-let itemsPerPage = 10;
-let currentSearch = '';
-let currentSort = '';
-let currentOrder = 'asc';
-let globalDataTable = null;
+let currentDataTable = null;
 
-// Initialize global components
-function initializeGlobalComponents() {
-    // Initialize tooltips
-    $('[data-toggle="tooltip"]').tooltip();
-    
-    // Initialize popovers
-    $('[data-toggle="popover"]').popover();
-    
-    // Initialize select2
-    $('.select2').select2({
-        theme: 'bootstrap4',
-        width: '100%'
-    });
-    
-    // Initialize date pickers
-    $('.datepicker').datetimepicker({
-        format: 'YYYY-MM-DD',
-        icons: {
-            time: 'far fa-clock',
-            date: 'far fa-calendar',
-            up: 'fas fa-arrow-up',
-            down: 'fas fa-arrow-down',
-            previous: 'fas fa-chevron-left',
-            next: 'fas fa-chevron-right',
-            today: 'far fa-calendar-check-o',
-            clear: 'far fa-trash',
-            close: 'far fa-times'
-        }
-    });
-    
-    // Initialize datetime pickers
-    $('.datetimepicker').datetimepicker({
-        format: 'YYYY-MM-DD HH:mm',
-        icons: {
-            time: 'far fa-clock',
-            date: 'far fa-calendar',
-            up: 'fas fa-arrow-up',
-            down: 'fas fa-arrow-down',
-            previous: 'fas fa-chevron-left',
-            next: 'fas fa-chevron-right',
-            today: 'far fa-calendar-check-o',
-            clear: 'far fa-trash',
-            close: 'far fa-times'
-        }
-    });
-    
-    // Global AJAX setup
+/**
+ * Initialize when document is ready
+ */
+$(document).ready(function() {
+    // Set up global AJAX settings
     $.ajaxSetup({
-        beforeSend: function(xhr, settings) {
-            if (settings.showLoader !== false) {
-                showLoader();
-            }
-        },
-        complete: function() {
-            hideLoader();
-        },
         error: function(xhr, status, error) {
-            console.error('AJAX Error:', error);
-            hideLoader();
+            let errorMessage = 'An error occurred';
             
-            if (xhr.status === 401) {
-                showToast('error', 'Session expired. Please login again.');
-                setTimeout(() => window.location.href = 'login.php', 2000);
-            } else if (xhr.status === 403) {
-                showToast('error', 'Access denied');
-            } else if (xhr.status === 422) {
-                const response = xhr.responseJSON;
-                if (response && response.message) {
-                    showToast('error', response.message);
-                } else {
-                    showToast('error', 'Validation error occurred');
-                }
-            } else {
-                showToast('error', 'An error occurred. Please try again.');
+            if (xhr.responseJSON && xhr.responseJSON.message) {
+                errorMessage = xhr.responseJSON.message;
+            } else if (xhr.statusText) {
+                errorMessage = xhr.statusText;
             }
+            
+            showToast('error', errorMessage);
         }
     });
     
-    // Initialize form validation
-    initializeFormValidation();
-    
-    // Initialize modal handlers
-    initializeModalHandlers();
+    // Set up toastr defaults
+    if (typeof toastr !== 'undefined') {
+        toastr.options = {
+            "closeButton": true,
+            "debug": false,
+            "newestOnTop": true,
+            "progressBar": true,
+            "positionClass": "toast-top-right",
+            "preventDuplicates": false,
+            "onclick": null,
+            "showDuration": "300",
+            "hideDuration": "1000",
+            "timeOut": "5000",
+            "extendedTimeOut": "1000",
+            "showEasing": "swing",
+            "hideEasing": "linear",
+            "showMethod": "fadeIn",
+            "hideMethod": "fadeOut"
+        };
+    }
+});
+
+/**
+ * Show toast notification
+ */
+function showToast(type, message, title = '') {
+    if (typeof toastr !== 'undefined') {
+        switch (type) {
+            case 'success':
+                toastr.success(message, title);
+                break;
+            case 'error':
+                toastr.error(message, title);
+                break;
+            case 'warning':
+                toastr.warning(message, title);
+                break;
+            case 'info':
+                toastr.info(message, title);
+                break;
+            default:
+                toastr.info(message, title);
+        }
+    } else {
+        // Fallback to alert if toastr is not available
+        alert((title ? title + ': ' : '') + message);
+    }
 }
 
-// Enhanced DataTable initialization
-function initializeDataTable(tableId, ajaxUrl, columns, options = {}) {
+/**
+ * Initialize DataTable with common settings
+ */
+function initializeDataTables(selector, ajaxUrl, columns, options = {}) {
     const defaultOptions = {
-        processing: true,
-        serverSide: true,
-        responsive: true,
-        ajax: {
-            url: ajaxUrl,
-            type: 'POST',
-            data: function(d) {
-                d.search_value = d.search.value;
-                d.length = d.length;
-                d.start = d.start;
-                d.order_column = d.columns[d.order[0].column].data;
-                d.order_dir = d.order[0].dir;
-                
-                // Add custom filters
-                if (typeof getCustomFilters === 'function') {
-                    Object.assign(d, getCustomFilters());
-                }
-            },
-            error: function(xhr, error, thrown) {
-                console.error('DataTable AJAX error:', error);
-                showToast('error', 'Failed to load data');
-            }
+        "processing": true,
+        "serverSide": true,
+        "ajax": {
+            "url": ajaxUrl,
+            "type": "POST"
         },
-        columns: columns,
-        dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>' +
-             '<"row"<"col-sm-12"tr>>' +
-             '<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
-        language: {
-            processing: '<div class="spinner-border text-primary" role="status"><span class="sr-only">Loading...</span></div>',
-            emptyTable: 'No data available',
-            zeroRecords: 'No matching records found',
-            lengthMenu: 'Show _MENU_ entries',
-            info: 'Showing _START_ to _END_ of _TOTAL_ entries',
-            infoEmpty: 'Showing 0 to 0 of 0 entries',
-            infoFiltered: '(filtered from _MAX_ total entries)',
-            search: 'Search:',
-            paginate: {
-                first: 'First',
-                last: 'Last',
-                next: 'Next',
-                previous: 'Previous'
-            }
-        },
-        pageLength: 10,
-        lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
-        order: [[0, 'desc']],
-        drawCallback: function(settings) {
-            // Reinitialize tooltips after table redraw
-            $('[data-toggle="tooltip"]').tooltip();
+        "columns": columns,
+        "pageLength": 25,
+        "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+        "order": [[0, "desc"]],
+        "responsive": true,
+        "autoWidth": false,
+        "language": {
+            "processing": '<div class="spinner-border text-primary" role="status"><span class="sr-only">Loading...</span></div>',
+            "emptyTable": "No data available",
+            "zeroRecords": "No matching records found"
         }
     };
     
-    // Merge custom options
-    const finalOptions = Object.assign({}, defaultOptions, options);
+    const finalOptions = $.extend(true, {}, defaultOptions, options);
     
-    // Initialize DataTable
-    globalDataTable = $(tableId).DataTable(finalOptions);
-    
-    return globalDataTable;
-}
-
-// Enhanced modal functions
-function showModal(modalId, title = '', size = '') {
-    const modal = $(modalId);
-    if (title) {
-        modal.find('.modal-title').text(title);
+    if (currentDataTable) {
+        currentDataTable.destroy();
     }
-    if (size) {
-        modal.find('.modal-dialog').removeClass('modal-sm modal-lg modal-xl').addClass(size);
-    }
-    modal.modal('show');
-}
-
-function hideModal(modalId) {
-    $(modalId).modal('hide');
-}
-
-function resetForm(formId) {
-    const form = $(formId);
-    form[0].reset();
-    form.find('.is-invalid').removeClass('is-invalid');
-    form.find('.invalid-feedback').remove();
-    form.find('.select2').val(null).trigger('change');
-}
-
-// Enhanced AJAX form submission
-function submitForm(formId, url, method = 'POST', callback = null) {
-    const form = $(formId);
-    const formData = new FormData(form[0]);
     
-    // Clear previous validation errors
-    form.find('.is-invalid').removeClass('is-invalid');
-    form.find('.invalid-feedback').remove();
+    currentDataTable = $(selector).DataTable(finalOptions);
+    return currentDataTable;
+}
+
+/**
+ * Submit form via AJAX
+ */
+function submitForm(formId, successCallback, options = {}) {
+    const form = $(formId);
+    const submitBtn = form.find('button[type="submit"]');
+    const originalBtnText = submitBtn.html();
+    
+    // Disable submit button and show loading
+    submitBtn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Processing...');
     
     $.ajax({
-        url: url,
-        type: method,
-        data: formData,
+        url: form.attr('action') || options.url,
+        type: form.attr('method') || 'POST',
+        data: new FormData(form[0]),
         processData: false,
         contentType: false,
         success: function(response) {
             if (response.success) {
-                showToast('success', response.message);
-                if (callback) {
-                    callback(response);
-                } else {
-                    // Default behavior: hide modal and refresh table
-                    $('.modal').modal('hide');
-                    if (globalDataTable) {
-                        globalDataTable.ajax.reload(null, false);
-                    }
+                showToast('success', response.message || 'Operation completed successfully');
+                
+                if (typeof successCallback === 'function') {
+                    successCallback(response);
                 }
+                
+                // Reset form if specified
+                if (options.resetForm !== false) {
+                    form[0].reset();
+                }
+                
+                // Close modal if specified
+                if (options.closeModal !== false) {
+                    form.closest('.modal').modal('hide');
+                }
+                
+                // Refresh DataTable if exists
+                if (currentDataTable && options.refreshTable !== false) {
+                    currentDataTable.ajax.reload(null, false);
+                }
+                
             } else {
-                if (response.errors) {
-                    displayFormErrors(formId, response.errors);
-                } else {
-                    showToast('error', response.message);
-                }
+                showToast('error', response.message || 'An error occurred');
             }
         },
-        error: function(xhr) {
-            if (xhr.status === 422 && xhr.responseJSON && xhr.responseJSON.errors) {
-                displayFormErrors(formId, xhr.responseJSON.errors);
-            } else {
-                showToast('error', 'Failed to submit form');
+        error: function(xhr, status, error) {
+            let errorMessage = 'An error occurred while processing the request';
+            
+            if (xhr.responseJSON && xhr.responseJSON.message) {
+                errorMessage = xhr.responseJSON.message;
             }
-        }
-    });
-}
-
-// Display form validation errors
-function displayFormErrors(formId, errors) {
-    const form = $(formId);
-    
-    Object.keys(errors).forEach(field => {
-        const input = form.find(`[name="${field}"]`);
-        if (input.length) {
-            input.addClass('is-invalid');
-            input.after(`<div class="invalid-feedback">${errors[field]}</div>`);
-        }
-    });
-}
-
-// Enhanced delete function with SweetAlert2
-function deleteRecord(id, url, title = 'Delete Record', text = 'Are you sure you want to delete this record?') {
-    Swal.fire({
-        title: title,
-        text: text,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#3085d6',
-        confirmButtonText: 'Yes, delete it!',
-        cancelButtonText: 'Cancel'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            $.ajax({
-                url: url,
-                type: 'DELETE',
-                data: { id: id },
-                success: function(response) {
-                    if (response.success) {
-                        showToast('success', response.message);
-                        if (globalDataTable) {
-                            globalDataTable.ajax.reload(null, false);
-                        }
-                    } else {
-                        showToast('error', response.message);
-                    }
-                },
-                error: function() {
-                    showToast('error', 'Failed to delete record');
-                }
-            });
-        }
-    });
-}
-
-// Load data for edit modal
-function loadEditData(id, url, modalId, callback = null) {
-    $.ajax({
-        url: url,
-        type: 'GET',
-        data: { action: 'get', id: id },
-        success: function(response) {
-            if (response.success) {
-                if (callback) {
-                    callback(response.data);
-                } else {
-                    populateForm(modalId + ' form', response.data);
-                }
-                showModal(modalId, 'Edit Record');
-            } else {
-                showToast('error', response.message);
-            }
+            
+            showToast('error', errorMessage);
         },
-        error: function() {
-            showToast('error', 'Failed to load record data');
+        complete: function() {
+            // Re-enable submit button
+            submitBtn.prop('disabled', false).html(originalBtnText);
         }
     });
 }
 
-// Populate form with data
-function populateForm(formSelector, data) {
-    const form = $(formSelector);
+/**
+ * Load content into modal
+ */
+function loadModal(url, modalId = '#globalModal', data = {}) {
+    const modal = $(modalId);
     
-    Object.keys(data).forEach(key => {
-        const input = form.find(`[name="${key}"]`);
-        if (input.length) {
-            if (input.is('select')) {
-                input.val(data[key]).trigger('change');
-            } else if (input.attr('type') === 'checkbox') {
-                input.prop('checked', data[key] == 1);
-            } else {
-                input.val(data[key]);
-            }
-        }
-    });
-}
-
-// Form validation initialization
-function initializeFormValidation() {
-    // Real-time validation
-    $(document).on('blur', 'input[required], select[required], textarea[required]', function() {
-        validateField($(this));
-    });
-    
-    $(document).on('input', 'input[type="email"]', function() {
-        validateEmailField($(this));
-    });
-    
-    $(document).on('input', 'input[type="tel"], input[data-type="phone"]', function() {
-        validatePhoneField($(this));
-    });
-}
-
-// Field validation
-function validateField(field) {
-    const value = field.val().trim();
-    const isRequired = field.prop('required');
-    
-    field.removeClass('is-invalid');
-    field.siblings('.invalid-feedback').remove();
-    
-    if (isRequired && !value) {
-        field.addClass('is-invalid');
-        field.after('<div class="invalid-feedback">This field is required</div>');
-        return false;
-    }
-    
-    return true;
-}
-
-// Email validation
-function validateEmailField(field) {
-    const email = field.val().trim();
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    
-    field.removeClass('is-invalid');
-    field.siblings('.invalid-feedback').remove();
-    
-    if (email && !emailRegex.test(email)) {
-        field.addClass('is-invalid');
-        field.after('<div class="invalid-feedback">Please enter a valid email address</div>');
-        return false;
-    }
-    
-    return true;
-}
-
-// Phone validation
-function validatePhoneField(field) {
-    const phone = field.val().trim();
-    const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
-    
-    field.removeClass('is-invalid');
-    field.siblings('.invalid-feedback').remove();
-    
-    if (phone && !phoneRegex.test(phone.replace(/\s/g, ''))) {
-        field.addClass('is-invalid');
-        field.after('<div class="invalid-feedback">Please enter a valid phone number</div>');
-        return false;
-    }
-    
-    return true;
-}
-
-// Modal handlers initialization
-function initializeModalHandlers() {
-    // Reset form when modal is hidden
-    $('.modal').on('hidden.bs.modal', function() {
-        const form = $(this).find('form');
-        if (form.length) {
-            resetForm(form);
-        }
-    });
-    
-    // Focus first input when modal is shown
-    $('.modal').on('shown.bs.modal', function() {
-        $(this).find('input:not([readonly]):not([disabled]):first').focus();
-    });
-}
-
-// Show/Hide loader
-function showLoader(message = 'Loading...') {
-    if ($('#globalLoader').length === 0) {
-        $('body').append(`
-            <div id="globalLoader" class="global-loader">
-                <div class="loader-content">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="sr-only">Loading...</span>
-                    </div>
-                    <div class="mt-2 loader-message">${message}</div>
-                </div>
+    // Show loading in modal
+    modal.find('.modal-content').html(`
+        <div class="modal-header">
+            <h4 class="modal-title">Loading...</h4>
+        </div>
+        <div class="modal-body text-center">
+            <div class="spinner-border text-primary" role="status">
+                <span class="sr-only">Loading...</span>
             </div>
-        `);
-    } else {
-        $('#globalLoader .loader-message').text(message);
+        </div>
+    `);
+    
+    modal.modal('show');
+    
+    $.post(url, data)
+        .done(function(response) {
+            if (typeof response === 'string') {
+                modal.find('.modal-content').html(response);
+            } else if (response.success && response.html) {
+                modal.find('.modal-content').html(response.html);
+            } else {
+                showToast('error', response.message || 'Failed to load content');
+                modal.modal('hide');
+            }
+        })
+        .fail(function() {
+            showToast('error', 'Failed to load modal content');
+            modal.modal('hide');
+        });
+}
+
+/**
+ * Confirm and delete record
+ */
+function confirmDelete(url, message = 'Are you sure you want to delete this record?', callback = null) {
+    if (confirm(message)) {
+        $.post(url, { _method: 'DELETE' })
+            .done(function(response) {
+                if (response.success) {
+                    showToast('success', response.message || 'Record deleted successfully');
+                    
+                    if (typeof callback === 'function') {
+                        callback(response);
+                    }
+                    
+                    // Refresh DataTable if exists
+                    if (currentDataTable) {
+                        currentDataTable.ajax.reload(null, false);
+                    }
+                } else {
+                    showToast('error', response.message || 'Failed to delete record');
+                }
+            })
+            .fail(function() {
+                showToast('error', 'Failed to delete record');
+            });
     }
-    $('#globalLoader').show();
 }
 
-function hideLoader() {
-    $('#globalLoader').hide();
+/**
+ * Format date for display
+ */
+function formatDate(dateString) {
+    if (!dateString) return 'N/A';
+    
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
 }
 
-// Utility functions
-function formatDate(dateString, format = 'YYYY-MM-DD') {
-    if (!dateString) return '';
-    return moment(dateString).format(format);
-}
-
-function formatDateTime(dateString, format = 'YYYY-MM-DD HH:mm') {
-    if (!dateString) return '';
-    return moment(dateString).format(format);
-}
-
-function formatCurrency(amount, currency = '$') {
-    if (isNaN(amount)) return currency + '0.00';
-    return currency + parseFloat(amount).toFixed(2);
-}
-
-function capitalizeFirst(str) {
+/**
+ * Capitalize first letter
+ */
+function capitalize(str) {
+    if (!str) return '';
     return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
-function truncateText(text, length = 50) {
-    if (!text || text.length <= length) return text;
-    return text.substring(0, length) + '...';
-}
-
-function generateRandomId(length = 8) {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    let result = '';
-    for (let i = 0; i < length; i++) {
-        result += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return result;
-}
-
-// Debounce function
-function debounce(func, wait, immediate) {
-    let timeout;
-    return function executedFunction() {
-        const context = this;
-        const args = arguments;
-        const later = function() {
-            timeout = null;
-            if (!immediate) func.apply(context, args);
-        };
-        const callNow = immediate && !timeout;
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-        if (callNow) func.apply(context, args);
-    };
-}
-
-// Export functions
-function exportTableData(format = 'csv', filename = 'export') {
-    if (!globalDataTable) {
-        showToast('error', 'No data table found');
-        return;
-    }
-    
-    const buttons = globalDataTable.buttons();
-    if (format === 'csv') {
-        buttons.exportData({ format: 'csv' });
-    } else if (format === 'excel') {
-        buttons.exportData({ format: 'excel' });
-    } else if (format === 'pdf') {
-        buttons.exportData({ format: 'pdf' });
-    }
-}
-
-// Print function
-function printElement(elementId) {
-    const printContents = document.getElementById(elementId).innerHTML;
-    const originalContents = document.body.innerHTML;
-    
-    document.body.innerHTML = `
-        <html>
-        <head>
-            <title>Print</title>
-            <style>
-                body { font-family: Arial, sans-serif; }
-                table { width: 100%; border-collapse: collapse; }
-                th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-                th { background-color: #f2f2f2; }
-            </style>
-        </head>
-        <body>${printContents}</body>
-        </html>
+/**
+ * Show loading overlay
+ */
+function showLoading(target = 'body') {
+    const loadingHtml = `
+        <div class="loading-overlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+             background: rgba(255,255,255,0.8); display: flex; align-items: center; justify-content: center; z-index: 9999;">
+            <div class="spinner-border text-primary" role="status">
+                <span class="sr-only">Loading...</span>
+            </div>
+        </div>
     `;
     
-    window.print();
-    document.body.innerHTML = originalContents;
+    $(target).css('position', 'relative').append(loadingHtml);
+}
+
+/**
+ * Hide loading overlay
+ */
+function hideLoading(target = 'body') {
+    $(target).find('.loading-overlay').remove();
+}
+
+/**
+ * Validate form fields
+ */
+function validateForm(formId) {
+    const form = $(formId);
+    let isValid = true;
+    
+    // Clear previous validation states
+    form.find('.is-invalid').removeClass('is-invalid');
+    form.find('.invalid-feedback').remove();
+    
+    // Check required fields
+    form.find('[required]').each(function() {
+        const field = $(this);
+        if (!field.val().trim()) {
+            field.addClass('is-invalid');
+            field.after('<div class="invalid-feedback">This field is required.</div>');
+            isValid = false;
+        }
+    });
+    
+    // Check email fields
+    form.find('input[type="email"]').each(function() {
+        const field = $(this);
+        const email = field.val().trim();
+        if (email && !isValidEmail(email)) {
+            field.addClass('is-invalid');
+            field.after('<div class="invalid-feedback">Please enter a valid email address.</div>');
+            isValid = false;
+        }
+    });
+    
+    return isValid;
+}
+
+/**
+ * Check if email is valid
+ */
+function isValidEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+}
+
+/**
+ * Get URL parameters
+ */
+function getUrlParameter(name) {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get(name);
+}
+
+/**
+ * Refresh current page
+ */
+function refreshPage() {
     location.reload();
+}
+
+/**
+ * Scroll to element
+ */
+function scrollToElement(selector) {
+    const element = $(selector);
+    if (element.length) {
+        $('html, body').animate({
+            scrollTop: element.offset().top - 100
+        }, 500);
+    }
 }

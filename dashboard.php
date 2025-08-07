@@ -1,345 +1,278 @@
 <?php
-session_start();
-require_once 'includes/config.php';
+require_once 'config.php';
 
 // Check if user is logged in
+session_start();
 if (!isset($_SESSION['user_id'])) {
     header('Location: login.php');
     exit();
 }
 
+$current_page = 'dashboard';
 $page_title = 'Dashboard';
-$breadcrumbs = [
-    ['title' => 'Dashboard']
-];
-$additional_css = ['css/dashboard.css'];
-$additional_js = ['js/dashboard.js'];
-
-ob_start();
 ?>
 
-<!-- Statistics Cards Row -->
-<div class="row">
-    <!-- Total Patients -->
-    <div class="col-lg-3 col-6">
-        <div class="info-box">
-            <span class="info-box-icon bg-info elevation-1"><i class="fas fa-user-injured"></i></span>
-            <div class="info-box-content">
-                <span class="info-box-text">Total Patients</span>
-                <span class="info-box-number" id="totalPatients">
-                    <span class="loading-placeholder">Loading...</span>
-                </span>
-                <div class="progress">
-                    <div class="progress-bar bg-info" id="patientsProgress" style="width: 0%"></div>
-                </div>
-                <span class="progress-description">
-                    <a href="patients.php" class="text-info">View all patients</a>
-                </span>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Today's Tests -->
-    <div class="col-lg-3 col-6">
-        <div class="info-box">
-            <span class="info-box-icon bg-success elevation-1"><i class="fas fa-flask"></i></span>
-            <div class="info-box-content">
-                <span class="info-box-text">Today's Tests</span>
-                <span class="info-box-number" id="todaysTests">
-                    <span class="loading-placeholder">Loading...</span>
-                </span>
-                <div class="progress">
-                    <div class="progress-bar bg-success" id="testsProgress" style="width: 0%"></div>
-                </div>
-                <span class="progress-description">
-                    <a href="test-orders.php" class="text-success">View test orders</a>
-                </span>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Pending Results -->
-    <div class="col-lg-3 col-6">
-        <div class="info-box">
-            <span class="info-box-icon bg-warning elevation-1"><i class="fas fa-file-medical"></i></span>
-            <div class="info-box-content">
-                <span class="info-box-text">Pending Results</span>
-                <span class="info-box-number" id="pendingResults">
-                    <span class="loading-placeholder">Loading...</span>
-                </span>
-                <div class="progress">
-                    <div class="progress-bar bg-warning" id="resultsProgress" style="width: 0%"></div>
-                </div>
-                <span class="progress-description">
-                    <a href="results.php" class="text-warning">View results</a>
-                </span>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Monthly Revenue -->
-    <div class="col-lg-3 col-6">
-        <div class="info-box">
-            <span class="info-box-icon bg-danger elevation-1"><i class="fas fa-rupee-sign"></i></span>
-            <div class="info-box-content">
-                <span class="info-box-text">Monthly Revenue</span>
-                <span class="info-box-number" id="monthlyRevenue">
-                    <span class="loading-placeholder">Loading...</span>
-                </span>
-                <div class="progress">
-                    <div class="progress-bar bg-danger" id="revenueProgress" style="width: 0%"></div>
-                </div>
-                <span class="progress-description">
-                    <a href="reports.php" class="text-danger">View reports</a>
-                </span>
-            </div>
-        </div>
-    </div>
-</div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title><?= $page_title ?> - USFitness Lab</title>
 
-<!-- Charts Row -->
-<div class="row">
-    <!-- Test Orders Chart -->
-    <div class="col-lg-8">
-        <div class="card">
-            <div class="card-header border-transparent">
-                <h3 class="card-title">
-                    <i class="fas fa-chart-line mr-1"></i>
-                    Test Orders Trend
-                </h3>
-                <div class="card-tools">
-                    <select class="form-control form-control-sm" id="chartPeriod" onchange="updateCharts()">
-                        <option value="7">Last 7 days</option>
-                        <option value="30" selected>Last 30 days</option>
-                        <option value="90">Last 3 months</option>
-                    </select>
-                </div>
-            </div>
-            <div class="card-body">
-                <canvas id="ordersChart" height="300"></canvas>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Test Types Distribution -->
-    <div class="col-lg-4">
-        <div class="card">
-            <div class="card-header border-transparent">
-                <h3 class="card-title">
-                    <i class="fas fa-chart-pie mr-1"></i>
-                    Test Distribution
-                </h3>
-            </div>
-            <div class="card-body">
-                <canvas id="testTypesChart" height="300"></canvas>
-            </div>
-        </div>
-    </div>
-</div>
+    <!-- Google Font: Source Sans Pro -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- AdminLTE -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/css/adminlte.min.css">
+    <!-- DataTables -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap4.min.css">
+    <!-- Toastr -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/custom.css">
+</head>
+<body class="hold-transition sidebar-mini layout-fixed">
+<div class="wrapper">
 
-<!-- Recent Activities and Orders Row -->
-<div class="row">
-    <!-- Recent Test Orders -->
-    <div class="col-lg-6">
-        <div class="card">
-            <div class="card-header">
-                <h3 class="card-title">
-                    <i class="fas fa-clock mr-1"></i>
-                    Recent Test Orders
-                </h3>
-                <div class="card-tools">
-                    <button class="btn btn-tool" onclick="refreshRecentOrders()">
-                        <i class="fas fa-sync-alt"></i>
-                    </button>
-                </div>
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-striped">
-                        <thead>
-                            <tr>
-                                <th>Order #</th>
-                                <th>Patient</th>
-                                <th>Test Type</th>
-                                <th>Status</th>
-                                <th>Date</th>
-                            </tr>
-                        </thead>
-                        <tbody id="recentOrdersTable">
-                            <tr>
-                                <td colspan="5" class="text-center">
-                                    <div class="spinner-border text-primary" role="status">
-                                        <span class="sr-only">Loading...</span>
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            <div class="card-footer text-center">
-                <a href="test-orders.php" class="btn btn-sm btn-primary">
-                    <i class="fas fa-eye mr-1"></i>
-                    View All Orders
+    <!-- Preloader -->
+    <div class="preloader flex-column justify-content-center align-items-center">
+        <img class="animation__shake" src="img/logo.png" alt="USFitnessLogo" height="60" width="60">
+    </div>
+
+    <!-- Navbar -->
+    <nav class="main-header navbar navbar-expand navbar-white navbar-light">
+        <!-- Left navbar links -->
+        <ul class="navbar-nav">
+            <li class="nav-item">
+                <a class="nav-link" data-widget="pushmenu" href="#" role="button"><i class="fas fa-bars"></i></a>
+            </li>
+        </ul>
+
+        <!-- Right navbar links -->
+        <ul class="navbar-nav ml-auto">
+            <!-- Notifications Dropdown Menu -->
+            <li class="nav-item dropdown">
+                <a class="nav-link" data-toggle="dropdown" href="#">
+                    <i class="far fa-bell"></i>
+                    <span class="badge badge-warning navbar-badge" id="notification-count">0</span>
                 </a>
-            </div>
+                <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
+                    <div class="dropdown-divider"></div>
+                    <div id="notification-list">
+                        <a href="#" class="dropdown-item">
+                            <i class="fas fa-envelope mr-2"></i> No new notifications
+                        </a>
+                    </div>
+                </div>
+            </li>
+            <!-- User Menu -->
+            <li class="nav-item dropdown">
+                <a class="nav-link" data-toggle="dropdown" href="#">
+                    <i class="far fa-user"></i>
+                    <span class="ml-1"><?= $_SESSION['user_name'] ?? 'User' ?></span>
+                </a>
+                <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
+                    <a href="#" class="dropdown-item">
+                        <i class="fas fa-user mr-2"></i> Profile
+                    </a>
+                    <div class="dropdown-divider"></div>
+                    <a href="#" class="dropdown-item" onclick="logout()">
+                        <i class="fas fa-sign-out-alt mr-2"></i> Logout
+                    </a>
+                </div>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- Main Sidebar Container -->
+    <aside class="main-sidebar sidebar-dark-primary elevation-4">
+        <!-- Brand Logo -->
+        <a href="dashboard.php" class="brand-link">
+            <img src="img/logo.png" alt="USFitness Logo" class="brand-image img-circle elevation-3" style="opacity: .8">
+            <span class="brand-text font-weight-light">USFitness Lab</span>
+        </a>
+
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <!-- Sidebar Menu -->
+            <nav class="mt-2">
+                <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
+                    <li class="nav-item">
+                        <a href="dashboard.php" class="nav-link active">
+                            <i class="nav-icon fas fa-tachometer-alt"></i>
+                            <p>Dashboard</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="patients.php" class="nav-link">
+                            <i class="nav-icon fas fa-users"></i>
+                            <p>Patients</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="doctors.php" class="nav-link">
+                            <i class="nav-icon fas fa-user-md"></i>
+                            <p>Doctors</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="test-orders.php" class="nav-link">
+                            <i class="nav-icon fas fa-clipboard-list"></i>
+                            <p>Test Orders</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="results.php" class="nav-link">
+                            <i class="nav-icon fas fa-vial"></i>
+                            <p>Test Results</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="equipment.php" class="nav-link">
+                            <i class="nav-icon fas fa-tools"></i>
+                            <p>Equipment</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="users.php" class="nav-link">
+                            <i class="nav-icon fas fa-user-cog"></i>
+                            <p>Users</p>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
         </div>
-    </div>
-    
-    <!-- Recent Activities -->
-    <div class="col-lg-6">
-        <div class="card">
-            <div class="card-header">
-                <h3 class="card-title">
-                    <i class="fas fa-history mr-1"></i>
-                    Recent Activities
-                </h3>
-                <div class="card-tools">
-                    <button class="btn btn-tool" onclick="refreshActivities()">
-                        <i class="fas fa-sync-alt"></i>
-                    </button>
+    </aside>
+
+    <!-- Content Wrapper -->
+    <div class="content-wrapper">
+        <!-- Content Header -->
+        <div class="content-header">
+            <div class="container-fluid">
+                <div class="row mb-2">
+                    <div class="col-sm-6">
+                        <h1 class="m-0">Dashboard</h1>
+                    </div>
+                    <div class="col-sm-6">
+                        <ol class="breadcrumb float-sm-right">
+                            <li class="breadcrumb-item active">Dashboard</li>
+                        </ol>
+                    </div>
                 </div>
             </div>
-            <div class="card-body">
-                <div class="timeline" id="activitiesTimeline">
-                    <div class="text-center">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="sr-only">Loading...</span>
+        </div>
+
+        <!-- Main content -->
+        <section class="content">
+            <div class="container-fluid">
+                <!-- Statistics Cards -->
+                <div class="row" id="stats-cards">
+                    <!-- Stats will be loaded here via AJAX -->
+                </div>
+
+                <!-- Charts and Tables Row -->
+                <div class="row">
+                    <!-- Monthly Stats Chart -->
+                    <div class="col-lg-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Monthly Statistics</h3>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="monthlyChart" width="400" height="200"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Activities -->
+                    <div class="col-lg-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Recent Activities</h3>
+                            </div>
+                            <div class="card-body">
+                                <div id="recent-activities">
+                                    <div class="text-center">
+                                        <i class="fa fa-spinner fa-spin"></i> Loading...
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Orders Table -->
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Recent Test Orders</h3>
+                                <div class="card-tools">
+                                    <button type="button" class="btn btn-primary btn-sm" onclick="refreshData()">
+                                        <i class="fas fa-sync-alt"></i> Refresh
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <table id="recent-orders-table" class="table table-bordered table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Order #</th>
+                                            <th>Patient</th>
+                                            <th>Doctor</th>
+                                            <th>Status</th>
+                                            <th>Date</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="recent-orders-body">
+                                        <!-- Data will be loaded via AJAX -->
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
+        </section>
+    </div>
+
+    <!-- Footer -->
+    <footer class="main-footer">
+        <strong>Copyright &copy; 2025 <a href="#">USFitness Lab</a>.</strong>
+        All rights reserved.
+        <div class="float-right d-none d-sm-inline-block">
+            <b>Environment:</b> <?= getEnvironment() ?>
+        </div>
+    </footer>
+</div>
+
+<!-- Global Modal -->
+<div class="modal fade" id="globalModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <!-- Content will be loaded here -->
         </div>
     </div>
 </div>
 
-<!-- Quick Stats Row -->
-<div class="row">
-    <!-- Equipment Status -->
-    <div class="col-lg-3 col-md-6">
-        <div class="small-box bg-info">
-            <div class="inner">
-                <h3 id="activeEquipment">
-                    <span class="loading-placeholder">0</span>
-                </h3>
-                <p>Active Equipment</p>
-            </div>
-            <div class="icon">
-                <i class="fas fa-microscope"></i>
-            </div>
-            <a href="equipment.php" class="small-box-footer">
-                More info <i class="fas fa-arrow-circle-right"></i>
-            </a>
-        </div>
-    </div>
-    
-    <!-- Active Doctors -->
-    <div class="col-lg-3 col-md-6">
-        <div class="small-box bg-success">
-            <div class="inner">
-                <h3 id="activeDoctors">
-                    <span class="loading-placeholder">0</span>
-                </h3>
-                <p>Active Doctors</p>
-            </div>
-            <div class="icon">
-                <i class="fas fa-user-md"></i>
-            </div>
-            <a href="doctors.php" class="small-box-footer">
-                More info <i class="fas fa-arrow-circle-right"></i>
-            </a>
-        </div>
-    </div>
-    
-    <!-- System Users -->
-    <div class="col-lg-3 col-md-6">
-        <div class="small-box bg-warning">
-            <div class="inner">
-                <h3 id="systemUsers">
-                    <span class="loading-placeholder">0</span>
-                </h3>
-                <p>System Users</p>
-            </div>
-            <div class="icon">
-                <i class="fas fa-users"></i>
-            </div>
-            <a href="users.php" class="small-box-footer">
-                More info <i class="fas fa-arrow-circle-right"></i>
-            </a>
-        </div>
-    </div>
-    
-    <!-- System Health -->
-    <div class="col-lg-3 col-md-6">
-        <div class="small-box" id="systemHealthBox">
-            <div class="inner">
-                <h3 id="systemHealth">
-                    <span class="loading-placeholder">Good</span>
-                </h3>
-                <p>System Health</p>
-            </div>
-            <div class="icon">
-                <i class="fas fa-heartbeat"></i>
-            </div>
-            <a href="system.php" class="small-box-footer">
-                More info <i class="fas fa-arrow-circle-right"></i>
-            </a>
-        </div>
-    </div>
-</div>
+<!-- jQuery -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<!-- Bootstrap 4 -->
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
+<!-- AdminLTE App -->
+<script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
+<!-- DataTables -->
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap4.min.js"></script>
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Toastr -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+<!-- Custom Global JS -->
+<script src="js/global.js"></script>
+<!-- Dashboard JS -->
+<script src="js/dashboard.js"></script>
 
-<!-- Calendar and Tasks Row -->
-<div class="row">
-    <!-- Calendar Widget -->
-    <div class="col-lg-4">
-        <div class="card">
-            <div class="card-header">
-                <h3 class="card-title">
-                    <i class="fas fa-calendar mr-1"></i>
-                    Calendar
-                </h3>
-            </div>
-            <div class="card-body p-0">
-                <div id="calendar" class="fc"></div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Tasks and Notifications -->
-    <div class="col-lg-8">
-        <div class="card">
-            <div class="card-header">
-                <h3 class="card-title">
-                    <i class="fas fa-tasks mr-1"></i>
-                    Today's Tasks & Notifications
-                </h3>
-                <div class="card-tools">
-                    <button class="btn btn-primary btn-sm" onclick="showAddTaskModal()">
-                        <i class="fas fa-plus mr-1"></i> Add Task
-                    </button>
-                </div>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <h6><i class="fas fa-check-circle text-success"></i> Completed Tasks</h6>
-                        <ul class="todo-list" id="completedTasks">
-                            <li class="text-center text-muted">No completed tasks</li>
-                        </ul>
-                    </div>
-                    <div class="col-md-6">
-                        <h6><i class="fas fa-clock text-warning"></i> Pending Tasks</h6>
-                        <ul class="todo-list" id="pendingTasks">
-                            <li class="text-center text-muted">No pending tasks</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<?php
-$content = ob_get_clean();
-require_once 'includes/layout.php';
-?>
+</body>
+</html>
