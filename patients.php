@@ -251,8 +251,17 @@ include 'includes/adminlte_sidebar.php';
 $(document).ready(function() {
     console.log('Initializing Patients page...');
     
+    // Check if DataTable is already initialized and destroy it first
+    if ($.fn.DataTable.isDataTable('#patientsTable')) {
+        $('#patientsTable').DataTable().destroy();
+    }
+    
     // Initialize using standardized CRUD system
-    initializeDataTable('#patientsTable', 'ajax/patients_datatable.php', {
+    initializeDataTable('#patientsTable', {
+        ajax: {
+            url: 'ajax/patients_datatable.php',
+            type: 'POST'
+        },
         columns: [
             { data: 'id', render: function(data) { return `<strong>#${data}</strong>`; } },
             { 

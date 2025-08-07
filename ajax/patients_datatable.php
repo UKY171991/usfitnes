@@ -13,15 +13,46 @@ header('Content-Type: application/json');
 try {
     // Check if database connection exists
     if (!isset($pdo) || !$pdo instanceof PDO) {
-        // Return empty data for development
-        echo json_encode([
-            'draw' => intval($_POST['draw'] ?? 1),
-            'recordsTotal' => 0,
-            'recordsFiltered' => 0,
-            'data' => [],
-            'error' => 'Database connection not available'
-        ]);
-        exit;
+        // Try to create connection
+        require_once '../config.php';
+        if (!isset($pdo) || !$pdo instanceof PDO) {
+            echo json_encode([
+                'draw' => intval($_POST['draw'] ?? 1),
+                'recordsTotal' => 0,
+                'recordsFiltered' => 0,
+                'data' => [],
+                'error' => 'Database connection not available'
+            ]);
+            exit;
+        }
+    }
+    
+    // Ensure patients table exists with sample data for testing
+    $pdo->exec("CREATE TABLE IF NOT EXISTS patients (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        first_name VARCHAR(100) NOT NULL,
+        last_name VARCHAR(100) NOT NULL,
+        phone VARCHAR(20),
+        email VARCHAR(100),
+        date_of_birth DATE,
+        gender ENUM('male', 'female', 'other'),
+        address TEXT,
+        emergency_contact VARCHAR(200),
+        medical_history TEXT,
+        status ENUM('active', 'inactive') DEFAULT 'active',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )");
+    
+    // Add sample data if table is empty
+    $count = $pdo->query("SELECT COUNT(*) FROM patients")->fetchColumn();
+    if ($count == 0) {
+        $pdo->exec("INSERT INTO patients (first_name, last_name, phone, email, date_of_birth, gender, address, status) VALUES
+            ('John', 'Doe', '+1234567890', 'john.doe@email.com', '1985-03-15', 'male', '123 Main St, City', 'active'),
+            ('Jane', 'Smith', '+0987654321', 'jane.smith@email.com', '1990-07-22', 'female', '456 Oak Ave, Town', 'active'),
+            ('Mike', 'Johnson', '+5555555555', 'mike.j@email.com', '1978-11-08', 'male', '789 Pine Rd, Village', 'inactive'),
+            ('Sarah', 'Wilson', '+4444444444', 'sarah.w@email.com', '1992-02-14', 'female', '321 Elm St, City', 'active')
+        ");
     }
     
     // DataTables parameters
@@ -86,30 +117,17 @@ try {
             $age = $now->diff($dob)->y;
         }
         
-        // Status badge
-        $statusClass = $patient['status'] === 'Active' ? 'success' : 'secondary';
-        $statusBadge = '<span class="badge badge-' . $statusClass . '">' . htmlspecialchars($patient['status']) . '</span>';
-        
-        // Actions
-        $actions = '
-            <div class="btn-group btn-group-sm">
-                <button class="btn btn-info btn-sm" onclick="editPatient(' . $patient['id'] . ')" title="Edit">
-                    <i class="fas fa-edit"></i>
-                </button>
-                <button class="btn btn-danger btn-sm" onclick="deletePatient(' . $patient['id'] . ')" title="Delete">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </div>';
-        
         $data[] = [
             'id' => $patient['id'],
-            'full_name' => htmlspecialchars($patient['first_name'] . ' ' . $patient['last_name']),
-            'phone' => htmlspecialchars($patient['phone']),
-            'email' => htmlspecialchars($patient['email'] ?: '-'),
-            'age' => $age ?: '-',
-            'gender' => htmlspecialchars($patient['gender']),
-            'status' => $statusBadge,
-            'actions' => $actions
+            'first_name' => $patient['first_name'],
+            'last_name' => $patient['last_name'],
+            'phone' => $patient['phone'] ?: '',
+            'email' => $patient['email'] ?: '',
+            'date_of_birth' => $patient['date_of_birth'],
+            'gender' => $patient['gender'] ?: '',
+            'status' => $patient['status'] ?: 'active',
+            'address' => $patient['address'] ?: '',
+            'created_at' => $patient['created_at']
         ];
     }
     
