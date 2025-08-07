@@ -1,415 +1,319 @@
 <?php
-// Set page title
-$page_title = 'Settings - PathLab Pro';
-
-// Include header and session handling
-include 'includes/adminlte_template_header.php';
-include 'includes/adminlte_sidebar.php';
-
-// Handle form submissions
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $action = $_POST['action'] ?? '';
-    
-    switch ($action) {
-        case 'update_profile':
-            $name = $_POST['name'] ?? '';
-            $email = $_POST['email'] ?? '';
-            $phone = $_POST['phone'] ?? '';
-            
-            if ($name && $email) {
-                $stmt = $conn->prepare("UPDATE users SET name = ?, email = ?, phone = ? WHERE id = ?");
-                if ($stmt->execute([$name, $email, $phone, $_SESSION['user_id']])) {
-                    $_SESSION['name'] = $name;
-                    $response = ['success' => true, 'message' => 'Profile updated successfully'];
-                } else {
-                    $response = ['success' => false, 'message' => 'Error updating profile'];
-                }
-            } else {
-                $response = ['success' => false, 'message' => 'Name and email are required'];
-            }
-            break;
-            
-        case 'change_password':
-            $current_password = $_POST['current_password'] ?? '';
-            $new_password = $_POST['new_password'] ?? '';
-            $confirm_password = $_POST['confirm_password'] ?? '';
-            
-            if ($current_password && $new_password && $confirm_password) {
-                if ($new_password === $confirm_password) {
-                    // Verify current password
-                    $stmt = $conn->prepare("SELECT password FROM users WHERE id = ?");
-                    $stmt->execute([$_SESSION['user_id']]);
-                    $user = $stmt->fetch();
-                    
-                    if ($user && password_verify($current_password, $user['password'])) {
-                        $hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
-                        $stmt = $conn->prepare("UPDATE users SET password = ? WHERE id = ?");
-                        if ($stmt->execute([$hashed_password, $_SESSION['user_id']])) {
-                            $response = ['success' => true, 'message' => 'Password changed successfully'];
-                        } else {
-                            $response = ['success' => false, 'message' => 'Error changing password'];
-                        }
-                    } else {
-                        $response = ['success' => false, 'message' => 'Current password is incorrect'];
-                    }
-                } else {
-                    $response = ['success' => false, 'message' => 'New passwords do not match'];
-                }
-            } else {
-                $response = ['success' => false, 'message' => 'All password fields are required'];
-            }
-            break;
-            
-        case 'update_system':
-            $lab_name = $_POST['lab_name'] ?? '';
-            $lab_address = $_POST['lab_address'] ?? '';
-            $lab_phone = $_POST['lab_phone'] ?? '';
-            $lab_email = $_POST['lab_email'] ?? '';
-            
-            if ($lab_name) {
-                // Store system settings in a simple way (you might want to create a settings table)
-                $settings = [
-                    'lab_name' => $lab_name,
-                    'lab_address' => $lab_address,
-                    'lab_phone' => $lab_phone,
-                    'lab_email' => $lab_email
-                ];
-                
-                // For now, we'll store in session (in a real app, use a settings table)
-                $_SESSION['lab_settings'] = $settings;
-                $response = ['success' => true, 'message' => 'System settings updated successfully'];
-            } else {
-                $response = ['success' => false, 'message' => 'Lab name is required'];
-            }
-            break;
-    }
-    
-    if (isset($response)) {
-        echo json_encode($response);
-        exit;
-    }
-}
-
-// Get current user info
-$stmt = $conn->prepare("SELECT * FROM users WHERE id = ?");
-$stmt->execute([$_SESSION['user_id']]);
-$current_user = $stmt->fetch(PDO::FETCH_ASSOC);
-
-// Get lab settings (from session for now)
-$lab_settings = $_SESSION['lab_settings'] ?? [
-    'lab_name' => 'PathLab Pro',
-    'lab_address' => '123 Medical Center Drive',
-    'lab_phone' => '+1-555-0123',
-    'lab_email' => 'info@pathlabpro.com'
+$page_title = 'Settings';
+$breadcrumbs = [
+    ['title' => 'Home', 'url' => 'dashboard.php'],
+    ['title' => 'Settings']
 ];
+$additional_css = ['css/settings.css'];
+$additional_js = ['js/settings.js'];
+
+ob_start();
 ?>
 
-<!-- Content Wrapper -->
-<div class="content-wrapper">
-  <!-- Content Header -->
-  <div class="content-header">
-    <div class="container-fluid">
-      <div class="row mb-2">
-        <div class="col-sm-6">
-          <h1 class="m-0"><i class="fas fa-cog mr-2"></i>Settings</h1>
-        </div>
-        <div class="col-sm-6">
-          <ol class="breadcrumb float-sm-right">
-            <li class="breadcrumb-item"><a href="dashboard.php">Home</a></li>
-            <li class="breadcrumb-item active">Settings</li>
-          </ol>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Main content -->
-  <section class="content">
-    <div class="container-fluid">
-      <div class="row">
-        <!-- Profile Settings -->
-        <div class="col-md-6">
-          <div class="card">
+<div class="row">
+    <div class="col-md-4">
+        <!-- Profile Settings Card -->
+        <div class="card">
             <div class="card-header">
-              <h3 class="card-title"><i class="fas fa-user mr-2"></i>Profile Settings</h3>
-            </div>
-            <form id="profileForm">
-              <div class="card-body">
-                <div class="form-group">
-                  <label for="name">Full Name *</label>
-                  <input type="text" class="form-control" id="name" name="name" value="<?php echo htmlspecialchars($current_user['name']); ?>" required>
-                </div>
-                <div class="form-group">
-                  <label for="email">Email Address *</label>
-                  <input type="email" class="form-control" id="email" name="email" value="<?php echo htmlspecialchars($current_user['email']); ?>" required>
-                </div>
-                <div class="form-group">
-                  <label for="phone">Phone Number</label>
-                  <input type="text" class="form-control" id="phone" name="phone" value="<?php echo htmlspecialchars($current_user['phone'] ?? ''); ?>">
-                </div>
-                <div class="form-group">
-                  <label>User Type</label>
-                  <input type="text" class="form-control" value="<?php echo ucfirst(htmlspecialchars($current_user['user_type'])); ?>" readonly>
-                </div>
-              </div>
-              <div class="card-footer">
-                <button type="submit" class="btn btn-primary">
-                  <i class="fas fa-save mr-2"></i>Update Profile
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-
-        <!-- Change Password -->
-        <div class="col-md-6">
-          <div class="card">
-            <div class="card-header">
-              <h3 class="card-title"><i class="fas fa-lock mr-2"></i>Change Password</h3>
-            </div>
-            <form id="passwordForm">
-              <div class="card-body">
-                <div class="form-group">
-                  <label for="current_password">Current Password *</label>
-                  <input type="password" class="form-control" id="current_password" name="current_password" required>
-                </div>
-                <div class="form-group">
-                  <label for="new_password">New Password *</label>
-                  <input type="password" class="form-control" id="new_password" name="new_password" required minlength="6">
-                  <small class="form-text text-muted">Password must be at least 6 characters long.</small>
-                </div>
-                <div class="form-group">
-                  <label for="confirm_password">Confirm New Password *</label>
-                  <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
-                </div>
-              </div>
-              <div class="card-footer">
-                <button type="submit" class="btn btn-warning">
-                  <i class="fas fa-key mr-2"></i>Change Password
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      </div>
-
-      <?php if ($current_user['user_type'] == 'admin'): ?>
-      <!-- System Settings (Admin Only) -->
-      <div class="row mt-4">
-        <div class="col-md-12">
-          <div class="card">
-            <div class="card-header">
-              <h3 class="card-title"><i class="fas fa-hospital mr-2"></i>Laboratory Settings</h3>
-            </div>
-            <form id="systemForm">
-              <div class="card-body">
-                <div class="row">
-                  <div class="col-md-6">
-                    <div class="form-group">
-                      <label for="lab_name">Laboratory Name *</label>
-                      <input type="text" class="form-control" id="lab_name" name="lab_name" value="<?php echo htmlspecialchars($lab_settings['lab_name']); ?>" required>
-                    </div>
-                  </div>
-                  <div class="col-md-6">
-                    <div class="form-group">
-                      <label for="lab_email">Laboratory Email</label>
-                      <input type="email" class="form-control" id="lab_email" name="lab_email" value="<?php echo htmlspecialchars($lab_settings['lab_email']); ?>">
-                    </div>
-                  </div>
-                </div>
-                <div class="row">
-                  <div class="col-md-6">
-                    <div class="form-group">
-                      <label for="lab_phone">Laboratory Phone</label>
-                      <input type="text" class="form-control" id="lab_phone" name="lab_phone" value="<?php echo htmlspecialchars($lab_settings['lab_phone']); ?>">
-                    </div>
-                  </div>
-                  <div class="col-md-6">
-                    <div class="form-group">
-                      <label for="lab_address">Laboratory Address</label>
-                      <textarea class="form-control" id="lab_address" name="lab_address" rows="3"><?php echo htmlspecialchars($lab_settings['lab_address']); ?></textarea>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div class="card-footer">
-                <button type="submit" class="btn btn-success">
-                  <i class="fas fa-save mr-2"></i>Update System Settings
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      </div>
-
-      <!-- System Information -->
-      <div class="row mt-4">
-        <div class="col-md-6">
-          <div class="card">
-            <div class="card-header">
-              <h3 class="card-title"><i class="fas fa-info-circle mr-2"></i>System Information</h3>
+                <h3 class="card-title">
+                    <i class="fas fa-user mr-2"></i>
+                    Profile Settings
+                </h3>
             </div>
             <div class="card-body">
-              <table class="table table-borderless">
-                <tr>
-                  <td><strong>System Version:</strong></td>
-                  <td>PathLab Pro v1.0.0</td>
-                </tr>
-                <tr>
-                  <td><strong>PHP Version:</strong></td>
-                  <td><?php echo PHP_VERSION; ?></td>
-                </tr>
-                <tr>
-                  <td><strong>Database:</strong></td>
-                  <td>MySQL/MariaDB</td>
-                </tr>
-                <tr>
-                  <td><strong>Server Time:</strong></td>
-                  <td><?php echo date('Y-m-d H:i:s'); ?></td>
-                </tr>
-              </table>
+                <div class="text-center mb-3">
+                    <div class="profile-avatar">
+                        <i class="fas fa-user-circle fa-5x text-primary"></i>
+                    </div>
+                    <h5 class="mt-2"><?php echo htmlspecialchars($_SESSION['full_name'] ?? 'User'); ?></h5>
+                    <p class="text-muted"><?php echo ucfirst($_SESSION['user_type'] ?? 'user'); ?></p>
+                </div>
+                
+                <button type="button" class="btn btn-primary btn-block" onclick="showProfileModal()">
+                    <i class="fas fa-edit mr-1"></i>
+                    Edit Profile
+                </button>
+                
+                <button type="button" class="btn btn-warning btn-block mt-2" onclick="showPasswordModal()">
+                    <i class="fas fa-key mr-1"></i>
+                    Change Password
+                </button>
             </div>
-          </div>
         </div>
-
-        <!-- Quick Actions -->
-        <div class="col-md-6">
-          <div class="card">
+        
+        <!-- Quick Actions Card -->
+        <div class="card">
             <div class="card-header">
-              <h3 class="card-title"><i class="fas fa-tools mr-2"></i>Quick Actions</h3>
+                <h3 class="card-title">
+                    <i class="fas fa-bolt mr-2"></i>
+                    Quick Actions
+                </h3>
             </div>
             <div class="card-body">
-              <button class="btn btn-info btn-block mb-2" onclick="clearCache()">
-                <i class="fas fa-broom mr-2"></i>Clear System Cache
-              </button>
-              <button class="btn btn-warning btn-block mb-2" onclick="backupDatabase()">
-                <i class="fas fa-download mr-2"></i>Backup Database
-              </button>
-              <button class="btn btn-secondary btn-block mb-2" onclick="viewLogs()">
-                <i class="fas fa-file-alt mr-2"></i>View System Logs
-              </button>
-              <button class="btn btn-primary btn-block" onclick="checkUpdates()">
-                <i class="fas fa-sync-alt mr-2"></i>Check for Updates
-              </button>
+                <button type="button" class="btn btn-info btn-block" onclick="exportUserData()">
+                    <i class="fas fa-download mr-1"></i>
+                    Export My Data
+                </button>
+                
+                <button type="button" class="btn btn-secondary btn-block mt-2" onclick="showActivityLog()">
+                    <i class="fas fa-history mr-1"></i>
+                    Activity Log
+                </button>
             </div>
-          </div>
         </div>
-      </div>
-      <?php endif; ?>
     </div>
-  </section>
+    
+    <div class="col-md-8">
+        <!-- System Settings Card -->
+        <?php if ($_SESSION['user_type'] === 'admin'): ?>
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-cogs mr-2"></i>
+                    System Settings
+                </h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <div class="setting-item">
+                            <h6><i class="fas fa-building mr-2"></i>Lab Information</h6>
+                            <p class="text-muted">Update laboratory details and contact information</p>
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="showLabInfoModal()">
+                                Configure
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <div class="setting-item">
+                            <h6><i class="fas fa-envelope mr-2"></i>Email Settings</h6>
+                            <p class="text-muted">Configure SMTP and email notifications</p>
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="showEmailSettingsModal()">
+                                Configure
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <div class="setting-item">
+                            <h6><i class="fas fa-bell mr-2"></i>Notifications</h6>
+                            <p class="text-muted">Manage system notifications and alerts</p>
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="showNotificationSettings()">
+                                Configure
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <div class="setting-item">
+                            <h6><i class="fas fa-shield-alt mr-2"></i>Security</h6>
+                            <p class="text-muted">Security settings and access control</p>
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="showSecuritySettings()">
+                                Configure
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
+        
+        <!-- Preferences Card -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-sliders-h mr-2"></i>
+                    Preferences
+                </h3>
+            </div>
+            <div class="card-body">
+                <form id="preferencesForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Theme</label>
+                                <select class="form-control" name="theme" id="themeSelect">
+                                    <option value="light">Light</option>
+                                    <option value="dark">Dark</option>
+                                    <option value="auto">Auto</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Language</label>
+                                <select class="form-control" name="language">
+                                    <option value="en">English</option>
+                                    <option value="es">Spanish</option>
+                                    <option value="fr">French</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Date Format</label>
+                                <select class="form-control" name="date_format">
+                                    <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+                                    <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+                                    <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Timezone</label>
+                                <select class="form-control" name="timezone">
+                                    <option value="UTC">UTC</option>
+                                    <option value="America/New_York">Eastern Time</option>
+                                    <option value="America/Chicago">Central Time</option>
+                                    <option value="America/Los_Angeles">Pacific Time</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input" id="emailNotifications" name="email_notifications">
+                            <label class="custom-control-label" for="emailNotifications">
+                                Enable email notifications
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <div class="custom-control custom-switch">
+                            <input type="checkbox" class="custom-control-input" id="autoSave" name="auto_save">
+                            <label class="custom-control-label" for="autoSave">
+                                Enable auto-save
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save mr-1"></i>
+                        Save Preferences
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
 </div>
 
-<?php include 'includes/adminlte_template_footer.php'; ?>
+<!-- Profile Modal -->
+<div class="modal fade" id="profileModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Edit Profile</h4>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="profileForm">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="fullName">Full Name *</label>
+                        <input type="text" class="form-control" id="fullName" name="full_name" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="email">Email *</label>
+                        <input type="email" class="form-control" id="email" name="email" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="phone">Phone</label>
+                        <input type="text" class="form-control" id="phone" name="phone">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="username">Username</label>
+                        <input type="text" class="form-control" id="username" name="username" readonly>
+                        <small class="form-text text-muted">Username cannot be changed</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save mr-1"></i>
+                        Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
-<script>
-$(document).ready(function() {
-    // Profile Form Submission
-    $('#profileForm').submit(function(e) {
-        e.preventDefault();
-        
-        $.ajax({
-            url: 'settings.php',
-            type: 'POST',
-            data: $(this).serialize() + '&action=update_profile',
-            dataType: 'json',
-            success: function(response) {
-                if (response.success) {
-                    toastr.success(response.message);
-                } else {
-                    toastr.error(response.message);
-                }
-            },
-            error: function() {
-                toastr.error('An error occurred while updating profile');
-            }
-        });
-    });
+<!-- Password Modal -->
+<div class="modal fade" id="passwordModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Change Password</h4>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="passwordForm">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="currentPassword">Current Password *</label>
+                        <input type="password" class="form-control" id="currentPassword" name="current_password" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="newPassword">New Password *</label>
+                        <input type="password" class="form-control" id="newPassword" name="new_password" required minlength="6">
+                        <small class="form-text text-muted">Password must be at least 6 characters long</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="confirmPassword">Confirm New Password *</label>
+                        <input type="password" class="form-control" id="confirmPassword" name="confirm_password" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="fas fa-key mr-1"></i>
+                        Change Password
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
-    // Password Form Submission
-    $('#passwordForm').submit(function(e) {
-        e.preventDefault();
-        
-        var newPassword = $('#new_password').val();
-        var confirmPassword = $('#confirm_password').val();
-        
-        if (newPassword !== confirmPassword) {
-            toastr.error('New passwords do not match');
-            return;
-        }
-        
-        $.ajax({
-            url: 'settings.php',
-            type: 'POST',
-            data: $(this).serialize() + '&action=change_password',
-            dataType: 'json',
-            success: function(response) {
-                if (response.success) {
-                    toastr.success(response.message);
-                    $('#passwordForm')[0].reset();
-                } else {
-                    toastr.error(response.message);
-                }
-            },
-            error: function() {
-                toastr.error('An error occurred while changing password');
-            }
-        });
-    });
+<!-- Activity Log Modal -->
+<div class="modal fade" id="activityModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Activity Log</h4>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="activityLogContent">
+                    <!-- Activity log will be loaded here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
 
-    // System Form Submission
-    $('#systemForm').submit(function(e) {
-        e.preventDefault();
-        
-        $.ajax({
-            url: 'settings.php',
-            type: 'POST',
-            data: $(this).serialize() + '&action=update_system',
-            dataType: 'json',
-            success: function(response) {
-                if (response.success) {
-                    toastr.success(response.message);
-                } else {
-                    toastr.error(response.message);
-                }
-            },
-            error: function() {
-                toastr.error('An error occurred while updating system settings');
-            }
-        });
-    });
-
-    // Password confirmation validation
-    $('#confirm_password').on('keyup', function() {
-        var password = $('#new_password').val();
-        var confirmPassword = $(this).val();
-        
-        if (password !== confirmPassword) {
-            $(this).addClass('is-invalid');
-        } else {
-            $(this).removeClass('is-invalid').addClass('is-valid');
-        }
-    });
-});
-
-// Quick Action Functions
-function clearCache() {
-    if (confirm('Are you sure you want to clear the system cache?')) {
-        toastr.info('Cache clearing functionality would be implemented here');
-    }
-}
-
-function backupDatabase() {
-    if (confirm('Are you sure you want to backup the database?')) {
-        toastr.info('Database backup functionality would be implemented here');
-    }
-}
-
-function viewLogs() {
-    toastr.info('System logs viewer would be implemented here');
-}
-
-function checkUpdates() {
-    toastr.info('Update checker would be implemented here');
-}
-</script>
+<?php
+$content = ob_get_clean();
+require_once 'includes/adminlte3_template.php';
+?>

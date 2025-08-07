@@ -507,5 +507,8 @@ function updateNotificationUI(notifications) {
 }
 </script>
 
+<!-- Global Toaster System -->
+<script src="js/global-toaster.js?v=<?php echo time(); ?>"></script>
+
 </body>
 </html>
