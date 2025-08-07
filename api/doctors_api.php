@@ -1,5 +1,6 @@
 <?php
 require_once '../config.php';
+require_once '../includes/init.php';
 
 // Set JSON header
 header('Content-Type: application/json');
@@ -26,7 +27,7 @@ try {
             break;
         case 'add':
         case 'create':
-            addDoctor();
+            createDoctor();
             break;
         case 'update':
             updateDoctor();
@@ -39,6 +40,7 @@ try {
     }
 } catch (Exception $e) {
     error_log("Doctors API Error: " . $e->getMessage());
+    http_response_code(500);
     echo json_encode([
         'success' => false,
         'message' => $e->getMessage()
@@ -47,6 +49,245 @@ try {
 
 function listDoctors() {
     global $pdo;
+    
+    try {
+        $query = "
+            SELECT 
+                id,
+                first_name,
+                last_name,
+                CONCAT(first_name, ' ', last_name) as full_name,
+                specialization,
+                phone,
+                email,
+                license_number,
+                qualification,
+                COALESCE(status, 'Active') as status,
+                created_at
+            FROM doctors 
+            WHERE (status != 'deleted' OR status IS NULL)
+            ORDER BY created_at DESC
+        ";
+        
+        $stmt = $pdo->prepare($query);
+        $stmt->execute();
+        $doctors = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        echo json_encode([
+            'success' => true,
+            'data' => $doctors
+        ]);
+        
+    } catch (Exception $e) {
+        throw new Exception('Failed to retrieve doctors: ' . $e->getMessage());
+    }
+}
+
+function getDoctor() {
+    global $pdo;
+    
+    $id = $_GET['id'] ?? null;
+    if (!$id) {
+        throw new Exception('Doctor ID is required');
+    }
+    
+    try {
+        $query = "
+            SELECT 
+                id,
+                first_name,
+                last_name,
+                specialization,
+                phone,
+                email,
+                license_number,
+                qualification,
+                COALESCE(status, 'Active') as status,
+                created_at
+            FROM doctors 
+            WHERE id = ? AND (status != 'deleted' OR status IS NULL)
+        ";
+        
+        $stmt = $pdo->prepare($query);
+        $stmt->execute([$id]);
+        $doctor = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$doctor) {
+            throw new Exception('Doctor not found');
+        }
+        
+        echo json_encode([
+            'success' => true,
+            'data' => $doctor
+        ]);
+        
+    } catch (Exception $e) {
+        throw new Exception('Failed to retrieve doctor: ' . $e->getMessage());
+    }
+}
+
+function createDoctor() {
+    global $pdo;
+    
+    // Validation
+    $required_fields = ['first_name', 'last_name', 'specialization', 'phone', 'license_number'];
+    foreach ($required_fields as $field) {
+        if (empty($_POST[$field])) {
+            throw new Exception(ucfirst(str_replace('_', ' ', $field)) . ' is required');
+        }
+    }
+    
+    // Validate email if provided
+    if (!empty($_POST['email']) && !filter_var($_POST['email'], FILTER_VALIDATE_EMAIL)) {
+        throw new Exception('Invalid email format');
+    }
+    
+    // Check for duplicate license number
+    $license_check = $pdo->prepare("SELECT id FROM doctors WHERE license_number = ? AND (status != 'deleted' OR status IS NULL)");
+    $license_check->execute([$_POST['license_number']]);
+    if ($license_check->fetch()) {
+        throw new Exception('A doctor with this license number already exists');
+    }
+    
+    try {
+        $query = "
+            INSERT INTO doctors (
+                first_name, last_name, specialization, phone, email,
+                license_number, qualification, status, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
+        ";
+        
+        $stmt = $pdo->prepare($query);
+        $success = $stmt->execute([
+            $_POST['first_name'],
+            $_POST['last_name'],
+            $_POST['specialization'],
+            $_POST['phone'],
+            $_POST['email'] ?: null,
+            $_POST['license_number'],
+            $_POST['qualification'] ?: null,
+            $_POST['status'] ?: 'Active'
+        ]);
+        
+        if ($success) {
+            $doctor_id = $pdo->lastInsertId();
+            echo json_encode([
+                'success' => true,
+                'message' => 'Doctor created successfully',
+                'id' => $doctor_id
+            ]);
+        } else {
+            throw new Exception('Failed to create doctor');
+        }
+        
+    } catch (Exception $e) {
+        throw new Exception('Database error: ' . $e->getMessage());
+    }
+}
+
+function updateDoctor() {
+    global $pdo;
+    
+    $id = $_POST['id'] ?? null;
+    if (!$id) {
+        throw new Exception('Doctor ID is required');
+    }
+    
+    // Validation
+    $required_fields = ['first_name', 'last_name', 'specialization', 'phone', 'license_number'];
+    foreach ($required_fields as $field) {
+        if (empty($_POST[$field])) {
+            throw new Exception(ucfirst(str_replace('_', ' ', $field)) . ' is required');
+        }
+    }
+    
+    // Validate email if provided
+    if (!empty($_POST['email']) && !filter_var($_POST['email'], FILTER_VALIDATE_EMAIL)) {
+        throw new Exception('Invalid email format');
+    }
+    
+    // Check for duplicate license number (excluding current doctor)
+    $license_check = $pdo->prepare("SELECT id FROM doctors WHERE license_number = ? AND id != ? AND (status != 'deleted' OR status IS NULL)");
+    $license_check->execute([$_POST['license_number'], $id]);
+    if ($license_check->fetch()) {
+        throw new Exception('A doctor with this license number already exists');
+    }
+    
+    try {
+        $query = "
+            UPDATE doctors SET
+                first_name = ?,
+                last_name = ?,
+                specialization = ?,
+                phone = ?,
+                email = ?,
+                license_number = ?,
+                qualification = ?,
+                status = ?,
+                updated_at = NOW()
+            WHERE id = ?
+        ";
+        
+        $stmt = $pdo->prepare($query);
+        $success = $stmt->execute([
+            $_POST['first_name'],
+            $_POST['last_name'],
+            $_POST['specialization'],
+            $_POST['phone'],
+            $_POST['email'] ?: null,
+            $_POST['license_number'],
+            $_POST['qualification'] ?: null,
+            $_POST['status'] ?: 'Active',
+            $id
+        ]);
+        
+        if ($success && $stmt->rowCount() > 0) {
+            echo json_encode([
+                'success' => true,
+                'message' => 'Doctor updated successfully'
+            ]);
+        } else if ($success && $stmt->rowCount() === 0) {
+            echo json_encode([
+                'success' => true,
+                'message' => 'No changes made'
+            ]);
+        } else {
+            throw new Exception('Failed to update doctor');
+        }
+        
+    } catch (Exception $e) {
+        throw new Exception('Database error: ' . $e->getMessage());
+    }
+}
+
+function deleteDoctor() {
+    global $pdo;
+    
+    $id = $_POST['id'] ?? null;
+    if (!$id) {
+        throw new Exception('Doctor ID is required');
+    }
+    
+    try {
+        // Soft delete - mark as deleted
+        $query = "UPDATE doctors SET status = 'deleted', updated_at = NOW() WHERE id = ?";
+        $stmt = $pdo->prepare($query);
+        $success = $stmt->execute([$id]);
+        
+        if ($success && $stmt->rowCount() > 0) {
+            echo json_encode([
+                'success' => true,
+                'message' => 'Doctor deleted successfully'
+            ]);
+        } else {
+            throw new Exception('Doctor not found or already deleted');
+        }
+        
+    } catch (Exception $e) {
+        throw new Exception('Database error: ' . $e->getMessage());
+    }
+}
+?>
     
     $stmt = $pdo->prepare("
         SELECT id, doctor_id, first_name, last_name, specialization, 

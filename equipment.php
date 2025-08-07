@@ -1,29 +1,17 @@
 <?php
-// Set page title
-$page_title = 'Equipment Management - PathLab Pro';
-
-// Include database connection
 require_once 'config.php';
+require_once 'includes/init.php';
 
-// Get action parameter
-$action = $_GET['action'] ?? 'list';
-$equipment_id = $_GET['id'] ?? null;
-
-// Get equipment data
-$equipment = [];
-try {
-    $query = "SELECT * FROM equipment WHERE status != 'deleted' ORDER BY created_at DESC";
-    $result = mysqli_query($conn, $query);
-    if ($result) {
-        while ($row = mysqli_fetch_assoc($result)) {
-            $equipment[] = $row;
-        }
-    }
-} catch (Exception $e) {
-    error_log("Equipment query error: " . $e->getMessage());
+// Check authentication
+if (!isset($_SESSION['user_id'])) {
+    header('Location: login.php');
+    exit;
 }
 
-// Include AdminLTE header and sidebar
+$pageTitle = 'Equipment Management';
+$pageIcon = 'fas fa-cogs';
+$breadcrumbs = ['Equipment'];
+
 include 'includes/adminlte_template_header.php';
 include 'includes/adminlte_sidebar.php';
 ?>
@@ -36,18 +24,357 @@ include 'includes/adminlte_sidebar.php';
       <div class="row mb-2">
         <div class="col-sm-6">
           <h1 class="m-0">
-            <i class="fas fa-cogs mr-2 text-warning"></i>
-            Equipment Management
+            <i class="<?php echo $pageIcon; ?> mr-2 text-warning"></i><?php echo $pageTitle; ?>
           </h1>
         </div>
         <div class="col-sm-6">
           <ol class="breadcrumb float-sm-right">
-            <li class="breadcrumb-item">
-              <a href="dashboard.php">
-                <i class="fas fa-home"></i> Home
-              </a>
-            </li>
-            <li class="breadcrumb-item active">Equipment</li>
+            <li class="breadcrumb-item"><a href="dashboard.php">Home</a></li>
+            <?php foreach($breadcrumbs as $index => $crumb): ?>
+              <li class="breadcrumb-item active"><?php echo $crumb; ?></li>
+            <?php endforeach; ?>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main content -->
+  <section class="content">
+    <div class="container-fluid">
+      <div class="row">
+        <div class="col-12">
+          <div class="card card-warning card-outline">
+            <div class="card-header">
+              <h3 class="card-title">
+                <i class="fas fa-list mr-2"></i>All Equipment
+              </h3>
+              <div class="card-tools">
+                <button type="button" class="btn btn-warning btn-sm" data-toggle="modal" data-target="#equipmentModal" onclick="openAddModal()">
+                  <i class="fas fa-plus mr-1"></i>Add Equipment
+                </button>
+                <button type="button" class="btn btn-outline-secondary btn-sm ml-1" onclick="refreshTable()">
+                  <i class="fas fa-sync-alt mr-1"></i>Refresh
+                </button>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="table-responsive">
+                <table id="equipmentTable" class="table table-bordered table-striped table-hover">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Name</th>
+                      <th>Model</th>
+                      <th>Category</th>
+                      <th>Serial No.</th>
+                      <th>Status</th>
+                      <th>Maintenance</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <!-- Data will be loaded via DataTables AJAX -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- Equipment Modal -->
+<div class="modal fade" id="equipmentModal" tabindex="-1" aria-labelledby="equipmentModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-warning">
+        <h5 class="modal-title text-dark" id="equipmentModalLabel">
+          <i class="fas fa-cogs mr-2"></i>
+          <span id="modalTitle">Add New Equipment</span>
+        </h5>
+        <button type="button" class="close text-dark" data-dismiss="modal">
+          <span>&times;</span>
+        </button>
+      </div>
+      <form id="equipmentForm" novalidate>
+        <div class="modal-body">
+          <input type="hidden" id="equipmentId" name="id">
+          
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="equipmentName">Equipment Name <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="equipmentName" name="name" required>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="model">Model</label>
+                <input type="text" class="form-control" id="model" name="model">
+              </div>
+            </div>
+          </div>
+          
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="category">Category <span class="text-danger">*</span></label>
+                <select class="form-control" id="category" name="category" required>
+                  <option value="">Select Category</option>
+                  <option value="Laboratory">Laboratory</option>
+                  <option value="Diagnostic">Diagnostic</option>
+                  <option value="Imaging">Imaging</option>
+                  <option value="Surgical">Surgical</option>
+                  <option value="Monitoring">Monitoring</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="serialNumber">Serial Number</label>
+                <input type="text" class="form-control" id="serialNumber" name="serial_number">
+              </div>
+            </div>
+          </div>
+          
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="manufacturer">Manufacturer</label>
+                <input type="text" class="form-control" id="manufacturer" name="manufacturer">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="purchaseDate">Purchase Date</label>
+                <input type="date" class="form-control" id="purchaseDate" name="purchase_date">
+              </div>
+            </div>
+          </div>
+          
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="warrantyExpiry">Warranty Expiry</label>
+                <input type="date" class="form-control" id="warrantyExpiry" name="warranty_expiry">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="lastMaintenance">Last Maintenance</label>
+                <input type="date" class="form-control" id="lastMaintenance" name="last_maintenance">
+              </div>
+            </div>
+          </div>
+          
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="nextMaintenance">Next Maintenance</label>
+                <input type="date" class="form-control" id="nextMaintenance" name="next_maintenance">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="status">Status</label>
+                <select class="form-control" id="status" name="status">
+                  <option value="Active">Active</option>
+                  <option value="Maintenance">Maintenance</option>
+                  <option value="Inactive">Inactive</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="description">Description</label>
+            <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-warning">
+            <i class="fas fa-save mr-1"></i>Save Equipment
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+$(document).ready(function() {
+    // Initialize DataTable
+    initDataTable();
+});
+
+function initDataTable() {
+    $('#equipmentTable').DataTable({
+        processing: true,
+        serverSide: true,
+        ajax: {
+            url: 'ajax/equipment_datatable.php',
+            type: 'POST',
+            error: function(xhr, error, thrown) {
+                console.log('DataTables Error:', error);
+                showToast('error', 'Failed to load equipment data. Please check your database connection.');
+            }
+        },
+        columns: [
+            { data: 'id', width: '60px' },
+            { data: 'name' },
+            { data: 'model' },
+            { data: 'category' },
+            { data: 'serial_number' },
+            { data: 'status', width: '100px' },
+            { data: 'maintenance_status', width: '120px' },
+            { data: 'actions', orderable: false, width: '120px' }
+        ],
+        order: [[0, 'desc']],
+        responsive: true,
+        language: {
+            processing: '<div class="spinner-border spinner-border-sm text-warning" role="status"></div> Loading...'
+        }
+    });
+}
+
+function refreshTable() {
+    $('#equipmentTable').DataTable().ajax.reload(null, false);
+    showToast('success', 'Table refreshed successfully');
+}
+
+function openAddModal() {
+    $('#equipmentModalLabel #modalTitle').text('Add New Equipment');
+    $('#equipmentForm')[0].reset();
+    $('#equipmentId').val('');
+    $('#equipmentForm').removeClass('was-validated');
+    $('#status').val('Active');
+}
+
+function editEquipment(id) {
+    $('#equipmentModalLabel #modalTitle').text('Edit Equipment');
+    
+    $.ajax({
+        url: 'api/equipment_api.php',
+        type: 'GET',
+        data: { action: 'get', id: id },
+        dataType: 'json',
+        success: function(response) {
+            if (response.success) {
+                const equipment = response.data;
+                $('#equipmentId').val(equipment.id);
+                $('#equipmentName').val(equipment.name);
+                $('#model').val(equipment.model);
+                $('#category').val(equipment.category);
+                $('#serialNumber').val(equipment.serial_number);
+                $('#manufacturer').val(equipment.manufacturer);
+                $('#purchaseDate').val(equipment.purchase_date);
+                $('#warrantyExpiry').val(equipment.warranty_expiry);
+                $('#lastMaintenance').val(equipment.last_maintenance);
+                $('#nextMaintenance').val(equipment.next_maintenance);
+                $('#status').val(equipment.status);
+                $('#description').val(equipment.description);
+                $('#equipmentModal').modal('show');
+            } else {
+                showToast('error', response.message);
+            }
+        },
+        error: function() {
+            showToast('error', 'Failed to load equipment data');
+        }
+    });
+}
+
+function deleteEquipment(id) {
+    if (confirm('Are you sure you want to delete this equipment?')) {
+        $.ajax({
+            url: 'api/equipment_api.php',
+            type: 'POST',
+            data: { 
+                action: 'delete', 
+                id: id 
+            },
+            dataType: 'json',
+            success: function(response) {
+                if (response.success) {
+                    showToast('success', 'Equipment deleted successfully');
+                    refreshTable();
+                } else {
+                    showToast('error', response.message);
+                }
+            },
+            error: function() {
+                showToast('error', 'Failed to delete equipment');
+            }
+        });
+    }
+}
+
+// Form submission
+$('#equipmentForm').on('submit', function(e) {
+    e.preventDefault();
+    
+    if (!this.checkValidity()) {
+        e.stopPropagation();
+        $(this).addClass('was-validated');
+        return;
+    }
+    
+    const formData = new FormData(this);
+    const isEdit = $('#equipmentId').val() !== '';
+    formData.append('action', isEdit ? 'update' : 'create');
+    
+    $.ajax({
+        url: 'api/equipment_api.php',
+        type: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        dataType: 'json',
+        success: function(response) {
+            if (response.success) {
+                showToast('success', isEdit ? 'Equipment updated successfully' : 'Equipment created successfully');
+                $('#equipmentModal').modal('hide');
+                refreshTable();
+            } else {
+                showToast('error', response.message);
+            }
+        },
+        error: function() {
+            showToast('error', 'Failed to save equipment');
+        }
+    });
+});
+
+function showToast(type, message) {
+    const toast = $(`
+        <div class="toast toast-${type}" role="alert" style="position: fixed; top: 20px; right: 20px; z-index: 9999;">
+            <div class="toast-header">
+                <i class="fas fa-${type === 'success' ? 'check-circle text-success' : 'exclamation-circle text-danger'} mr-2"></i>
+                <strong class="mr-auto">${type === 'success' ? 'Success' : 'Error'}</strong>
+                <button type="button" class="ml-2 mb-1 close" data-dismiss="toast">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="toast-body">${message}</div>
+        </div>
+    `);
+    
+    $('body').append(toast);
+    toast.toast({ delay: 3000 });
+    toast.toast('show');
+    
+    toast.on('hidden.bs.toast', function() {
+        $(this).remove();
+    });
+}
+</script>
+
+<?php include 'includes/adminlte_template_footer.php'; ?>
           </ol>
         </div>
       </div>

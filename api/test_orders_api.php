@@ -1,5 +1,6 @@
 <?php
 require_once '../config.php';
+require_once '../includes/init.php';
 
 // Set JSON header
 header('Content-Type: application/json');
@@ -26,7 +27,7 @@ try {
             break;
         case 'add':
         case 'create':
-            addOrder();
+            createOrder();
             break;
         case 'update':
             updateOrder();
@@ -42,11 +43,305 @@ try {
     }
 } catch (Exception $e) {
     error_log("Test Orders API Error: " . $e->getMessage());
+    http_response_code(500);
     echo json_encode([
         'success' => false,
         'message' => $e->getMessage()
     ]);
 }
+
+function listOrders() {
+    global $pdo;
+    
+    try {
+        $query = "
+            SELECT 
+                to.id,
+                to.patient_id,
+                to.doctor_id,
+                CONCAT(COALESCE(p.first_name, ''), ' ', COALESCE(p.last_name, '')) as patient_name,
+                CONCAT(COALESCE(d.first_name, ''), ' ', COALESCE(d.last_name, '')) as doctor_name,
+                to.test_type,
+                to.priority,
+                COALESCE(to.status, 'Pending') as status,
+                to.order_date,
+                to.notes,
+                to.created_at
+            FROM test_orders to
+            LEFT JOIN patients p ON to.patient_id = p.id
+            LEFT JOIN doctors d ON to.doctor_id = d.id
+            WHERE (to.status != 'deleted' OR to.status IS NULL)
+            ORDER BY to.created_at DESC
+        ";
+        
+        $stmt = $pdo->prepare($query);
+        $stmt->execute();
+        $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        echo json_encode([
+            'success' => true,
+            'data' => $orders
+        ]);
+        
+    } catch (Exception $e) {
+        throw new Exception('Failed to retrieve test orders: ' . $e->getMessage());
+    }
+}
+
+function getOrder() {
+    global $pdo;
+    
+    $id = $_GET['id'] ?? null;
+    if (!$id) {
+        throw new Exception('Order ID is required');
+    }
+    
+    try {
+        $query = "
+            SELECT 
+                to.id,
+                to.patient_id,
+                to.doctor_id,
+                to.test_type,
+                to.priority,
+                COALESCE(to.status, 'Pending') as status,
+                to.order_date,
+                to.notes,
+                to.created_at
+            FROM test_orders to
+            WHERE to.id = ? AND (to.status != 'deleted' OR to.status IS NULL)
+        ";
+        
+        $stmt = $pdo->prepare($query);
+        $stmt->execute([$id]);
+        $order = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$order) {
+            throw new Exception('Test order not found');
+        }
+        
+        echo json_encode([
+            'success' => true,
+            'data' => $order
+        ]);
+        
+    } catch (Exception $e) {
+        throw new Exception('Failed to retrieve test order: ' . $e->getMessage());
+    }
+}
+
+function createOrder() {
+    global $pdo;
+    
+    // Validation
+    $required_fields = ['patient_id', 'doctor_id', 'test_type'];
+    foreach ($required_fields as $field) {
+        if (empty($_POST[$field])) {
+            throw new Exception(ucfirst(str_replace('_', ' ', $field)) . ' is required');
+        }
+    }
+    
+    // Validate patient exists
+    $patient_check = $pdo->prepare("SELECT id FROM patients WHERE id = ? AND (status != 'deleted' OR status IS NULL)");
+    $patient_check->execute([$_POST['patient_id']]);
+    if (!$patient_check->fetch()) {
+        throw new Exception('Invalid patient selected');
+    }
+    
+    // Validate doctor exists
+    $doctor_check = $pdo->prepare("SELECT id FROM doctors WHERE id = ? AND (status != 'deleted' OR status IS NULL)");
+    $doctor_check->execute([$_POST['doctor_id']]);
+    if (!$doctor_check->fetch()) {
+        throw new Exception('Invalid doctor selected');
+    }
+    
+    // Validate order date
+    if (!empty($_POST['order_date']) && !validateDate($_POST['order_date'])) {
+        throw new Exception('Order date must be a valid date');
+    }
+    
+    try {
+        $query = "
+            INSERT INTO test_orders (
+                patient_id, doctor_id, test_type, priority, status,
+                order_date, notes, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
+        ";
+        
+        $stmt = $pdo->prepare($query);
+        $success = $stmt->execute([
+            $_POST['patient_id'],
+            $_POST['doctor_id'],
+            $_POST['test_type'],
+            $_POST['priority'] ?: 'Normal',
+            $_POST['status'] ?: 'Pending',
+            $_POST['order_date'] ?: date('Y-m-d'),
+            $_POST['notes'] ?: null
+        ]);
+        
+        if ($success) {
+            $order_id = $pdo->lastInsertId();
+            echo json_encode([
+                'success' => true,
+                'message' => 'Test order created successfully',
+                'id' => $order_id
+            ]);
+        } else {
+            throw new Exception('Failed to create test order');
+        }
+        
+    } catch (Exception $e) {
+        throw new Exception('Database error: ' . $e->getMessage());
+    }
+}
+
+function updateOrder() {
+    global $pdo;
+    
+    $id = $_POST['id'] ?? null;
+    if (!$id) {
+        throw new Exception('Order ID is required');
+    }
+    
+    // Validation
+    $required_fields = ['patient_id', 'doctor_id', 'test_type'];
+    foreach ($required_fields as $field) {
+        if (empty($_POST[$field])) {
+            throw new Exception(ucfirst(str_replace('_', ' ', $field)) . ' is required');
+        }
+    }
+    
+    // Validate patient exists
+    $patient_check = $pdo->prepare("SELECT id FROM patients WHERE id = ? AND (status != 'deleted' OR status IS NULL)");
+    $patient_check->execute([$_POST['patient_id']]);
+    if (!$patient_check->fetch()) {
+        throw new Exception('Invalid patient selected');
+    }
+    
+    // Validate doctor exists
+    $doctor_check = $pdo->prepare("SELECT id FROM doctors WHERE id = ? AND (status != 'deleted' OR status IS NULL)");
+    $doctor_check->execute([$_POST['doctor_id']]);
+    if (!$doctor_check->fetch()) {
+        throw new Exception('Invalid doctor selected');
+    }
+    
+    // Validate order date
+    if (!empty($_POST['order_date']) && !validateDate($_POST['order_date'])) {
+        throw new Exception('Order date must be a valid date');
+    }
+    
+    try {
+        $query = "
+            UPDATE test_orders SET
+                patient_id = ?,
+                doctor_id = ?,
+                test_type = ?,
+                priority = ?,
+                status = ?,
+                order_date = ?,
+                notes = ?,
+                updated_at = NOW()
+            WHERE id = ?
+        ";
+        
+        $stmt = $pdo->prepare($query);
+        $success = $stmt->execute([
+            $_POST['patient_id'],
+            $_POST['doctor_id'],
+            $_POST['test_type'],
+            $_POST['priority'] ?: 'Normal',
+            $_POST['status'] ?: 'Pending',
+            $_POST['order_date'] ?: date('Y-m-d'),
+            $_POST['notes'] ?: null,
+            $id
+        ]);
+        
+        if ($success && $stmt->rowCount() > 0) {
+            echo json_encode([
+                'success' => true,
+                'message' => 'Test order updated successfully'
+            ]);
+        } else if ($success && $stmt->rowCount() === 0) {
+            echo json_encode([
+                'success' => true,
+                'message' => 'No changes made'
+            ]);
+        } else {
+            throw new Exception('Failed to update test order');
+        }
+        
+    } catch (Exception $e) {
+        throw new Exception('Database error: ' . $e->getMessage());
+    }
+}
+
+function updateOrderStatus() {
+    global $pdo;
+    
+    $id = $_POST['id'] ?? null;
+    $status = $_POST['status'] ?? null;
+    
+    if (!$id || !$status) {
+        throw new Exception('Order ID and status are required');
+    }
+    
+    $valid_statuses = ['Pending', 'In Progress', 'Completed', 'Cancelled'];
+    if (!in_array($status, $valid_statuses)) {
+        throw new Exception('Invalid status');
+    }
+    
+    try {
+        $query = "UPDATE test_orders SET status = ?, updated_at = NOW() WHERE id = ?";
+        $stmt = $pdo->prepare($query);
+        $success = $stmt->execute([$status, $id]);
+        
+        if ($success && $stmt->rowCount() > 0) {
+            echo json_encode([
+                'success' => true,
+                'message' => 'Order status updated successfully'
+            ]);
+        } else {
+            throw new Exception('Order not found or status unchanged');
+        }
+        
+    } catch (Exception $e) {
+        throw new Exception('Database error: ' . $e->getMessage());
+    }
+}
+
+function deleteOrder() {
+    global $pdo;
+    
+    $id = $_POST['id'] ?? null;
+    if (!$id) {
+        throw new Exception('Order ID is required');
+    }
+    
+    try {
+        // Soft delete - mark as deleted
+        $query = "UPDATE test_orders SET status = 'deleted', updated_at = NOW() WHERE id = ?";
+        $stmt = $pdo->prepare($query);
+        $success = $stmt->execute([$id]);
+        
+        if ($success && $stmt->rowCount() > 0) {
+            echo json_encode([
+                'success' => true,
+                'message' => 'Test order deleted successfully'
+            ]);
+        } else {
+            throw new Exception('Test order not found or already deleted');
+        }
+        
+    } catch (Exception $e) {
+        throw new Exception('Database error: ' . $e->getMessage());
+    }
+}
+
+function validateDate($date, $format = 'Y-m-d') {
+    $d = DateTime::createFromFormat($format, $date);
+    return $d && $d->format($format) === $date;
+}
+?>
 
 function listOrders() {
     global $pdo;

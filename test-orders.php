@@ -1,53 +1,401 @@
 <?php
-$page_title = "Test Orders";
-require_once 'includes/adminlte_template_header.php';
-require_once 'includes/adminlte_sidebar.php';
+require_once 'config.php';
+require_once 'includes/init.php';
+
+// Check authentication
+if (!isset($_SESSION['user_id'])) {
+    header('Location: login.php');
+    exit;
+}
+
+$pageTitle = 'Test Orders Management';
+$pageIcon = 'fas fa-vials';
+$breadcrumbs = ['Test Orders'];
+
+include 'includes/adminlte_template_header.php';
+include 'includes/adminlte_sidebar.php';
 ?>
 
 <!-- Content Wrapper -->
 <div class="content-wrapper">
-    <!-- Content Header -->
-    <div class="content-header">
-        <div class="container-fluid">
-            <div class="test-orders-header">
-                <div class="row align-items-center">
-                    <div class="col-md-8">
-                        <h1 class="mb-0"><i class="fas fa-vials"></i> Test Orders Management</h1>
-                        <p class="mb-0 text-light">Manage laboratory test orders and track their status</p>
-                    </div>
-                    <div class="col-md-4 text-right">
-                        <button class="btn btn-light btn-lg shadow-sm" onclick="addOrder()">
-                            <i class="fas fa-plus"></i> New Test Order
-                        </button>
-                    </div>
-                </div>
-            </div>
+  <!-- Content Header (Page header) -->
+  <div class="content-header">
+    <div class="container-fluid">
+      <div class="row mb-2">
+        <div class="col-sm-6">
+          <h1 class="m-0">
+            <i class="<?php echo $pageIcon; ?> mr-2 text-info"></i><?php echo $pageTitle; ?>
+          </h1>
         </div>
+        <div class="col-sm-6">
+          <ol class="breadcrumb float-sm-right">
+            <li class="breadcrumb-item"><a href="dashboard.php">Home</a></li>
+            <?php foreach($breadcrumbs as $index => $crumb): ?>
+              <li class="breadcrumb-item active"><?php echo $crumb; ?></li>
+            <?php endforeach; ?>
+          </ol>
+        </div>
+      </div>
     </div>
+  </div>
 
-    <!-- Main Content -->
-    <section class="content">
-        <div class="container-fluid">
-            <!-- Quick Stats -->
-            <div class="row mb-4">
-                <div class="col-md-3">
-                    <div class="card bg-primary text-white">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between">
-                                <div>
-                                    <h4 class="mb-0" id="pendingCount">0</h4>
-                                    <small>Pending Orders</small>
-                                </div>
-                                <i class="fas fa-clock fa-2x opacity-75"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card bg-warning text-white">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between">
-                                <div>
+  <!-- Main content -->
+  <section class="content">
+    <div class="container-fluid">
+      <div class="row">
+        <div class="col-12">
+          <div class="card card-info card-outline">
+            <div class="card-header">
+              <h3 class="card-title">
+                <i class="fas fa-list mr-2"></i>All Test Orders
+              </h3>
+              <div class="card-tools">
+                <button type="button" class="btn btn-info btn-sm" data-toggle="modal" data-target="#testOrderModal" onclick="openAddModal()">
+                  <i class="fas fa-plus mr-1"></i>New Order
+                </button>
+                <button type="button" class="btn btn-outline-secondary btn-sm ml-1" onclick="refreshTable()">
+                  <i class="fas fa-sync-alt mr-1"></i>Refresh
+                </button>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="table-responsive">
+                <table id="testOrdersTable" class="table table-bordered table-striped table-hover">
+                  <thead>
+                    <tr>
+                      <th>Order ID</th>
+                      <th>Patient</th>
+                      <th>Doctor</th>
+                      <th>Test Type</th>
+                      <th>Priority</th>
+                      <th>Status</th>
+                      <th>Order Date</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <!-- Data will be loaded via DataTables AJAX -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- Test Order Modal -->
+<div class="modal fade" id="testOrderModal" tabindex="-1" aria-labelledby="testOrderModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-info">
+        <h5 class="modal-title text-white" id="testOrderModalLabel">
+          <i class="fas fa-vials mr-2"></i>
+          <span id="modalTitle">Create New Test Order</span>
+        </h5>
+        <button type="button" class="close text-white" data-dismiss="modal">
+          <span>&times;</span>
+        </button>
+      </div>
+      <form id="testOrderForm" novalidate>
+        <div class="modal-body">
+          <input type="hidden" id="orderId" name="id">
+          
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="patientId">Patient <span class="text-danger">*</span></label>
+                <select class="form-control" id="patientId" name="patient_id" required>
+                  <option value="">Select Patient</option>
+                </select>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="doctorId">Ordering Doctor <span class="text-danger">*</span></label>
+                <select class="form-control" id="doctorId" name="doctor_id" required>
+                  <option value="">Select Doctor</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="testType">Test Type <span class="text-danger">*</span></label>
+                <select class="form-control" id="testType" name="test_type" required>
+                  <option value="">Select Test</option>
+                  <option value="Blood Test">Blood Test</option>
+                  <option value="Urine Test">Urine Test</option>
+                  <option value="X-Ray">X-Ray</option>
+                  <option value="CT Scan">CT Scan</option>
+                  <option value="MRI">MRI</option>
+                  <option value="ECG">ECG</option>
+                  <option value="Ultrasound">Ultrasound</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="priority">Priority</label>
+                <select class="form-control" id="priority" name="priority">
+                  <option value="Normal">Normal</option>
+                  <option value="Urgent">Urgent</option>
+                  <option value="Emergency">Emergency</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="orderDate">Order Date</label>
+                <input type="date" class="form-control" id="orderDate" name="order_date" value="<?php echo date('Y-m-d'); ?>">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="status">Status</label>
+                <select class="form-control" id="status" name="status">
+                  <option value="Pending">Pending</option>
+                  <option value="In Progress">In Progress</option>
+                  <option value="Completed">Completed</option>
+                  <option value="Cancelled">Cancelled</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="notes">Notes</label>
+            <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-info">
+            <i class="fas fa-save mr-1"></i>Save Order
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+$(document).ready(function() {
+    // Initialize DataTable
+    initDataTable();
+    loadPatients();
+    loadDoctors();
+});
+
+function initDataTable() {
+    $('#testOrdersTable').DataTable({
+        processing: true,
+        serverSide: true,
+        ajax: {
+            url: 'ajax/test_orders_datatable.php',
+            type: 'POST',
+            error: function(xhr, error, thrown) {
+                console.log('DataTables Error:', error);
+                showToast('error', 'Failed to load test orders. Please check your database connection.');
+            }
+        },
+        columns: [
+            { data: 'order_id', width: '80px' },
+            { data: 'patient_name' },
+            { data: 'doctor_name' },
+            { data: 'test_type' },
+            { data: 'priority', width: '100px' },
+            { data: 'status', width: '100px' },
+            { data: 'order_date', width: '120px' },
+            { data: 'actions', orderable: false, width: '120px' }
+        ],
+        order: [[0, 'desc']],
+        responsive: true,
+        language: {
+            processing: '<div class="spinner-border spinner-border-sm text-info" role="status"></div> Loading...'
+        }
+    });
+}
+
+function refreshTable() {
+    $('#testOrdersTable').DataTable().ajax.reload(null, false);
+    showToast('success', 'Table refreshed successfully');
+}
+
+function openAddModal() {
+    $('#testOrderModalLabel #modalTitle').text('Create New Test Order');
+    $('#testOrderForm')[0].reset();
+    $('#orderId').val('');
+    $('#testOrderForm').removeClass('was-validated');
+    $('#status').val('Pending');
+    $('#priority').val('Normal');
+    $('#orderDate').val('<?php echo date('Y-m-d'); ?>');
+}
+
+function editTestOrder(id) {
+    $('#testOrderModalLabel #modalTitle').text('Edit Test Order');
+    
+    $.ajax({
+        url: 'api/test_orders_api.php',
+        type: 'GET',
+        data: { action: 'get', id: id },
+        dataType: 'json',
+        success: function(response) {
+            if (response.success) {
+                const order = response.data;
+                $('#orderId').val(order.id);
+                $('#patientId').val(order.patient_id);
+                $('#doctorId').val(order.doctor_id);
+                $('#testType').val(order.test_type);
+                $('#priority').val(order.priority);
+                $('#orderDate').val(order.order_date);
+                $('#status').val(order.status);
+                $('#notes').val(order.notes);
+                $('#testOrderModal').modal('show');
+            } else {
+                showToast('error', response.message);
+            }
+        },
+        error: function() {
+            showToast('error', 'Failed to load test order data');
+        }
+    });
+}
+
+function deleteTestOrder(id) {
+    if (confirm('Are you sure you want to delete this test order?')) {
+        $.ajax({
+            url: 'api/test_orders_api.php',
+            type: 'POST',
+            data: { 
+                action: 'delete', 
+                id: id 
+            },
+            dataType: 'json',
+            success: function(response) {
+                if (response.success) {
+                    showToast('success', 'Test order deleted successfully');
+                    refreshTable();
+                } else {
+                    showToast('error', response.message);
+                }
+            },
+            error: function() {
+                showToast('error', 'Failed to delete test order');
+            }
+        });
+    }
+}
+
+function loadPatients() {
+    $.ajax({
+        url: 'api/patients_api.php',
+        type: 'GET',
+        data: { action: 'list' },
+        dataType: 'json',
+        success: function(response) {
+            if (response.success) {
+                $('#patientId').empty().append('<option value="">Select Patient</option>');
+                response.data.forEach(function(patient) {
+                    $('#patientId').append(`<option value="${patient.id}">${patient.full_name}</option>`);
+                });
+            }
+        },
+        error: function() {
+            console.log('Failed to load patients');
+        }
+    });
+}
+
+function loadDoctors() {
+    $.ajax({
+        url: 'api/doctors_api.php',
+        type: 'GET',
+        data: { action: 'list' },
+        dataType: 'json',
+        success: function(response) {
+            if (response.success) {
+                $('#doctorId').empty().append('<option value="">Select Doctor</option>');
+                response.data.forEach(function(doctor) {
+                    $('#doctorId').append(`<option value="${doctor.id}">${doctor.full_name}</option>`);
+                });
+            }
+        },
+        error: function() {
+            console.log('Failed to load doctors');
+        }
+    });
+}
+
+// Form submission
+$('#testOrderForm').on('submit', function(e) {
+    e.preventDefault();
+    
+    if (!this.checkValidity()) {
+        e.stopPropagation();
+        $(this).addClass('was-validated');
+        return;
+    }
+    
+    const formData = new FormData(this);
+    const isEdit = $('#orderId').val() !== '';
+    formData.append('action', isEdit ? 'update' : 'create');
+    
+    $.ajax({
+        url: 'api/test_orders_api.php',
+        type: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        dataType: 'json',
+        success: function(response) {
+            if (response.success) {
+                showToast('success', isEdit ? 'Test order updated successfully' : 'Test order created successfully');
+                $('#testOrderModal').modal('hide');
+                refreshTable();
+            } else {
+                showToast('error', response.message);
+            }
+        },
+        error: function() {
+            showToast('error', 'Failed to save test order');
+        }
+    });
+});
+
+function showToast(type, message) {
+    const toast = $(`
+        <div class="toast toast-${type}" role="alert" style="position: fixed; top: 20px; right: 20px; z-index: 9999;">
+            <div class="toast-header">
+                <i class="fas fa-${type === 'success' ? 'check-circle text-success' : 'exclamation-circle text-danger'} mr-2"></i>
+                <strong class="mr-auto">${type === 'success' ? 'Success' : 'Error'}</strong>
+                <button type="button" class="ml-2 mb-1 close" data-dismiss="toast">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="toast-body">${message}</div>
+        </div>
+    `);
+    
+    $('body').append(toast);
+    toast.toast({ delay: 3000 });
+    toast.toast('show');
+    
+    toast.on('hidden.bs.toast', function() {
+        $(this).remove();
+    });
+}
+</script>
+
+<?php include 'includes/adminlte_template_footer.php'; ?>
                                     <h4 class="mb-0" id="processingCount">0</h4>
                                     <small>Processing</small>
                                 </div>

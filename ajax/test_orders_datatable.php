@@ -9,15 +9,145 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-header('Content-Type: application/json');
-
 try {
-    $conn = getDbConnection();
+    // DataTables server-side processing
+    $draw = intval($_POST['draw'] ?? 1);
+    $start = intval($_POST['start'] ?? 0);
+    $length = intval($_POST['length'] ?? 10);
+    $search_value = $_POST['search']['value'] ?? '';
     
-    // DataTable parameters
-    $draw = (int)($_POST['draw'] ?? 1);
-    $start = (int)($_POST['start'] ?? 0);
-    $length = (int)($_POST['length'] ?? 10);
+    // Order settings
+    $order_column_index = intval($_POST['order'][0]['column'] ?? 0);
+    $order_direction = $_POST['order'][0]['dir'] ?? 'desc';
+    
+    // Column mapping for ordering
+    $columns = ['to.id', 'patient_name', 'doctor_name', 'to.test_type', 'to.priority', 'to.status', 'to.order_date', 'actions'];
+    $order_column = $columns[$order_column_index] ?? 'to.id';
+    
+    // Validate order direction
+    $order_direction = in_array(strtolower($order_direction), ['asc', 'desc']) ? $order_direction : 'desc';
+    
+    // Base query with search
+    $where_clause = "WHERE (to.status != 'deleted' OR to.status IS NULL)";
+    $params = [];
+    
+    if (!empty($search_value)) {
+        $where_clause .= " AND (
+            CONCAT(p.first_name, ' ', p.last_name) LIKE ? OR
+            CONCAT(d.first_name, ' ', d.last_name) LIKE ? OR
+            to.test_type LIKE ? OR
+            to.priority LIKE ? OR
+            to.status LIKE ? OR
+            to.order_date LIKE ?
+        )";
+        $search_param = "%{$search_value}%";
+        $params = array_fill(0, 6, $search_param);
+    }
+    
+    // Count total records
+    $total_query = "
+        SELECT COUNT(*) as total 
+        FROM test_orders to
+        LEFT JOIN patients p ON to.patient_id = p.id
+        LEFT JOIN doctors d ON to.doctor_id = d.id
+        {$where_clause}
+    ";
+    $stmt = $pdo->prepare($total_query);
+    $stmt->execute($params);
+    $total_records = $stmt->fetch()['total'];
+    
+    // Get filtered data with proper ordering
+    $data_query = "
+        SELECT 
+            to.id,
+            to.patient_id,
+            to.doctor_id,
+            CONCAT(COALESCE(p.first_name, ''), ' ', COALESCE(p.last_name, '')) as patient_name,
+            CONCAT(COALESCE(d.first_name, ''), ' ', COALESCE(d.last_name, '')) as doctor_name,
+            to.test_type,
+            to.priority,
+            COALESCE(to.status, 'Pending') as status,
+            to.order_date,
+            to.notes,
+            to.created_at
+        FROM test_orders to
+        LEFT JOIN patients p ON to.patient_id = p.id
+        LEFT JOIN doctors d ON to.doctor_id = d.id
+        {$where_clause}
+        ORDER BY {$order_column} {$order_direction}
+        LIMIT {$start}, {$length}
+    ";
+    
+    $stmt = $pdo->prepare($data_query);
+    $stmt->execute($params);
+    $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Format data for DataTables
+    $data = [];
+    foreach ($orders as $order) {
+        $status_class = match(strtolower($order['status'])) {
+            'pending' => 'warning',
+            'in progress' => 'info',
+            'completed' => 'success',
+            'cancelled' => 'danger',
+            default => 'secondary'
+        };
+        $status_badge = "<span class='badge badge-{$status_class}'>{$order['status']}</span>";
+        
+        $priority_class = match(strtolower($order['priority'])) {
+            'normal' => 'secondary',
+            'urgent' => 'warning',
+            'emergency' => 'danger',
+            default => 'secondary'
+        };
+        $priority_badge = "<span class='badge badge-{$priority_class}'>{$order['priority']}</span>";
+        
+        $actions = "
+            <div class='btn-group btn-group-sm'>
+                <button type='button' class='btn btn-info btn-sm' onclick='editTestOrder({$order['id']})' title='Edit'>
+                    <i class='fas fa-edit'></i>
+                </button>
+                <button type='button' class='btn btn-danger btn-sm' onclick='deleteTestOrder({$order['id']})' title='Delete'>
+                    <i class='fas fa-trash'></i>
+                </button>
+            </div>
+        ";
+        
+        // Generate order ID display
+        $order_id_display = sprintf('ORD%05d', $order['id']);
+        
+        $data[] = [
+            'order_id' => $order_id_display,
+            'patient_name' => htmlspecialchars(trim($order['patient_name']) ?: 'Unknown Patient'),
+            'doctor_name' => htmlspecialchars(trim($order['doctor_name']) ?: 'No Doctor'),
+            'test_type' => htmlspecialchars($order['test_type'] ?: 'N/A'),
+            'priority' => $priority_badge,
+            'status' => $status_badge,
+            'order_date' => date('M d, Y', strtotime($order['order_date'])),
+            'actions' => $actions
+        ];
+    }
+    
+    // Return JSON response
+    echo json_encode([
+        'draw' => $draw,
+        'recordsTotal' => $total_records,
+        'recordsFiltered' => $total_records,
+        'data' => $data
+    ]);
+    
+} catch (Exception $e) {
+    error_log("Test Orders DataTable error: " . $e->getMessage());
+    http_response_code(500);
+    echo json_encode([
+        'draw' => $draw ?? 1,
+        'recordsTotal' => 0,
+        'recordsFiltered' => 0,
+        'data' => [],
+        'error' => 'Database error occurred'
+    ]);
+}
+?>
     $search = $_POST['search']['value'] ?? '';
     $orderColumn = (int)($_POST['order'][0]['column'] ?? 0);
     $orderDir = $_POST['order'][0]['dir'] ?? 'desc';
