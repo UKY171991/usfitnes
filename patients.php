@@ -50,13 +50,16 @@ include 'includes/adminlte_sidebar.php';
                 <i class="fas fa-list mr-2"></i>All Patients
               </h3>
               <div class="card-tools">
-                <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#patientModal" onclick="openPatientModal()">
+                <button type="button" class="btn btn-primary btn-sm" onclick="openAddModal()">
                   <i class="fas fa-plus mr-1"></i>Add Patient
+                </button>
+                <button type="button" class="btn btn-outline-secondary btn-sm ml-1" onclick="refreshTable()">
+                  <i class="fas fa-sync-alt mr-1"></i>Refresh
                 </button>
               </div>
             </div>
             <div class="card-body">
-              <table id="patientsTable" class="table table-bordered table-striped">
+              <table id="patientsTable" class="table table-bordered table-striped table-hover">
                 <thead>
                   <tr>
                     <th>Patient ID</th>
@@ -84,46 +87,55 @@ include 'includes/adminlte_sidebar.php';
 <div class="modal fade" id="patientModal" tabindex="-1" role="dialog" aria-labelledby="patientModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg" role="document">
     <div class="modal-content">
-      <div class="modal-header">
-        <h4 class="modal-title" id="patientModalLabel">Add Patient</h4>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+      <div class="modal-header bg-primary">
+        <h4 class="modal-title text-white" id="patientModalLabel">
+          <i class="fas fa-user-injured mr-2"></i>Add Patient
+        </h4>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
           <span aria-hidden="true">&times;</span>
         </button>
       </div>
       <form id="patientForm">
         <div class="modal-body">
-          <input type="hidden" id="patientId" name="id">
+          <input type="hidden" name="id" id="patientId">
           
+          <!-- Basic Information -->
           <div class="row">
             <div class="col-md-6">
               <div class="form-group">
                 <label for="firstName">First Name <span class="text-danger">*</span></label>
                 <input type="text" class="form-control" id="firstName" name="first_name" required>
+                <div class="invalid-feedback">Please provide a first name.</div>
               </div>
             </div>
             <div class="col-md-6">
               <div class="form-group">
                 <label for="lastName">Last Name <span class="text-danger">*</span></label>
                 <input type="text" class="form-control" id="lastName" name="last_name" required>
+                <div class="invalid-feedback">Please provide a last name.</div>
               </div>
             </div>
           </div>
           
+          <!-- Contact Information -->
           <div class="row">
             <div class="col-md-6">
               <div class="form-group">
                 <label for="phone">Phone <span class="text-danger">*</span></label>
                 <input type="tel" class="form-control" id="phone" name="phone" required>
+                <div class="invalid-feedback">Please provide a phone number.</div>
               </div>
             </div>
             <div class="col-md-6">
               <div class="form-group">
                 <label for="email">Email</label>
                 <input type="email" class="form-control" id="email" name="email">
+                <div class="invalid-feedback">Please provide a valid email.</div>
               </div>
             </div>
           </div>
           
+          <!-- Personal Details -->
           <div class="row">
             <div class="col-md-4">
               <div class="form-group">
@@ -160,29 +172,35 @@ include 'includes/adminlte_sidebar.php';
             </div>
           </div>
           
+          <!-- Address -->
           <div class="form-group">
             <label for="address">Address</label>
-            <textarea class="form-control" id="address" name="address" rows="2"></textarea>
+            <textarea class="form-control" id="address" name="address" rows="2" placeholder="Enter patient address"></textarea>
           </div>
           
+          <!-- Emergency Contact -->
           <div class="row">
             <div class="col-md-6">
               <div class="form-group">
                 <label for="emergencyContact">Emergency Contact</label>
-                <input type="text" class="form-control" id="emergencyContact" name="emergency_contact">
+                <input type="text" class="form-control" id="emergencyContact" name="emergency_contact" placeholder="Contact person name">
               </div>
             </div>
             <div class="col-md-6">
               <div class="form-group">
                 <label for="emergencyPhone">Emergency Phone</label>
-                <input type="tel" class="form-control" id="emergencyPhone" name="emergency_phone">
+                <input type="tel" class="form-control" id="emergencyPhone" name="emergency_phone" placeholder="Emergency contact phone">
               </div>
             </div>
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-primary">Save Patient</button>
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">
+            <i class="fas fa-times mr-1"></i>Cancel
+          </button>
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save mr-1"></i>Save Patient
+          </button>
         </div>
       </form>
     </div>
@@ -192,139 +210,59 @@ include 'includes/adminlte_sidebar.php';
 <script>
 $(document).ready(function() {
     // Initialize DataTable
-    $('#patientsTable').DataTable({
-        processing: true,
-        serverSide: true,
+    window.patientsTable = initDataTable('#patientsTable', {
         ajax: {
             url: 'ajax/patients_datatable.php',
-            type: 'POST',
-            error: function(xhr, error, thrown) {
-                console.log('DataTable Error:', error);
-                toastr.error('Failed to load patient data. Please refresh the page.');
-            }
+            type: 'POST'
         },
         columns: [
-            { data: 'patient_id' },
+            { data: 'patient_id', width: '100px' },
             { data: 'full_name' },
-            { data: 'phone' },
+            { data: 'phone', width: '120px' },
             { data: 'email' },
-            { data: 'blood_group' },
-            { data: 'status' },
-            { data: 'actions', orderable: false, searchable: false }
-        ],
-        order: [[0, 'desc']],
-        pageLength: 25,
-        responsive: true
+            { data: 'blood_group', width: '100px' },
+            { data: 'status', width: '80px' },
+            { data: 'actions', orderable: false, searchable: false, width: '120px' }
+        ]
     });
     
     // Handle form submission
-    $('#patientForm').on('submit', function(e) {
-        e.preventDefault();
-        savePatient();
+    handleAjaxForm('#patientForm', 'api/patients_api.php', function(response) {
+        $('#patientModal').modal('hide');
+        window.patientsTable.ajax.reload();
     });
 });
 
-function openPatientModal(id = null) {
-    if (id) {
-        // Edit mode
-        $('#patientModalLabel').text('Edit Patient');
-        loadPatientData(id);
-    } else {
-        // Add mode
-        $('#patientModalLabel').text('Add Patient');
-        $('#patientForm')[0].reset();
-        $('#patientId').val('');
-    }
+function openAddModal() {
+    resetModalForm('patientModal');
+    $('#patientModalLabel').html('<i class="fas fa-user-injured mr-2"></i>Add Patient');
+    $('#patientModal').modal('show');
+    $('#firstName').focus();
 }
 
-function loadPatientData(id) {
-    $.ajax({
-        url: 'api/patients_api.php',
-        type: 'GET',
-        data: { action: 'get', id: id },
-        success: function(response) {
-            if (response.success) {
-                const patient = response.data;
-                $('#patientId').val(patient.id);
-                $('#firstName').val(patient.first_name);
-                $('#lastName').val(patient.last_name);
-                $('#phone').val(patient.phone);
-                $('#email').val(patient.email);
-                $('#dateOfBirth').val(patient.date_of_birth);
-                $('#gender').val(patient.gender);
-                $('#bloodGroup').val(patient.blood_group);
-                $('#address').val(patient.address);
-                $('#emergencyContact').val(patient.emergency_contact);
-                $('#emergencyPhone').val(patient.emergency_phone);
-            } else {
-                toastr.error(response.message);
-            }
-        },
-        error: function() {
-            toastr.error('Error loading patient data');
-        }
-    });
-}
-
-function savePatient() {
-    const formData = new FormData($('#patientForm')[0]);
-    const isEdit = $('#patientId').val() !== '';
+function editPatient(id) {
+    $('#patientModalLabel').html('<i class="fas fa-user-injured mr-2"></i>Edit Patient');
     
-    $.ajax({
-        url: 'api/patients_api.php',
-        type: isEdit ? 'PUT' : 'POST',
-        data: formData,
-        processData: false,
-        contentType: false,
-        success: function(response) {
-            if (response.success) {
-                toastr.success(response.message);
-                $('#patientModal').modal('hide');
-                $('#patientsTable').DataTable().ajax.reload();
-            } else {
-                toastr.error(response.message);
-            }
-        },
-        error: function() {
-            toastr.error('Error saving patient');
-        }
+    loadDataForEdit(id, 'api/patients_api.php', function(data) {
+        populateForm('#patientForm', data);
+        $('#patientModal').modal('show');
     });
 }
 
 function deletePatient(id) {
-    Swal.fire({
-        title: 'Are you sure?',
-        text: "You won't be able to revert this!",
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33',
-        confirmButtonText: 'Yes, delete it!'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            $.ajax({
-                url: 'api/patients_api.php',
-                type: 'DELETE',
-                data: { id: id },
-                success: function(response) {
-                    if (response.success) {
-                        toastr.success(response.message);
-                        $('#patientsTable').DataTable().ajax.reload();
-                    } else {
-                        toastr.error(response.message);
-                    }
-                },
-                error: function() {
-                    toastr.error('Error deleting patient');
-                }
-            });
-        }
+    handleAjaxDelete(id, 'api/patients_api.php', 'patient', function() {
+        window.patientsTable.ajax.reload();
     });
 }
 
 function viewPatient(id) {
-    // View patient details (can be implemented later)
-    toastr.info('View patient functionality coming soon');
+    // View functionality can be implemented later
+    showToast('info', 'View patient functionality coming soon');
+}
+
+function refreshTable() {
+    window.patientsTable.ajax.reload();
+    showToast('info', 'Table refreshed');
 }
 </script>
 

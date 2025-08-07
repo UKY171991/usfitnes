@@ -90,25 +90,25 @@ try {
     foreach ($patients as $patient) {
         // Status badge
         $statusClass = $patient['status'] === 'active' ? 'success' : 'secondary';
-        $statusBadge = "<span class='badge badge-$statusClass'>" . ucfirst($patient['status']) . "</span>";
+        $statusBadge = "<span class='badge badge-$statusClass'>" . ucfirst($patient['status'] ?? 'active') . "</span>";
         
         // Actions buttons
         $actions = "
-            <div class='btn-group btn-group-sm'>
-                <button type='button' class='btn btn-info btn-sm' onclick='openPatientModal({$patient['id']})' title='Edit'>
+            <div class='btn-group btn-group-sm' role='group'>
+                <button type='button' class='btn btn-info btn-sm' onclick='editPatient({$patient['id']})' title='Edit' data-toggle='tooltip'>
                     <i class='fas fa-edit'></i>
                 </button>
-                <button type='button' class='btn btn-success btn-sm' onclick='viewPatient({$patient['id']})' title='View'>
+                <button type='button' class='btn btn-success btn-sm' onclick='viewPatient({$patient['id']})' title='View' data-toggle='tooltip'>
                     <i class='fas fa-eye'></i>
                 </button>
-                <button type='button' class='btn btn-danger btn-sm' onclick='deletePatient({$patient['id']})' title='Delete'>
+                <button type='button' class='btn btn-danger btn-sm' onclick='deletePatient({$patient['id']})' title='Delete' data-toggle='tooltip'>
                     <i class='fas fa-trash'></i>
                 </button>
             </div>
         ";
         
         $data[] = [
-            'patient_id' => htmlspecialchars($patient['patient_id']),
+            'patient_id' => htmlspecialchars($patient['patient_id'] ?? ''),
             'full_name' => htmlspecialchars($patient['full_name']),
             'phone' => htmlspecialchars($patient['phone'] ?? ''),
             'email' => htmlspecialchars($patient['email'] ?? ''),

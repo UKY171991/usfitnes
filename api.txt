@@ -3,6 +3,7 @@ PathLab Pro - API Documentation
 
 Base URL: /api/
 Response Format: JSON
+Last Updated: 2025-01-07
 
 Authentication:
 - All API endpoints require valid session
@@ -27,11 +28,12 @@ GET /api/patients_api.php
 POST /api/patients_api.php
 - Create new patient
 - Required: first_name, last_name, phone
-- Optional: email, date_of_birth, gender, address, blood_group
+- Optional: email, date_of_birth, gender, address, blood_group, emergency_contact, emergency_phone, medical_history, allergies, status
 
 PUT /api/patients_api.php
 - Update existing patient
 - Required: id + fields to update
+- Fields: first_name, last_name, phone, email, date_of_birth, gender, address, blood_group, emergency_contact, emergency_phone, medical_history, allergies, status
 
 DELETE /api/patients_api.php
 - Delete patient
@@ -39,44 +41,57 @@ DELETE /api/patients_api.php
 
 GET /api/patients_api.php?action=get&id={id}
 - Get single patient details
+- Returns: Complete patient record with all fields
 
 === DOCTORS API ===
 
 GET /api/doctors_api.php
 - Get all doctors with pagination
 - Parameters: page, limit, search, status
+- Returns: doctors list with pagination info
 
 POST /api/doctors_api.php
 - Create new doctor
 - Required: name, phone, specialization
-- Optional: email, license_number, hospital, address
+- Optional: email, license_number, hospital, address, notes, status
 
 PUT /api/doctors_api.php
 - Update existing doctor
 - Required: id + fields to update
+- Fields: name, phone, specialization, email, license_number, hospital, address, notes, status
 
 DELETE /api/doctors_api.php
 - Delete doctor
 - Required: id
+
+GET /api/doctors_api.php?action=get&id={id}
+- Get single doctor details
+- Returns: Complete doctor record with all fields
 
 === TEST ORDERS API ===
 
 GET /api/test_orders_api.php
 - Get all test orders with pagination
 - Parameters: page, limit, search, status, patient_id
+- Returns: test orders list with pagination info
 
 POST /api/test_orders_api.php
 - Create new test order
-- Required: patient_id, tests[]
-- Optional: doctor_id, priority, notes
+- Required: patient_id, tests[] (JSON array of test IDs)
+- Optional: doctor_id, priority, notes, order_date, discount
 
 PUT /api/test_orders_api.php
 - Update test order
 - Required: id + fields to update
+- Fields: status, priority, notes, discount
 
 DELETE /api/test_orders_api.php
-- Cancel test order
+- Cancel test order (sets status to 'cancelled')
 - Required: id
+
+GET /api/test_orders_api.php?action=get&id={id}
+- Get single test order details
+- Returns: Complete order with items and patient/doctor info
 
 === RESULTS API ===
 
@@ -94,19 +109,25 @@ POST /api/results_api.php
 GET /api/equipment_api.php
 - Get all equipment with pagination
 - Parameters: page, limit, search, status, category
+- Returns: equipment list with pagination info
 
 POST /api/equipment_api.php
 - Add new equipment
-- Required: equipment_name, equipment_code
-- Optional: model, serial_number, manufacturer, location
+- Required: equipment_name
+- Optional: equipment_type, model, serial_number, manufacturer, category, location, purchase_date, warranty_expiry, cost, maintenance_schedule, description, status
 
 PUT /api/equipment_api.php
 - Update equipment
 - Required: id + fields to update
+- Fields: equipment_name, equipment_type, model, serial_number, manufacturer, category, location, purchase_date, warranty_expiry, status, cost, maintenance_schedule, last_maintenance, next_maintenance, description
 
 DELETE /api/equipment_api.php
 - Delete equipment
 - Required: id
+
+GET /api/equipment_api.php?action=get&id={id}
+- Get single equipment details
+- Returns: Complete equipment record with all fields
 
 === USERS API ===
 

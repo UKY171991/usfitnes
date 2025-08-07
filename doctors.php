@@ -50,13 +50,16 @@ include 'includes/adminlte_sidebar.php';
                 <i class="fas fa-list mr-2"></i>All Doctors
               </h3>
               <div class="card-tools">
-                <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#doctorModal" onclick="openDoctorModal()">
+                <button type="button" class="btn btn-primary btn-sm" onclick="openAddModal()">
                   <i class="fas fa-plus mr-1"></i>Add Doctor
+                </button>
+                <button type="button" class="btn btn-outline-secondary btn-sm ml-1" onclick="refreshTable()">
+                  <i class="fas fa-sync-alt mr-1"></i>Refresh
                 </button>
               </div>
             </div>
             <div class="card-body">
-              <table id="doctorsTable" class="table table-bordered table-striped">
+              <table id="doctorsTable" class="table table-bordered table-striped table-hover">
                 <thead>
                   <tr>
                     <th>Doctor ID</th>
@@ -84,74 +87,103 @@ include 'includes/adminlte_sidebar.php';
 <div class="modal fade" id="doctorModal" tabindex="-1" role="dialog" aria-labelledby="doctorModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg" role="document">
     <div class="modal-content">
-      <div class="modal-header">
-        <h4 class="modal-title" id="doctorModalLabel">Add Doctor</h4>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+      <div class="modal-header bg-primary">
+        <h4 class="modal-title text-white" id="doctorModalLabel">
+          <i class="fas fa-user-md mr-2"></i>Add Doctor
+        </h4>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
           <span aria-hidden="true">&times;</span>
         </button>
       </div>
       <form id="doctorForm">
         <div class="modal-body">
-          <input type="hidden" id="doctorId" name="id">
+          <input type="hidden" name="id" id="doctorId">
           
+          <!-- Basic Information -->
           <div class="row">
             <div class="col-md-6">
               <div class="form-group">
                 <label for="doctorName">Name <span class="text-danger">*</span></label>
                 <input type="text" class="form-control" id="doctorName" name="name" required>
+                <div class="invalid-feedback">Please provide doctor's name.</div>
               </div>
             </div>
             <div class="col-md-6">
               <div class="form-group">
                 <label for="specialization">Specialization <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" id="specialization" name="specialization" required>
+                <select class="form-control select2" id="specialization" name="specialization" required>
+                  <option value="">Select Specialization</option>
+                  <option value="General Medicine">General Medicine</option>
+                  <option value="Pathology">Pathology</option>
+                  <option value="Cardiology">Cardiology</option>
+                  <option value="Dermatology">Dermatology</option>
+                  <option value="Endocrinology">Endocrinology</option>
+                  <option value="Gastroenterology">Gastroenterology</option>
+                  <option value="Hematology">Hematology</option>
+                  <option value="Immunology">Immunology</option>
+                  <option value="Microbiology">Microbiology</option>
+                  <option value="Oncology">Oncology</option>
+                  <option value="Radiology">Radiology</option>
+                  <option value="Other">Other</option>
+                </select>
+                <div class="invalid-feedback">Please select a specialization.</div>
               </div>
             </div>
           </div>
           
+          <!-- Contact Information -->
           <div class="row">
             <div class="col-md-6">
               <div class="form-group">
                 <label for="doctorPhone">Phone <span class="text-danger">*</span></label>
                 <input type="tel" class="form-control" id="doctorPhone" name="phone" required>
+                <div class="invalid-feedback">Please provide phone number.</div>
               </div>
             </div>
             <div class="col-md-6">
               <div class="form-group">
                 <label for="doctorEmail">Email</label>
                 <input type="email" class="form-control" id="doctorEmail" name="email">
+                <div class="invalid-feedback">Please provide a valid email.</div>
               </div>
             </div>
           </div>
           
+          <!-- Professional Details -->
           <div class="row">
             <div class="col-md-6">
               <div class="form-group">
                 <label for="licenseNumber">License Number</label>
-                <input type="text" class="form-control" id="licenseNumber" name="license_number">
+                <input type="text" class="form-control" id="licenseNumber" name="license_number" placeholder="Medical license number">
               </div>
             </div>
             <div class="col-md-6">
               <div class="form-group">
                 <label for="hospital">Hospital/Clinic</label>
-                <input type="text" class="form-control" id="hospital" name="hospital">
+                <input type="text" class="form-control" id="hospital" name="hospital" placeholder="Hospital or clinic name">
               </div>
             </div>
           </div>
           
+          <!-- Address -->
           <div class="form-group">
             <label for="doctorAddress">Address</label>
-            <textarea class="form-control" id="doctorAddress" name="address" rows="2"></textarea>
+            <textarea class="form-control" id="doctorAddress" name="address" rows="2" placeholder="Doctor's address"></textarea>
           </div>
           
+          <!-- Notes -->
           <div class="form-group">
             <label for="notes">Notes</label>
-            <textarea class="form-control" id="notes" name="notes" rows="2"></textarea>
+            <textarea class="form-control" id="notes" name="notes" rows="2" placeholder="Additional notes about the doctor"></textarea>
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-primary">Save Doctor</button>
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">
+            <i class="fas fa-times mr-1"></i>Cancel
+          </button>
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save mr-1"></i>Save Doctor
+          </button>
         </div>
       </form>
     </div>
@@ -161,137 +193,59 @@ include 'includes/adminlte_sidebar.php';
 <script>
 $(document).ready(function() {
     // Initialize DataTable
-    $('#doctorsTable').DataTable({
-        processing: true,
-        serverSide: true,
+    window.doctorsTable = initDataTable('#doctorsTable', {
         ajax: {
             url: 'ajax/doctors_datatable.php',
-            type: 'POST',
-            error: function(xhr, error, thrown) {
-                console.log('DataTable Error:', error);
-                toastr.error('Failed to load doctor data. Please refresh the page.');
-            }
+            type: 'POST'
         },
         columns: [
-            { data: 'doctor_id' },
+            { data: 'doctor_id', width: '100px' },
             { data: 'name' },
             { data: 'specialization' },
-            { data: 'phone' },
+            { data: 'phone', width: '120px' },
             { data: 'email' },
-            { data: 'status' },
-            { data: 'actions', orderable: false, searchable: false }
-        ],
-        order: [[0, 'desc']],
-        pageLength: 25,
-        responsive: true
+            { data: 'status', width: '80px' },
+            { data: 'actions', orderable: false, searchable: false, width: '120px' }
+        ]
     });
     
     // Handle form submission
-    $('#doctorForm').on('submit', function(e) {
-        e.preventDefault();
-        saveDoctor();
+    handleAjaxForm('#doctorForm', 'api/doctors_api.php', function(response) {
+        $('#doctorModal').modal('hide');
+        window.doctorsTable.ajax.reload();
     });
 });
 
-function openDoctorModal(id = null) {
-    if (id) {
-        // Edit mode
-        $('#doctorModalLabel').text('Edit Doctor');
-        loadDoctorData(id);
-    } else {
-        // Add mode
-        $('#doctorModalLabel').text('Add Doctor');
-        $('#doctorForm')[0].reset();
-        $('#doctorId').val('');
-    }
+function openAddModal() {
+    resetModalForm('doctorModal');
+    $('#doctorModalLabel').html('<i class="fas fa-user-md mr-2"></i>Add Doctor');
+    $('#doctorModal').modal('show');
+    $('#doctorName').focus();
 }
 
-function loadDoctorData(id) {
-    $.ajax({
-        url: 'api/doctors_api.php',
-        type: 'GET',
-        data: { action: 'get', id: id },
-        success: function(response) {
-            if (response.success) {
-                const doctor = response.data;
-                $('#doctorId').val(doctor.id);
-                $('#doctorName').val(doctor.name);
-                $('#specialization').val(doctor.specialization);
-                $('#doctorPhone').val(doctor.phone);
-                $('#doctorEmail').val(doctor.email);
-                $('#licenseNumber').val(doctor.license_number);
-                $('#hospital').val(doctor.hospital);
-                $('#doctorAddress').val(doctor.address);
-                $('#notes').val(doctor.notes);
-            } else {
-                toastr.error(response.message);
-            }
-        },
-        error: function() {
-            toastr.error('Error loading doctor data');
-        }
-    });
-}
-
-function saveDoctor() {
-    const formData = new FormData($('#doctorForm')[0]);
-    const isEdit = $('#doctorId').val() !== '';
+function editDoctor(id) {
+    $('#doctorModalLabel').html('<i class="fas fa-user-md mr-2"></i>Edit Doctor');
     
-    $.ajax({
-        url: 'api/doctors_api.php',
-        type: isEdit ? 'PUT' : 'POST',
-        data: formData,
-        processData: false,
-        contentType: false,
-        success: function(response) {
-            if (response.success) {
-                toastr.success(response.message);
-                $('#doctorModal').modal('hide');
-                $('#doctorsTable').DataTable().ajax.reload();
-            } else {
-                toastr.error(response.message);
-            }
-        },
-        error: function() {
-            toastr.error('Error saving doctor');
-        }
+    loadDataForEdit(id, 'api/doctors_api.php', function(data) {
+        populateForm('#doctorForm', data);
+        $('#doctorModal').modal('show');
     });
 }
 
 function deleteDoctor(id) {
-    Swal.fire({
-        title: 'Are you sure?',
-        text: "You won't be able to revert this!",
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33',
-        confirmButtonText: 'Yes, delete it!'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            $.ajax({
-                url: 'api/doctors_api.php',
-                type: 'DELETE',
-                data: { id: id },
-                success: function(response) {
-                    if (response.success) {
-                        toastr.success(response.message);
-                        $('#doctorsTable').DataTable().ajax.reload();
-                    } else {
-                        toastr.error(response.message);
-                    }
-                },
-                error: function() {
-                    toastr.error('Error deleting doctor');
-                }
-            });
-        }
+    handleAjaxDelete(id, 'api/doctors_api.php', 'doctor', function() {
+        window.doctorsTable.ajax.reload();
     });
 }
 
 function viewDoctor(id) {
-    // View doctor details (can be implemented later)
-    toastr.info('View doctor functionality coming soon');
+    // View functionality can be implemented later
+    showToast('info', 'View doctor functionality coming soon');
+}
+
+function refreshTable() {
+    window.doctorsTable.ajax.reload();
+    showToast('info', 'Table refreshed');
 }
 </script>
 
