@@ -50,6 +50,10 @@ GET /api/patients_api.php?action=get&id={id}
 - Get single patient details
 - Returns: Complete patient record with all fields
 
+GET /api/patients_api.php?action=list
+- Get patients list for dropdowns
+- Returns: Simple list with id and name
+
 === DOCTORS API ===
 
 GET /api/doctors_api.php
@@ -74,6 +78,10 @@ DELETE /api/doctors_api.php
 GET /api/doctors_api.php?action=get&id={id}
 - Get single doctor details
 - Returns: Complete doctor record with all fields
+
+GET /api/doctors_api.php?action=list
+- Get doctors list for dropdowns
+- Returns: Simple list with id and name
 
 === TEST ORDERS API ===
 
@@ -221,6 +229,12 @@ POST /api/auth_api.php?action=change_password
 GET /api/reports_api.php
 - Generate various reports
 - Parameters: type, date_from, date_to, format
+
+=== TESTS API ===
+
+GET /api/tests_api.php?action=list
+- Get available tests for dropdowns
+- Returns: tests list with id, name, price
 
 === NOTIFICATIONS API ===
 

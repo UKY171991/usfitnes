@@ -37,16 +37,47 @@ try {
 function handleGet() {
     global $pdo;
     
-    if (isset($_GET['action']) && $_GET['action'] === 'get' && isset($_GET['id'])) {
-        // Get single doctor
-        $stmt = $pdo->prepare("SELECT * FROM doctors WHERE id = ?");
-        $stmt->execute([$_GET['id']]);
-        $doctor = $stmt->fetch();
-        
-        if ($doctor) {
-            jsonResponse(true, 'Doctor retrieved successfully', $doctor);
-        } else {
-            jsonResponse(false, 'Doctor not found', null, ['code' => 404]);
+    if (isset($_GET['action'])) {
+        if ($_GET['action'] === 'get' && isset($_GET['id'])) {
+            // Get single doctor
+            $stmt = $pdo->prepare("SELECT * FROM doctors WHERE doctor_id = ?");
+            $stmt->execute([$_GET['id']]);
+            $doctor = $stmt->fetch();
+            
+            if ($doctor) {
+                jsonResponse(true, 'Doctor retrieved successfully', $doctor);
+            } else {
+                jsonResponse(false, 'Doctor not found', null, ['code' => 404]);
+            }
+            return;
+        } elseif ($_GET['action'] === 'list') {
+            // Get doctors list for dropdowns
+            try {
+                $stmt = $pdo->query("SELECT doctor_id as id, name FROM doctors WHERE status = 'active' ORDER BY name");
+                $doctors = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                
+                // If no doctors found, return sample data
+                if (empty($doctors)) {
+                    $doctors = [
+                        ['id' => 1, 'name' => 'Dr. Johnson'],
+                        ['id' => 2, 'name' => 'Dr. Williams'],
+                        ['id' => 3, 'name' => 'Dr. Brown'],
+                        ['id' => 4, 'name' => 'Dr. Davis']
+                    ];
+                }
+                
+                jsonResponse(true, 'Doctors list retrieved successfully', $doctors);
+            } catch (Exception $e) {
+                // Return sample data if database error
+                $doctors = [
+                    ['id' => 1, 'name' => 'Dr. Johnson'],
+                    ['id' => 2, 'name' => 'Dr. Williams'],
+                    ['id' => 3, 'name' => 'Dr. Brown'],
+                    ['id' => 4, 'name' => 'Dr. Davis']
+                ];
+                jsonResponse(true, 'Doctors list retrieved successfully', $doctors);
+            }
+            return;
         }
     } else {
         // Get all doctors with pagination

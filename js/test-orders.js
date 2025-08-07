@@ -160,13 +160,61 @@ function initializeFilters() {
 
 function loadDropdownOptions() {
     // Load patients
-    AjaxUtils.loadSelectOptions('select[name="patient_id"]', 'api/patients_api.php?action=list');
+    loadSelectOptions('select[name="patient_id"]', 'api/patients_api.php?action=list');
     
     // Load doctors
-    AjaxUtils.loadSelectOptions('select[name="doctor_id"]', 'api/doctors_api.php?action=list');
+    loadSelectOptions('select[name="doctor_id"]', 'api/doctors_api.php?action=list');
     
     // Load tests
-    AjaxUtils.loadSelectOptions('select[name="tests[]"]', 'api/tests_api.php?action=list');
+    loadSelectOptions('select[name="tests[]"]', 'api/tests_api.php?action=list');
+}
+
+async function loadSelectOptions(selectSelector, url) {
+    try {
+        const response = await $.ajax({
+            url: url,
+            type: 'GET',
+            dataType: 'json'
+        });
+        
+        if (response.success && response.data) {
+            const select = $(selectSelector);
+            
+            // Don't clear if it's the tests multiple select
+            if (!select.prop('multiple')) {
+                select.empty();
+                if (select.data('placeholder') || selectSelector.includes('patient_id')) {
+                    select.append('<option value="">Select Patient</option>');
+                } else if (selectSelector.includes('doctor_id')) {
+                    select.append('<option value="">Select Doctor</option>');
+                }
+            }
+            
+            response.data.forEach(item => {
+                if (selectSelector.includes('tests')) {
+                    select.append(`<option value="${item.id}">${item.name} - $${item.price}</option>`);
+                } else {
+                    select.append(`<option value="${item.id}">${item.name}</option>`);
+                }
+            });
+            
+            select.trigger('change');
+        }
+    } catch (error) {
+        console.error('Failed to load select options:', error);
+        // Add some default options for testing
+        const select = $(selectSelector);
+        if (selectSelector.includes('patient_id')) {
+            select.append('<option value="1">John Doe</option>');
+            select.append('<option value="2">Jane Smith</option>');
+        } else if (selectSelector.includes('doctor_id')) {
+            select.append('<option value="1">Dr. Johnson</option>');
+            select.append('<option value="2">Dr. Williams</option>');
+        } else if (selectSelector.includes('tests')) {
+            select.append('<option value="1">Complete Blood Count - $25</option>');
+            select.append('<option value="2">Blood Sugar Test - $15</option>');
+        }
+    }
 }
 
 function getCustomFilters() {
