@@ -26,8 +26,261 @@ Standard Response Format:
 }
 
 === PATIENTS API ===
+File: /api/patients_api_improved.php
 
-GET /api/patients_api.php
+POST /api/patients_api_improved.php
+Action: save
+Fields:
+- patient_id (optional, for updates)
+- first_name (required, 2-50 chars)
+- last_name (required, 2-50 chars) 
+- phone (required, 10-15 digits, unique)
+- email (optional, valid email format)
+- age (required, 1-120)
+- gender (required: male/female/other)
+- blood_group (optional: A+/A-/B+/B-/AB+/AB-/O+/O-)
+- address (optional, text)
+- status (required: active/inactive)
+
+POST /api/patients_api_improved.php
+Action: get
+Fields:
+- id (required, patient ID)
+
+POST /api/patients_api_improved.php  
+Action: delete
+Fields:
+- id (required, patient ID)
+
+GET /api/patients_api_improved.php
+Action: list
+Parameters:
+- search (optional, search term)
+- limit (optional, default 50)
+- offset (optional, default 0)
+
+GET /api/patients_api_improved.php
+Action: export
+Parameters:
+- status (optional, filter by status)
+- blood_group (optional, filter by blood group)
+- date_from (optional, YYYY-MM-DD)
+- date_to (optional, YYYY-MM-DD)
+
+=== DOCTORS API ===
+File: /api/doctors_api_improved.php
+
+POST /api/doctors_api_improved.php
+Action: save
+Fields:
+- doctor_id (optional, for updates)
+- first_name (required, 2-50 chars)
+- last_name (required, 2-50 chars)
+- phone (required, 10-15 digits, unique)
+- email (optional, valid email format)
+- specialization (required, text)
+- license_number (required, unique)
+- hospital_affiliation (optional, text)
+- status (required: active/inactive)
+
+POST /api/doctors_api_improved.php
+Action: get
+Fields:
+- id (required, doctor ID)
+
+POST /api/doctors_api_improved.php
+Action: delete  
+Fields:
+- id (required, doctor ID)
+
+GET /api/doctors_api_improved.php
+Action: list
+Parameters:
+- search (optional, search term)
+- specialization (optional, filter by specialization)
+- status (optional, filter by status)
+- limit (optional, default 50)
+- offset (optional, default 0)
+
+=== TEST ORDERS API ===
+File: /api/test_orders_api_improved.php
+
+POST /api/test_orders_api_improved.php
+Action: save
+Fields:
+- order_id (optional, for updates)
+- patient_id (required)
+- doctor_id (required)
+- test_type (required)
+- priority (required: normal/urgent/stat)
+- notes (optional, text)
+- status (required: pending/in-progress/completed/cancelled)
+
+POST /api/test_orders_api_improved.php
+Action: get
+Fields:
+- id (required, order ID)
+
+POST /api/test_orders_api_improved.php
+Action: delete
+Fields:
+- id (required, order ID)
+
+=== RESULTS API ===
+File: /api/results_api_improved.php
+
+POST /api/results_api_improved.php
+Action: save
+Fields:
+- result_id (optional, for updates)
+- order_id (required)
+- test_values (required, JSON format)
+- reference_ranges (required, JSON format)
+- abnormal_flags (optional, JSON format)
+- comments (optional, text)
+- technician_id (required)
+- verified_by (optional, doctor ID)
+- status (required: draft/pending/verified/delivered)
+
+=== EQUIPMENT API ===
+File: /api/equipment_api_improved.php
+
+POST /api/equipment_api_improved.php
+Action: save
+Fields:
+- equipment_id (optional, for updates)
+- name (required, 2-100 chars)
+- model (required, text)
+- serial_number (required, unique)
+- manufacturer (required, text)
+- purchase_date (required, YYYY-MM-DD)
+- warranty_expiry (optional, YYYY-MM-DD)
+- maintenance_schedule (optional, text)
+- status (required: active/maintenance/inactive)
+
+=== USERS API ===
+File: /api/users_api_improved.php
+
+POST /api/users_api_improved.php
+Action: save
+Fields:
+- user_id (optional, for updates)
+- username (required, 3-50 chars, unique)
+- email (required, valid email, unique)
+- password (required for new users, min 8 chars)
+- first_name (required, 2-50 chars)
+- last_name (required, 2-50 chars)
+- role (required: admin/technician/receptionist)
+- status (required: active/inactive)
+
+=== DASHBOARD API ===
+File: /api/dashboard_api.php
+
+GET /api/dashboard_api.php
+Action: stats
+Returns: Dashboard statistics (counts, charts data)
+
+GET /api/dashboard_api.php
+Action: recent_activities
+Parameters:
+- limit (optional, default 10)
+
+=== REPORTS API ===
+File: /api/reports_api.php
+
+GET /api/reports_api.php
+Action: generate
+Parameters:
+- type (required: daily/weekly/monthly/custom)
+- date_from (required for custom)
+- date_to (required for custom)
+- format (optional: json/pdf/excel, default json)
+
+=== NOTIFICATIONS API ===
+File: /api/notifications_api.php
+
+GET /api/notifications_api.php
+Returns: Array of user notifications
+
+POST /api/notifications_api.php
+Action: mark_read
+Fields:
+- notification_ids (required, array of IDs)
+
+=== AJAX DATATABLE FILES ===
+
+All DataTable AJAX files are in /ajax/ directory:
+- patients_datatable.php (Server-side processing for patients table)
+- doctors_datatable.php (Server-side processing for doctors table)  
+- test_orders_datatable.php (Server-side processing for test orders table)
+- results_datatable.php (Server-side processing for results table)
+- equipment_datatable.php (Server-side processing for equipment table)
+- users_datatable.php (Server-side processing for users table)
+
+DataTable Request Format:
+- draw (DataTables draw counter)
+- start (Starting record number)
+- length (Number of records per page)
+- search[value] (Global search value)
+- order[0][column] (Column index to order by)
+- order[0][dir] (Order direction: asc/desc)
+- Custom filters as additional POST parameters
+
+DataTable Response Format:
+{
+  "draw": 1,
+  "recordsTotal": 100,
+  "recordsFiltered": 50,
+  "data": [...]
+}
+
+=== COMMON JAVASCRIPT FUNCTIONS ===
+
+Global functions available on all pages:
+- showLoading() / hideLoading()
+- showSuccessToast(message, title)
+- showErrorToast(message, title)  
+- showInfoToast(message, title)
+- showWarningToast(message, title)
+- makeAjaxRequest(options)
+- submitForm(formSelector, apiUrl, options)
+- deleteRecord(id, apiUrl, options)
+- initializeDataTable(selector, options)
+- formatDate(dateString, format)
+- formatCurrency(amount, currency)
+- getStatusBadge(status)
+
+=== CSS FRAMEWORK ===
+
+Using AdminLTE 3.2.0 with:
+- Bootstrap 4.6.2
+- Font Awesome 6.0.0
+- DataTables 1.13.6
+- Select2 4.0.13
+- Toastr 2.1.4
+- SweetAlert2 11.7.28
+
+=== SECURITY FEATURES ===
+
+- Session-based authentication
+- CSRF protection on forms
+- SQL injection prevention (prepared statements)
+- XSS protection (input sanitization)
+- File upload validation
+- Access control by user roles
+
+=== ERROR HANDLING ===
+
+All APIs return consistent error responses:
+- HTTP status codes (400, 401, 404, 500)
+- Error messages in JSON format
+- Logging to server error log
+- User-friendly error display via toastr
+
+=== TESTING ENDPOINTS ===
+
+GET /api/debug_api.php - System health check
+GET /api/system_status.php - Detailed system status
 - Get all patients with pagination
 - Parameters: page, limit, search, status
 - Returns: patients list with pagination info
