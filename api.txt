@@ -7,10 +7,12 @@ Last Updated: 2025-01-08
 
 IMPORTANT: All pages now use AdminLTE3 template with AJAX operations
 - All forms are handled via modals
-- All data tables use server-side processing
-- All CRUD operations use AJAX
+- All data tables use server-side processing with advanced pagination
+- All CRUD operations use AJAX with proper error handling
 - Toaster notifications for all events
-- Advanced pagination and filtering
+- Advanced filtering and search functionality
+- Dynamic table management with real-time updates
+- External CSS/JS files for all styling and functionality
 
 Authentication:
 - All API endpoints require valid session
@@ -21,82 +23,100 @@ Standard Response Format:
   "success": true/false,
   "message": "Response message",
   "data": {...},
-  "timestamp": "2025-01-07 12:00:00",
+  "timestamp": "2025-01-08 12:00:00",
   "server_time": 1704628800
 }
 
 === PATIENTS API ===
 
 GET /api/patients_api.php
-- Get all patients with pagination
-- Parameters: page, limit, search, status
-- Returns: patients list with pagination info
+- Get all patients with advanced pagination and filtering
+- Parameters: page, limit, search, status, blood_group, gender
+- Returns: patients list with pagination info and advanced search
 
 POST /api/patients_api.php
-- Create new patient
+- Create new patient via AJAX modal form
 - Required: first_name, last_name, phone
 - Optional: email, date_of_birth, gender, address, blood_group, emergency_contact, emergency_phone, medical_history, allergies, status
 
 PUT /api/patients_api.php
-- Update existing patient
+- Update existing patient via AJAX modal form
 - Required: id + fields to update
 - Fields: first_name, last_name, phone, email, date_of_birth, gender, address, blood_group, emergency_contact, emergency_phone, medical_history, allergies, status
 
 DELETE /api/patients_api.php
-- Delete patient
+- Delete patient with SweetAlert confirmation
 - Required: id
 
 GET /api/patients_api.php?action=get&id={id}
-- Get single patient details
+- Get single patient details for modal display
 - Returns: Complete patient record with all fields
 
 GET /api/patients_api.php?action=list
-- Get patients list for dropdowns
+- Get patients list for dropdowns and select2 components
 - Returns: Simple list with id and name
+
+GET /api/patients_api.php?action=export
+- Export patients data in multiple formats
+- Parameters: format (csv, excel, pdf), filters
+- Returns: File download
+
+AJAX DataTable: /ajax/patients_datatable.php
+- Server-side processing for patients table
+- Advanced filtering and search functionality
+- Real-time data updates
 
 === DOCTORS API ===
 
 GET /api/doctors_api.php
-- Get all doctors with pagination
-- Parameters: page, limit, search, status
+- Get all doctors with advanced pagination and filtering
+- Parameters: page, limit, search, status, specialization
 - Returns: doctors list with pagination info
 
 POST /api/doctors_api.php
-- Create new doctor
+- Create new doctor via AJAX modal form
 - Required: name, phone, specialization
 - Optional: email, license_number, hospital, address, notes, status
 
 PUT /api/doctors_api.php
-- Update existing doctor
+- Update existing doctor via AJAX modal form
 - Required: id + fields to update
 - Fields: name, phone, specialization, email, license_number, hospital, address, notes, status
 
 DELETE /api/doctors_api.php
-- Delete doctor
+- Delete doctor with confirmation
 - Required: id
 
 GET /api/doctors_api.php?action=get&id={id}
-- Get single doctor details
+- Get single doctor details for modal display
 - Returns: Complete doctor record with all fields
 
 GET /api/doctors_api.php?action=list
 - Get doctors list for dropdowns
 - Returns: Simple list with id and name
 
+GET /api/doctors_api.php?action=export
+- Export doctors data in multiple formats
+- Parameters: format (csv, excel, pdf), filters
+
+AJAX DataTable: /ajax/doctors_datatable.php
+- Server-side processing for doctors table
+- Advanced filtering by specialization and status
+
 === TEST ORDERS API ===
 
 GET /api/test_orders_api.php
-- Get all test orders with pagination
-- Parameters: page, limit, search, status, patient_id
+- Get all test orders with advanced pagination and filtering
+- Parameters: page, limit, search, status, patient_id, priority
 - Returns: test orders list with pagination info
 
 POST /api/test_orders_api.php
-- Create new test order
+- Create new test order via AJAX modal form
 - Required: patient_id, tests[] (JSON array of test IDs)
 - Optional: doctor_id, priority, notes, order_date, discount
 
 PUT /api/test_orders_api.php
-- Update test order
+- Update test order via AJAX modal form
 - Required: id + fields to update
 - Fields: status, priority, notes, discount
 
@@ -105,153 +125,287 @@ DELETE /api/test_orders_api.php
 - Required: id
 
 GET /api/test_orders_api.php?action=get&id={id}
-- Get single test order details
+- Get single test order details for modal display
 - Returns: Complete order with items and patient/doctor info
 
-=== RESULTS API ===
+GET /api/test_orders_api.php?action=export
+- Export test orders data
+- Parameters: format, filters
+
+AJAX DataTable: /ajax/test_orders_datatable.php
+- Server-side processing for test orders table
+- Advanced filtering by status, patient, priority
+
+=== TEST RESULTS API ===
 
 GET /api/results_api.php
-- Get test results with pagination
-- Parameters: page, limit, search, status, patient_id, order_id
+- Get test results with advanced pagination and filtering
+- Parameters: page, limit, search, status, patient_id, order_id, priority, is_critical
 
 POST /api/results_api.php
-- Add/Update test results
-- Required: test_order_id, test_id, result_value
-- Optional: comments, is_critical
+- Add/Update test results via AJAX modal form
+- Required: patient_id, order_id, test_type, result_value
+- Optional: reference_range, unit, status, priority, comments, is_critical
+
+PUT /api/results_api.php
+- Update test result via AJAX modal form
+- Required: id + fields to update
+- Fields: result_value, reference_range, unit, status, priority, comments, is_critical
+
+DELETE /api/results_api.php
+- Delete test result with confirmation
+- Required: id
+
+GET /api/results_api.php?action=get&id={id}
+- Get single result details for modal display
+- Returns: Complete result record with patient and order info
+
+GET /api/results_api.php?action=download&id={id}
+- Download result report as PDF
+- Returns: PDF file download
+
+GET /api/results_api.php?action=export
+- Export results data in multiple formats
+- Parameters: format (csv, excel, pdf), filters
+
+AJAX DataTable: /ajax/results_datatable.php
+- Server-side processing for results table
+- Advanced filtering by status, priority, critical flag
+- Real-time updates with critical result indicators
 
 === EQUIPMENT API ===
 
 GET /api/equipment_api.php
-- Get all equipment with pagination
-- Parameters: page, limit, search, status, category
+- Get all equipment with advanced pagination and filtering
+- Parameters: page, limit, search, status, category, location
 - Returns: equipment list with pagination info
 
 POST /api/equipment_api.php
-- Add new equipment
+- Add new equipment via AJAX modal form
 - Required: equipment_name
 - Optional: equipment_type, model, serial_number, manufacturer, category, location, purchase_date, warranty_expiry, cost, maintenance_schedule, description, status
 
 PUT /api/equipment_api.php
-- Update equipment
+- Update equipment via AJAX modal form
 - Required: id + fields to update
 - Fields: equipment_name, equipment_type, model, serial_number, manufacturer, category, location, purchase_date, warranty_expiry, status, cost, maintenance_schedule, last_maintenance, next_maintenance, description
 
 DELETE /api/equipment_api.php
-- Delete equipment
+- Delete equipment with confirmation
 - Required: id
 
 GET /api/equipment_api.php?action=get&id={id}
-- Get single equipment details
+- Get single equipment details for modal display
 - Returns: Complete equipment record with all fields
+
+AJAX DataTable: /ajax/equipment_datatable.php
+- Server-side processing for equipment table
+- Advanced filtering by category, status, location
 
 === USERS API ===
 
 GET /api/users_api.php
-- Get all users with pagination
+- Get all users with advanced pagination and filtering
 - Parameters: page, limit, search, user_type, status
 - Returns: users list with pagination info
 
 POST /api/users_api.php
-- Create new user
+- Create new user via AJAX modal form
 - Required: name, email, username, password, user_type
 - Optional: phone, status
 
 PUT /api/users_api.php
-- Update existing user
+- Update existing user via AJAX modal form
 - Required: id + fields to update
 - Fields: name, email, username, user_type, phone, status
 - Note: password is optional for updates
 
 DELETE /api/users_api.php
-- Delete user
+- Delete user with confirmation
 - Required: id
 
 GET /api/users_api.php?action=get&id={id}
-- Get single user details
+- Get single user details for modal display
 - Returns: Complete user record with all fields
 
 POST /api/users_api.php?action=reset_password
-- Reset user password
+- Reset user password via AJAX
 - Required: user_id, new_password, confirm_password
 
 GET /api/users_api.php?action=export
 - Export users data
 - Parameters: format (csv, excel, pdf), filters
 
+AJAX DataTable: /ajax/users_datatable.php
+- Server-side processing for users table
+- Advanced filtering by user type and status
+
+=== SETTINGS API ===
+
+GET /api/settings_api.php
+- Get user settings and preferences
+- Returns: User-specific settings and system preferences
+
+POST /api/settings_api.php?action=update_profile
+- Update user profile via AJAX modal form
+- Required: full_name, email
+- Optional: phone
+
+POST /api/settings_api.php?action=change_password
+- Change user password via AJAX modal form
+- Required: current_password, new_password, confirm_password
+
+POST /api/settings_api.php?action=update_preferences
+- Update user preferences via AJAX
+- Fields: theme, language, date_format, timezone, email_notifications, auto_save
+
+POST /api/settings_api.php?action=export_user_data
+- Export user's personal data
+- Returns: JSON or CSV file with user data
+
+GET /api/settings_api.php?action=activity_log
+- Get user activity log for modal display
+- Returns: List of user activities with timestamps
+
 === DASHBOARD API ===
 
 GET /api/dashboard_api.php?action=stats
-- Get dashboard statistics
-- Returns: total_patients, todays_tests, pending_results, total_doctors
+- Get dashboard statistics with real-time updates
+- Returns: total_patients, todays_tests, pending_results, total_doctors, revenue_data
 
 GET /api/dashboard_api.php?action=monthly_stats
 - Get monthly statistics for charts
-- Returns: labels[], values[]
+- Returns: labels[], values[], chart_data
 
 GET /api/dashboard_api.php?action=recent_orders
-- Get recent test orders (last 5)
+- Get recent test orders (last 10)
 - Returns: recent orders with patient names and status
 
 GET /api/dashboard_api.php?action=alerts
-- Get system alerts
+- Get system alerts and notifications
 - Returns: system alerts with type, title, message, icon
 
-GET /api/get_counts.php
-- Get quick counts for dashboard cards (legacy)
-
-GET /api/get_monthly_stats.php
-- Get monthly statistics for charts (legacy)
+GET /api/dashboard_api.php?action=performance_metrics
+- Get system performance metrics
+- Returns: response_times, database_queries, memory_usage
 
 === SYSTEM API ===
 
 GET /api/system_api.php
 - Get system status and settings
+- Returns: System information, database status, server metrics
 
-POST /api/system_api.php
-- Update system settings
+POST /api/system_api.php?action=update_setting
+- Update system setting
 - Required: setting_key, setting_value
+
+GET /api/system_api.php?action=backup_database
+- Create database backup
+- Returns: Backup file download
+
+POST /api/system_api.php?action=clear_cache
+- Clear system cache
+- Returns: Success confirmation
 
 === AUTHENTICATION API ===
 
 POST /api/auth_api.php?action=login
-- User login
+- User login with enhanced security
 - Required: username, password
+- Optional: remember_me
 
 POST /api/auth_api.php?action=logout
-- User logout
+- User logout with session cleanup
 
 POST /api/auth_api.php?action=change_password
 - Change user password
 - Required: current_password, new_password
 
+POST /api/auth_api.php?action=forgot_password
+- Initiate password reset
+- Required: email
+
 === REPORTS API ===
 
 GET /api/reports_api.php
-- Generate various reports
-- Parameters: type, date_from, date_to, format
+- Generate various reports with advanced filtering
+- Parameters: type, date_from, date_to, format, filters[]
 
-=== TESTS API ===
+POST /api/reports_api.php?action=custom_report
+- Generate custom report
+- Parameters: report_config (JSON), format
 
-GET /api/tests_api.php?action=list
-- Get available tests for dropdowns
-- Returns: tests list with id, name, price
+GET /api/reports_api.php?action=scheduled_reports
+- Get list of scheduled reports
 
 === NOTIFICATIONS API ===
 
 GET /api/notifications_api.php
-- Get user notifications
+- Get user notifications with pagination
+- Parameters: page, limit, status, type
 
-POST /api/notifications_api.php
+POST /api/notifications_api.php?action=mark_read
 - Mark notifications as read
 - Required: notification_ids[]
 
+POST /api/notifications_api.php?action=create
+- Create new notification
+- Required: user_id, title, message, type
+
+=== AJAX DATATABLE ENDPOINTS ===
+
+All DataTable endpoints support:
+- Server-side processing for large datasets
+- Advanced search and filtering
+- Custom column sorting
+- Real-time data updates
+- Export functionality
+- Responsive design
+
+/ajax/patients_datatable.php - Patients data with medical info
+/ajax/doctors_datatable.php - Doctors data with specializations
+/ajax/equipment_datatable.php - Equipment with maintenance status
+/ajax/results_datatable.php - Test results with critical indicators
+/ajax/test_orders_datatable.php - Test orders with priority levels
+/ajax/users_datatable.php - Users with role-based filtering
+
+=== ERROR HANDLING ===
+
+All APIs implement comprehensive error handling:
+- Input validation with detailed error messages
+- Database error handling with logging
+- Authentication and authorization checks
+- Rate limiting and security measures
+- Consistent error response format
+
+Error Response Format:
+{
+  "success": false,
+  "message": "Detailed error message",
+  "errors": {...}, // Field-specific errors
+  "error_code": "ERROR_CODE",
+  "timestamp": "2025-01-08 12:00:00"
+}
+
+=== SECURITY FEATURES ===
+
+- CSRF protection on all forms
+- SQL injection prevention with prepared statements
+- XSS protection with input sanitization
+- Session management with timeout
+- Role-based access control
+- Audit logging for all operations
+- File upload security with type validation
+
 Error Codes:
 - 200: Success
-- 400: Bad Request
-- 401: Unauthorized
-- 403: Forbidden
-- 404: Not Found
-- 422: Validation Error
-- 500: Internal Server Error
+- 400: Bad Request / Validation Error
+- 401: Unauthorized / Authentication Required
+- 403: Forbidden / Insufficient Permissions
+- 404: Not Found / Resource Not Found
+- 422: Validation Error / Invalid Input
+- 429: Too Many Requests / Rate Limited
+- 500: Internal Server Error / Database Error
 
-Last Updated: 2025-01-07
+Last Updated: 2025-01-08
+Version: 2.0.0 - Complete AJAX Implementation
