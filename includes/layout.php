@@ -263,8 +263,14 @@
 <!-- AdminLTE App -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.2.0/js/adminlte.min.js"></script>
 
+<!-- Error Handler -->
+<script src="js/error-handler.js"></script>
+
 <!-- Core Initialization (Must load first) -->
 <script src="js/init.js"></script>
+
+<!-- Global functions -->
+<script src="js/global.js"></script>
 
 <?php
 // Load additional JS files

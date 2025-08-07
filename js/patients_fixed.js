@@ -23,149 +23,172 @@ function initializePatientsPage() {
     console.log('Patients page initialized successfully');
 }
 
-// Initialize DataTable
+// Initialize DataTable with enhanced error handling
 function initializePatientsDataTable() {
     // Check if DataTables is available
-    if (typeof jQuery === 'undefined' || !jQuery.fn.DataTable) {
+    if (typeof jQuery === 'undefined') {
+        console.error('jQuery is not available');
+        showToast('error', 'jQuery library is not loaded');
+        return;
+    }
+    
+    if (!jQuery.fn.DataTable) {
         console.error('DataTables is not available');
         showToast('error', 'DataTables library is not loaded');
         return;
     }
 
-    // Destroy existing table
-    if ($.fn.DataTable.isDataTable('#patientsTable')) {
-        $('#patientsTable').DataTable().destroy();
+    // Check if table element exists
+    const tableElement = $('#patientsTable');
+    if (tableElement.length === 0) {
+        console.error('Patients table element not found');
+        showToast('error', 'Patients table not found in DOM');
+        return;
     }
 
-    patientsTable = $('#patientsTable').DataTable({
-        processing: true,
-        serverSide: true,
-        ajax: {
-            url: 'ajax/patients_datatable.php',
-            type: 'POST',
-            data: function(d) {
-                d.status = $('#statusFilter').val() || '';
-                d.blood_group = $('#bloodGroupFilter').val() || '';
-                d.date_from = $('#dateFromFilter').val() || '';
-                d.date_to = $('#dateToFilter').val() || '';
-                return d;
-            },
-            error: function(xhr, error, thrown) {
-                console.error('DataTable AJAX error:', error);
-                showToast('error', 'Failed to load patient data');
-            }
-        },
-        columns: [
-            { 
-                data: 'id',
-                title: 'ID',
-                width: '50px',
-                className: 'text-center'
-            },
-            { 
-                data: 'full_name',
-                title: 'Full Name',
-                render: function(data, type, row) {
-                    return escapeHtml(data || '');
+    try {
+        // Destroy existing table if it exists
+        if ($.fn.DataTable.isDataTable('#patientsTable')) {
+            $('#patientsTable').DataTable().destroy();
+        }
+
+        patientsTable = $('#patientsTable').DataTable({
+            processing: true,
+            serverSide: true,
+            ajax: {
+                url: 'ajax/patients_datatable.php',
+                type: 'POST',
+                data: function(d) {
+                    d.status = $('#statusFilter').val() || '';
+                    d.blood_group = $('#bloodGroupFilter').val() || '';
+                    d.date_from = $('#dateFromFilter').val() || '';
+                    d.date_to = $('#dateToFilter').val() || '';
+                    return d;
+                },
+                error: function(xhr, error, thrown) {
+                    console.error('DataTable AJAX error:', error, thrown, xhr);
+                    hideLoading();
+                    showToast('error', 'Failed to load patient data. Please refresh the page.');
                 }
             },
-            { 
-                data: 'date_of_birth',
-                title: 'Age',
-                render: function(data, type, row) {
-                    if (data) {
-                        const age = calculateAge(data);
-                        return `<span class="badge badge-info">${age} years</span>`;
+            columns: [
+                { 
+                    data: 'id',
+                    title: 'ID',
+                    width: '50px',
+                    className: 'text-center'
+                },
+                { 
+                    data: 'full_name',
+                    title: 'Full Name',
+                    render: function(data, type, row) {
+                        return escapeHtml(data || '');
                     }
-                    return '<span class="badge badge-secondary">N/A</span>';
+                },
+                { 
+                    data: 'date_of_birth',
+                    title: 'Age',
+                    render: function(data, type, row) {
+                        if (data) {
+                            const age = calculateAge(data);
+                            return `<span class="badge badge-info">${age} years</span>`;
+                        }
+                        return '<span class="badge badge-secondary">N/A</span>';
+                    }
+                },
+                { 
+                    data: 'gender',
+                    title: 'Gender',
+                    render: function(data, type, row) {
+                        const badge = data === 'Male' ? 'badge-primary' : 
+                                     data === 'Female' ? 'badge-success' : 'badge-secondary';
+                        return `<span class="badge ${badge}">${escapeHtml(data || 'N/A')}</span>`;
+                    }
+                },
+                { 
+                    data: 'phone',
+                    title: 'Phone',
+                    render: function(data, type, row) {
+                        return data ? formatPhone(data) : 'N/A';
+                    }
+                },
+                { 
+                    data: 'blood_group',
+                    title: 'Blood Group',
+                    render: function(data, type, row) {
+                        return data ? `<span class="badge badge-danger">${escapeHtml(data)}</span>` : 'N/A';
+                    }
+                },
+                { 
+                    data: 'status',
+                    title: 'Status',
+                    render: function(data, type, row) {
+                        const badge = data === 'Active' ? 'badge-success' : 'badge-secondary';
+                        return `<span class="badge ${badge}">${escapeHtml(data || 'Inactive')}</span>`;
+                    }
+                },
+                {
+                    data: null,
+                    title: 'Actions',
+                    orderable: false,
+                    className: 'text-center',
+                    width: '120px',
+                    render: function(data, type, row) {
+                        return `
+                            <div class="btn-group" role="group">
+                                <button type="button" class="btn btn-info btn-sm" onclick="viewPatient(${row.id})" title="View">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button type="button" class="btn btn-warning btn-sm" onclick="editPatient(${row.id})" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button type="button" class="btn btn-danger btn-sm" onclick="deletePatient(${row.id})" title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        `;
+                    }
                 }
-            },
-            { 
-                data: 'gender',
-                title: 'Gender',
-                render: function(data, type, row) {
-                    const badge = data === 'Male' ? 'badge-primary' : 
-                                 data === 'Female' ? 'badge-success' : 'badge-secondary';
-                    return `<span class="badge ${badge}">${escapeHtml(data || 'N/A')}</span>`;
+            ],
+            pageLength: 25,
+            responsive: true,
+            dom: 'Bfrtip',
+            buttons: [
+                {
+                    extend: 'copy',
+                    className: 'btn btn-primary btn-sm',
+                    text: '<i class="fas fa-copy"></i> Copy'
+                },
+                {
+                    extend: 'csv',
+                    className: 'btn btn-success btn-sm',
+                    text: '<i class="fas fa-file-csv"></i> CSV'
+                },
+                {
+                    extend: 'excel',
+                    className: 'btn btn-success btn-sm',
+                    text: '<i class="fas fa-file-excel"></i> Excel'
+                },
+                {
+                    extend: 'pdf',
+                    className: 'btn btn-danger btn-sm',
+                    text: '<i class="fas fa-file-pdf"></i> PDF'
                 }
+            ],
+            language: {
+                processing: '<div class="spinner-border text-primary" role="status"><span class="sr-only">Loading...</span></div>',
+                emptyTable: 'No patients found',
+                zeroRecords: 'No matching patients found'
             },
-            { 
-                data: 'phone',
-                title: 'Phone',
-                render: function(data, type, row) {
-                    return data ? formatPhone(data) : 'N/A';
-                }
-            },
-            { 
-                data: 'blood_group',
-                title: 'Blood Group',
-                render: function(data, type, row) {
-                    return data ? `<span class="badge badge-danger">${escapeHtml(data)}</span>` : 'N/A';
-                }
-            },
-            { 
-                data: 'status',
-                title: 'Status',
-                render: function(data, type, row) {
-                    const badge = data === 'Active' ? 'badge-success' : 'badge-secondary';
-                    return `<span class="badge ${badge}">${escapeHtml(data || 'Inactive')}</span>`;
-                }
-            },
-            {
-                data: null,
-                title: 'Actions',
-                orderable: false,
-                className: 'text-center',
-                width: '120px',
-                render: function(data, type, row) {
-                    return `
-                        <div class="btn-group" role="group">
-                            <button type="button" class="btn btn-info btn-sm" onclick="viewPatient(${row.id})" title="View">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                            <button type="button" class="btn btn-warning btn-sm" onclick="editPatient(${row.id})" title="Edit">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button type="button" class="btn btn-danger btn-sm" onclick="deletePatient(${row.id})" title="Delete">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    `;
-                }
-            }
-        ],
-        pageLength: 25,
-        responsive: true,
-        dom: 'Bfrtip',
-        buttons: [
-            {
-                extend: 'copy',
-                className: 'btn btn-primary btn-sm',
-                text: '<i class="fas fa-copy"></i> Copy'
-            },
-            {
-                extend: 'csv',
-                className: 'btn btn-success btn-sm',
-                text: '<i class="fas fa-file-csv"></i> CSV'
-            },
-            {
-                extend: 'excel',
-                className: 'btn btn-success btn-sm',
-                text: '<i class="fas fa-file-excel"></i> Excel'
-            },
-            {
-                extend: 'pdf',
-                className: 'btn btn-danger btn-sm',
-                text: '<i class="fas fa-file-pdf"></i> PDF'
-            }
-        ],
-        language: {
-            processing: '<div class="spinner-border text-primary" role="status"><span class="sr-only">Loading...</span></div>',
-            emptyTable: 'No patients found',
-            zeroRecords: 'No matching patients found'
-        },
-        order: [[0, 'desc']]
-    });
+            order: [[0, 'desc']]
+        });
+        
+        console.log('Patients DataTable initialized successfully');
+        
+    } catch (error) {
+        console.error('Error initializing patients DataTable:', error);
+        showToast('error', 'Failed to initialize patients table: ' + error.message);
+    }
 }
 
 // Initialize patient form
@@ -218,6 +241,13 @@ function initializeFilters() {
             patientsTable.ajax.reload();
         }
     });
+}
+
+// Filter table function (called from HTML onchange events)
+function filterTable() {
+    if (patientsTable) {
+        patientsTable.ajax.reload();
+    }
 }
 
 // Show add patient modal
@@ -398,32 +428,40 @@ function printPatientDetails() {
     newWindow.document.close();
 }
 
-// Initialize when DOM is ready or application is initialized
-if (typeof initializeApplication !== 'undefined') {
-    // If init.js is loaded, wait for application initialization
+// Enhanced initialization with better error handling
+function waitForInitialization(callback, maxAttempts = 20, currentAttempt = 0) {
+    if (currentAttempt >= maxAttempts) {
+        console.error('Failed to initialize patients page after ' + maxAttempts + ' attempts');
+        showToast('error', 'Failed to initialize patients page. Please refresh the page.');
+        return;
+    }
+    
+    // Check if all required dependencies are available
+    if (typeof jQuery !== 'undefined' && 
+        jQuery.fn.DataTable && 
+        typeof CrudOperations !== 'undefined' &&
+        typeof showToast !== 'undefined' &&
+        typeof escapeHtml !== 'undefined') {
+        try {
+            callback();
+        } catch (error) {
+            console.error('Error during patients page initialization:', error);
+            showToast('error', 'Error initializing patients page: ' + error.message);
+        }
+    } else {
+        console.log('Waiting for dependencies... attempt ' + (currentAttempt + 1));
+        setTimeout(() => {
+            waitForInitialization(callback, maxAttempts, currentAttempt + 1);
+        }, 250);
+    }
+}
+
+// Initialize when DOM is ready and dependencies are loaded
+if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function() {
-        // Set timeout to ensure init.js has run
-        setTimeout(function() {
-            initializePatientsPage();
-        }, 100);
+        waitForInitialization(initializePatientsPage);
     });
 } else {
-    // Fallback: wait for jQuery
-    if (typeof jQuery !== 'undefined') {
-        $(document).ready(function() {
-            initializePatientsPage();
-        });
-    } else {
-        document.addEventListener('DOMContentLoaded', function() {
-            // Wait a bit for jQuery to load
-            setTimeout(function() {
-                if (typeof jQuery !== 'undefined') {
-                    initializePatientsPage();
-                } else {
-                    console.error('jQuery is not available for patients page');
-                    alert('JavaScript libraries are not loaded properly. Please refresh the page.');
-                }
-            }, 500);
-        });
-    }
+    // DOM is already ready
+    waitForInitialization(initializePatientsPage);
 }

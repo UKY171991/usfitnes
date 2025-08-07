@@ -3,25 +3,36 @@
  * This file ensures all libraries are loaded properly and provides fallbacks
  */
 
-// Check if jQuery is loaded
-if (typeof jQuery === 'undefined') {
-    console.error('jQuery is not loaded!');
-    // Try to load jQuery as fallback
+// Enhanced library loading with retry mechanism
+function waitForLibraries(callback, maxAttempts = 10, currentAttempt = 0) {
+    if (currentAttempt >= maxAttempts) {
+        console.error('Failed to load required libraries after ' + maxAttempts + ' attempts');
+        alert('JavaScript libraries failed to load. Please refresh the page.');
+        return;
+    }
+    
+    // Check if all required libraries are available
+    if (typeof jQuery !== 'undefined' && 
+        jQuery.fn.DataTable && 
+        typeof toastr !== 'undefined' && 
+        typeof Swal !== 'undefined') {
+        callback();
+    } else {
+        console.log('Waiting for libraries... attempt ' + (currentAttempt + 1));
+        setTimeout(() => {
+            waitForLibraries(callback, maxAttempts, currentAttempt + 1);
+        }, 200);
+    }
+}
+
+// Initialize when DOM is ready and libraries are loaded
+if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function() {
-        var script = document.createElement('script');
-        script.src = 'https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js';
-        script.onload = function() {
-            console.log('jQuery loaded as fallback');
-            initializeApplication();
-        };
-        document.head.appendChild(script);
+        waitForLibraries(initializeApplication);
     });
 } else {
-    // jQuery is loaded, proceed with initialization
-    $(document).ready(function() {
-        console.log('jQuery ready, initializing application...');
-        initializeApplication();
-    });
+    // DOM is already ready
+    waitForLibraries(initializeApplication);
 }
 
 // Main application initialization
@@ -380,4 +391,74 @@ class FormHandler {
             }
         });
     }
+}
+
+// Fallback functions in case libraries are not loaded
+if (typeof showToast === 'undefined') {
+    window.showToast = function(type, message, title = '') {
+        console.log(`${type.toUpperCase()}: ${title} - ${message}`);
+        if (type === 'error') {
+            alert(`Error: ${message}`);
+        }
+    };
+}
+
+if (typeof showLoading === 'undefined') {
+    window.showLoading = function() {
+        const overlay = document.getElementById('loadingOverlay');
+        if (overlay) {
+            overlay.style.display = 'flex';
+        }
+        console.log('Loading...');
+    };
+}
+
+if (typeof hideLoading === 'undefined') {
+    window.hideLoading = function() {
+        const overlay = document.getElementById('loadingOverlay');
+        if (overlay) {
+            overlay.style.display = 'none';
+        }
+        console.log('Loading complete');
+    };
+}
+
+if (typeof escapeHtml === 'undefined') {
+    window.escapeHtml = function(text) {
+        if (text === null || text === undefined) return '';
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return text.toString().replace(/[&<>"']/g, function(m) { return map[m]; });
+    };
+}
+
+if (typeof calculateAge === 'undefined') {
+    window.calculateAge = function(dateOfBirth) {
+        if (!dateOfBirth) return 'N/A';
+        const today = new Date();
+        const birthDate = new Date(dateOfBirth);
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+        }
+        return age;
+    };
+}
+
+if (typeof formatPhone === 'undefined') {
+    window.formatPhone = function(phone) {
+        if (!phone) return '';
+        const cleaned = phone.replace(/\D/g, '');
+        const match = cleaned.match(/^(\d{3})(\d{3})(\d{4})$/);
+        if (match) {
+            return `(${match[1]}) ${match[2]}-${match[3]}`;
+        }
+        return phone;
+    };
 }
