@@ -107,7 +107,7 @@ try {
                 <button type='button' class='btn btn-info btn-sm' onclick='editTestOrder({$order['id']})' title='Edit'>
                     <i class='fas fa-edit'></i>
                 </button>
-                <button type='button' class='btn btn-danger btn-sm' onclick='deleteTestOrder({$order['id']})' title='Delete'>
+                <button type='button' class='btn btn-danger btn-sm' data-action='delete' data-id='{$order['id']}' title='Delete'>
                     <i class='fas fa-trash'></i>
                 </button>
             </div>

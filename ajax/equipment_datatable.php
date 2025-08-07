@@ -115,7 +115,7 @@ try {
                 <button type='button' class='btn btn-info btn-sm' onclick='editEquipment({$item['id']})' title='Edit'>
                     <i class='fas fa-edit'></i>
                 </button>
-                <button type='button' class='btn btn-danger btn-sm' onclick='deleteEquipment({$item['id']})' title='Delete'>
+                <button type='button' class='btn btn-danger btn-sm' data-action='delete' data-id='{$item['id']}' title='Delete'>
                     <i class='fas fa-trash'></i>
                 </button>
             </div>

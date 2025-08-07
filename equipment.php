@@ -53,7 +53,7 @@ include 'includes/adminlte_sidebar.php';
                 <button type="button" class="btn btn-warning btn-sm" data-toggle="modal" data-target="#equipmentModal" onclick="openAddModal()">
                   <i class="fas fa-plus mr-1"></i>Add Equipment
                 </button>
-                <button type="button" class="btn btn-outline-secondary btn-sm ml-1" onclick="refreshTable()">
+                <button type="button" class="btn btn-outline-secondary btn-sm ml-1" onclick="refreshEquipmentTable()">
                   <i class="fas fa-sync-alt mr-1"></i>Refresh
                 </button>
               </div>
@@ -102,6 +102,7 @@ include 'includes/adminlte_sidebar.php';
       <form id="equipmentForm" novalidate>
         <div class="modal-body">
           <input type="hidden" id="equipmentId" name="id">
+          <input type="hidden" id="equipmentAction" name="action" value="create">
           
           <div class="row">
             <div class="col-md-6">
@@ -209,20 +210,10 @@ include 'includes/adminlte_sidebar.php';
 <script>
 $(document).ready(function() {
     // Initialize DataTable
-    initDataTable();
-});
-
-function initDataTable() {
-    $('#equipmentTable').DataTable({
-        processing: true,
-        serverSide: true,
+    window.equipmentDataTable = initializeDataTable('#equipmentTable', {
         ajax: {
             url: 'ajax/equipment_datatable.php',
-            type: 'POST',
-            error: function(xhr, error, thrown) {
-                console.log('DataTables Error:', error);
-                showToast('error', 'Failed to load equipment data. Please check your database connection.');
-            }
+            type: 'POST'
         },
         columns: [
             { data: 'id', width: '60px' },
@@ -233,26 +224,40 @@ function initDataTable() {
             { data: 'status', width: '100px' },
             { data: 'maintenance_status', width: '120px' },
             { data: 'actions', orderable: false, width: '120px' }
-        ],
-        order: [[0, 'desc']],
-        responsive: true,
-        language: {
-            processing: '<div class="spinner-border spinner-border-sm text-warning" role="status"></div> Loading...'
-        }
+        ]
     });
-}
+    
+    // Handle equipment form submission
+    handleAjaxForm('#equipmentForm', {
+        url: 'api/equipment_api.php',
+        successMessage: 'Equipment saved successfully',
+        closeModal: true,
+        refreshTable: 'refreshEquipmentTable',
+        resetForm: true
+    });
+    
+    // Handle delete actions
+    handleAjaxDelete('[data-action="delete"]', {
+        url: 'api/equipment_api.php',
+        confirmTitle: 'Delete Equipment',
+        confirmText: 'Are you sure you want to delete this equipment? This action cannot be undone.',
+        refreshTable: 'refreshEquipmentTable'
+    });
+});
 
-function refreshTable() {
-    $('#equipmentTable').DataTable().ajax.reload(null, false);
-    showToast('success', 'Table refreshed successfully');
+function refreshEquipmentTable() {
+    if (window.equipmentDataTable) {
+        window.equipmentDataTable.ajax.reload(null, false);
+        showToast('success', 'Table refreshed successfully');
+    }
 }
 
 function openAddModal() {
+    resetModalForm('equipmentModal');
     $('#equipmentModalLabel #modalTitle').text('Add New Equipment');
-    $('#equipmentForm')[0].reset();
-    $('#equipmentId').val('');
-    $('#equipmentForm').removeClass('was-validated');
     $('#status').val('Active');
+    $('#equipmentAction').val('create');
+    openModal('equipmentModal');
 }
 
 function editEquipment(id) {
@@ -263,10 +268,12 @@ function editEquipment(id) {
         type: 'GET',
         data: { action: 'get', id: id },
         dataType: 'json',
+        showLoader: false,
         success: function(response) {
             if (response.success) {
                 const equipment = response.data;
                 $('#equipmentId').val(equipment.id);
+                $('#equipmentAction').val('update');
                 $('#equipmentName').val(equipment.name);
                 $('#model').val(equipment.model);
                 $('#category').val(equipment.category);
@@ -278,7 +285,7 @@ function editEquipment(id) {
                 $('#nextMaintenance').val(equipment.next_maintenance);
                 $('#status').val(equipment.status);
                 $('#description').val(equipment.description);
-                $('#equipmentModal').modal('show');
+                openModal('equipmentModal');
             } else {
                 showToast('error', response.message);
             }
@@ -286,90 +293,6 @@ function editEquipment(id) {
         error: function() {
             showToast('error', 'Failed to load equipment data');
         }
-    });
-}
-
-function deleteEquipment(id) {
-    if (confirm('Are you sure you want to delete this equipment?')) {
-        $.ajax({
-            url: 'api/equipment_api.php',
-            type: 'POST',
-            data: { 
-                action: 'delete', 
-                id: id 
-            },
-            dataType: 'json',
-            success: function(response) {
-                if (response.success) {
-                    showToast('success', 'Equipment deleted successfully');
-                    refreshTable();
-                } else {
-                    showToast('error', response.message);
-                }
-            },
-            error: function() {
-                showToast('error', 'Failed to delete equipment');
-            }
-        });
-    }
-}
-
-// Form submission
-$('#equipmentForm').on('submit', function(e) {
-    e.preventDefault();
-    
-    if (!this.checkValidity()) {
-        e.stopPropagation();
-        $(this).addClass('was-validated');
-        return;
-    }
-    
-    const formData = new FormData(this);
-    const isEdit = $('#equipmentId').val() !== '';
-    formData.append('action', isEdit ? 'update' : 'create');
-    
-    $.ajax({
-        url: 'api/equipment_api.php',
-        type: 'POST',
-        data: formData,
-        processData: false,
-        contentType: false,
-        dataType: 'json',
-        success: function(response) {
-            if (response.success) {
-                showToast('success', isEdit ? 'Equipment updated successfully' : 'Equipment created successfully');
-                $('#equipmentModal').modal('hide');
-                refreshTable();
-            } else {
-                showToast('error', response.message);
-            }
-        },
-        error: function() {
-            showToast('error', 'Failed to save equipment');
-        }
-    });
-});
-
-function showToast(type, message) {
-    const toast = $(`
-        <div class="toast toast-${type}" role="alert" style="position: fixed; top: 20px; right: 20px; z-index: 9999;">
-            <div class="toast-header">
-                <i class="fas fa-${type === 'success' ? 'check-circle text-success' : 'exclamation-circle text-danger'} mr-2"></i>
-                <strong class="mr-auto">${type === 'success' ? 'Success' : 'Error'}</strong>
-                <button type="button" class="ml-2 mb-1 close" data-dismiss="toast">
-                    <span>&times;</span>
-                </button>
-            </div>
-            <div class="toast-body">${message}</div>
-        </div>
-    `);
-    
-    $('body').append(toast);
-    toast.toast({ delay: 3000 });
-    toast.toast('show');
-    
-    toast.on('hidden.bs.toast', function() {
-        $(this).remove();
     });
 }
 </script>

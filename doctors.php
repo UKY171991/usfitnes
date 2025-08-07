@@ -53,7 +53,7 @@ include 'includes/adminlte_sidebar.php';
                 <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#doctorModal" onclick="openAddModal()">
                   <i class="fas fa-plus mr-1"></i>Add Doctor
                 </button>
-                <button type="button" class="btn btn-outline-secondary btn-sm ml-1" onclick="refreshTable()">
+                <button type="button" class="btn btn-outline-secondary btn-sm ml-1" onclick="refreshDoctorsTable()">
                   <i class="fas fa-sync-alt mr-1"></i>Refresh
                 </button>
               </div>
@@ -102,6 +102,7 @@ include 'includes/adminlte_sidebar.php';
       <form id="doctorForm" novalidate>
         <div class="modal-body">
           <input type="hidden" id="doctorId" name="id">
+          <input type="hidden" id="doctorAction" name="action" value="create">
           
           <div class="row">
             <div class="col-md-6">
@@ -193,20 +194,10 @@ include 'includes/adminlte_sidebar.php';
 <script>
 $(document).ready(function() {
     // Initialize DataTable
-    initDataTable();
-});
-
-function initDataTable() {
-    $('#doctorsTable').DataTable({
-        processing: true,
-        serverSide: true,
+    window.doctorsDataTable = initializeDataTable('#doctorsTable', {
         ajax: {
             url: 'ajax/doctors_datatable.php',
-            type: 'POST',
-            error: function(xhr, error, thrown) {
-                console.log('DataTables Error:', error);
-                showToast('error', 'Failed to load doctor data. Please check your database connection.');
-            }
+            type: 'POST'
         },
         columns: [
             { data: 'id', width: '60px' },
@@ -217,26 +208,40 @@ function initDataTable() {
             { data: 'license_number' },
             { data: 'status', width: '100px' },
             { data: 'actions', orderable: false, width: '120px' }
-        ],
-        order: [[0, 'desc']],
-        responsive: true,
-        language: {
-            processing: '<div class="spinner-border spinner-border-sm text-primary" role="status"></div> Loading...'
-        }
+        ]
     });
-}
+    
+    // Handle doctor form submission
+    handleAjaxForm('#doctorForm', {
+        url: 'api/doctors_api.php',
+        successMessage: 'Doctor saved successfully',
+        closeModal: true,
+        refreshTable: 'refreshDoctorsTable',
+        resetForm: true
+    });
+    
+    // Handle delete actions
+    handleAjaxDelete('[data-action="delete"]', {
+        url: 'api/doctors_api.php',
+        confirmTitle: 'Delete Doctor',
+        confirmText: 'Are you sure you want to delete this doctor? This action cannot be undone.',
+        refreshTable: 'refreshDoctorsTable'
+    });
+});
 
-function refreshTable() {
-    $('#doctorsTable').DataTable().ajax.reload(null, false);
-    showToast('success', 'Table refreshed successfully');
+function refreshDoctorsTable() {
+    if (window.doctorsDataTable) {
+        window.doctorsDataTable.ajax.reload(null, false);
+        showToast('success', 'Table refreshed successfully');
+    }
 }
 
 function openAddModal() {
+    resetModalForm('doctorModal');
     $('#doctorModalLabel #modalTitle').text('Add New Doctor');
-    $('#doctorForm')[0].reset();
-    $('#doctorId').val('');
-    $('#doctorForm').removeClass('was-validated');
     $('#status').val('Active');
+    $('#doctorAction').val('create');
+    openModal('doctorModal');
 }
 
 function editDoctor(id) {
@@ -247,10 +252,12 @@ function editDoctor(id) {
         type: 'GET',
         data: { action: 'get', id: id },
         dataType: 'json',
+        showLoader: false,
         success: function(response) {
             if (response.success) {
                 const doctor = response.data;
                 $('#doctorId').val(doctor.id);
+                $('#doctorAction').val('update');
                 $('#firstName').val(doctor.first_name);
                 $('#lastName').val(doctor.last_name);
                 $('#specialization').val(doctor.specialization);
@@ -259,7 +266,7 @@ function editDoctor(id) {
                 $('#email').val(doctor.email);
                 $('#qualification').val(doctor.qualification);
                 $('#status').val(doctor.status);
-                $('#doctorModal').modal('show');
+                openModal('doctorModal');
             } else {
                 showToast('error', response.message);
             }
@@ -271,87 +278,10 @@ function editDoctor(id) {
 }
 
 function deleteDoctor(id) {
-    if (confirm('Are you sure you want to delete this doctor?')) {
-        $.ajax({
-            url: 'api/doctors_api.php',
-            type: 'POST',
-            data: { 
-                action: 'delete', 
-                id: id 
-            },
-            dataType: 'json',
-            success: function(response) {
-                if (response.success) {
-                    showToast('success', 'Doctor deleted successfully');
-                    refreshTable();
-                } else {
-                    showToast('error', response.message);
-                }
-            },
-            error: function() {
-                showToast('error', 'Failed to delete doctor');
-            }
-        });
-    }
-}
-
-// Form submission
-$('#doctorForm').on('submit', function(e) {
-    e.preventDefault();
-    
-    if (!this.checkValidity()) {
-        e.stopPropagation();
-        $(this).addClass('was-validated');
-        return;
-    }
-    
-    const formData = new FormData(this);
-    const isEdit = $('#doctorId').val() !== '';
-    formData.append('action', isEdit ? 'update' : 'create');
-    
-    $.ajax({
-        url: 'api/doctors_api.php',
-        type: 'POST',
-        data: formData,
-        processData: false,
-        contentType: false,
-        dataType: 'json',
-        success: function(response) {
-            if (response.success) {
-                showToast('success', isEdit ? 'Doctor updated successfully' : 'Doctor created successfully');
-                $('#doctorModal').modal('hide');
-                refreshTable();
-            } else {
-                showToast('error', response.message);
-            }
-        },
-        error: function() {
-            showToast('error', 'Failed to save doctor');
-        }
-    });
-});
-
-function showToast(type, message) {
-    const toast = $(`
-        <div class="toast toast-${type}" role="alert" style="position: fixed; top: 20px; right: 20px; z-index: 9999;">
-            <div class="toast-header">
-                <i class="fas fa-${type === 'success' ? 'check-circle text-success' : 'exclamation-circle text-danger'} mr-2"></i>
-                <strong class="mr-auto">${type === 'success' ? 'Success' : 'Error'}</strong>
-                <button type="button" class="ml-2 mb-1 close" data-dismiss="toast">
-                    <span>&times;</span>
-                </button>
-            </div>
-            <div class="toast-body">${message}</div>
-        </div>
-    `);
-    
-    $('body').append(toast);
-    toast.toast({ delay: 3000 });
-    toast.toast('show');
-    
-    toast.on('hidden.bs.toast', function() {
-        $(this).remove();
-    });
+    const deleteBtn = $(`[onclick="deleteDoctor(${id})"]`);
+    deleteBtn.data('id', id);
+    deleteBtn.attr('data-action', 'delete');
+    deleteBtn.click();
 }
 </script>
 

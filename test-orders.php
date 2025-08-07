@@ -53,7 +53,7 @@ include 'includes/adminlte_sidebar.php';
                 <button type="button" class="btn btn-info btn-sm" data-toggle="modal" data-target="#testOrderModal" onclick="openAddModal()">
                   <i class="fas fa-plus mr-1"></i>New Order
                 </button>
-                <button type="button" class="btn btn-outline-secondary btn-sm ml-1" onclick="refreshTable()">
+                <button type="button" class="btn btn-outline-secondary btn-sm ml-1" onclick="refreshTestOrdersTable()">
                   <i class="fas fa-sync-alt mr-1"></i>Refresh
                 </button>
               </div>
@@ -102,6 +102,7 @@ include 'includes/adminlte_sidebar.php';
       <form id="testOrderForm" novalidate>
         <div class="modal-body">
           <input type="hidden" id="orderId" name="id">
+          <input type="hidden" id="orderAction" name="action" value="create">
           
           <div class="row">
             <div class="col-md-6">
@@ -190,22 +191,10 @@ include 'includes/adminlte_sidebar.php';
 <script>
 $(document).ready(function() {
     // Initialize DataTable
-    initDataTable();
-    loadPatients();
-    loadDoctors();
-});
-
-function initDataTable() {
-    $('#testOrdersTable').DataTable({
-        processing: true,
-        serverSide: true,
+    window.testOrdersDataTable = initializeDataTable('#testOrdersTable', {
         ajax: {
             url: 'ajax/test_orders_datatable.php',
-            type: 'POST',
-            error: function(xhr, error, thrown) {
-                console.log('DataTables Error:', error);
-                showToast('error', 'Failed to load test orders. Please check your database connection.');
-            }
+            type: 'POST'
         },
         columns: [
             { data: 'order_id', width: '80px' },
@@ -216,28 +205,46 @@ function initDataTable() {
             { data: 'status', width: '100px' },
             { data: 'order_date', width: '120px' },
             { data: 'actions', orderable: false, width: '120px' }
-        ],
-        order: [[0, 'desc']],
-        responsive: true,
-        language: {
-            processing: '<div class="spinner-border spinner-border-sm text-info" role="status"></div> Loading...'
-        }
+        ]
     });
-}
+    
+    // Load dropdown options
+    loadPatients();
+    loadDoctors();
+    
+    // Handle test order form submission
+    handleAjaxForm('#testOrderForm', {
+        url: 'api/test_orders_api.php',
+        successMessage: 'Test order saved successfully',
+        closeModal: true,
+        refreshTable: 'refreshTestOrdersTable',
+        resetForm: true
+    });
+    
+    // Handle delete actions
+    handleAjaxDelete('[data-action="delete"]', {
+        url: 'api/test_orders_api.php',
+        confirmTitle: 'Delete Test Order',
+        confirmText: 'Are you sure you want to delete this test order? This action cannot be undone.',
+        refreshTable: 'refreshTestOrdersTable'
+    });
+});
 
-function refreshTable() {
-    $('#testOrdersTable').DataTable().ajax.reload(null, false);
-    showToast('success', 'Table refreshed successfully');
+function refreshTestOrdersTable() {
+    if (window.testOrdersDataTable) {
+        window.testOrdersDataTable.ajax.reload(null, false);
+        showToast('success', 'Table refreshed successfully');
+    }
 }
 
 function openAddModal() {
+    resetModalForm('testOrderModal');
     $('#testOrderModalLabel #modalTitle').text('Create New Test Order');
-    $('#testOrderForm')[0].reset();
-    $('#orderId').val('');
-    $('#testOrderForm').removeClass('was-validated');
     $('#status').val('Pending');
     $('#priority').val('Normal');
     $('#orderDate').val('<?php echo date('Y-m-d'); ?>');
+    $('#orderAction').val('create');
+    openModal('testOrderModal');
 }
 
 function editTestOrder(id) {
@@ -248,10 +255,12 @@ function editTestOrder(id) {
         type: 'GET',
         data: { action: 'get', id: id },
         dataType: 'json',
+        showLoader: false,
         success: function(response) {
             if (response.success) {
                 const order = response.data;
                 $('#orderId').val(order.id);
+                $('#orderAction').val('update');
                 $('#patientId').val(order.patient_id);
                 $('#doctorId').val(order.doctor_id);
                 $('#testType').val(order.test_type);
@@ -259,7 +268,7 @@ function editTestOrder(id) {
                 $('#orderDate').val(order.order_date);
                 $('#status').val(order.status);
                 $('#notes').val(order.notes);
-                $('#testOrderModal').modal('show');
+                openModal('testOrderModal');
             } else {
                 showToast('error', response.message);
             }
@@ -270,127 +279,17 @@ function editTestOrder(id) {
     });
 }
 
-function deleteTestOrder(id) {
-    if (confirm('Are you sure you want to delete this test order?')) {
-        $.ajax({
-            url: 'api/test_orders_api.php',
-            type: 'POST',
-            data: { 
-                action: 'delete', 
-                id: id 
-            },
-            dataType: 'json',
-            success: function(response) {
-                if (response.success) {
-                    showToast('success', 'Test order deleted successfully');
-                    refreshTable();
-                } else {
-                    showToast('error', response.message);
-                }
-            },
-            error: function() {
-                showToast('error', 'Failed to delete test order');
-            }
-        });
-    }
-}
-
 function loadPatients() {
-    $.ajax({
-        url: 'api/patients_api.php',
-        type: 'GET',
-        data: { action: 'list' },
-        dataType: 'json',
-        success: function(response) {
-            if (response.success) {
-                $('#patientId').empty().append('<option value="">Select Patient</option>');
-                response.data.forEach(function(patient) {
-                    $('#patientId').append(`<option value="${patient.id}">${patient.full_name}</option>`);
-                });
-            }
-        },
-        error: function() {
-            console.log('Failed to load patients');
-        }
+    loadDropdownOptions('#patientId', 'api/patients_api.php?action=list', {
+        textField: 'full_name',
+        placeholder: 'Select Patient'
     });
 }
 
 function loadDoctors() {
-    $.ajax({
-        url: 'api/doctors_api.php',
-        type: 'GET',
-        data: { action: 'list' },
-        dataType: 'json',
-        success: function(response) {
-            if (response.success) {
-                $('#doctorId').empty().append('<option value="">Select Doctor</option>');
-                response.data.forEach(function(doctor) {
-                    $('#doctorId').append(`<option value="${doctor.id}">${doctor.full_name}</option>`);
-                });
-            }
-        },
-        error: function() {
-            console.log('Failed to load doctors');
-        }
-    });
-}
-
-// Form submission
-$('#testOrderForm').on('submit', function(e) {
-    e.preventDefault();
-    
-    if (!this.checkValidity()) {
-        e.stopPropagation();
-        $(this).addClass('was-validated');
-        return;
-    }
-    
-    const formData = new FormData(this);
-    const isEdit = $('#orderId').val() !== '';
-    formData.append('action', isEdit ? 'update' : 'create');
-    
-    $.ajax({
-        url: 'api/test_orders_api.php',
-        type: 'POST',
-        data: formData,
-        processData: false,
-        contentType: false,
-        dataType: 'json',
-        success: function(response) {
-            if (response.success) {
-                showToast('success', isEdit ? 'Test order updated successfully' : 'Test order created successfully');
-                $('#testOrderModal').modal('hide');
-                refreshTable();
-            } else {
-                showToast('error', response.message);
-            }
-        },
-        error: function() {
-            showToast('error', 'Failed to save test order');
-        }
-    });
-});
-
-function showToast(type, message) {
-    const toast = $(`
-        <div class="toast toast-${type}" role="alert" style="position: fixed; top: 20px; right: 20px; z-index: 9999;">
-            <div class="toast-header">
-                <i class="fas fa-${type === 'success' ? 'check-circle text-success' : 'exclamation-circle text-danger'} mr-2"></i>
-                <strong class="mr-auto">${type === 'success' ? 'Success' : 'Error'}</strong>
-                <button type="button" class="ml-2 mb-1 close" data-dismiss="toast">
-                    <span>&times;</span>
-                </button>
-            </div>
-            <div class="toast-body">${message}</div>
-        </div>
-    `);
-    
-    $('body').append(toast);
-    toast.toast({ delay: 3000 });
-    toast.toast('show');
-    
-    toast.on('hidden.bs.toast', function() {
-        $(this).remove();
+    loadDropdownOptions('#doctorId', 'api/doctors_api.php?action=list', {
+        textField: 'full_name',
+        placeholder: 'Select Doctor'
     });
 }
 </script>
