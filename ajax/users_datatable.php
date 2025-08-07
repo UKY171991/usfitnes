@@ -1,10 +1,21 @@
 <?php
 require_once '../config.php';
 
-// Check if user is logged in
+// Check if user is logged in and is admin
 if (!isset($_SESSION['user_id'])) {
     http_response_code(401);
     echo json_encode(['error' => 'Unauthorized']);
+    exit();
+}
+
+// Check if user is admin
+$stmt = $pdo->prepare("SELECT user_type FROM users WHERE id = ?");
+$stmt->execute([$_SESSION['user_id']]);
+$user = $stmt->fetch();
+
+if (!$user || $user['user_type'] !== 'admin') {
+    http_response_code(403);
+    echo json_encode(['error' => 'Access denied']);
     exit();
 }
 
@@ -19,53 +30,47 @@ try {
     
     // Get custom filters
     $status_filter = $_POST['status'] ?? '';
-    $priority_filter = $_POST['priority'] ?? '';
-    $date_filter = $_POST['order_date'] ?? '';
+    $user_type_filter = $_POST['user_type'] ?? '';
+    $date_filter = $_POST['registration_date'] ?? '';
 
     // Validate order direction
     $order_dir = in_array(strtolower($order_dir), ['asc', 'desc']) ? $order_dir : 'desc';
     
     // Allowed columns for ordering
-    $allowed_columns = ['id', 'order_number', 'patient_name', 'doctor_name', 'status', 'priority', 'created_at'];
+    $allowed_columns = ['id', 'name', 'email', 'username', 'user_type', 'status', 'last_login', 'created_at'];
     $order_column = in_array($order_column, $allowed_columns) ? $order_column : 'id';
 
-    // Base query with joins
-    $base_query = "FROM test_orders to 
-                   LEFT JOIN patients p ON to.patient_id = p.patient_id 
-                   LEFT JOIN doctors d ON to.doctor_id = d.doctor_id 
-                   WHERE 1=1";
+    // Base query
+    $base_query = "FROM users WHERE 1=1";
     $params = [];
 
     // Search functionality
     if (!empty($search_value)) {
-        $base_query .= " AND (to.order_number LIKE ? OR 
-                             CONCAT(p.first_name, ' ', p.last_name) LIKE ? OR 
-                             d.name LIKE ? OR 
-                             to.status LIKE ?)";
+        $base_query .= " AND (name LIKE ? OR email LIKE ? OR username LIKE ? OR user_type LIKE ?)";
         $search_param = "%$search_value%";
         $params = array_merge($params, [$search_param, $search_param, $search_param, $search_param]);
     }
     
     // Status filter
     if (!empty($status_filter)) {
-        $base_query .= " AND to.status = ?";
+        $base_query .= " AND status = ?";
         $params[] = $status_filter;
     }
     
-    // Priority filter
-    if (!empty($priority_filter)) {
-        $base_query .= " AND to.priority = ?";
-        $params[] = $priority_filter;
+    // User type filter
+    if (!empty($user_type_filter)) {
+        $base_query .= " AND user_type = ?";
+        $params[] = $user_type_filter;
     }
     
     // Date filter
     if (!empty($date_filter)) {
-        $base_query .= " AND DATE(to.order_date) = ?";
+        $base_query .= " AND DATE(created_at) = ?";
         $params[] = $date_filter;
     }
 
     // Get total records (without filters)
-    $total_query = "SELECT COUNT(*) as total FROM test_orders";
+    $total_query = "SELECT COUNT(*) as total FROM users";
     $stmt = $pdo->prepare($total_query);
     $stmt->execute();
     $total_records = $stmt->fetch()['total'];
@@ -78,21 +83,19 @@ try {
 
     // Get data
     $data_query = "SELECT 
-        to.id,
-        to.order_number,
-        CONCAT(p.first_name, ' ', p.last_name) as patient_name,
-        d.name as doctor_name,
-        to.status,
-        to.priority,
-        to.order_date,
-        to.total_amount,
-        to.discount,
-        to.notes,
-        to.created_at,
-        to.updated_at,
-        (SELECT COUNT(*) FROM test_order_items toi WHERE toi.test_order_id = to.id) as test_count
+        id,
+        name,
+        email,
+        username,
+        user_type,
+        phone,
+        status,
+        last_login,
+        login_count,
+        created_at,
+        updated_at
         $base_query 
-        ORDER BY to.$order_column $order_dir 
+        ORDER BY $order_column $order_dir 
         LIMIT $start, $length";
         
     $stmt = $pdo->prepare($data_query);
@@ -104,16 +107,14 @@ try {
     foreach ($data as $row) {
         $formatted_data[] = [
             'id' => (int)$row['id'],
-            'order_number' => htmlspecialchars($row['order_number']),
-            'patient_name' => htmlspecialchars($row['patient_name']),
-            'doctor_name' => htmlspecialchars($row['doctor_name'] ?? ''),
+            'name' => htmlspecialchars($row['name']),
+            'email' => htmlspecialchars($row['email']),
+            'username' => htmlspecialchars($row['username']),
+            'user_type' => $row['user_type'],
+            'phone' => htmlspecialchars($row['phone'] ?? ''),
             'status' => $row['status'],
-            'priority' => $row['priority'],
-            'order_date' => $row['order_date'],
-            'total_amount' => $row['total_amount'],
-            'discount' => $row['discount'],
-            'notes' => htmlspecialchars($row['notes'] ?? ''),
-            'test_count' => (int)$row['test_count'],
+            'last_login' => $row['last_login'],
+            'login_count' => (int)($row['login_count'] ?? 0),
             'created_at' => $row['created_at'],
             'updated_at' => $row['updated_at']
         ];
@@ -129,7 +130,7 @@ try {
     ]);
 
 } catch (Exception $e) {
-    error_log("Test Orders DataTable Error: " . $e->getMessage());
+    error_log("Users DataTable Error: " . $e->getMessage());
     
     echo json_encode([
         'draw' => $draw ?? 1,
@@ -137,7 +138,7 @@ try {
         'recordsFiltered' => 0,
         'data' => [],
         'success' => false,
-        'error' => 'Failed to load test orders data'
+        'error' => 'Failed to load users data'
     ]);
 }
 ?>

@@ -1,215 +1,360 @@
-/**
- * PathLab Pro - Test Orders Management JavaScript
- * External JS file for test-orders.php
- */
+// Test Orders Management JavaScript
+// AdminLTE3 Template with AJAX Operations
+
+let testOrdersTable;
+let testOrdersCrud;
+let testOrdersFormHandler;
 
 $(document).ready(function() {
+    initializeTestOrdersPage();
+});
+
+function initializeTestOrdersPage() {
+    // Initialize CRUD operations
+    testOrdersCrud = new CrudOperations('api/test_orders_api.php', 'Test Order');
+    
+    // Initialize form handler
+    testOrdersFormHandler = new FormHandler('#testOrderForm', 'api/test_orders_api.php', {
+        onSuccess: function(response) {
+            $('#testOrderModal').modal('hide');
+            testOrdersTable.ajax.reload(null, false);
+            showSuccess(response.message);
+        }
+    });
+    
     // Initialize DataTable
-    window.testOrdersTable = initDataTable('#testOrdersTable', {
-        ajax: {
-            url: 'ajax/test_orders_datatable.php',
-            type: 'POST'
+    initializeTestOrdersTable();
+    
+    // Initialize filters
+    initializeFilters();
+    
+    // Load dropdown options
+    loadDropdownOptions();
+}
+
+function initializeTestOrdersTable() {
+    const columns = [
+        {
+            data: 'order_number',
+            name: 'order_number',
+            title: 'Order #',
+            width: '120px',
+            render: function(data, type, row) {
+                return `<strong>${data}</strong>`;
+            }
         },
-        columns: [
-            { data: 'order_number', width: '120px' },
-            { data: 'patient_name' },
-            { data: 'doctor_name' },
-            { data: 'test_count', width: '80px' },
-            { data: 'status', width: '100px' },
-            { data: 'priority', width: '80px' },
-            { data: 'order_date', width: '120px' },
-            { data: 'actions', orderable: false, searchable: false, width: '120px' }
+        {
+            data: 'patient_name',
+            name: 'patient_name',
+            title: 'Patient',
+            render: function(data, type, row) {
+                return `<strong>${data}</strong>`;
+            }
+        },
+        {
+            data: 'doctor_name',
+            name: 'doctor_name',
+            title: 'Doctor',
+            render: function(data, type, row) {
+                return data || '-';
+            }
+        },
+        {
+            data: 'test_count',
+            name: 'test_count',
+            title: 'Tests',
+            render: function(data, type, row) {
+                return `<span class="badge badge-info">${data} test(s)</span>`;
+            }
+        },
+        {
+            data: 'status',
+            name: 'status',
+            title: 'Status',
+            render: function(data, type, row) {
+                const statusClass = getStatusClass(data);
+                return `<span class="badge badge-${statusClass}">${capitalizeFirst(data.replace('_', ' '))}</span>`;
+            }
+        },
+        {
+            data: 'priority',
+            name: 'priority',
+            title: 'Priority',
+            render: function(data, type, row) {
+                const priorityClass = getPriorityClass(data);
+                return `<span class="badge badge-${priorityClass}">${capitalizeFirst(data)}</span>`;
+            }
+        },
+        {
+            data: 'created_at',
+            name: 'created_at',
+            title: 'Date',
+            render: function(data, type, row) {
+                return formatDate(data);
+            }
+        },
+        {
+            data: null,
+            name: 'actions',
+            title: 'Actions',
+            orderable: false,
+            searchable: false,
+            width: '150px',
+            render: function(data, type, row) {
+                return `
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-info btn-action" onclick="viewTestOrder(${row.id})" title="View">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button type="button" class="btn btn-warning btn-action" onclick="editTestOrder(${row.id})" title="Edit">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button type="button" class="btn btn-danger btn-action" onclick="deleteTestOrder(${row.id})" title="Cancel">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                `;
+            }
+        }
+    ];
+
+    testOrdersTable = initializeDataTable('#testOrdersTable', 'ajax/test_orders_datatable.php', columns, {
+        order: [[0, 'desc']],
+        pageLength: 25,
+        responsive: true,
+        dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>' +
+             '<"row"<"col-sm-12"tr>>' +
+             '<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
+        buttons: [
+            {
+                extend: 'csv',
+                text: '<i class="fas fa-file-csv"></i> CSV',
+                className: 'btn btn-success btn-sm'
+            },
+            {
+                extend: 'excel',
+                text: '<i class="fas fa-file-excel"></i> Excel',
+                className: 'btn btn-success btn-sm'
+            },
+            {
+                extend: 'pdf',
+                text: '<i class="fas fa-file-pdf"></i> PDF',
+                className: 'btn btn-danger btn-sm'
+            }
         ]
     });
     
-    // Handle form submission with custom logic for test orders
-    $('#testOrderForm').off('submit').on('submit', function(e) {
-        e.preventDefault();
-        
-        const selectedTests = [];
-        $('.test-checkbox:checked').each(function() {
-            selectedTests.push($(this).val());
-        });
-        
-        if (selectedTests.length === 0) {
-            showToast('error', 'Please select at least one test');
-            return;
-        }
-        
-        const formData = new FormData(this);
-        formData.append('tests', JSON.stringify(selectedTests));
-        
-        const isEdit = $('#testOrderId').val() !== '';
-        const submitBtn = $(this).find('button[type="submit"]');
-        const originalText = submitBtn.html();
-        
-        submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Saving...');
-        
-        $.ajax({
-            url: 'api/test_orders_api.php',
-            type: isEdit ? 'PUT' : 'POST',
-            data: formData,
-            processData: false,
-            contentType: false,
-            success: function(response) {
-                if (response.success) {
-                    showToast('success', response.message);
-                    $('#testOrderModal').modal('hide');
-                    window.testOrdersTable.ajax.reload();
-                } else {
-                    showToast('error', response.message);
-                }
-            },
-            error: function() {
-                showToast('error', 'Error saving test order');
-            },
-            complete: function() {
-                submitBtn.prop('disabled', false).html(originalText);
-            }
-        });
-    });
-    
-    // Load data when modal opens
-    $('#testOrderModal').on('show.bs.modal', function() {
-        loadPatients();
-        loadDoctors();
-        loadTests();
-    });
-    
-    // Calculate total when discount changes
-    $('#discount').on('input', function() {
-        calculateTotal();
-    });
-});
+    // Store reference globally
+    globalDataTable = testOrdersTable;
+}
 
-function openAddModal() {
-    resetModalForm('testOrderModal');
-    $('#testOrderModalLabel').html('<i class="fas fa-vials mr-2"></i>Create Test Order');
-    $('#orderDate').val(new Date().toISOString().slice(0, 16));
+function initializeFilters() {
+    $('#statusFilter, #priorityFilter').on('change', function() {
+        applyFilters();
+    });
+    
+    $('#dateFilter').on('change', function() {
+        applyFilters();
+    });
+}
+
+function loadDropdownOptions() {
+    // Load patients
+    AjaxUtils.loadSelectOptions('select[name="patient_id"]', 'api/patients_api.php?action=list');
+    
+    // Load doctors
+    AjaxUtils.loadSelectOptions('select[name="doctor_id"]', 'api/doctors_api.php?action=list');
+    
+    // Load tests
+    AjaxUtils.loadSelectOptions('select[name="tests[]"]', 'api/tests_api.php?action=list');
+}
+
+function getCustomFilters() {
+    return {
+        status: $('#statusFilter').val(),
+        priority: $('#priorityFilter').val(),
+        order_date: $('#dateFilter').val()
+    };
+}
+
+function applyFilters() {
+    if (testOrdersTable) {
+        testOrdersTable.ajax.reload();
+    }
+}
+
+function clearFilters() {
+    $('#statusFilter, #priorityFilter, #dateFilter').val('').trigger('change');
+    applyFilters();
+}
+
+// Modal Functions
+function showAddTestOrderModal() {
+    resetForm('#testOrderForm');
+    $('#testOrderId').val('');
+    $('#testOrderModal .modal-title').text('Create New Test Order');
+    
+    // Set default order date
+    const now = new Date();
+    const dateString = now.toISOString().slice(0, 16);
+    $('input[name="order_date"]').val(dateString);
+    
     $('#testOrderModal').modal('show');
 }
 
-function editTestOrder(id) {
-    $('#testOrderModalLabel').html('<i class="fas fa-vials mr-2"></i>Edit Test Order');
-    
-    loadDataForEdit(id, 'api/test_orders_api.php', function(data) {
-        populateForm('#testOrderForm', data);
+async function editTestOrder(id) {
+    try {
+        const testOrder = await testOrdersCrud.getById(id);
+        
+        // Populate form
+        testOrdersFormHandler.populateForm(testOrder);
+        
+        $('#testOrderModal .modal-title').text('Edit Test Order');
         $('#testOrderModal').modal('show');
-    });
+    } catch (error) {
+        showError('Failed to load test order data');
+    }
 }
 
-function deleteTestOrder(id) {
-    handleAjaxDelete(id, 'api/test_orders_api.php', 'test order', function() {
-        window.testOrdersTable.ajax.reload();
-    });
+async function viewTestOrder(id) {
+    try {
+        showLoader('Loading test order details...');
+        const testOrder = await testOrdersCrud.getById(id);
+        
+        const detailsHtml = `
+            <div class="row">
+                <div class="col-md-6">
+                    <table class="table table-borderless">
+                        <tr>
+                            <th width="40%">Order Number:</th>
+                            <td><strong>${testOrder.order_number}</strong></td>
+                        </tr>
+                        <tr>
+                            <th>Patient:</th>
+                            <td><strong>${testOrder.patient_name}</strong></td>
+                        </tr>
+                        <tr>
+                            <th>Doctor:</th>
+                            <td>${testOrder.doctor_name || 'N/A'}</td>
+                        </tr>
+                        <tr>
+                            <th>Priority:</th>
+                            <td><span class="badge badge-${getPriorityClass(testOrder.priority)}">${capitalizeFirst(testOrder.priority)}</span></td>
+                        </tr>
+                        <tr>
+                            <th>Status:</th>
+                            <td><span class="badge badge-${getStatusClass(testOrder.status)}">${capitalizeFirst(testOrder.status.replace('_', ' '))}</span></td>
+                        </tr>
+                        <tr>
+                            <th>Order Date:</th>
+                            <td>${formatDateTime(testOrder.order_date)}</td>
+                        </tr>
+                        <tr>
+                            <th>Created:</th>
+                            <td>${formatDateTime(testOrder.created_at)}</td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <table class="table table-borderless">
+                        <tr>
+                            <th width="40%">Tests:</th>
+                            <td>
+                                ${testOrder.tests ? testOrder.tests.map(test => 
+                                    `<span class="badge badge-info mr-1">${test.name}</span>`
+                                ).join('') : 'N/A'}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Total Amount:</th>
+                            <td><strong>${formatCurrency(testOrder.total_amount || 0)}</strong></td>
+                        </tr>
+                        <tr>
+                            <th>Discount:</th>
+                            <td>${formatCurrency(testOrder.discount || 0)}</td>
+                        </tr>
+                        <tr>
+                            <th>Final Amount:</th>
+                            <td><strong class="text-success">${formatCurrency((testOrder.total_amount || 0) - (testOrder.discount || 0))}</strong></td>
+                        </tr>
+                        <tr>
+                            <th>Notes:</th>
+                            <td>${testOrder.notes || 'N/A'}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        `;
+        
+        $('#testOrderDetails').html(detailsHtml);
+        $('#viewTestOrderModal').modal('show');
+        
+    } catch (error) {
+        showError('Failed to load test order details');
+    } finally {
+        hideLoader();
+    }
 }
 
-function viewTestOrder(id) {
-    // View functionality can be implemented later
-    showToast('info', 'View test order functionality coming soon');
-}
-
-function refreshTable() {
-    window.testOrdersTable.ajax.reload();
-    showToast('info', 'Table refreshed');
-}
-
-function loadPatients() {
-    $.ajax({
-        url: 'api/patients_api.php',
-        type: 'GET',
-        data: { limit: 1000, status: 'active' },
-        success: function(response) {
-            if (response.success) {
-                const select = $('#patientSelect');
-                select.empty().append('<option value="">Select Patient</option>');
-                response.data.patients.forEach(function(patient) {
-                    select.append(`<option value="${patient.id}">${patient.full_name} (${patient.patient_id})</option>`);
-                });
-            }
-        },
-        error: function() {
-            showToast('error', 'Failed to load patients');
+async function deleteTestOrder(id) {
+    try {
+        const confirmed = await Swal.fire({
+            title: 'Cancel Test Order?',
+            text: 'This will cancel the test order. This action cannot be undone!',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, cancel it!',
+            cancelButtonText: 'No, keep it'
+        });
+        
+        if (confirmed.isConfirmed) {
+            await testOrdersCrud.delete(id);
+            testOrdersTable.ajax.reload(null, false);
         }
-    });
+    } catch (error) {
+        // Error handling is done in CrudOperations class
+    }
 }
 
-function loadDoctors() {
-    $.ajax({
-        url: 'api/doctors_api.php',
-        type: 'GET',
-        data: { limit: 1000, status: 'active' },
-        success: function(response) {
-            if (response.success) {
-                const select = $('#doctorSelect');
-                select.empty().append('<option value="">Select Doctor</option>');
-                response.data.doctors.forEach(function(doctor) {
-                    select.append(`<option value="${doctor.id}">${doctor.name} - ${doctor.specialization}</option>`);
-                });
-            }
-        },
-        error: function() {
-            showToast('error', 'Failed to load doctors');
-        }
-    });
-}
-
-function loadTests() {
-    $.ajax({
-        url: 'api/tests_api.php',
-        type: 'GET',
-        success: function(response) {
-            if (response.success) {
-                const container = $('#testsContainer');
-                container.empty();
-                
-                if (response.data.tests.length === 0) {
-                    container.html('<div class="text-center text-muted">No tests available</div>');
-                    return;
-                }
-                
-                response.data.tests.forEach(function(test) {
-                    const testHtml = `
-                        <div class="form-check mb-2">
-                            <input class="form-check-input test-checkbox" type="checkbox" value="${test.id}" 
-                                   id="test_${test.id}" data-price="${test.price}" onchange="calculateTotal()">
-                            <label class="form-check-label" for="test_${test.id}">
-                                <strong>${test.name}</strong> - $${test.price}
-                                ${test.description ? '<br><small class="text-muted">' + test.description + '</small>' : ''}
-                            </label>
-                        </div>
-                    `;
-                    container.append(testHtml);
-                });
-            }
-        },
-        error: function() {
-            $('#testsContainer').html('<div class="text-center text-danger">Failed to load tests</div>');
-            showToast('error', 'Failed to load tests');
-        }
-    });
-}
-
-function calculateTotal() {
-    let total = 0;
-    $('.test-checkbox:checked').each(function() {
-        total += parseFloat($(this).data('price')) || 0;
-    });
+// Export Functions
+function exportTestOrders() {
+    const format = 'csv'; // Can be made dynamic
+    const filters = getCustomFilters();
     
-    const discount = parseFloat($('#discount').val()) || 0;
-    const finalTotal = Math.max(0, total - discount);
-    
-    $('#totalAmount').val(total.toFixed(2));
-    $('#finalAmount').text(finalTotal.toFixed(2));
+    AjaxUtils.exportData('api/test_orders_api.php?action=export', format, filters);
 }
 
-// Export functions for global access
-window.openAddModal = openAddModal;
+// Utility Functions
+function getStatusClass(status) {
+    const statusClasses = {
+        'pending': 'warning',
+        'in_progress': 'info',
+        'completed': 'success',
+        'cancelled': 'danger'
+    };
+    return statusClasses[status] || 'secondary';
+}
+
+function getPriorityClass(priority) {
+    const priorityClasses = {
+        'normal': 'secondary',
+        'high': 'warning',
+        'urgent': 'danger'
+    };
+    return priorityClasses[priority] || 'secondary';
+}
+
+function resetTestOrderForm() {
+    resetForm('#testOrderForm');
+}
+
+// Global functions for external access
+window.showAddTestOrderModal = showAddTestOrderModal;
 window.editTestOrder = editTestOrder;
-window.deleteTestOrder = deleteTestOrder;
 window.viewTestOrder = viewTestOrder;
-window.refreshTable = refreshTable;
-window.loadPatients = loadPatients;
-window.loadDoctors = loadDoctors;
-window.loadTests = loadTests;
-window.calculateTotal = calculateTotal;
+window.deleteTestOrder = deleteTestOrder;
+window.exportTestOrders = exportTestOrders;
+window.applyFilters = applyFilters;
+window.clearFilters = clearFilters;

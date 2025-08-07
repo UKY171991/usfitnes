@@ -140,31 +140,59 @@ GET /api/equipment_api.php?action=get&id={id}
 
 GET /api/users_api.php
 - Get all users with pagination
-- Parameters: page, limit, search, user_type
+- Parameters: page, limit, search, user_type, status
+- Returns: users list with pagination info
 
 POST /api/users_api.php
 - Create new user
-- Required: username, password, email, name, user_type
+- Required: name, email, username, password, user_type
+- Optional: phone, status
 
 PUT /api/users_api.php
-- Update user
+- Update existing user
 - Required: id + fields to update
+- Fields: name, email, username, user_type, phone, status
+- Note: password is optional for updates
 
 DELETE /api/users_api.php
 - Delete user
 - Required: id
 
+GET /api/users_api.php?action=get&id={id}
+- Get single user details
+- Returns: Complete user record with all fields
+
+POST /api/users_api.php?action=reset_password
+- Reset user password
+- Required: user_id, new_password, confirm_password
+
+GET /api/users_api.php?action=export
+- Export users data
+- Parameters: format (csv, excel, pdf), filters
+
 === DASHBOARD API ===
 
-GET /api/dashboard_api.php
+GET /api/dashboard_api.php?action=stats
 - Get dashboard statistics
-- Returns: counts, recent activities, alerts
+- Returns: total_patients, todays_tests, pending_results, total_doctors
+
+GET /api/dashboard_api.php?action=monthly_stats
+- Get monthly statistics for charts
+- Returns: labels[], values[]
+
+GET /api/dashboard_api.php?action=recent_orders
+- Get recent test orders (last 5)
+- Returns: recent orders with patient names and status
+
+GET /api/dashboard_api.php?action=alerts
+- Get system alerts
+- Returns: system alerts with type, title, message, icon
 
 GET /api/get_counts.php
-- Get quick counts for dashboard cards
+- Get quick counts for dashboard cards (legacy)
 
 GET /api/get_monthly_stats.php
-- Get monthly statistics for charts
+- Get monthly statistics for charts (legacy)
 
 === SYSTEM API ===
 
