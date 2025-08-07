@@ -87,7 +87,7 @@ function getTreeMenuClass($pages) {
         <li class="nav-header">TEST MANAGEMENT</li>
         
         <li class="nav-item">
-          <a href="test-orders.php" class="nav-link <?php echo getMenuClass('test-orders.php'); ?>">
+          <a href="test-orders_ajax.php" class="nav-link <?php echo getMenuClass(['test-orders.php', 'test-orders_ajax.php']); ?>">
             <i class="nav-icon fas fa-flask"></i>
             <p>
               Test Orders
@@ -262,10 +262,10 @@ function updateSidebarCounters() {
 
 // Quick action functions
 function addNewPatient() {
-    window.location.href = 'patients.php?action=add';
+    window.location.href = 'patients_ajax.php?action=add';
 }
 
 function createTestOrder() {
-    window.location.href = 'test-orders.php?action=create';
+    window.location.href = 'test-orders_ajax.php?action=create';
 }
 </script>

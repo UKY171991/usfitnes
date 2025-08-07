@@ -1,23 +1,8 @@
 <?php
-// Start session if not already started
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-// For testing - create a dummy session if none exists
-if (!isset($_SESSION['user_id'])) {
-    $_SESSION['user_id'] = 1;
-    $_SESSION['username'] = 'admin';
-    $_SESSION['full_name'] = 'System Administrator';
-    $_SESSION['name'] = 'System Administrator';
-    $_SESSION['user_type'] = 'admin';
-    $_SESSION['role'] = 'admin';
-}
-
-// Set page title
-$page_title = 'Dashboard - PathLab Pro';
-
-// Include database connection
+// Redirect to the new modern dashboard
+header('Location: dashboard_new.php');
+exit;
+?>
 require_once 'config.php';
 
 // Include dashboard data provider
