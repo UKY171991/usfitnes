@@ -1,5 +1,9 @@
 <?php
-require_once 'config.php';
+if (file_exists('config_working.php')) {
+    require_once 'config_working.php';
+} else {
+    require_once 'config.php';
+}
 
 try {
     $stmt = $pdo->prepare('DESCRIBE test_results');
