@@ -24,9 +24,9 @@ date_default_timezone_set('America/New_York');
 
 // Local development configuration (comment out for production)
 $host = 'localhost';
-$dbname = 'pathlab_pro';
-$username = 'root';
-$password = '';
+$dbname = 'u902379465_fitness';
+$username = 'u902379465_fitness';
+$password = '57x6pJ7!r#yW';
 
 try {
     // First create database if it doesn't exist
