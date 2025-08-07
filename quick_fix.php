@@ -1,9 +1,18 @@
 <?php
 /**
  * Quick Fix Script for PathLab Pro Issues
+ * ADMIN ACCESS ONLY
  */
 
+// Secure admin access check
+require_once 'admin/secure_access.php';
+$secureAccess = SecureAdminAccess::getInstance();
+$secureAccess->checkAdminAccess();
+
 require_once 'config.php';
+
+// Log the access attempt
+logActivity($_SESSION['user_id'], 'Quick Fix Tool Access', 'Admin accessed quick fix maintenance tool');
 
 echo "<h2>PathLab Pro - Quick Fix</h2>\n";
 echo "<p>Fixing common issues...</p>\n";

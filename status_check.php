@@ -1,9 +1,18 @@
 <?php
 /**
  * PathLab Pro - System Status Check
+ * ADMIN ACCESS ONLY
  */
 
+// Secure admin access check
+require_once 'admin/secure_access.php';
+$secureAccess = SecureAdminAccess::getInstance();
+$secureAccess->checkAdminAccess();
+
 require_once 'config.php';
+
+// Log the access attempt
+logActivity($_SESSION['user_id'], 'System Status Check', 'Admin accessed system status diagnostic tool');
 
 echo "<!DOCTYPE html>\n";
 echo "<html><head><title>PathLab Pro - Status Check</title></head><body>\n";

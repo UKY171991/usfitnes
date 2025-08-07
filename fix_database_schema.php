@@ -1,8 +1,17 @@
 <?php
+// Secure admin access check
+require_once 'admin/secure_access.php';
+$secureAccess = SecureAdminAccess::getInstance();
+$secureAccess->checkAdminAccess();
+
 require_once 'config.php';
+
+// Log the access attempt
+logActivity($_SESSION['user_id'], 'Database Schema Fix Access', 'Admin accessed database schema fix tool');
 
 echo "<h2>PathLab Pro - Database Schema Fix</h2>\n";
 echo "<p>Fixing database schema issues...</p>\n";
+echo "<p><strong>Admin:</strong> " . htmlspecialchars($_SESSION['name'] ?? 'Unknown') . "</p>\n";
 
 try {
     // Fix patients table - add missing columns
