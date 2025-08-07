@@ -10,50 +10,92 @@ ini_set('display_errors', 1);
 // Timezone setting
 date_default_timezone_set('America/New_York');
 
-// Local Database configuration for development
-$host = 'localhost';
-$dbname = 'pathlab_pro';
-$username = 'root';
-$password = '';
+// Database configuration
+$db_config = [
+    'host' => 'localhost',
+    'dbname' => 'pathlab_pro',
+    'username' => 'root',
+    'password' => '',
+    'port' => '3306',
+    'charset' => 'utf8mb4'
+];
 
-// Alternative configuration (uncomment if using XAMPP/WAMP)
-// $host = '127.0.0.1';
-// $port = '3306';
-// $dbname = 'pathlab_pro';
-// $username = 'root';
-// $password = '';
+// Alternative configurations to try
+$alternative_configs = [
+    [
+        'host' => '127.0.0.1',
+        'dbname' => 'pathlab_pro',
+        'username' => 'root',
+        'password' => '',
+        'port' => '3306',
+        'charset' => 'utf8mb4'
+    ],
+    [
+        'host' => 'localhost',
+        'dbname' => 'pathlab_pro',
+        'username' => 'root',
+        'password' => 'root',
+        'port' => '8889',
+        'charset' => 'utf8mb4'
+    ]
+];
 
-try {
-    // First try to create database if it doesn't exist
-    try {
-        $pdo_temp = new PDO("mysql:host=$host", $username, $password);
-        $pdo_temp->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        $pdo_temp->exec("CREATE DATABASE IF NOT EXISTS $dbname");
-        $pdo_temp = null;
-    } catch (Exception $e) {
-        // Ignore if database already exists or user doesn't have create privileges
+// Global variables
+$pdo = null;
+$conn = null;
+$use_mock_data = false;
+$db_connection_error = null;
+
+// Try to establish database connection
+function establishDatabaseConnection() {
+    global $db_config, $alternative_configs, $pdo, $conn, $use_mock_data, $db_connection_error;
+    
+    $configs_to_try = array_merge([$db_config], $alternative_configs);
+    
+    foreach ($configs_to_try as $config) {
+        try {
+            // Test basic MySQL connection first
+            $test_pdo = new PDO(
+                "mysql:host={$config['host']};port={$config['port']}", 
+                $config['username'], 
+                $config['password']
+            );
+            $test_pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            
+            // Try to create database if it doesn't exist
+            $test_pdo->exec("CREATE DATABASE IF NOT EXISTS `{$config['dbname']}`");
+            $test_pdo = null;
+            
+            // Now connect to the specific database
+            $pdo = new PDO(
+                "mysql:host={$config['host']};port={$config['port']};dbname={$config['dbname']};charset={$config['charset']}", 
+                $config['username'], 
+                $config['password']
+            );
+            $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+            $pdo->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
+            
+            // Also create MySQLi connection for backward compatibility
+            $conn = new mysqli($config['host'], $config['username'], $config['password'], $config['dbname'], $config['port']);
+            if ($conn->connect_error) {
+                throw new Exception("MySQLi Connection failed: " . $conn->connect_error);
+            }
+            $conn->set_charset($config['charset']);
+            
+            // If we get here, connection succeeded
+            createTables($pdo);
+            return true;
+            
+        } catch (Exception $e) {
+            $db_connection_error = $e->getMessage();
+            continue; // Try next configuration
+        }
     }
     
-    // Connect to the database using PDO
-    $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $username, $password);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-    $pdo->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
-    
-    // Also create MySQLi connection for backward compatibility
-    $conn = new mysqli($host, $username, $password, $dbname);
-    if ($conn->connect_error) {
-        throw new Exception("MySQLi Connection failed: " . $conn->connect_error);
-    }
-    $conn->set_charset("utf8mb4");
-    
-    // Create all necessary tables
-    createTables($pdo);
-    
-} catch(PDOException $e) {
-    // If connection fails, create a mock connection for testing
-    echo "<div class='alert alert-warning'>Database connection failed. Using mock data for development.</div>";
+    // All connection attempts failed
     $use_mock_data = true;
+    return false;
 }
 
 // Helper functions for AJAX responses
@@ -84,11 +126,20 @@ function validateEmail($email) {
     return filter_var($email, FILTER_VALIDATE_EMAIL);
 }
 
-function validatePhone($phone) {
-    // Remove all non-digit characters for validation
-    $cleaned = preg_replace('/\D/', '', $phone);
-    return strlen($cleaned) >= 10;
+// Get database status for display
+function getDatabaseStatus() {
+    global $pdo, $conn, $use_mock_data, $db_connection_error;
+    
+    return [
+        'pdo_connected' => ($pdo instanceof PDO),
+        'mysqli_connected' => ($conn instanceof mysqli),
+        'using_mock_data' => $use_mock_data,
+        'error_message' => $db_connection_error
+    ];
 }
+
+// Try to establish connection when this file is included
+establishDatabaseConnection();
 
 // Create all necessary tables
 function createTables($pdo) {

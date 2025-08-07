@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PathLab Pro - MySQL Setup Guide</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+    <style>
+        .setup-step { margin-bottom: 30px; }
+        .download-btn { margin: 10px 0; }
+        .code-block { background: #f8f9fa; border: 1px solid #e9ecef; padding: 15px; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <h1 class="text-center mb-4">📋 PathLab Pro - MySQL Setup Guide</h1>
+                
+                <div class="alert alert-info">
+                    <h4>🎯 Goal</h4>
+                    <p>Install MySQL database server to run PathLab Pro locally on your computer.</p>
+                </div>
+
+                <!-- Step 1: Choose Installation Method -->
+                <div class="card setup-step">
+                    <div class="card-header bg-primary text-white">
+                        <h3>Step 1: Choose Your Installation Method</h3>
+                    </div>
+                    <div class="card-body">
+                        <p>Choose one of these popular options (XAMPP is recommended for beginners):</p>
+                        
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="card">
+                                    <div class="card-body text-center">
+                                        <h5 class="card-title">🥇 XAMPP</h5>
+                                        <p class="card-text">All-in-one package with Apache, MySQL, PHP</p>
+                                        <a href="https://www.apachefriends.org/download.html" target="_blank" class="btn btn-success download-btn">Download XAMPP</a>
+                                        <small class="text-muted">Recommended for beginners</small>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <div class="card">
+                                    <div class="card-body text-center">
+                                        <h5 class="card-title">🥈 WAMP Server</h5>
+                                        <p class="card-text">Windows Apache MySQL PHP stack</p>
+                                        <a href="http://www.wampserver.com/en/" target="_blank" class="btn btn-primary download-btn">Download WAMP</a>
+                                        <small class="text-muted">Windows only</small>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <div class="card">
+                                    <div class="card-body text-center">
+                                        <h5 class="card-title">🥉 MAMP</h5>
+                                        <p class="card-text">Cross-platform Apache MySQL PHP</p>
+                                        <a href="https://www.mamp.info/en/downloads/" target="_blank" class="btn btn-info download-btn">Download MAMP</a>
+                                        <small class="text-muted">Mac/Windows</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 2: Installation Instructions -->
+                <div class="card setup-step">
+                    <div class="card-header bg-success text-white">
+                        <h3>Step 2: Installation Instructions (XAMPP)</h3>
+                    </div>
+                    <div class="card-body">
+                        <ol>
+                            <li><strong>Download XAMPP</strong> from the link above (choose the version for your OS)</li>
+                            <li><strong>Run the installer</strong> and follow the setup wizard</li>
+                            <li><strong>Select components:</strong> Make sure "Apache" and "MySQL" are checked</li>
+                            <li><strong>Choose installation directory:</strong> Default is usually fine (C:\xampp)</li>
+                            <li><strong>Complete the installation</strong> and launch XAMPP Control Panel</li>
+                        </ol>
+                        
+                        <div class="alert alert-warning">
+                            <strong>⚠️ Windows Security:</strong> If Windows Firewall asks for permissions, click "Allow access" for both Apache and MySQL.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 3: Start Services -->
+                <div class="card setup-step">
+                    <div class="card-header bg-warning text-white">
+                        <h3>Step 3: Start MySQL Service</h3>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>In XAMPP Control Panel:</strong></p>
+                        <ol>
+                            <li>Click the <strong>"Start"</strong> button next to Apache</li>
+                            <li>Click the <strong>"Start"</strong> button next to MySQL</li>
+                            <li>Both should show <span class="text-success">green background</span> when running</li>
+                        </ol>
+                        
+                        <div class="code-block">
+                            <strong>Expected Result:</strong><br>
+                            Apache: <span class="badge badge-success">Running</span> Port 80, 443<br>
+                            MySQL: <span class="badge badge-success">Running</span> Port 3306
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 4: Create Database -->
+                <div class="card setup-step">
+                    <div class="card-header bg-info text-white">
+                        <h3>Step 4: Create Database</h3>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Option 1: Using phpMyAdmin (Recommended)</strong></p>
+                        <ol>
+                            <li>In XAMPP Control Panel, click <strong>"Admin"</strong> next to MySQL</li>
+                            <li>This opens phpMyAdmin in your browser</li>
+                            <li>Click <strong>"New"</strong> in the left sidebar</li>
+                            <li>Enter database name: <code>pathlab_pro</code></li>
+                            <li>Click <strong>"Create"</strong></li>
+                        </ol>
+                        
+                        <hr>
+                        
+                        <p><strong>Option 2: Using MySQL Command Line</strong></p>
+                        <div class="code-block">
+                            mysql -u root -p<br>
+                            CREATE DATABASE pathlab_pro;<br>
+                            exit;
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 5: Test Connection -->
+                <div class="card setup-step">
+                    <div class="card-header bg-danger text-white">
+                        <h3>Step 5: Test PathLab Pro Connection</h3>
+                    </div>
+                    <div class="card-body">
+                        <p>Now test if PathLab Pro can connect to your MySQL database:</p>
+                        
+                        <div class="text-center">
+                            <a href="database_setup_new.php" class="btn btn-primary btn-lg">🧪 Test Database Connection</a>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <p><strong>If connection succeeds:</strong> ✅ You'll see green checkmarks and can proceed to use the system</p>
+                            <p><strong>If connection fails:</strong> ❌ Check that MySQL is running and try the troubleshooting steps below</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Troubleshooting -->
+                <div class="card setup-step">
+                    <div class="card-header bg-secondary text-white">
+                        <h3>🔧 Troubleshooting</h3>
+                    </div>
+                    <div class="card-body">
+                        <h5>Common Issues:</h5>
+                        
+                        <div class="accordion" id="troubleshootingAccordion">
+                            <div class="card">
+                                <div class="card-header">
+                                    <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#collapse1">
+                                        <strong>MySQL won't start in XAMPP</strong>
+                                    </button>
+                                </div>
+                                <div id="collapse1" class="collapse" data-parent="#troubleshootingAccordion">
+                                    <div class="card-body">
+                                        <ul>
+                                            <li>Check if another program is using port 3306</li>
+                                            <li>Try running XAMPP as Administrator</li>
+                                            <li>Check XAMPP logs for specific error messages</li>
+                                            <li>Temporarily disable antivirus/firewall to test</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="card">
+                                <div class="card-header">
+                                    <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#collapse2">
+                                        <strong>Connection refused error</strong>
+                                    </button>
+                                </div>
+                                <div id="collapse2" class="collapse" data-parent="#troubleshootingAccordion">
+                                    <div class="card-body">
+                                        <ul>
+                                            <li>Ensure MySQL service is running (green in XAMPP)</li>
+                                            <li>Check that port 3306 is not blocked</li>
+                                            <li>Try connecting to 127.0.0.1 instead of localhost</li>
+                                            <li>Restart XAMPP services</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="card">
+                                <div class="card-header">
+                                    <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#collapse3">
+                                        <strong>Access denied for user 'root'</strong>
+                                    </button>
+                                </div>
+                                <div id="collapse3" class="collapse" data-parent="#troubleshootingAccordion">
+                                    <div class="card-body">
+                                        <ul>
+                                            <li>Default XAMPP MySQL has no password for root</li>
+                                            <li>Try connecting without a password first</li>
+                                            <li>If you set a password, update config_working.php</li>
+                                            <li>Reset MySQL root password if needed</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Alternative: Online Database -->
+                <div class="card setup-step">
+                    <div class="card-header bg-dark text-white">
+                        <h3>🌐 Alternative: Use Online Database</h3>
+                    </div>
+                    <div class="card-body">
+                        <p>If local installation doesn't work, you can use a free online MySQL database:</p>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h5>Free Online Options:</h5>
+                                <ul>
+                                    <li><a href="https://www.freemysqlhosting.net/" target="_blank">FreeMySQLHosting.net</a></li>
+                                    <li><a href="https://www.db4free.net/" target="_blank">db4free.net</a></li>
+                                    <li><a href="https://remotemysql.com/" target="_blank">RemoteMySQL.com</a></li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h5>Update Configuration:</h5>
+                                <p>After getting online database credentials, update <code>config_working.php</code> with:</p>
+                                <div class="code-block">
+                                    $host = 'your_host';<br>
+                                    $dbname = 'your_database';<br>
+                                    $username = 'your_username';<br>
+                                    $password = 'your_password';
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Final Step -->
+                <div class="alert alert-success">
+                    <h4>🎉 Ready to Go!</h4>
+                    <p>Once MySQL is running and PathLab Pro connects successfully, you can:</p>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <ul>
+                                <li>Login with: admin / admin123</li>
+                                <li>Manage patients, doctors, equipment</li>
+                                <li>Create test orders and view results</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <a href="login.php" class="btn btn-success btn-block">🚀 Start Using PathLab Pro</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
