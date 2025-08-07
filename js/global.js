@@ -1,793 +1,517 @@
-/**
- * PathLab Pro - Global JavaScript Functions
- * Laboratory Management System
- * Version: 2.0
- * Date: August 5, 2025
- * 
- * This file contains global JavaScript functions and utilities
- */
+// Global JavaScript functions for PathLab Pro
+// AdminLTE3 Template with AJAX Operations
 
-// Global configuration
-window.PathLabPro = {
-    config: {
-        baseUrl: window.location.origin,
-        apiUrl: 'api/',
-        toastrTimeout: 3000,
-        animationDuration: 300,
-        debounceDelay: 300
-    },
-    
-    // Utility functions
-    utils: {},
-    
-    // UI components
-    ui: {},
-    
-    // Data management
-    data: {},
-    
-    // Event handlers
-    events: {}
-};
+// Global variables
+let currentPage = 1;
+let itemsPerPage = 10;
+let currentSearch = '';
+let currentSort = '';
+let currentOrder = 'asc';
+let globalDataTable = null;
 
-// ===== UTILITY FUNCTIONS =====
-PathLabPro.utils = {
-    
-    // Debounce function for search inputs
-    debounce: function(func, delay) {
-        let timeoutId;
-        return function(...args) {
-            clearTimeout(timeoutId);
-            timeoutId = setTimeout(() => func.apply(this, args), delay);
-        };
-    },
-    
-    // Format phone number
-    formatPhoneNumber: function(phoneNumber) {
-        const cleaned = phoneNumber.replace(/\D/g, '');
-        if (cleaned.length >= 10) {
-            const match = cleaned.match(/^(\d{3})(\d{3})(\d{4})$/);
-            if (match) {
-                return `(${match[1]}) ${match[2]}-${match[3]}`;
-            }
-        }
-        return phoneNumber;
-    },
-    
-    // Validate email
-    validateEmail: function(email) {
-        const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return re.test(email);
-    },
-    
-    // Calculate age from date of birth
-    calculateAge: function(dateOfBirth) {
-        if (!dateOfBirth) return null;
-        
-        const today = new Date();
-        const birthDate = new Date(dateOfBirth);
-        let age = today.getFullYear() - birthDate.getFullYear();
-        const monthDiff = today.getMonth() - birthDate.getMonth();
-        
-        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-            age--;
-        }
-        
-        return age;
-    },
-    
-    // Format currency
-    formatCurrency: function(amount, currency = 'USD') {
-        return new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency: currency
-        }).format(amount);
-    },
-    
-    // Format date
-    formatDate: function(date, options = {}) {
-        const defaultOptions = {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric'
-        };
-        
-        return new Date(date).toLocaleDateString('en-US', { ...defaultOptions, ...options });
-    },
-    
-    // Format relative time
-    formatRelativeTime: function(date) {
-        const now = new Date();
-        const target = new Date(date);
-        const diffInSeconds = Math.floor((now - target) / 1000);
-        
-        if (diffInSeconds < 60) return 'just now';
-        if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minutes ago`;
-        if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`;
-        if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 86400)} days ago`;
-        
-        return this.formatDate(date);
-    },
-    
-    // Generate random ID
-    generateId: function(prefix = 'id') {
-        return `${prefix}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    },
-    
-    // Deep clone object
-    deepClone: function(obj) {
-        return JSON.parse(JSON.stringify(obj));
-    },
-    
-    // Check if element is visible in viewport
-    isInViewport: function(element) {
-        const rect = element.getBoundingClientRect();
-        return (
-            rect.top >= 0 &&
-            rect.left >= 0 &&
-            rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
-            rect.right <= (window.innerWidth || document.documentElement.clientWidth)
-        );
-    }
-};
-
-// ===== UI COMPONENTS =====
-PathLabPro.ui = {
-    
-    // Show loading state
-    showLoading: function(element, text = 'Loading...') {
-        const $element = $(element);
-        $element.addClass('ajax-loading');
-        
-        if ($element.is('button')) {
-            $element.addClass('btn-loading');
-            $element.data('original-text', $element.html());
-            $element.html(`<span>${text}</span>`);
-            $element.prop('disabled', true);
-        }
-    },
-    
-    // Hide loading state
-    hideLoading: function(element) {
-        const $element = $(element);
-        $element.removeClass('ajax-loading btn-loading');
-        
-        if ($element.is('button')) {
-            const originalText = $element.data('original-text');
-            if (originalText) {
-                $element.html(originalText);
-            }
-            $element.prop('disabled', false);
-        }
-    },
-    
-    // Show toast notification
-    showToast: function(message, type = 'info', options = {}) {
-        const defaultOptions = {
-            timeOut: PathLabPro.config.toastrTimeout,
-            closeButton: true,
-            progressBar: true,
-            positionClass: 'toast-top-right',
-            preventDuplicates: true
-        };
-        
-        toastr.options = { ...defaultOptions, ...options };
-        
-        switch (type) {
-            case 'success':
-                toastr.success(message);
-                break;
-            case 'error':
-                toastr.error(message);
-                break;
-            case 'warning':
-                toastr.warning(message);
-                break;
-            case 'info':
-            default:
-                toastr.info(message);
-                break;
-        }
-    },
-    
-    // Show confirmation dialog
-    showConfirmation: function(options = {}) {
-        const defaultOptions = {
-            title: 'Are you sure?',
-            text: 'This action cannot be undone.',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#2c5aa0',
-            cancelButtonColor: '#6c757d',
-            confirmButtonText: 'Yes, continue',
-            cancelButtonText: 'Cancel'
-        };
-        
-        return Swal.fire({ ...defaultOptions, ...options });
-    },
-    
-    // Show alert dialog
-    showAlert: function(message, type = 'info', options = {}) {
-        const defaultOptions = {
-            title: type.charAt(0).toUpperCase() + type.slice(1),
-            text: message,
-            icon: type,
-            confirmButtonColor: '#2c5aa0'
-        };
-        
-        return Swal.fire({ ...defaultOptions, ...options });
-    },
-    
-    // Animate counter
-    animateCounter: function(element, targetValue, duration = 1000) {
-        const $element = $(element);
-        const startValue = parseInt($element.text()) || 0;
-        const increment = (targetValue - startValue) / (duration / 16);
-        let currentValue = startValue;
-        
-        const updateCounter = () => {
-            currentValue += increment;
-            if ((increment > 0 && currentValue >= targetValue) || 
-                (increment < 0 && currentValue <= targetValue)) {
-                $element.text(targetValue);
-            } else {
-                $element.text(Math.floor(currentValue));
-                requestAnimationFrame(updateCounter);
-            }
-        };
-        
-        updateCounter();
-    },
-    
-    // Add ripple effect to buttons
-    addRippleEffect: function(element) {
-        $(element).on('click', function(e) {
-            const $button = $(this);
-            const rect = this.getBoundingClientRect();
-            const ripple = $('<span class="ripple"></span>');
-            
-            const size = Math.max(rect.width, rect.height);
-            const x = e.clientX - rect.left - size / 2;
-            const y = e.clientY - rect.top - size / 2;
-            
-            ripple.css({
-                width: size,
-                height: size,
-                left: x,
-                top: y
-            }).addClass('ripple-effect');
-            
-            $button.append(ripple);
-            
-            setTimeout(() => {
-                ripple.remove();
-            }, 600);
-        });
-    },
-    
-    // Auto-resize textarea
-    autoResizeTextarea: function(element) {
-        $(element).on('input', function() {
-            this.style.height = 'auto';
-            this.style.height = this.scrollHeight + 'px';
-        });
-    },
-    
-    // Format form inputs
-    formatFormInputs: function(container = document) {
-        // Phone number formatting
-        $(container).find('input[type="tel"], input[name*="phone"]').on('input', function() {
-            const formatted = PathLabPro.utils.formatPhoneNumber(this.value);
-            this.value = formatted;
-        });
-        
-        // Email validation
-        $(container).find('input[type="email"]').on('blur', function() {
-            const $input = $(this);
-            if (this.value && !PathLabPro.utils.validateEmail(this.value)) {
-                $input.addClass('is-invalid');
-            } else {
-                $input.removeClass('is-invalid');
-            }
-        });
-        
-        // Auto-resize textareas
-        $(container).find('textarea').each(function() {
-            PathLabPro.ui.autoResizeTextarea(this);
-        });
-    }
-};
-
-// ===== DATA MANAGEMENT =====
-PathLabPro.data = {
-    
-    // AJAX request wrapper
-    request: function(options) {
-        const defaultOptions = {
-            type: 'GET',
-            dataType: 'json',
-            timeout: 30000,
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        };
-        
-        const settings = { ...defaultOptions, ...options };
-        
-        return $.ajax(settings)
-            .fail(function(xhr, status, error) {
-                console.error('AJAX Request failed:', {
-                    url: settings.url,
-                    status: xhr.status,
-                    statusText: xhr.statusText,
-                    error: error
-                });
-                
-                let errorMessage = 'An error occurred while processing your request.';
-                
-                if (xhr.status === 0) {
-                    errorMessage = 'Network error. Please check your connection.';
-                } else if (xhr.status === 404) {
-                    errorMessage = 'Requested resource not found.';
-                } else if (xhr.status === 500) {
-                    errorMessage = 'Internal server error. Please try again later.';
-                } else if (xhr.responseJSON && xhr.responseJSON.message) {
-                    errorMessage = xhr.responseJSON.message;
-                }
-                
-                PathLabPro.ui.showToast(errorMessage, 'error');
-            });
-    },
-    
-    // Get data from API
-    get: function(endpoint, params = {}) {
-        return this.request({
-            url: PathLabPro.config.apiUrl + endpoint,
-            type: 'GET',
-            data: params
-        });
-    },
-    
-    // Post data to API
-    post: function(endpoint, data = {}) {
-        return this.request({
-            url: PathLabPro.config.apiUrl + endpoint,
-            type: 'POST',
-            data: data
-        });
-    },
-    
-    // Put data to API
-    put: function(endpoint, data = {}) {
-        return this.request({
-            url: PathLabPro.config.apiUrl + endpoint,
-            type: 'PUT',
-            data: JSON.stringify(data),
-            contentType: 'application/json'
-        });
-    },
-    
-    // Delete data from API
-    delete: function(endpoint, data = {}) {
-        return this.request({
-            url: PathLabPro.config.apiUrl + endpoint,
-            type: 'DELETE',
-            data: JSON.stringify(data),
-            contentType: 'application/json'
-        });
-    },
-    
-    // Upload file
-    upload: function(endpoint, formData) {
-        return this.request({
-            url: PathLabPro.config.apiUrl + endpoint,
-            type: 'POST',
-            data: formData,
-            processData: false,
-            contentType: false
-        });
-    },
-    
-    // Local storage wrapper
-    storage: {
-        set: function(key, value) {
-            try {
-                localStorage.setItem(key, JSON.stringify(value));
-                return true;
-            } catch (e) {
-                console.error('LocalStorage set error:', e);
-                return false;
-            }
-        },
-        
-        get: function(key, defaultValue = null) {
-            try {
-                const item = localStorage.getItem(key);
-                return item ? JSON.parse(item) : defaultValue;
-            } catch (e) {
-                console.error('LocalStorage get error:', e);
-                return defaultValue;
-            }
-        },
-        
-        remove: function(key) {
-            try {
-                localStorage.removeItem(key);
-                return true;
-            } catch (e) {
-                console.error('LocalStorage remove error:', e);
-                return false;
-            }
-        },
-        
-        clear: function() {
-            try {
-                localStorage.clear();
-                return true;
-            } catch (e) {
-                console.error('LocalStorage clear error:', e);
-                return false;
-            }
-        }
-    }
-};
-
-// ===== EVENT HANDLERS =====
-PathLabPro.events = {
-    
-    // Initialize global event handlers
-    init: function() {
-        // Handle form submissions
-        $(document).on('submit', 'form[data-ajax="true"]', this.handleAjaxForm);
-        
-        // Handle clickable elements
-        $(document).on('click', '[data-action]', this.handleDataAction);
-        
-        // Handle confirmation dialogs
-        $(document).on('click', '[data-confirm]', this.handleConfirmAction);
-        
-        // Handle tooltip initialization
-        $(document).on('mouseenter', '[data-toggle="tooltip"]', function() {
-            $(this).tooltip();
-        });
-        
-        // Handle popover initialization
-        $(document).on('mouseenter', '[data-toggle="popover"]', function() {
-            $(this).popover();
-        });
-        
-        // Handle search inputs with debounce
-        $(document).on('input', '[data-search]', PathLabPro.utils.debounce(this.handleSearch, PathLabPro.config.debounceDelay));
-        
-        // Handle sidebar toggle
-        $(document).on('click', '[data-widget="pushmenu"]', this.handleSidebarToggle);
-        
-        // Handle fullscreen toggle
-        $(document).on('click', '[data-widget="fullscreen"]', this.handleFullscreenToggle);
-        
-        // Auto-save form data
-        $(document).on('input change', '[data-autosave]', PathLabPro.utils.debounce(this.handleAutoSave, 1000));
-        
-        // Handle file uploads
-        $(document).on('change', 'input[type="file"][data-upload]', this.handleFileUpload);
-    },
-    
-    // Handle AJAX form submissions
-    handleAjaxForm: function(e) {
-        e.preventDefault();
-        
-        const $form = $(this);
-        const formData = new FormData(this);
-        const url = $form.attr('action') || PathLabPro.config.apiUrl + $form.data('endpoint');
-        const method = $form.attr('method') || 'POST';
-        const submitButton = $form.find('button[type="submit"]');
-        
-        PathLabPro.ui.showLoading(submitButton);
-        
-        PathLabPro.data.request({
-            url: url,
-            type: method,
-            data: formData,
-            processData: false,
-            contentType: false
-        }).done(function(response) {
-            if (response.success) {
-                PathLabPro.ui.showToast(response.message || 'Operation completed successfully', 'success');
-                
-                // Trigger custom event
-                $form.trigger('ajax:success', [response]);
-                
-                // Reset form if specified
-                if ($form.data('reset') !== false) {
-                    $form[0].reset();
-                    $form.find('.is-invalid, .is-valid').removeClass('is-invalid is-valid');
-                }
-                
-                // Close modal if form is in modal
-                const $modal = $form.closest('.modal');
-                if ($modal.length) {
-                    $modal.modal('hide');
-                }
-            } else {
-                PathLabPro.ui.showToast(response.message || 'Operation failed', 'error');
-                $form.trigger('ajax:error', [response]);
-            }
-        }).fail(function() {
-            $form.trigger('ajax:fail');
-        }).always(function() {
-            PathLabPro.ui.hideLoading(submitButton);
-        });
-    },
-    
-    // Handle data action clicks
-    handleDataAction: function(e) {
-        e.preventDefault();
-        
-        const $element = $(this);
-        const action = $element.data('action');
-        const target = $element.data('target');
-        const params = $element.data('params') || {};
-        
-        switch (action) {
-            case 'refresh':
-                if (target && typeof window[target] === 'function') {
-                    window[target]();
-                } else {
-                    location.reload();
-                }
-                break;
-                
-            case 'delete':
-                PathLabPro.ui.showConfirmation({
-                    title: 'Delete Item',
-                    text: 'This item will be permanently deleted.',
-                    confirmButtonText: 'Yes, delete it!'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        // Perform delete action
-                        const url = $element.attr('href') || $element.data('url');
-                        if (url) {
-                            PathLabPro.data.delete(url, params).done(function(response) {
-                                if (response.success) {
-                                    PathLabPro.ui.showToast(response.message || 'Item deleted successfully', 'success');
-                                    $element.trigger('action:delete:success', [response]);
-                                }
-                            });
-                        }
-                    }
-                });
-                break;
-                
-            case 'export':
-                const exportUrl = $element.data('url') || $element.attr('href');
-                if (exportUrl) {
-                    window.open(exportUrl, '_blank');
-                }
-                break;
-        }
-    },
-    
-    // Handle confirmation actions
-    handleConfirmAction: function(e) {
-        e.preventDefault();
-        
-        const $element = $(this);
-        const message = $element.data('confirm');
-        const title = $element.data('confirm-title') || 'Confirm Action';
-        
-        PathLabPro.ui.showConfirmation({
-            title: title,
-            text: message
-        }).then((result) => {
-            if (result.isConfirmed) {
-                // Continue with original action
-                if ($element.is('a')) {
-                    window.location.href = $element.attr('href');
-                } else if ($element.is('button[type="submit"]')) {
-                    $element.closest('form').submit();
-                }
-            }
-        });
-    },
-    
-    // Handle search with debounce
-    handleSearch: function() {
-        const $input = $(this);
-        const searchTerm = $input.val().trim();
-        const target = $input.data('search');
-        const minLength = $input.data('min-length') || 2;
-        
-        if (searchTerm.length >= minLength) {
-            // Trigger search
-            $input.trigger('search:perform', [searchTerm]);
-            
-            // If DataTable target is specified
-            if (target && $.fn.DataTable && $.fn.DataTable.isDataTable(target)) {
-                $(target).DataTable().search(searchTerm).draw();
-            }
-        } else if (searchTerm.length === 0) {
-            // Clear search
-            $input.trigger('search:clear');
-            
-            if (target && $.fn.DataTable && $.fn.DataTable.isDataTable(target)) {
-                $(target).DataTable().search('').draw();
-            }
-        }
-    },
-    
-    // Handle sidebar toggle
-    handleSidebarToggle: function(e) {
-        e.preventDefault();
-        $('body').toggleClass('sidebar-collapse');
-        
-        // Save state
-        PathLabPro.data.storage.set('sidebar_collapsed', $('body').hasClass('sidebar-collapse'));
-    },
-    
-    // Handle fullscreen toggle
-    handleFullscreenToggle: function(e) {
-        e.preventDefault();
-        
-        if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen();
-            $(this).find('i').removeClass('fa-expand-arrows-alt').addClass('fa-compress-arrows-alt');
-        } else {
-            document.exitFullscreen();
-            $(this).find('i').removeClass('fa-compress-arrows-alt').addClass('fa-expand-arrows-alt');
-        }
-    },
-    
-    // Handle auto-save
-    handleAutoSave: function() {
-        const $element = $(this);
-        const key = $element.data('autosave');
-        const value = $element.val();
-        
-        PathLabPro.data.storage.set(`autosave_${key}`, {
-            value: value,
-            timestamp: Date.now()
-        });
-        
-        // Show subtle indicator
-        $element.addClass('autosaved');
-        setTimeout(() => {
-            $element.removeClass('autosaved');
-        }, 1000);
-    },
-    
-    // Handle file uploads
-    handleFileUpload: function() {
-        const $input = $(this);
-        const file = this.files[0];
-        const maxSize = $input.data('max-size') || 5 * 1024 * 1024; // 5MB default
-        const allowedTypes = $input.data('allowed-types') || '';
-        
-        if (file) {
-            // Validate file size
-            if (file.size > maxSize) {
-                PathLabPro.ui.showToast(`File size must be less than ${maxSize / 1024 / 1024}MB`, 'error');
-                $input.val('');
-                return;
-            }
-            
-            // Validate file type
-            if (allowedTypes && !allowedTypes.split(',').includes(file.type)) {
-                PathLabPro.ui.showToast('Invalid file type', 'error');
-                $input.val('');
-                return;
-            }
-            
-            // Show file name
-            const $label = $input.siblings('label').length ? $input.siblings('label') : $input.parent().find('label');
-            if ($label.length) {
-                $label.text(file.name);
-            }
-        }
-    }
-};
-
-// ===== INITIALIZATION =====
-$(document).ready(function() {
-    console.log('PathLab Pro Global JS initialized');
-    
-    // Initialize event handlers
-    PathLabPro.events.init();
-    
-    // Initialize form formatting
-    PathLabPro.ui.formatFormInputs();
-    
-    // Restore sidebar state
-    const sidebarCollapsed = PathLabPro.data.storage.get('sidebar_collapsed', false);
-    if (sidebarCollapsed) {
-        $('body').addClass('sidebar-collapse');
-    }
-    
-    // Initialize tooltips globally
+// Initialize global components
+function initializeGlobalComponents() {
+    // Initialize tooltips
     $('[data-toggle="tooltip"]').tooltip();
     
-    // Initialize popovers globally
+    // Initialize popovers
     $('[data-toggle="popover"]').popover();
     
-    // Add ripple effect to buttons
-    PathLabPro.ui.addRippleEffect('.btn');
-    
-    // Auto-hide alerts after delay
-    $('.alert[data-auto-hide]').each(function() {
-        const $alert = $(this);
-        const delay = $alert.data('auto-hide') || 5000;
-        
-        setTimeout(() => {
-            $alert.fadeOut();
-        }, delay);
+    // Initialize select2
+    $('.select2').select2({
+        theme: 'bootstrap4',
+        width: '100%'
     });
     
-    // Restore auto-saved form data
-    $('[data-autosave]').each(function() {
-        const $element = $(this);
-        const key = $element.data('autosave');
-        const saved = PathLabPro.data.storage.get(`autosave_${key}`);
-        
-        if (saved && saved.timestamp > Date.now() - 24 * 60 * 60 * 1000) { // 24 hours
-            $element.val(saved.value);
+    // Initialize date pickers
+    $('.datepicker').datetimepicker({
+        format: 'YYYY-MM-DD',
+        icons: {
+            time: 'far fa-clock',
+            date: 'far fa-calendar',
+            up: 'fas fa-arrow-up',
+            down: 'fas fa-arrow-down',
+            previous: 'fas fa-chevron-left',
+            next: 'fas fa-chevron-right',
+            today: 'far fa-calendar-check-o',
+            clear: 'far fa-trash',
+            close: 'far fa-times'
         }
     });
     
-    // Handle page visibility change
-    document.addEventListener('visibilitychange', function() {
-        if (!document.hidden) {
-            // Page became visible, refresh data if needed
-            $(document).trigger('page:visible');
+    // Initialize datetime pickers
+    $('.datetimepicker').datetimepicker({
+        format: 'YYYY-MM-DD HH:mm',
+        icons: {
+            time: 'far fa-clock',
+            date: 'far fa-calendar',
+            up: 'fas fa-arrow-up',
+            down: 'fas fa-arrow-down',
+            previous: 'fas fa-chevron-left',
+            next: 'fas fa-chevron-right',
+            today: 'far fa-calendar-check-o',
+            clear: 'far fa-trash',
+            close: 'far fa-times'
         }
     });
     
-    // Handle online/offline status
-    window.addEventListener('online', function() {
-        PathLabPro.ui.showToast('Connection restored', 'success');
-        $(document).trigger('connection:online');
-    });
-    
-    window.addEventListener('offline', function() {
-        PathLabPro.ui.showToast('Connection lost', 'warning');
-        $(document).trigger('connection:offline');
-    });
-    
-    console.log('PathLab Pro initialization complete');
-});
-
-// CSS for ripple effect
-if (!document.getElementById('pathlab-ripple-css')) {
-    const rippleCSS = `
-        <style id="pathlab-ripple-css">
-            .ripple {
-                position: absolute;
-                border-radius: 50%;
-                background: rgba(255, 255, 255, 0.6);
-                transform: scale(0);
-                animation: ripple-animation 0.6s linear;
-                pointer-events: none;
+    // Global AJAX setup
+    $.ajaxSetup({
+        beforeSend: function(xhr, settings) {
+            if (settings.showLoader !== false) {
+                showLoader();
             }
+        },
+        complete: function() {
+            hideLoader();
+        },
+        error: function(xhr, status, error) {
+            console.error('AJAX Error:', error);
+            hideLoader();
             
-            @keyframes ripple-animation {
-                to {
-                    transform: scale(4);
-                    opacity: 0;
+            if (xhr.status === 401) {
+                showToast('error', 'Session expired. Please login again.');
+                setTimeout(() => window.location.href = 'login.php', 2000);
+            } else if (xhr.status === 403) {
+                showToast('error', 'Access denied');
+            } else if (xhr.status === 422) {
+                const response = xhr.responseJSON;
+                if (response && response.message) {
+                    showToast('error', response.message);
+                } else {
+                    showToast('error', 'Validation error occurred');
                 }
+            } else {
+                showToast('error', 'An error occurred. Please try again.');
             }
-            
-            .autosaved {
-                box-shadow: 0 0 0 2px rgba(40, 167, 69, 0.25) !important;
-                transition: box-shadow 0.3s ease;
-            }
-            
-            .ajax-loading {
-                opacity: 0.7;
-                pointer-events: none;
-            }
-        </style>
-    `;
+        }
+    });
     
-    $('head').append(rippleCSS);
+    // Initialize form validation
+    initializeFormValidation();
+    
+    // Initialize modal handlers
+    initializeModalHandlers();
 }
 
-// Export PathLabPro to global scope
-window.PathLabPro = PathLabPro;
+// Enhanced DataTable initialization
+function initializeDataTable(tableId, ajaxUrl, columns, options = {}) {
+    const defaultOptions = {
+        processing: true,
+        serverSide: true,
+        responsive: true,
+        ajax: {
+            url: ajaxUrl,
+            type: 'POST',
+            data: function(d) {
+                d.search_value = d.search.value;
+                d.length = d.length;
+                d.start = d.start;
+                d.order_column = d.columns[d.order[0].column].data;
+                d.order_dir = d.order[0].dir;
+                
+                // Add custom filters
+                if (typeof getCustomFilters === 'function') {
+                    Object.assign(d, getCustomFilters());
+                }
+            },
+            error: function(xhr, error, thrown) {
+                console.error('DataTable AJAX error:', error);
+                showToast('error', 'Failed to load data');
+            }
+        },
+        columns: columns,
+        dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>' +
+             '<"row"<"col-sm-12"tr>>' +
+             '<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
+        language: {
+            processing: '<div class="spinner-border text-primary" role="status"><span class="sr-only">Loading...</span></div>',
+            emptyTable: 'No data available',
+            zeroRecords: 'No matching records found',
+            lengthMenu: 'Show _MENU_ entries',
+            info: 'Showing _START_ to _END_ of _TOTAL_ entries',
+            infoEmpty: 'Showing 0 to 0 of 0 entries',
+            infoFiltered: '(filtered from _MAX_ total entries)',
+            search: 'Search:',
+            paginate: {
+                first: 'First',
+                last: 'Last',
+                next: 'Next',
+                previous: 'Previous'
+            }
+        },
+        pageLength: 10,
+        lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
+        order: [[0, 'desc']],
+        drawCallback: function(settings) {
+            // Reinitialize tooltips after table redraw
+            $('[data-toggle="tooltip"]').tooltip();
+        }
+    };
+    
+    // Merge custom options
+    const finalOptions = Object.assign({}, defaultOptions, options);
+    
+    // Initialize DataTable
+    globalDataTable = $(tableId).DataTable(finalOptions);
+    
+    return globalDataTable;
+}
+
+// Enhanced modal functions
+function showModal(modalId, title = '', size = '') {
+    const modal = $(modalId);
+    if (title) {
+        modal.find('.modal-title').text(title);
+    }
+    if (size) {
+        modal.find('.modal-dialog').removeClass('modal-sm modal-lg modal-xl').addClass(size);
+    }
+    modal.modal('show');
+}
+
+function hideModal(modalId) {
+    $(modalId).modal('hide');
+}
+
+function resetForm(formId) {
+    const form = $(formId);
+    form[0].reset();
+    form.find('.is-invalid').removeClass('is-invalid');
+    form.find('.invalid-feedback').remove();
+    form.find('.select2').val(null).trigger('change');
+}
+
+// Enhanced AJAX form submission
+function submitForm(formId, url, method = 'POST', callback = null) {
+    const form = $(formId);
+    const formData = new FormData(form[0]);
+    
+    // Clear previous validation errors
+    form.find('.is-invalid').removeClass('is-invalid');
+    form.find('.invalid-feedback').remove();
+    
+    $.ajax({
+        url: url,
+        type: method,
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function(response) {
+            if (response.success) {
+                showToast('success', response.message);
+                if (callback) {
+                    callback(response);
+                } else {
+                    // Default behavior: hide modal and refresh table
+                    $('.modal').modal('hide');
+                    if (globalDataTable) {
+                        globalDataTable.ajax.reload(null, false);
+                    }
+                }
+            } else {
+                if (response.errors) {
+                    displayFormErrors(formId, response.errors);
+                } else {
+                    showToast('error', response.message);
+                }
+            }
+        },
+        error: function(xhr) {
+            if (xhr.status === 422 && xhr.responseJSON && xhr.responseJSON.errors) {
+                displayFormErrors(formId, xhr.responseJSON.errors);
+            } else {
+                showToast('error', 'Failed to submit form');
+            }
+        }
+    });
+}
+
+// Display form validation errors
+function displayFormErrors(formId, errors) {
+    const form = $(formId);
+    
+    Object.keys(errors).forEach(field => {
+        const input = form.find(`[name="${field}"]`);
+        if (input.length) {
+            input.addClass('is-invalid');
+            input.after(`<div class="invalid-feedback">${errors[field]}</div>`);
+        }
+    });
+}
+
+// Enhanced delete function with SweetAlert2
+function deleteRecord(id, url, title = 'Delete Record', text = 'Are you sure you want to delete this record?') {
+    Swal.fire({
+        title: title,
+        text: text,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, delete it!',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $.ajax({
+                url: url,
+                type: 'DELETE',
+                data: { id: id },
+                success: function(response) {
+                    if (response.success) {
+                        showToast('success', response.message);
+                        if (globalDataTable) {
+                            globalDataTable.ajax.reload(null, false);
+                        }
+                    } else {
+                        showToast('error', response.message);
+                    }
+                },
+                error: function() {
+                    showToast('error', 'Failed to delete record');
+                }
+            });
+        }
+    });
+}
+
+// Load data for edit modal
+function loadEditData(id, url, modalId, callback = null) {
+    $.ajax({
+        url: url,
+        type: 'GET',
+        data: { action: 'get', id: id },
+        success: function(response) {
+            if (response.success) {
+                if (callback) {
+                    callback(response.data);
+                } else {
+                    populateForm(modalId + ' form', response.data);
+                }
+                showModal(modalId, 'Edit Record');
+            } else {
+                showToast('error', response.message);
+            }
+        },
+        error: function() {
+            showToast('error', 'Failed to load record data');
+        }
+    });
+}
+
+// Populate form with data
+function populateForm(formSelector, data) {
+    const form = $(formSelector);
+    
+    Object.keys(data).forEach(key => {
+        const input = form.find(`[name="${key}"]`);
+        if (input.length) {
+            if (input.is('select')) {
+                input.val(data[key]).trigger('change');
+            } else if (input.attr('type') === 'checkbox') {
+                input.prop('checked', data[key] == 1);
+            } else {
+                input.val(data[key]);
+            }
+        }
+    });
+}
+
+// Form validation initialization
+function initializeFormValidation() {
+    // Real-time validation
+    $(document).on('blur', 'input[required], select[required], textarea[required]', function() {
+        validateField($(this));
+    });
+    
+    $(document).on('input', 'input[type="email"]', function() {
+        validateEmailField($(this));
+    });
+    
+    $(document).on('input', 'input[type="tel"], input[data-type="phone"]', function() {
+        validatePhoneField($(this));
+    });
+}
+
+// Field validation
+function validateField(field) {
+    const value = field.val().trim();
+    const isRequired = field.prop('required');
+    
+    field.removeClass('is-invalid');
+    field.siblings('.invalid-feedback').remove();
+    
+    if (isRequired && !value) {
+        field.addClass('is-invalid');
+        field.after('<div class="invalid-feedback">This field is required</div>');
+        return false;
+    }
+    
+    return true;
+}
+
+// Email validation
+function validateEmailField(field) {
+    const email = field.val().trim();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    
+    field.removeClass('is-invalid');
+    field.siblings('.invalid-feedback').remove();
+    
+    if (email && !emailRegex.test(email)) {
+        field.addClass('is-invalid');
+        field.after('<div class="invalid-feedback">Please enter a valid email address</div>');
+        return false;
+    }
+    
+    return true;
+}
+
+// Phone validation
+function validatePhoneField(field) {
+    const phone = field.val().trim();
+    const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
+    
+    field.removeClass('is-invalid');
+    field.siblings('.invalid-feedback').remove();
+    
+    if (phone && !phoneRegex.test(phone.replace(/\s/g, ''))) {
+        field.addClass('is-invalid');
+        field.after('<div class="invalid-feedback">Please enter a valid phone number</div>');
+        return false;
+    }
+    
+    return true;
+}
+
+// Modal handlers initialization
+function initializeModalHandlers() {
+    // Reset form when modal is hidden
+    $('.modal').on('hidden.bs.modal', function() {
+        const form = $(this).find('form');
+        if (form.length) {
+            resetForm(form);
+        }
+    });
+    
+    // Focus first input when modal is shown
+    $('.modal').on('shown.bs.modal', function() {
+        $(this).find('input:not([readonly]):not([disabled]):first').focus();
+    });
+}
+
+// Show/Hide loader
+function showLoader(message = 'Loading...') {
+    if ($('#globalLoader').length === 0) {
+        $('body').append(`
+            <div id="globalLoader" class="global-loader">
+                <div class="loader-content">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="sr-only">Loading...</span>
+                    </div>
+                    <div class="mt-2 loader-message">${message}</div>
+                </div>
+            </div>
+        `);
+    } else {
+        $('#globalLoader .loader-message').text(message);
+    }
+    $('#globalLoader').show();
+}
+
+function hideLoader() {
+    $('#globalLoader').hide();
+}
+
+// Utility functions
+function formatDate(dateString, format = 'YYYY-MM-DD') {
+    if (!dateString) return '';
+    return moment(dateString).format(format);
+}
+
+function formatDateTime(dateString, format = 'YYYY-MM-DD HH:mm') {
+    if (!dateString) return '';
+    return moment(dateString).format(format);
+}
+
+function formatCurrency(amount, currency = '$') {
+    if (isNaN(amount)) return currency + '0.00';
+    return currency + parseFloat(amount).toFixed(2);
+}
+
+function capitalizeFirst(str) {
+    return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+function truncateText(text, length = 50) {
+    if (!text || text.length <= length) return text;
+    return text.substring(0, length) + '...';
+}
+
+function generateRandomId(length = 8) {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let result = '';
+    for (let i = 0; i < length; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+}
+
+// Debounce function
+function debounce(func, wait, immediate) {
+    let timeout;
+    return function executedFunction() {
+        const context = this;
+        const args = arguments;
+        const later = function() {
+            timeout = null;
+            if (!immediate) func.apply(context, args);
+        };
+        const callNow = immediate && !timeout;
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+        if (callNow) func.apply(context, args);
+    };
+}
+
+// Export functions
+function exportTableData(format = 'csv', filename = 'export') {
+    if (!globalDataTable) {
+        showToast('error', 'No data table found');
+        return;
+    }
+    
+    const buttons = globalDataTable.buttons();
+    if (format === 'csv') {
+        buttons.exportData({ format: 'csv' });
+    } else if (format === 'excel') {
+        buttons.exportData({ format: 'excel' });
+    } else if (format === 'pdf') {
+        buttons.exportData({ format: 'pdf' });
+    }
+}
+
+// Print function
+function printElement(elementId) {
+    const printContents = document.getElementById(elementId).innerHTML;
+    const originalContents = document.body.innerHTML;
+    
+    document.body.innerHTML = `
+        <html>
+        <head>
+            <title>Print</title>
+            <style>
+                body { font-family: Arial, sans-serif; }
+                table { width: 100%; border-collapse: collapse; }
+                th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                th { background-color: #f2f2f2; }
+            </style>
+        </head>
+        <body>${printContents}</body>
+        </html>
+    `;
+    
+    window.print();
+    document.body.innerHTML = originalContents;
+    location.reload();
+}
