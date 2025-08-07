@@ -18,7 +18,7 @@ function initializePatientsPage() {
         onSuccess: function(response) {
             $('#patientModal').modal('hide');
             patientsTable.ajax.reload(null, false);
-            showSuccess(response.message);
+            showToast('success', response.message);
         }
     });
     
@@ -305,5 +305,97 @@ window.editPatient = editPatient;
 window.viewPatient = viewPatient;
 window.deletePatient = deletePatient;
 window.exportPatients = exportPatients;
-window.applyFilters = applyFilters;
-window.clearFilters = clearFilters;
+window.refreshTable = refreshTable;
+window.filterTable = filterTable;
+
+// Additional missing functions
+function showAddPatientModal() {
+    $('#patientForm')[0].reset();
+    $('#patientForm').removeClass('was-validated');
+    $('#patientModal .modal-title').html('<i class="fas fa-plus mr-2"></i>Add New Patient');
+    $('#patientModal').modal('show');
+}
+
+function refreshTable() {
+    if (patientsTable) {
+        patientsTable.ajax.reload(null, false);
+        showToast('info', 'Table refreshed successfully');
+    }
+}
+
+function filterTable() {
+    if (patientsTable) {
+        patientsTable.ajax.reload();
+    }
+}
+
+function viewPatient(id) {
+    patientsCrud.get(id).then(response => {
+        if (response.success) {
+            // Fill modal with patient data for viewing
+            const patient = response.data;
+            let html = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Patient ID:</strong> ${patient.patient_id || 'N/A'}</p>
+                        <p><strong>Name:</strong> ${patient.first_name} ${patient.last_name}</p>
+                        <p><strong>Email:</strong> ${patient.email || 'N/A'}</p>
+                        <p><strong>Phone:</strong> ${patient.phone || 'N/A'}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Date of Birth:</strong> ${patient.date_of_birth || 'N/A'}</p>
+                        <p><strong>Gender:</strong> ${patient.gender || 'N/A'}</p>
+                        <p><strong>Status:</strong> <span class="badge badge-${patient.status === 'active' ? 'success' : 'secondary'}">${patient.status || 'N/A'}</span></p>
+                        <p><strong>Created:</strong> ${patient.created_at || 'N/A'}</p>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-12">
+                        <p><strong>Address:</strong> ${patient.address || 'N/A'}</p>
+                        <p><strong>Notes:</strong> ${patient.notes || 'N/A'}</p>
+                    </div>
+                </div>
+            `;
+            
+            Swal.fire({
+                title: `Patient Details - ${patient.first_name} ${patient.last_name}`,
+                html: html,
+                width: 600,
+                showCloseButton: true,
+                showConfirmButton: false,
+                customClass: {
+                    container: 'patient-view-modal'
+                }
+            });
+        }
+    }).catch(error => {
+        showToast('error', 'Failed to load patient details');
+    });
+}
+
+function editPatient(id) {
+    patientsCrud.get(id).then(response => {
+        if (response.success) {
+            const patient = response.data;
+            
+            // Fill form with patient data
+            $('#patientForm input[name="id"]').val(patient.id);
+            $('#patientForm input[name="patient_id"]').val(patient.patient_id);
+            $('#patientForm input[name="first_name"]').val(patient.first_name);
+            $('#patientForm input[name="last_name"]').val(patient.last_name);
+            $('#patientForm input[name="email"]').val(patient.email);
+            $('#patientForm input[name="phone"]').val(patient.phone);
+            $('#patientForm input[name="date_of_birth"]').val(patient.date_of_birth);
+            $('#patientForm select[name="gender"]').val(patient.gender);
+            $('#patientForm select[name="status"]').val(patient.status);
+            $('#patientForm textarea[name="address"]').val(patient.address);
+            $('#patientForm textarea[name="notes"]').val(patient.notes);
+            
+            // Update modal title
+            $('#patientModal .modal-title').html('<i class="fas fa-edit mr-2"></i>Edit Patient');
+            $('#patientModal').modal('show');
+        }
+    }).catch(error => {
+        showToast('error', 'Failed to load patient data');
+    });
+}

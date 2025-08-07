@@ -3,7 +3,7 @@ PathLab Pro - API Documentation
 
 Base URL: /api/
 Response Format: JSON
-Last Updated: 2025-01-08
+Last Updated: 2025-08-07
 
 IMPORTANT: All pages now use AdminLTE3 template with AJAX operations
 - All forms are handled via modals
@@ -21,12 +21,178 @@ Standard Response Format:
   "success": true/false,
   "message": "Response message",
   "data": {...},
-  "timestamp": "2025-01-07 12:00:00",
-  "server_time": 1704628800
+  "timestamp": "2025-08-07 12:00:00",
+  "server_time": 1723028800
 }
 
 === PATIENTS API ===
-File: /api/patients_api_improved.php
+File: /api/patients_api.php
+
+1. LIST PATIENTS
+   Endpoint: GET /api/patients_api.php?action=list
+   Parameters:
+   - page (optional): Page number (default: 1)
+   - limit (optional): Records per page (default: 10)
+   - search (optional): Search term
+   - status (optional): Filter by status
+   - blood_group (optional): Filter by blood group
+   Response Fields:
+   - id: Patient ID
+   - patient_id: Unique patient identifier
+   - first_name: First name
+   - last_name: Last name
+   - phone: Phone number
+   - email: Email address
+   - date_of_birth: Date of birth
+   - age: Calculated age
+   - gender: Gender (male/female/other)
+   - blood_group: Blood group (A+, A-, B+, B-, AB+, AB-, O+, O-)
+   - status: Status (active/inactive)
+   - address: Address
+   - notes: Notes
+   - created_at: Creation timestamp
+
+2. GET PATIENT
+   Endpoint: GET /api/patients_api.php?action=get&id={id}
+   Parameters:
+   - id: Patient ID
+   Response: Single patient object
+
+3. CREATE PATIENT
+   Endpoint: POST /api/patients_api.php?action=create
+   Required Fields:
+   - first_name: First name (required)
+   - last_name: Last name (required)
+   - phone: Phone number (required)
+   - email: Email address (optional)
+   - date_of_birth: Date of birth (YYYY-MM-DD)
+   - gender: Gender (male/female/other)
+   - blood_group: Blood group
+   - status: Status (active/inactive, default: active)
+   - address: Address (optional)
+   - notes: Notes (optional)
+
+4. UPDATE PATIENT
+   Endpoint: POST /api/patients_api.php?action=update
+   Required Fields: Same as create + id field
+
+5. DELETE PATIENT
+   Endpoint: POST /api/patients_api.php?action=delete
+   Parameters:
+   - id: Patient ID to delete
+
+=== DOCTORS API ===
+File: /api/doctors_api.php
+
+1. LIST DOCTORS
+   Endpoint: GET /api/doctors_api.php?action=list
+   Response Fields:
+   - id: Doctor ID
+   - doctor_id: Unique doctor identifier
+   - first_name: First name
+   - last_name: Last name
+   - specialization: Medical specialization
+   - phone: Phone number
+   - email: Email address
+   - status: Status (active/inactive)
+   - created_at: Creation timestamp
+
+2. GET DOCTOR
+   Endpoint: GET /api/doctors_api.php?action=get&id={id}
+
+3. CREATE DOCTOR
+   Endpoint: POST /api/doctors_api.php?action=create
+   Required Fields:
+   - first_name: First name (required)
+   - last_name: Last name (required)
+   - specialization: Medical specialization (required)
+   - phone: Phone number (required)
+   - email: Email address (required)
+   - status: Status (active/inactive, default: active)
+
+4. UPDATE DOCTOR
+   Endpoint: POST /api/doctors_api.php?action=update
+
+5. DELETE DOCTOR
+   Endpoint: POST /api/doctors_api.php?action=delete
+
+=== DASHBOARD API ===
+File: /api/dashboard_api.php
+
+1. GET DASHBOARD STATS
+   Endpoint: GET /api/dashboard_api.php?action=stats
+   Response Fields:
+   - total_patients: Total patient count
+   - todays_tests: Today's test count
+   - pending_results: Pending results count
+   - monthly_revenue: Monthly revenue
+   - recent_activities: Array of recent activities
+   - monthly_stats: Monthly statistics for charts
+
+=== AJAX ENDPOINTS ===
+Files in /ajax/ folder for DataTable server-side processing
+
+1. PATIENTS DATATABLE
+   File: /ajax/patients_datatable.php
+   Method: POST
+   Parameters:
+   - draw: DataTable draw counter
+   - start: Start record for pagination
+   - length: Records per page
+   - search_value: Search term
+   - order_column: Column to order by
+   - order_dir: Order direction (asc/desc)
+   - status: Status filter
+   - blood_group: Blood group filter
+   - registration_date: Date filter
+
+2. DOCTORS DATATABLE
+   File: /ajax/doctors_datatable.php
+   Similar parameters as patients
+
+=== JAVASCRIPT CLASSES ===
+Files: /js/common.js, /js/global.js
+
+1. CrudOperations Class
+   Constructor: new CrudOperations(apiEndpoint, entityName)
+   Methods:
+   - save(formData, isUpdate): Create or update
+   - get(id): Get single record
+   - delete(id): Delete record
+   - list(params): List all records
+
+2. FormHandler Class
+   Constructor: new FormHandler(formSelector, apiEndpoint, options)
+   Methods:
+   - handleSubmit(): Handle form submission
+   - validateForm(): Validate form data
+   - showLoader()/hideLoader(): Loading states
+
+3. Helper Functions
+   - showToast(type, message): Show toast notification
+   - showConfirmDialog(): Show confirmation dialog
+   - formatDate()/formatDateTime(): Date formatting
+   - validateEmail()/validatePhone(): Validation helpers
+
+=== CURRENT SYSTEM STATUS ===
+✅ AdminLTE3 Template: Fully implemented
+✅ AJAX Operations: All CRUD operations via AJAX
+✅ Modal Forms: All forms use Bootstrap modals
+✅ Server-side DataTables: Advanced pagination & filtering
+✅ Toast Notifications: Toastr.js for all user feedback
+✅ File Organization: Proper separation (api/, ajax/, js/, css/)
+✅ External CSS/JS: No inline code
+✅ Responsive Design: Mobile-friendly AdminLTE3
+✅ Security: Session validation, input sanitization
+✅ Error Handling: Comprehensive error management
+
+=== TROUBLESHOOTING ===
+Common Issues:
+1. "jQuery is not defined": Ensure jQuery loads before other scripts
+2. "showToast is not defined": Include common.js before page-specific JS
+3. DataTable errors: Check ajax endpoint and column definitions
+4. Modal not showing: Verify modal HTML structure and Bootstrap CSS/JS
+5. CRUD operations failing: Check API endpoints and authentication
 
 POST /api/patients_api_improved.php
 Action: save

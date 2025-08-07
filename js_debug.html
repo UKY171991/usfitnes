@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>JavaScript Debug - PathLab Pro</title>
+    
+    <!-- Include the same libraries as layout.php -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.2.0/css/adminlte.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap4.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.1.4/toastr.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/limonte-sweetalert2/11.7.28/sweetalert2.min.css">
+    <link rel="stylesheet" href="css/global.css">
+</head>
+<body>
+    <div class="container mt-4">
+        <h1>JavaScript Dependencies Test</h1>
+        <div id="test-results"></div>
+        <button class="btn btn-primary" onclick="testNotifications()">Test Toastr</button>
+        <button class="btn btn-success" onclick="testSwal()">Test SweetAlert</button>
+        <button class="btn btn-info" onclick="testClasses()">Test Classes</button>
+        <div class="mt-3">
+            <table id="test-table" class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1</td>
+                        <td>Test Patient</td>
+                        <td>Active</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+<!-- JavaScript Libraries -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap4.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.1.4/toastr.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/limonte-sweetalert2/11.7.28/sweetalert2.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.2.0/js/adminlte.min.js"></script>
+<script src="js/common.js"></script>
+
+<script>
+$(document).ready(function() {
+    const results = $('#test-results');
+    let tests = [];
+    
+    // Test jQuery
+    tests.push({
+        name: 'jQuery',
+        result: typeof $ !== 'undefined',
+        version: typeof $ !== 'undefined' ? $.fn.jquery : 'N/A'
+    });
+    
+    // Test Bootstrap
+    tests.push({
+        name: 'Bootstrap',
+        result: typeof bootstrap !== 'undefined' || (typeof $ !== 'undefined' && typeof $.fn.modal !== 'undefined'),
+        version: 'Loaded'
+    });
+    
+    // Test DataTables
+    tests.push({
+        name: 'DataTables',
+        result: typeof $.fn.DataTable !== 'undefined',
+        version: typeof $.fn.DataTable !== 'undefined' ? $.fn.dataTable.version : 'N/A'
+    });
+    
+    // Test Select2
+    tests.push({
+        name: 'Select2',
+        result: typeof $.fn.select2 !== 'undefined',
+        version: 'Loaded'
+    });
+    
+    // Test Toastr
+    tests.push({
+        name: 'Toastr',
+        result: typeof toastr !== 'undefined',
+        version: 'Loaded'
+    });
+    
+    // Test SweetAlert2
+    tests.push({
+        name: 'SweetAlert2',
+        result: typeof Swal !== 'undefined',
+        version: 'Loaded'
+    });
+    
+    // Test AdminLTE
+    tests.push({
+        name: 'AdminLTE',
+        result: typeof AdminLTE !== 'undefined',
+        version: 'Loaded'
+    });
+    
+    // Test custom classes
+    tests.push({
+        name: 'CrudOperations Class',
+        result: typeof CrudOperations !== 'undefined',
+        version: 'Custom'
+    });
+    
+    tests.push({
+        name: 'FormHandler Class',
+        result: typeof FormHandler !== 'undefined',
+        version: 'Custom'
+    });
+    
+    // Display results
+    let html = '<table class="table table-striped"><thead><tr><th>Library</th><th>Status</th><th>Version</th></tr></thead><tbody>';
+    
+    tests.forEach(test => {
+        const status = test.result ? '<span class="badge badge-success">✓ Loaded</span>' : '<span class="badge badge-danger">✗ Missing</span>';
+        html += `<tr><td>${test.name}</td><td>${status}</td><td>${test.version}</td></tr>`;
+    });
+    
+    html += '</tbody></table>';
+    results.html(html);
+    
+    // Initialize test DataTable
+    try {
+        $('#test-table').DataTable({
+            pageLength: 5,
+            searching: false,
+            lengthChange: false,
+            info: false
+        });
+        console.log('DataTable initialized successfully');
+    } catch (e) {
+        console.error('DataTable initialization failed:', e);
+    }
+});
+
+function testNotifications() {
+    if (typeof showToast !== 'undefined') {
+        showToast('success', 'Toast notification working!');
+    } else if (typeof toastr !== 'undefined') {
+        toastr.success('Direct toastr working!');
+    } else {
+        alert('Toastr not available');
+    }
+}
+
+function testSwal() {
+    if (typeof Swal !== 'undefined') {
+        Swal.fire('Success!', 'SweetAlert2 is working!', 'success');
+    } else {
+        alert('SweetAlert2 not available');
+    }
+}
+
+function testClasses() {
+    try {
+        const crud = new CrudOperations('api/test.php', 'Test');
+        const handler = new FormHandler('#test-form', 'api/test.php');
+        alert('Custom classes are working!');
+    } catch (e) {
+        alert('Custom classes error: ' + e.message);
+    }
+}
+</script>
+</body>
+</html>

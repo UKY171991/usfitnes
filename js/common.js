@@ -502,3 +502,225 @@ $(document).ready(function() {
     }
   });
 });
+
+// CRUD Operations Class
+class CrudOperations {
+    constructor(apiEndpoint, entityName) {
+        this.apiEndpoint = apiEndpoint;
+        this.entityName = entityName;
+    }
+
+    // Create or Update record
+    save(formData, isUpdate = false) {
+        const action = isUpdate ? 'update' : 'create';
+        const method = isUpdate ? 'PUT' : 'POST';
+        
+        return this.makeRequest(action, method, formData);
+    }
+
+    // Get single record
+    get(id) {
+        return this.makeRequest('read', 'GET', null, `/${id}`);
+    }
+
+    // Delete record
+    delete(id) {
+        return this.makeRequest('delete', 'DELETE', null, `/${id}`);
+    }
+
+    // Get all records with pagination
+    list(params = {}) {
+        return this.makeRequest('list', 'GET', params);
+    }
+
+    // Make AJAX request
+    makeRequest(action, method, data = null, urlSuffix = '') {
+        return new Promise((resolve, reject) => {
+            const ajaxOptions = {
+                url: this.apiEndpoint + urlSuffix,
+                type: method,
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success) {
+                        resolve(response);
+                    } else {
+                        reject(response);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error(`${action} failed:`, error);
+                    reject({
+                        success: false,
+                        message: 'Request failed: ' + error
+                    });
+                }
+            };
+
+            // Add data based on method
+            if (method === 'GET') {
+                ajaxOptions.data = data;
+            } else {
+                ajaxOptions.data = data instanceof FormData ? data : JSON.stringify(data);
+                if (!(data instanceof FormData)) {
+                    ajaxOptions.contentType = 'application/json';
+                }
+            }
+
+            // Add action parameter
+            if (ajaxOptions.data instanceof FormData) {
+                ajaxOptions.data.append('action', action);
+            } else if (typeof ajaxOptions.data === 'object') {
+                ajaxOptions.data.action = action;
+            }
+
+            $.ajax(ajaxOptions);
+        });
+    }
+}
+
+// Form Handler Class
+class FormHandler {
+    constructor(formSelector, apiEndpoint, options = {}) {
+        this.formSelector = formSelector;
+        this.apiEndpoint = apiEndpoint;
+        this.options = {
+            onSuccess: options.onSuccess || function() {},
+            onError: options.onError || function() {},
+            onValidationError: options.onValidationError || function() {},
+            resetFormAfterSuccess: options.resetFormAfterSuccess !== false,
+            showLoader: options.showLoader !== false
+        };
+        
+        this.init();
+    }
+
+    init() {
+        const self = this;
+        $(this.formSelector).on('submit', function(e) {
+            e.preventDefault();
+            self.handleSubmit();
+        });
+    }
+
+    handleSubmit() {
+        const form = $(this.formSelector);
+        const formData = new FormData(form[0]);
+        const submitButton = form.find('button[type="submit"]');
+        
+        // Validate form
+        if (!this.validateForm()) {
+            return;
+        }
+
+        // Show loader
+        if (this.options.showLoader) {
+            this.showLoader(submitButton);
+        }
+
+        // Make AJAX request
+        $.ajax({
+            url: this.apiEndpoint,
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            dataType: 'json',
+            success: (response) => {
+                this.hideLoader(submitButton);
+                
+                if (response.success) {
+                    if (this.options.resetFormAfterSuccess) {
+                        form[0].reset();
+                    }
+                    this.options.onSuccess(response);
+                    showToast('success', response.message);
+                } else {
+                    if (response.errors) {
+                        this.showValidationErrors(response.errors);
+                        this.options.onValidationError(response.errors);
+                    } else {
+                        this.options.onError(response);
+                        showToast('error', response.message || 'An error occurred');
+                    }
+                }
+            },
+            error: (xhr, status, error) => {
+                this.hideLoader(submitButton);
+                console.error('Form submission error:', error);
+                const errorMessage = xhr.responseJSON?.message || 'Request failed: ' + error;
+                this.options.onError({ message: errorMessage });
+                showToast('error', errorMessage);
+            }
+        });
+    }
+
+    validateForm() {
+        const form = $(this.formSelector);
+        let isValid = true;
+        
+        // Clear previous validation errors
+        form.find('.is-invalid').removeClass('is-invalid');
+        form.find('.invalid-feedback').remove();
+        
+        // HTML5 validation
+        if (!form[0].checkValidity()) {
+            isValid = false;
+            form[0].reportValidity();
+        }
+        
+        return isValid;
+    }
+
+    showValidationErrors(errors) {
+        const form = $(this.formSelector);
+        
+        Object.keys(errors).forEach(field => {
+            const input = form.find(`[name="${field}"]`);
+            if (input.length) {
+                input.addClass('is-invalid');
+                const errorDiv = $(`<div class="invalid-feedback">${errors[field]}</div>`);
+                input.after(errorDiv);
+            }
+        });
+    }
+
+    showLoader(button) {
+        button.prop('disabled', true);
+        const originalText = button.html();
+        button.data('original-text', originalText);
+        button.html('<i class="fas fa-spinner fa-spin mr-1"></i> Processing...');
+    }
+
+    hideLoader(button) {
+        button.prop('disabled', false);
+        const originalText = button.data('original-text');
+        if (originalText) {
+            button.html(originalText);
+        }
+    }
+}
+
+// Toast notification helper
+function showToast(type, message, title = '') {
+    const options = {
+        closeButton: true,
+        progressBar: true,
+        positionClass: 'toast-top-right',
+        timeOut: type === 'error' ? 8000 : 5000
+    };
+    
+    switch(type) {
+        case 'success':
+            toastr.success(message, title || 'Success', options);
+            break;
+        case 'error':
+            toastr.error(message, title || 'Error', options);
+            break;
+        case 'warning':
+            toastr.warning(message, title || 'Warning', options);
+            break;
+        case 'info':
+            toastr.info(message, title || 'Info', options);
+            break;
+    }
+}
