@@ -1,8 +1,4 @@
 <?php
-// Redirect to the new modern dashboard
-header('Location: dashboard_new.php');
-exit;
-?>
 require_once 'config.php';
 
 // Include dashboard data provider
