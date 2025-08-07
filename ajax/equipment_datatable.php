@@ -1,159 +1,149 @@
 <?php
 require_once '../config.php';
 
-// Check authentication
+// Check if user is logged in
 if (!isset($_SESSION['user_id'])) {
     http_response_code(401);
     echo json_encode(['error' => 'Unauthorized']);
-    exit;
+    exit();
 }
 
-// DataTables server-side processing
-$draw = isset($_POST['draw']) ? (int)$_POST['draw'] : 1;
-$start = isset($_POST['start']) ? (int)$_POST['start'] : 0;
-$length = isset($_POST['length']) ? (int)$_POST['length'] : 25;
-$searchValue = isset($_POST['search']['value']) ? $_POST['search']['value'] : '';
-$orderColumn = isset($_POST['order'][0]['column']) ? (int)$_POST['order'][0]['column'] : 0;
-$orderDir = isset($_POST['order'][0]['dir']) ? $_POST['order'][0]['dir'] : 'desc';
-
-// Column mapping
-$columns = [
-    0 => 'equipment_code',
-    1 => 'equipment_name',
-    2 => 'equipment_type',
-    3 => 'location',
-    4 => 'status',
-    5 => 'last_maintenance',
-    6 => 'actions'
-];
-
-$orderBy = isset($columns[$orderColumn]) ? $columns[$orderColumn] : 'created_at';
-
 try {
+    // Get DataTable parameters
+    $draw = intval($_POST['draw'] ?? 1);
+    $start = intval($_POST['start'] ?? 0);
+    $length = intval($_POST['length'] ?? 10);
+    $search_value = $_POST['search_value'] ?? '';
+    $order_column = $_POST['order_column'] ?? 'id';
+    $order_dir = $_POST['order_dir'] ?? 'desc';
+    
+    // Get custom filters
+    $status_filter = $_POST['status'] ?? '';
+    $category_filter = $_POST['category'] ?? '';
+    $manufacturer_filter = $_POST['manufacturer'] ?? '';
+
+    // Validate order direction
+    $order_dir = in_array(strtolower($order_dir), ['asc', 'desc']) ? $order_dir : 'desc';
+    
+    // Allowed columns for ordering
+    $allowed_columns = ['id', 'equipment_code', 'equipment_name', 'category', 'manufacturer', 'location', 'status', 'created_at'];
+    $order_column = in_array($order_column, $allowed_columns) ? $order_column : 'id';
+
     // Base query
-    $baseQuery = "FROM equipment WHERE 1=1";
+    $base_query = "FROM equipment WHERE 1=1";
     $params = [];
-    
+
     // Search functionality
-    if (!empty($searchValue)) {
-        $baseQuery .= " AND (
-            equipment_code LIKE ? OR 
-            equipment_name LIKE ? OR 
-            equipment_type LIKE ? OR 
-            manufacturer LIKE ? OR 
-            location LIKE ? OR
-            model LIKE ?
-        )";
-        $searchTerm = "%$searchValue%";
-        $params = array_fill(0, 6, $searchTerm);
+    if (!empty($search_value)) {
+        $base_query .= " AND (equipment_code LIKE ? OR equipment_name LIKE ? OR category LIKE ? OR manufacturer LIKE ? OR location LIKE ?)";
+        $search_param = "%$search_value%";
+        $params = array_merge($params, [$search_param, $search_param, $search_param, $search_param, $search_param]);
     }
     
-    // Get total records count
-    $totalQuery = "SELECT COUNT(*) as total $baseQuery";
-    $totalStmt = $pdo->prepare($totalQuery);
-    $totalStmt->execute($params);
-    $totalRecords = $totalStmt->fetch()['total'];
-    
-    // Get filtered records count (same as total if no search)
-    $filteredRecords = $totalRecords;
-    
-    // Get actual data
-    $dataQuery = "
-        SELECT 
-            id,
-            equipment_code,
-            equipment_name,
-            equipment_type,
-            model,
-            manufacturer,
-            location,
-            status,
-            last_maintenance,
-            next_maintenance,
-            created_at
-        $baseQuery
-        ORDER BY $orderBy $orderDir
-        LIMIT ? OFFSET ?
-    ";
-    
-    $params[] = $length;
-    $params[] = $start;
-    
-    $dataStmt = $pdo->prepare($dataQuery);
-    $dataStmt->execute($params);
-    $equipment = $dataStmt->fetchAll(PDO::FETCH_ASSOC);
-    
-    // Format data for DataTables
-    $data = [];
-    foreach ($equipment as $item) {
-        // Status badge
-        $statusClasses = [
-            'active' => 'success',
-            'inactive' => 'secondary',
-            'maintenance' => 'warning',
-            'broken' => 'danger'
-        ];
-        $statusClass = $statusClasses[$item['status']] ?? 'secondary';
-        $statusBadge = "<span class='badge badge-$statusClass'>" . ucfirst($item['status']) . "</span>";
-        
-        // Last maintenance
-        $lastMaintenance = $item['last_maintenance'] ? 
-            date('M d, Y', strtotime($item['last_maintenance'])) : 
-            '<span class="text-muted">Never</span>';
-        
-        // Check if maintenance is due
-        if ($item['next_maintenance'] && strtotime($item['next_maintenance']) <= time()) {
-            $lastMaintenance .= '<br><small class="text-danger"><i class="fas fa-exclamation-triangle"></i> Maintenance Due</small>';
-        }
-        
-        // Actions buttons
-        $actions = "
-            <div class='btn-group btn-group-sm'>
-                <button type='button' class='btn btn-info btn-sm' onclick='openEquipmentModal({$item['id']})' title='Edit'>
-                    <i class='fas fa-edit'></i>
-                </button>
-                <button type='button' class='btn btn-success btn-sm' onclick='viewEquipment({$item['id']})' title='View'>
-                    <i class='fas fa-eye'></i>
-                </button>
-                <button type='button' class='btn btn-danger btn-sm' onclick='deleteEquipment({$item['id']})' title='Delete'>
-                    <i class='fas fa-trash'></i>
-                </button>
-            </div>
-        ";
-        
-        $data[] = [
-            'equipment_code' => htmlspecialchars($item['equipment_code']),
-            'equipment_name' => htmlspecialchars($item['equipment_name']) . 
-                              ($item['model'] ? '<br><small class="text-muted">' . htmlspecialchars($item['model']) . '</small>' : ''),
-            'equipment_type' => htmlspecialchars($item['equipment_type'] ?? ''),
-            'location' => htmlspecialchars($item['location'] ?? ''),
-            'status' => $statusBadge,
-            'last_maintenance' => $lastMaintenance,
-            'actions' => $actions
-        ];
+    // Status filter
+    if (!empty($status_filter)) {
+        $base_query .= " AND status = ?";
+        $params[] = $status_filter;
     }
     
-    // Response for DataTables
-    $response = [
+    // Category filter
+    if (!empty($category_filter)) {
+        $base_query .= " AND category = ?";
+        $params[] = $category_filter;
+    }
+    
+    // Manufacturer filter
+    if (!empty($manufacturer_filter)) {
+        $base_query .= " AND manufacturer LIKE ?";
+        $params[] = "%$manufacturer_filter%";
+    }
+
+    // Get total records (without filters)
+    $total_query = "SELECT COUNT(*) as total FROM equipment";
+    $stmt = $pdo->prepare($total_query);
+    $stmt->execute();
+    $total_records = $stmt->fetch()['total'];
+
+    // Get filtered records count
+    $filtered_query = "SELECT COUNT(*) as total $base_query";
+    $stmt = $pdo->prepare($filtered_query);
+    $stmt->execute($params);
+    $filtered_records = $stmt->fetch()['total'];
+
+    // Get data
+    $data_query = "SELECT 
+        id,
+        equipment_code, 
+        equipment_name, 
+        equipment_type,
+        model,
+        serial_number,
+        manufacturer,
+        category,
+        location,
+        purchase_date,
+        warranty_expiry,
+        cost,
+        maintenance_schedule,
+        last_maintenance,
+        next_maintenance,
+        description,
+        status, 
+        created_at,
+        updated_at
+        $base_query 
+        ORDER BY $order_column $order_dir 
+        LIMIT $start, $length";
+        
+    $stmt = $pdo->prepare($data_query);
+    $stmt->execute($params);
+    $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Format data for DataTable
+    $formatted_data = [];
+    foreach ($data as $row) {
+        $formatted_data[] = [
+            'id' => (int)$row['id'],
+            'equipment_code' => htmlspecialchars($row['equipment_code']),
+            'equipment_name' => htmlspecialchars($row['equipment_name']),
+            'equipment_type' => htmlspecialchars($row['equipment_type'] ?? ''),
+            'model' => htmlspecialchars($row['model'] ?? ''),
+            'serial_number' => htmlspecialchars($row['serial_number'] ?? ''),
+            'manufacturer' => htmlspecialchars($row['manufacturer'] ?? ''),
+            'category' => htmlspecialchars($row['category'] ?? ''),
+            'location' => htmlspecialchars($row['location'] ?? ''),
+            'purchase_date' => $row['purchase_date'],
+            'warranty_expiry' => $row['warranty_expiry'],
+            'cost' => $row['cost'],
+            'maintenance_schedule' => $row['maintenance_schedule'],
+            'last_maintenance' => $row['last_maintenance'],
+            'next_maintenance' => $row['next_maintenance'],
+            'description' => htmlspecialchars($row['description'] ?? ''),
+            'status' => $row['status'],
+            'created_at' => $row['created_at'],
+            'updated_at' => $row['updated_at']
+        ];
+    }
+
+    // Return JSON response
+    echo json_encode([
         'draw' => $draw,
-        'recordsTotal' => $totalRecords,
-        'recordsFiltered' => $filteredRecords,
-        'data' => $data
-    ];
-    
-    header('Content-Type: application/json');
-    echo json_encode($response);
-    
+        'recordsTotal' => (int)$total_records,
+        'recordsFiltered' => (int)$filtered_records,
+        'data' => $formatted_data,
+        'success' => true
+    ]);
+
 } catch (Exception $e) {
     error_log("Equipment DataTable Error: " . $e->getMessage());
     
-    header('Content-Type: application/json');
     echo json_encode([
-        'draw' => $draw,
+        'draw' => $draw ?? 1,
         'recordsTotal' => 0,
         'recordsFiltered' => 0,
         'data' => [],
-        'error' => 'Database error occurred'
+        'success' => false,
+        'error' => 'Failed to load equipment data'
     ]);
 }
 ?>

@@ -1,336 +1,624 @@
-/**
- * PathLab Pro - Common AJAX Functions
- * AdminLTE3 Compatible AJAX Handlers
- */
+// Common AJAX operations for AdminLTE3 Template
+// This file contains reusable AJAX functions for CRUD operations
 
-// Global AJAX settings
-$.ajaxSetup({
-    headers: {
-        'X-Requested-With': 'XMLHttpRequest'
-    },
-    beforeSend: function() {
-        // Show loading indicator
-        if (typeof NProgress !== 'undefined') {
-            NProgress.start();
-        }
-    },
-    complete: function() {
-        // Hide loading indicator
-        if (typeof NProgress !== 'undefined') {
-            NProgress.done();
-        }
-    },
-    error: function(xhr, status, error) {
-        console.error('AJAX Error:', error);
-        showToast('error', 'Network error occurred. Please try again.');
-    }
-});
+// Global AJAX configuration
+const AJAX_CONFIG = {
+    timeout: 30000,
+    retryAttempts: 3,
+    retryDelay: 1000
+};
 
-// Toast notification function
-function showToast(type, message, title = '') {
-    toastr.options = {
-        "closeButton": true,
-        "debug": false,
-        "newestOnTop": true,
-        "progressBar": true,
-        "positionClass": "toast-top-right",
-        "preventDuplicates": false,
-        "onclick": null,
-        "showDuration": "300",
-        "hideDuration": "1000",
-        "timeOut": "5000",
-        "extendedTimeOut": "1000",
-        "showEasing": "swing",
-        "hideEasing": "linear",
-        "showMethod": "fadeIn",
-        "hideMethod": "fadeOut"
-    };
-    
-    switch(type) {
-        case 'success':
-            toastr.success(message, title);
-            break;
-        case 'error':
-            toastr.error(message, title);
-            break;
-        case 'warning':
-            toastr.warning(message, title);
-            break;
-        case 'info':
-            toastr.info(message, title);
-            break;
-        default:
-            toastr.info(message, title);
-    }
-}
-
-// Initialize DataTable with common settings
-function initDataTable(selector, options = {}) {
+// Enhanced AJAX wrapper with retry logic
+function ajaxRequest(options) {
     const defaultOptions = {
-        processing: true,
-        serverSide: true,
-        responsive: true,
-        pageLength: 25,
-        lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
-        order: [[0, 'desc']],
-        language: {
-            processing: '<div class="spinner-border text-primary" role="status"><span class="sr-only">Loading...</span></div>',
-            emptyTable: '<div class="text-center"><i class="fas fa-inbox fa-3x text-muted mb-3"></i><br>No data available</div>',
-            zeroRecords: '<div class="text-center"><i class="fas fa-search fa-3x text-muted mb-3"></i><br>No matching records found</div>'
+        type: 'GET',
+        dataType: 'json',
+        timeout: AJAX_CONFIG.timeout,
+        cache: false,
+        beforeSend: function(xhr) {
+            if (options.showLoader !== false) {
+                showLoader();
+            }
         },
-        dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>' +
-             '<"row"<"col-sm-12"tr>>' +
-             '<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
-        drawCallback: function() {
-            // Initialize tooltips after table draw
-            $('[data-toggle="tooltip"]').tooltip();
+        complete: function() {
+            if (options.showLoader !== false) {
+                hideLoader();
+            }
         }
     };
     
-    return $(selector).DataTable($.extend(true, defaultOptions, options));
-}
-
-// Handle AJAX form submission
-function handleAjaxForm(formSelector, apiUrl, successCallback = null, errorCallback = null) {
-    $(formSelector).on('submit', function(e) {
-        e.preventDefault();
-        
-        const form = $(this);
-        const formData = new FormData(this);
-        const isEdit = form.find('[name="id"]').val() !== '';
-        
-        // Disable submit button
-        const submitBtn = form.find('button[type="submit"]');
-        const originalText = submitBtn.html();
-        submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Saving...');
-        
-        $.ajax({
-            url: apiUrl,
-            type: isEdit ? 'PUT' : 'POST',
-            data: formData,
-            processData: false,
-            contentType: false,
-            success: function(response) {
-                if (response.success) {
-                    showToast('success', response.message);
-                    if (successCallback) {
-                        successCallback(response);
+    const finalOptions = Object.assign({}, defaultOptions, options);
+    
+    return new Promise((resolve, reject) => {
+        function makeRequest(attempt = 1) {
+            $.ajax(finalOptions)
+                .done(function(response) {
+                    resolve(response);
+                })
+                .fail(function(xhr, status, error) {
+                    if (attempt < AJAX_CONFIG.retryAttempts && (status === 'timeout' || xhr.status >= 500)) {
+                        setTimeout(() => {
+                            makeRequest(attempt + 1);
+                        }, AJAX_CONFIG.retryDelay * attempt);
+                    } else {
+                        reject({ xhr, status, error, attempt });
                     }
-                } else {
-                    showToast('error', response.message);
-                    if (errorCallback) {
-                        errorCallback(response);
-                    }
-                }
-            },
-            error: function(xhr, status, error) {
-                showToast('error', 'Error saving data. Please try again.');
-                if (errorCallback) {
-                    errorCallback({success: false, message: error});
-                }
-            },
-            complete: function() {
-                // Re-enable submit button
-                submitBtn.prop('disabled', false).html(originalText);
-            }
-        });
+                });
+        }
+        
+        makeRequest();
     });
 }
 
-// Handle AJAX delete with confirmation
-function handleAjaxDelete(id, apiUrl, itemName = 'item', successCallback = null) {
-    Swal.fire({
-        title: 'Are you sure?',
-        text: `You won't be able to revert this ${itemName}!`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33',
-        confirmButtonText: 'Yes, delete it!',
-        cancelButtonText: 'Cancel'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            $.ajax({
-                url: apiUrl,
-                type: 'DELETE',
-                data: { id: id },
-                success: function(response) {
-                    if (response.success) {
-                        showToast('success', response.message);
-                        if (successCallback) {
-                            successCallback(response);
-                        }
-                    } else {
-                        showToast('error', response.message);
+// Generic CRUD operations
+class CrudOperations {
+    constructor(baseUrl, entityName = 'Record') {
+        this.baseUrl = baseUrl;
+        this.entityName = entityName;
+    }
+    
+    // Get all records with pagination
+    async getAll(params = {}) {
+        try {
+            const response = await ajaxRequest({
+                url: this.baseUrl,
+                type: 'GET',
+                data: params
+            });
+            
+            return response;
+        } catch (error) {
+            showError(`Failed to load ${this.entityName.toLowerCase()}s`);
+            throw error;
+        }
+    }
+    
+    // Get single record
+    async getById(id) {
+        try {
+            const response = await ajaxRequest({
+                url: this.baseUrl,
+                type: 'GET',
+                data: { action: 'get', id: id }
+            });
+            
+            if (response.success) {
+                return response.data;
+            } else {
+                showError(response.message);
+                throw new Error(response.message);
+            }
+        } catch (error) {
+            showError(`Failed to load ${this.entityName.toLowerCase()}`);
+            throw error;
+        }
+    }
+    
+    // Create new record
+    async create(data) {
+        try {
+            const formData = new FormData();
+            
+            // Handle different data types
+            if (data instanceof FormData) {
+                formData = data;
+            } else if (typeof data === 'object') {
+                Object.keys(data).forEach(key => {
+                    if (data[key] !== null && data[key] !== undefined) {
+                        formData.append(key, data[key]);
                     }
-                },
-                error: function() {
-                    showToast('error', `Error deleting ${itemName}. Please try again.`);
+                });
+            }
+            
+            const response = await ajaxRequest({
+                url: this.baseUrl,
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false
+            });
+            
+            if (response.success) {
+                showSaveSuccess(this.entityName);
+                return response;
+            } else {
+                if (response.errors) {
+                    this.handleValidationErrors(response.errors);
+                } else {
+                    showError(response.message);
                 }
+                throw new Error(response.message);
+            }
+        } catch (error) {
+            if (error.xhr && error.xhr.status === 422) {
+                const response = error.xhr.responseJSON;
+                if (response && response.errors) {
+                    this.handleValidationErrors(response.errors);
+                }
+            } else {
+                showError(`Failed to create ${this.entityName.toLowerCase()}`);
+            }
+            throw error;
+        }
+    }
+    
+    // Update existing record
+    async update(id, data) {
+        try {
+            const formData = new FormData();
+            formData.append('id', id);
+            
+            // Handle different data types
+            if (data instanceof FormData) {
+                for (let [key, value] of data.entries()) {
+                    formData.append(key, value);
+                }
+            } else if (typeof data === 'object') {
+                Object.keys(data).forEach(key => {
+                    if (data[key] !== null && data[key] !== undefined) {
+                        formData.append(key, data[key]);
+                    }
+                });
+            }
+            
+            const response = await ajaxRequest({
+                url: this.baseUrl,
+                type: 'PUT',
+                data: formData,
+                processData: false,
+                contentType: false
+            });
+            
+            if (response.success) {
+                showUpdateSuccess(this.entityName);
+                return response;
+            } else {
+                if (response.errors) {
+                    this.handleValidationErrors(response.errors);
+                } else {
+                    showError(response.message);
+                }
+                throw new Error(response.message);
+            }
+        } catch (error) {
+            if (error.xhr && error.xhr.status === 422) {
+                const response = error.xhr.responseJSON;
+                if (response && response.errors) {
+                    this.handleValidationErrors(response.errors);
+                }
+            } else {
+                showError(`Failed to update ${this.entityName.toLowerCase()}`);
+            }
+            throw error;
+        }
+    }
+    
+    // Delete record
+    async delete(id) {
+        try {
+            const confirmed = await this.confirmDelete();
+            if (!confirmed) return false;
+            
+            const response = await ajaxRequest({
+                url: this.baseUrl,
+                type: 'DELETE',
+                data: { id: id }
+            });
+            
+            if (response.success) {
+                showDeleteSuccess(this.entityName);
+                return response;
+            } else {
+                showError(response.message);
+                throw new Error(response.message);
+            }
+        } catch (error) {
+            showError(`Failed to delete ${this.entityName.toLowerCase()}`);
+            throw error;
+        }
+    }
+    
+    // Batch delete
+    async batchDelete(ids) {
+        try {
+            const confirmed = await this.confirmBatchDelete(ids.length);
+            if (!confirmed) return false;
+            
+            const response = await ajaxRequest({
+                url: this.baseUrl,
+                type: 'DELETE',
+                data: { ids: ids, batch: true }
+            });
+            
+            if (response.success) {
+                showSuccess(`${ids.length} ${this.entityName.toLowerCase()}s deleted successfully`);
+                return response;
+            } else {
+                showError(response.message);
+                throw new Error(response.message);
+            }
+        } catch (error) {
+            showError(`Failed to delete ${this.entityName.toLowerCase()}s`);
+            throw error;
+        }
+    }
+    
+    // Handle validation errors
+    handleValidationErrors(errors) {
+        let errorMessage = 'Please fix the following errors:\n';
+        Object.keys(errors).forEach(field => {
+            errorMessage += `• ${errors[field]}\n`;
+        });
+        showValidationError(errorMessage);
+    }
+    
+    // Confirmation dialogs
+    async confirmDelete() {
+        return new Promise((resolve) => {
+            Swal.fire({
+                title: `Delete ${this.entityName}?`,
+                text: 'This action cannot be undone!',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, delete it!',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                resolve(result.isConfirmed);
+            });
+        });
+    }
+    
+    async confirmBatchDelete(count) {
+        return new Promise((resolve) => {
+            Swal.fire({
+                title: `Delete ${count} ${this.entityName.toLowerCase()}s?`,
+                text: 'This action cannot be undone!',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: `Yes, delete ${count} items!`,
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                resolve(result.isConfirmed);
+            });
+        });
+    }
+}
+
+// Form handler class
+class FormHandler {
+    constructor(formSelector, apiUrl, options = {}) {
+        this.form = $(formSelector);
+        this.apiUrl = apiUrl;
+        this.options = Object.assign({
+            resetOnSuccess: true,
+            hideModalOnSuccess: true,
+            reloadTableOnSuccess: true,
+            validateOnSubmit: true,
+            showSuccessMessage: true
+        }, options);
+        
+        this.init();
+    }
+    
+    init() {
+        this.form.on('submit', (e) => {
+            e.preventDefault();
+            this.handleSubmit();
+        });
+        
+        // Real-time validation
+        if (this.options.validateOnSubmit) {
+            this.form.find('input, select, textarea').on('blur', (e) => {
+                this.validateField($(e.target));
             });
         }
-    });
-}
-
-// Load data for edit modal
-function loadDataForEdit(id, apiUrl, populateCallback) {
-    $.ajax({
-        url: apiUrl,
-        type: 'GET',
-        data: { action: 'get', id: id },
-        success: function(response) {
+    }
+    
+    async handleSubmit() {
+        try {
+            // Clear previous errors
+            this.clearErrors();
+            
+            // Validate form
+            if (this.options.validateOnSubmit && !this.validateForm()) {
+                return;
+            }
+            
+            // Get form data
+            const formData = new FormData(this.form[0]);
+            
+            // Determine method (POST for create, PUT for update)
+            const method = formData.get('id') ? 'PUT' : 'POST';
+            
+            // Submit form
+            const response = await ajaxRequest({
+                url: this.apiUrl,
+                type: method,
+                data: formData,
+                processData: false,
+                contentType: false
+            });
+            
             if (response.success) {
-                if (populateCallback) {
-                    populateCallback(response.data);
+                if (this.options.showSuccessMessage) {
+                    showSuccess(response.message);
+                }
+                
+                if (this.options.resetOnSuccess) {
+                    this.resetForm();
+                }
+                
+                if (this.options.hideModalOnSuccess) {
+                    this.form.closest('.modal').modal('hide');
+                }
+                
+                if (this.options.reloadTableOnSuccess && globalDataTable) {
+                    globalDataTable.ajax.reload(null, false);
+                }
+                
+                // Call custom success callback
+                if (this.options.onSuccess) {
+                    this.options.onSuccess(response);
                 }
             } else {
-                showToast('error', response.message);
+                if (response.errors) {
+                    this.displayErrors(response.errors);
+                } else {
+                    showError(response.message);
+                }
             }
-        },
-        error: function() {
-            showToast('error', 'Error loading data. Please try again.');
-        }
-    });
-}
-
-// Reset modal form
-function resetModalForm(modalId) {
-    const modal = $(`#${modalId}`);
-    const form = modal.find('form');
-    
-    // Reset form
-    form[0].reset();
-    
-    // Clear hidden ID field
-    form.find('[name="id"]').val('');
-    
-    // Remove validation classes
-    form.find('.is-invalid').removeClass('is-invalid');
-    form.find('.invalid-feedback').hide();
-    
-    // Reset select2 if present
-    form.find('.select2').trigger('change');
-}
-
-// Populate form with data
-function populateForm(formSelector, data) {
-    const form = $(formSelector);
-    
-    Object.keys(data).forEach(key => {
-        const field = form.find(`[name="${key}"]`);
-        if (field.length) {
-            if (field.is('select')) {
-                field.val(data[key]).trigger('change');
-            } else if (field.is(':checkbox')) {
-                field.prop('checked', data[key] == 1 || data[key] === true);
-            } else if (field.is(':radio')) {
-                field.filter(`[value="${data[key]}"]`).prop('checked', true);
+        } catch (error) {
+            if (error.xhr && error.xhr.status === 422) {
+                const response = error.xhr.responseJSON;
+                if (response && response.errors) {
+                    this.displayErrors(response.errors);
+                }
             } else {
-                field.val(data[key]);
+                showError('Failed to submit form');
             }
         }
-    });
-}
-
-// Format date for display
-function formatDate(dateString, format = 'MMM DD, YYYY') {
-    if (!dateString) return '';
-    return moment(dateString).format(format);
-}
-
-// Format currency
-function formatCurrency(amount, currency = '$') {
-    if (!amount) return currency + '0.00';
-    return currency + parseFloat(amount).toFixed(2);
-}
-
-// Debounce function for search
-function debounce(func, wait, immediate) {
-    let timeout;
-    return function executedFunction() {
-        const context = this;
-        const args = arguments;
-        const later = function() {
-            timeout = null;
-            if (!immediate) func.apply(context, args);
-        };
-        const callNow = immediate && !timeout;
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-        if (callNow) func.apply(context, args);
-    };
-}
-
-// Initialize common page elements
-$(document).ready(function() {
-    // Initialize tooltips
-    $('[data-toggle="tooltip"]').tooltip();
+    }
     
-    // Initialize popovers
-    $('[data-toggle="popover"]').popover();
-    
-    // Initialize Select2
-    $('.select2').select2({
-        theme: 'bootstrap4',
-        width: '100%'
-    });
-    
-    // Initialize date pickers
-    $('.datepicker').datepicker({
-        format: 'yyyy-mm-dd',
-        autoclose: true,
-        todayHighlight: true
-    });
-    
-    // Initialize datetime pickers
-    $('.datetimepicker').datetimepicker({
-        format: 'YYYY-MM-DD HH:mm',
-        icons: {
-            time: 'far fa-clock',
-            date: 'far fa-calendar',
-            up: 'fas fa-arrow-up',
-            down: 'fas fa-arrow-down',
-            previous: 'fas fa-chevron-left',
-            next: 'fas fa-chevron-right',
-            today: 'far fa-calendar-check',
-            clear: 'far fa-trash-alt',
-            close: 'far fa-times-circle'
-        }
-    });
-    
-    // Auto-hide alerts after 5 seconds
-    $('.alert:not(.alert-permanent)').delay(5000).fadeOut();
-    
-    // Confirm delete buttons
-    $('.btn-delete').on('click', function(e) {
-        e.preventDefault();
-        const href = $(this).attr('href');
-        const itemName = $(this).data('item-name') || 'item';
+    validateForm() {
+        let isValid = true;
         
-        Swal.fire({
-            title: 'Are you sure?',
-            text: `You won't be able to revert this ${itemName}!`,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#3085d6',
-            cancelButtonColor: '#d33',
-            confirmButtonText: 'Yes, delete it!'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                window.location.href = href;
+        this.form.find('[required]').each((index, element) => {
+            if (!this.validateField($(element))) {
+                isValid = false;
             }
         });
-    });
-});
+        
+        return isValid;
+    }
+    
+    validateField(field) {
+        const value = field.val().trim();
+        const isRequired = field.prop('required');
+        
+        this.clearFieldError(field);
+        
+        if (isRequired && !value) {
+            this.showFieldError(field, 'This field is required');
+            return false;
+        }
+        
+        // Email validation
+        if (field.attr('type') === 'email' && value) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(value)) {
+                this.showFieldError(field, 'Please enter a valid email address');
+                return false;
+            }
+        }
+        
+        // Phone validation
+        if ((field.attr('type') === 'tel' || field.data('type') === 'phone') && value) {
+            const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
+            if (!phoneRegex.test(value.replace(/\s/g, ''))) {
+                this.showFieldError(field, 'Please enter a valid phone number');
+                return false;
+            }
+        }
+        
+        return true;
+    }
+    
+    displayErrors(errors) {
+        Object.keys(errors).forEach(field => {
+            const input = this.form.find(`[name="${field}"]`);
+            if (input.length) {
+                this.showFieldError(input, errors[field]);
+            }
+        });
+    }
+    
+    showFieldError(field, message) {
+        field.addClass('is-invalid');
+        field.after(`<div class="invalid-feedback">${message}</div>`);
+    }
+    
+    clearFieldError(field) {
+        field.removeClass('is-invalid');
+        field.siblings('.invalid-feedback').remove();
+    }
+    
+    clearErrors() {
+        this.form.find('.is-invalid').removeClass('is-invalid');
+        this.form.find('.invalid-feedback').remove();
+    }
+    
+    resetForm() {
+        this.form[0].reset();
+        this.clearErrors();
+        this.form.find('.select2').val(null).trigger('change');
+    }
+    
+    populateForm(data) {
+        Object.keys(data).forEach(key => {
+            const input = this.form.find(`[name="${key}"]`);
+            if (input.length) {
+                if (input.is('select')) {
+                    input.val(data[key]).trigger('change');
+                } else if (input.attr('type') === 'checkbox') {
+                    input.prop('checked', data[key] == 1);
+                } else {
+                    input.val(data[key]);
+                }
+            }
+        });
+    }
+}
 
-// Export functions for global use
-window.showToast = showToast;
-window.initDataTable = initDataTable;
-window.handleAjaxForm = handleAjaxForm;
-window.handleAjaxDelete = handleAjaxDelete;
-window.loadDataForEdit = loadDataForEdit;
-window.resetModalForm = resetModalForm;
-window.populateForm = populateForm;
-window.formatDate = formatDate;
-window.formatCurrency = formatCurrency;
-window.debounce = debounce;
+// DataTable handler class
+class DataTableHandler {
+    constructor(tableSelector, ajaxUrl, columns, options = {}) {
+        this.table = $(tableSelector);
+        this.ajaxUrl = ajaxUrl;
+        this.columns = columns;
+        this.options = options;
+        this.dataTable = null;
+        
+        this.init();
+    }
+    
+    init() {
+        this.dataTable = initializeDataTable(this.table.selector, this.ajaxUrl, this.columns, this.options);
+        return this.dataTable;
+    }
+    
+    reload(resetPaging = false) {
+        if (this.dataTable) {
+            this.dataTable.ajax.reload(null, resetPaging);
+        }
+    }
+    
+    getSelectedRows() {
+        if (this.dataTable) {
+            return this.dataTable.rows('.selected').data().toArray();
+        }
+        return [];
+    }
+    
+    getSelectedIds() {
+        const selectedRows = this.getSelectedRows();
+        return selectedRows.map(row => row.id);
+    }
+    
+    clearSelection() {
+        if (this.dataTable) {
+            this.table.find('tbody tr').removeClass('selected');
+        }
+    }
+    
+    destroy() {
+        if (this.dataTable) {
+            this.dataTable.destroy();
+            this.dataTable = null;
+        }
+    }
+}
+
+// Utility functions for common operations
+const AjaxUtils = {
+    // Load options for select elements
+    async loadSelectOptions(selectSelector, url, params = {}) {
+        try {
+            const response = await ajaxRequest({
+                url: url,
+                type: 'GET',
+                data: params,
+                showLoader: false
+            });
+            
+            if (response.success) {
+                const select = $(selectSelector);
+                select.empty();
+                
+                if (select.data('placeholder')) {
+                    select.append(`<option value="">${select.data('placeholder')}</option>`);
+                }
+                
+                response.data.forEach(item => {
+                    select.append(`<option value="${item.id}">${item.name}</option>`);
+                });
+                
+                select.trigger('change');
+            }
+        } catch (error) {
+            console.error('Failed to load select options:', error);
+        }
+    },
+    
+    // Upload file with progress
+    async uploadFile(file, url, onProgress = null) {
+        return new Promise((resolve, reject) => {
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            $.ajax({
+                url: url,
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                xhr: function() {
+                    const xhr = new window.XMLHttpRequest();
+                    if (onProgress) {
+                        xhr.upload.addEventListener('progress', function(evt) {
+                            if (evt.lengthComputable) {
+                                const percentComplete = (evt.loaded / evt.total) * 100;
+                                onProgress(percentComplete);
+                            }
+                        }, false);
+                    }
+                    return xhr;
+                },
+                success: function(response) {
+                    resolve(response);
+                },
+                error: function(xhr, status, error) {
+                    reject({ xhr, status, error });
+                }
+            });
+        });
+    },
+    
+    // Export data
+    async exportData(url, format = 'csv', params = {}) {
+        try {
+            const exportParams = Object.assign({ format: format }, params);
+            
+            const response = await ajaxRequest({
+                url: url,
+                type: 'GET',
+                data: exportParams
+            });
+            
+            if (response.success && response.data.download_url) {
+                // Create temporary download link
+                const link = document.createElement('a');
+                link.href = response.data.download_url;
+                link.download = response.data.filename || `export.${format}`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                showSuccess('Export completed successfully');
+            } else {
+                showError('Export failed');
+            }
+        } catch (error) {
+            showError('Export failed');
+        }
+    }
+};
+
+// Global instances for easy access
+window.CrudOperations = CrudOperations;
+window.FormHandler = FormHandler;
+window.DataTableHandler = DataTableHandler;
+window.AjaxUtils = AjaxUtils;

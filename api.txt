@@ -3,7 +3,14 @@ PathLab Pro - API Documentation
 
 Base URL: /api/
 Response Format: JSON
-Last Updated: 2025-01-07
+Last Updated: 2025-01-08
+
+IMPORTANT: All pages now use AdminLTE3 template with AJAX operations
+- All forms are handled via modals
+- All data tables use server-side processing
+- All CRUD operations use AJAX
+- Toaster notifications for all events
+- Advanced pagination and filtering
 
 Authentication:
 - All API endpoints require valid session
