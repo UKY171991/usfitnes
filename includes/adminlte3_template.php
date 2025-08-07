@@ -9,7 +9,7 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
-require_once 'config.php';
+require_once __DIR__ . '/config.php';
 
 // Get user information
 $stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");

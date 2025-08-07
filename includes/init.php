@@ -4,8 +4,8 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Try to include database configuration safely
-@include_once __DIR__ . '/../api/safe_config.php';
+// Include database configuration
+require_once __DIR__ . '/config.php';
 
 // Check if user is logged in
 if(!isset($_SESSION['user_id'])) {
