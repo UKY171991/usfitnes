@@ -1,0 +1,187 @@
+PathLab Pro - API Documentation
+=====================================
+
+Base URL: /api/
+Response Format: JSON
+
+Authentication:
+- All API endpoints require valid session
+- Returns 401 if not authenticated
+
+Standard Response Format:
+{
+  "success": true/false,
+  "message": "Response message",
+  "data": {...},
+  "timestamp": "2025-01-07 12:00:00",
+  "server_time": 1704628800
+}
+
+=== PATIENTS API ===
+
+GET /api/patients_api.php
+- Get all patients with pagination
+- Parameters: page, limit, search, status
+- Returns: patients list with pagination info
+
+POST /api/patients_api.php
+- Create new patient
+- Required: first_name, last_name, phone
+- Optional: email, date_of_birth, gender, address, blood_group
+
+PUT /api/patients_api.php
+- Update existing patient
+- Required: id + fields to update
+
+DELETE /api/patients_api.php
+- Delete patient
+- Required: id
+
+GET /api/patients_api.php?action=get&id={id}
+- Get single patient details
+
+=== DOCTORS API ===
+
+GET /api/doctors_api.php
+- Get all doctors with pagination
+- Parameters: page, limit, search, status
+
+POST /api/doctors_api.php
+- Create new doctor
+- Required: name, phone, specialization
+- Optional: email, license_number, hospital, address
+
+PUT /api/doctors_api.php
+- Update existing doctor
+- Required: id + fields to update
+
+DELETE /api/doctors_api.php
+- Delete doctor
+- Required: id
+
+=== TEST ORDERS API ===
+
+GET /api/test_orders_api.php
+- Get all test orders with pagination
+- Parameters: page, limit, search, status, patient_id
+
+POST /api/test_orders_api.php
+- Create new test order
+- Required: patient_id, tests[]
+- Optional: doctor_id, priority, notes
+
+PUT /api/test_orders_api.php
+- Update test order
+- Required: id + fields to update
+
+DELETE /api/test_orders_api.php
+- Cancel test order
+- Required: id
+
+=== RESULTS API ===
+
+GET /api/results_api.php
+- Get test results with pagination
+- Parameters: page, limit, search, status, patient_id, order_id
+
+POST /api/results_api.php
+- Add/Update test results
+- Required: test_order_id, test_id, result_value
+- Optional: comments, is_critical
+
+=== EQUIPMENT API ===
+
+GET /api/equipment_api.php
+- Get all equipment with pagination
+- Parameters: page, limit, search, status, category
+
+POST /api/equipment_api.php
+- Add new equipment
+- Required: equipment_name, equipment_code
+- Optional: model, serial_number, manufacturer, location
+
+PUT /api/equipment_api.php
+- Update equipment
+- Required: id + fields to update
+
+DELETE /api/equipment_api.php
+- Delete equipment
+- Required: id
+
+=== USERS API ===
+
+GET /api/users_api.php
+- Get all users with pagination
+- Parameters: page, limit, search, user_type
+
+POST /api/users_api.php
+- Create new user
+- Required: username, password, email, name, user_type
+
+PUT /api/users_api.php
+- Update user
+- Required: id + fields to update
+
+DELETE /api/users_api.php
+- Delete user
+- Required: id
+
+=== DASHBOARD API ===
+
+GET /api/dashboard_api.php
+- Get dashboard statistics
+- Returns: counts, recent activities, alerts
+
+GET /api/get_counts.php
+- Get quick counts for dashboard cards
+
+GET /api/get_monthly_stats.php
+- Get monthly statistics for charts
+
+=== SYSTEM API ===
+
+GET /api/system_api.php
+- Get system status and settings
+
+POST /api/system_api.php
+- Update system settings
+- Required: setting_key, setting_value
+
+=== AUTHENTICATION API ===
+
+POST /api/auth_api.php?action=login
+- User login
+- Required: username, password
+
+POST /api/auth_api.php?action=logout
+- User logout
+
+POST /api/auth_api.php?action=change_password
+- Change user password
+- Required: current_password, new_password
+
+=== REPORTS API ===
+
+GET /api/reports_api.php
+- Generate various reports
+- Parameters: type, date_from, date_to, format
+
+=== NOTIFICATIONS API ===
+
+GET /api/notifications_api.php
+- Get user notifications
+
+POST /api/notifications_api.php
+- Mark notifications as read
+- Required: notification_ids[]
+
+Error Codes:
+- 200: Success
+- 400: Bad Request
+- 401: Unauthorized
+- 403: Forbidden
+- 404: Not Found
+- 422: Validation Error
+- 500: Internal Server Error
+
+Last Updated: 2025-01-07

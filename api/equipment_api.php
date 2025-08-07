@@ -1,561 +1,281 @@
 <?php
 require_once '../config.php';
-require_once '../includes/init.php';
 
 // Set JSON header
 header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE');
-header('Access-Control-Allow-Headers: Content-Type');
+header('Cache-Control: no-cache, must-revalidate');
 
-// Check if user is logged in
+// Check authentication
 if (!isset($_SESSION['user_id'])) {
-    http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'Unauthorized access']);
-    exit;
+    jsonResponse(false, 'Unauthorized access', null, ['code' => 401]);
 }
 
-$action = $_REQUEST['action'] ?? '';
+$method = $_SERVER['REQUEST_METHOD'];
 
 try {
-    switch ($action) {
-        case 'list':
-            listEquipment();
+    switch ($method) {
+        case 'GET':
+            handleGet();
             break;
-        case 'get':
-            getEquipment();
+        case 'POST':
+            handlePost();
             break;
-        case 'add':
-        case 'create':
-            createEquipment();
+        case 'PUT':
+            handlePut();
             break;
-        case 'update':
-            updateEquipment();
-            break;
-        case 'delete':
-            deleteEquipment();
+        case 'DELETE':
+            handleDelete();
             break;
         default:
-            throw new Exception('Invalid action');
+            jsonResponse(false, 'Method not allowed', null, ['code' => 405]);
     }
 } catch (Exception $e) {
     error_log("Equipment API Error: " . $e->getMessage());
-    http_response_code(500);
-    echo json_encode([
-        'success' => false,
-        'message' => $e->getMessage()
-    ]);
+    jsonResponse(false, 'Internal server error', null, ['code' => 500]);
 }
 
-function listEquipment() {
+function handleGet() {
     global $pdo;
     
-    try {
-        $query = "
-            SELECT 
-                id,
-                name,
-                model,
-                category,
-                serial_number,
-                manufacturer,
-                purchase_date,
-                warranty_expiry,
-                last_maintenance,
-                next_maintenance,
-                COALESCE(status, 'Active') as status,
-                description,
-                created_at
+    if (isset($_GET['action']) && $_GET['action'] === 'get' && isset($_GET['id'])) {
+        // Get single equipment
+        $stmt = $pdo->prepare("SELECT * FROM equipment WHERE id = ?");
+        $stmt->execute([$_GET['id']]);
+        $equipment = $stmt->fetch();
+        
+        if ($equipment) {
+            jsonResponse(true, 'Equipment retrieved successfully', $equipment);
+        } else {
+            jsonResponse(false, 'Equipment not found', null, ['code' => 404]);
+        }
+    } else {
+        // Get all equipment with pagination
+        $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+        $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 25;
+        $search = isset($_GET['search']) ? $_GET['search'] : '';
+        $status = isset($_GET['status']) ? $_GET['status'] : '';
+        $category = isset($_GET['category']) ? $_GET['category'] : '';
+        
+        $offset = ($page - 1) * $limit;
+        
+        // Build query
+        $whereClause = "WHERE 1=1";
+        $params = [];
+        
+        if (!empty($search)) {
+            $whereClause .= " AND (equipment_name LIKE ? OR equipment_code LIKE ? OR equipment_type LIKE ? OR manufacturer LIKE ? OR location LIKE ?)";
+            $searchTerm = "%$search%";
+            $params = array_fill(0, 5, $searchTerm);
+        }
+        
+        if (!empty($status)) {
+            $whereClause .= " AND status = ?";
+            $params[] = $status;
+        }
+        
+        if (!empty($category)) {
+            $whereClause .= " AND category = ?";
+            $params[] = $category;
+        }
+        
+        // Get total count
+        $countStmt = $pdo->prepare("SELECT COUNT(*) FROM equipment $whereClause");
+        $countStmt->execute($params);
+        $totalRecords = $countStmt->fetchColumn();
+        
+        // Get equipment
+        $stmt = $pdo->prepare("
+            SELECT id, equipment_code, equipment_name, equipment_type, model, 
+                   serial_number, manufacturer, location, status, cost,
+                   purchase_date, warranty_expiry, last_maintenance, next_maintenance,
+                   maintenance_schedule, created_at
             FROM equipment 
-            WHERE (status != 'deleted' OR status IS NULL)
-            ORDER BY created_at DESC
-        ";
+            $whereClause 
+            ORDER BY created_at DESC 
+            LIMIT ? OFFSET ?
+        ");
+        $params[] = $limit;
+        $params[] = $offset;
+        $stmt->execute($params);
+        $equipment = $stmt->fetchAll();
         
-        $stmt = $pdo->prepare($query);
-        $stmt->execute();
-        $equipment = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $response = [
+            'equipment' => $equipment,
+            'pagination' => [
+                'current_page' => $page,
+                'per_page' => $limit,
+                'total' => $totalRecords,
+                'total_pages' => ceil($totalRecords / $limit)
+            ]
+        ];
         
-        echo json_encode([
-            'success' => true,
-            'data' => $equipment
-        ]);
-        
-    } catch (Exception $e) {
-        throw new Exception('Failed to retrieve equipment: ' . $e->getMessage());
+        jsonResponse(true, 'Equipment retrieved successfully', $response);
     }
 }
 
-function getEquipment() {
+function handlePost() {
     global $pdo;
     
-    $id = $_GET['id'] ?? null;
-    if (!$id) {
-        throw new Exception('Equipment ID is required');
+    // Validate required fields
+    $required = ['equipment_name'];
+    $errors = validateInput($_POST, $required);
+    
+    if (!empty($errors)) {
+        jsonResponse(false, implode(', ', $errors), null, ['code' => 422]);
+    }
+    
+    // Sanitize input
+    $data = sanitizeInput($_POST);
+    
+    // Generate equipment code
+    $equipmentCode = generateUniqueId('EQP');
+    
+    // Check if equipment code already exists
+    while (true) {
+        $checkStmt = $pdo->prepare("SELECT COUNT(*) FROM equipment WHERE equipment_code = ?");
+        $checkStmt->execute([$equipmentCode]);
+        if ($checkStmt->fetchColumn() == 0) break;
+        $equipmentCode = generateUniqueId('EQP');
     }
     
     try {
-        $query = "
-            SELECT 
-                id,
-                name,
-                model,
-                category,
-                serial_number,
-                manufacturer,
-                purchase_date,
-                warranty_expiry,
-                last_maintenance,
-                next_maintenance,
-                COALESCE(status, 'Active') as status,
-                description,
-                created_at
-            FROM equipment 
-            WHERE id = ? AND (status != 'deleted' OR status IS NULL)
-        ";
-        
-        $stmt = $pdo->prepare($query);
-        $stmt->execute([$id]);
-        $equipment = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        if (!$equipment) {
-            throw new Exception('Equipment not found');
-        }
-        
-        echo json_encode([
-            'success' => true,
-            'data' => $equipment
-        ]);
-        
-    } catch (Exception $e) {
-        throw new Exception('Failed to retrieve equipment: ' . $e->getMessage());
-    }
-}
-
-function createEquipment() {
-    global $pdo;
-    
-    // Validation
-    if (empty($_POST['name'])) {
-        throw new Exception('Equipment name is required');
-    }
-    
-    if (empty($_POST['category'])) {
-        throw new Exception('Category is required');
-    }
-    
-    // Validate dates
-    $date_fields = ['purchase_date', 'warranty_expiry', 'last_maintenance', 'next_maintenance'];
-    foreach ($date_fields as $field) {
-        if (!empty($_POST[$field]) && !validateDate($_POST[$field])) {
-            throw new Exception(ucfirst(str_replace('_', ' ', $field)) . ' must be a valid date');
-        }
-    }
-    
-    // Check for duplicate serial number if provided
-    if (!empty($_POST['serial_number'])) {
-        $serial_check = $pdo->prepare("SELECT id FROM equipment WHERE serial_number = ? AND (status != 'deleted' OR status IS NULL)");
-        $serial_check->execute([$_POST['serial_number']]);
-        if ($serial_check->fetch()) {
-            throw new Exception('An equipment with this serial number already exists');
-        }
-    }
-    
-    try {
-        $query = "
+        $stmt = $pdo->prepare("
             INSERT INTO equipment (
-                name, model, category, serial_number, manufacturer,
-                purchase_date, warranty_expiry, last_maintenance, next_maintenance,
-                status, description, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
-        ";
+                equipment_code, equipment_name, equipment_type, model, 
+                serial_number, manufacturer, category, location, 
+                purchase_date, warranty_expiry, status, cost, 
+                maintenance_schedule, description
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?)
+        ");
         
-        $stmt = $pdo->prepare($query);
-        $success = $stmt->execute([
-            $_POST['name'],
-            $_POST['model'] ?: null,
-            $_POST['category'],
-            $_POST['serial_number'] ?: null,
-            $_POST['manufacturer'] ?: null,
-            $_POST['purchase_date'] ?: null,
-            $_POST['warranty_expiry'] ?: null,
-            $_POST['last_maintenance'] ?: null,
-            $_POST['next_maintenance'] ?: null,
-            $_POST['status'] ?: 'Active',
-            $_POST['description'] ?: null
+        $stmt->execute([
+            $equipmentCode,
+            $data['equipment_name'],
+            $data['equipment_type'] ?? null,
+            $data['model'] ?? null,
+            $data['serial_number'] ?? null,
+            $data['manufacturer'] ?? null,
+            $data['category'] ?? null,
+            $data['location'] ?? null,
+            $data['purchase_date'] ?? null,
+            $data['warranty_expiry'] ?? null,
+            $data['cost'] ?? null,
+            $data['maintenance_schedule'] ?? 'monthly',
+            $data['description'] ?? null
         ]);
         
-        if ($success) {
-            $equipment_id = $pdo->lastInsertId();
-            echo json_encode([
-                'success' => true,
-                'message' => 'Equipment created successfully',
-                'id' => $equipment_id
-            ]);
-        } else {
-            throw new Exception('Failed to create equipment');
-        }
+        $newEquipmentId = $pdo->lastInsertId();
         
-    } catch (Exception $e) {
-        throw new Exception('Database error: ' . $e->getMessage());
+        // Log activity
+        logActivity($_SESSION['user_id'], 'Equipment Created', "Created equipment: $equipmentCode");
+        
+        jsonResponse(true, 'Equipment created successfully', ['id' => $newEquipmentId, 'equipment_code' => $equipmentCode]);
+        
+    } catch (PDOException $e) {
+        if ($e->getCode() == 23000) {
+            jsonResponse(false, 'Equipment with this code already exists', null, ['code' => 422]);
+        }
+        throw $e;
     }
 }
 
-function updateEquipment() {
+function handlePut() {
     global $pdo;
     
-    $id = $_POST['id'] ?? null;
-    if (!$id) {
-        throw new Exception('Equipment ID is required');
+    // Get PUT data
+    parse_str(file_get_contents("php://input"), $putData);
+    
+    if (empty($putData['id'])) {
+        jsonResponse(false, 'Equipment ID is required', null, ['code' => 422]);
     }
     
-    // Validation
-    if (empty($_POST['name'])) {
-        throw new Exception('Equipment name is required');
+    // Sanitize input
+    $data = sanitizeInput($putData);
+    $id = $data['id'];
+    
+    // Check if equipment exists
+    $checkStmt = $pdo->prepare("SELECT equipment_code FROM equipment WHERE id = ?");
+    $checkStmt->execute([$id]);
+    $existingEquipment = $checkStmt->fetch();
+    
+    if (!$existingEquipment) {
+        jsonResponse(false, 'Equipment not found', null, ['code' => 404]);
     }
     
-    if (empty($_POST['category'])) {
-        throw new Exception('Category is required');
-    }
+    // Build update query
+    $updateFields = [];
+    $params = [];
     
-    // Validate dates
-    $date_fields = ['purchase_date', 'warranty_expiry', 'last_maintenance', 'next_maintenance'];
-    foreach ($date_fields as $field) {
-        if (!empty($_POST[$field]) && !validateDate($_POST[$field])) {
-            throw new Exception(ucfirst(str_replace('_', ' ', $field)) . ' must be a valid date');
+    $allowedFields = [
+        'equipment_name', 'equipment_type', 'model', 'serial_number',
+        'manufacturer', 'category', 'location', 'purchase_date',
+        'warranty_expiry', 'status', 'cost', 'maintenance_schedule',
+        'last_maintenance', 'next_maintenance', 'description'
+    ];
+    
+    foreach ($allowedFields as $field) {
+        if (isset($data[$field])) {
+            $updateFields[] = "$field = ?";
+            $params[] = $data[$field];
         }
     }
     
-    // Check for duplicate serial number (excluding current equipment)
-    if (!empty($_POST['serial_number'])) {
-        $serial_check = $pdo->prepare("SELECT id FROM equipment WHERE serial_number = ? AND id != ? AND (status != 'deleted' OR status IS NULL)");
-        $serial_check->execute([$_POST['serial_number'], $id]);
-        if ($serial_check->fetch()) {
-            throw new Exception('An equipment with this serial number already exists');
-        }
+    if (empty($updateFields)) {
+        jsonResponse(false, 'No fields to update', null, ['code' => 422]);
     }
+    
+    $params[] = $id;
     
     try {
-        $query = "
-            UPDATE equipment SET
-                name = ?,
-                model = ?,
-                category = ?,
-                serial_number = ?,
-                manufacturer = ?,
-                purchase_date = ?,
-                warranty_expiry = ?,
-                last_maintenance = ?,
-                next_maintenance = ?,
-                status = ?,
-                description = ?,
-                updated_at = NOW()
+        $stmt = $pdo->prepare("
+            UPDATE equipment 
+            SET " . implode(', ', $updateFields) . ", updated_at = CURRENT_TIMESTAMP 
             WHERE id = ?
-        ";
+        ");
+        $stmt->execute($params);
         
-        $stmt = $pdo->prepare($query);
-        $success = $stmt->execute([
-            $_POST['name'],
-            $_POST['model'] ?: null,
-            $_POST['category'],
-            $_POST['serial_number'] ?: null,
-            $_POST['manufacturer'] ?: null,
-            $_POST['purchase_date'] ?: null,
-            $_POST['warranty_expiry'] ?: null,
-            $_POST['last_maintenance'] ?: null,
-            $_POST['next_maintenance'] ?: null,
-            $_POST['status'] ?: 'Active',
-            $_POST['description'] ?: null,
-            $id
-        ]);
+        // Log activity
+        logActivity($_SESSION['user_id'], 'Equipment Updated', "Updated equipment: {$existingEquipment['equipment_code']}");
         
-        if ($success && $stmt->rowCount() > 0) {
-            echo json_encode([
-                'success' => true,
-                'message' => 'Equipment updated successfully'
-            ]);
-        } else if ($success && $stmt->rowCount() === 0) {
-            echo json_encode([
-                'success' => true,
-                'message' => 'No changes made'
-            ]);
-        } else {
-            throw new Exception('Failed to update equipment');
-        }
+        jsonResponse(true, 'Equipment updated successfully');
         
-    } catch (Exception $e) {
-        throw new Exception('Database error: ' . $e->getMessage());
+    } catch (PDOException $e) {
+        throw $e;
     }
 }
 
-function deleteEquipment() {
+function handleDelete() {
     global $pdo;
     
-    $id = $_POST['id'] ?? null;
-    if (!$id) {
-        throw new Exception('Equipment ID is required');
+    // Get DELETE data
+    parse_str(file_get_contents("php://input"), $deleteData);
+    
+    if (empty($deleteData['id'])) {
+        jsonResponse(false, 'Equipment ID is required', null, ['code' => 422]);
     }
     
-    try {
-        // Soft delete - mark as deleted
-        $query = "UPDATE equipment SET status = 'deleted', updated_at = NOW() WHERE id = ?";
-        $stmt = $pdo->prepare($query);
-        $success = $stmt->execute([$id]);
-        
-        if ($success && $stmt->rowCount() > 0) {
-            echo json_encode([
-                'success' => true,
-                'message' => 'Equipment deleted successfully'
-            ]);
-        } else {
-            throw new Exception('Equipment not found or already deleted');
-        }
-        
-    } catch (Exception $e) {
-        throw new Exception('Database error: ' . $e->getMessage());
-    }
-}
-
-function validateDate($date, $format = 'Y-m-d') {
-    $d = DateTime::createFromFormat($format, $date);
-    return $d && $d->format($format) === $date;
-}
-?>
+    $id = (int)$deleteData['id'];
     
-    $stmt = $pdo->prepare("
-        SELECT id, equipment_id, name, type, model, serial_number, 
-               manufacturer, purchase_date, status, created_at
-        FROM equipment 
-        WHERE status != 'deleted'
-        ORDER BY created_at DESC
-    ");
-    $stmt->execute();
-    $equipment = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-    echo json_encode([
-        'success' => true,
-        'data' => $equipment,
-        'total' => count($equipment)
-    ]);
-}
-
-function getEquipment() {
-    global $pdo;
-    
-    $id = $_GET['id'] ?? 0;
-    if (!$id) {
-        throw new Exception('Equipment ID is required');
-    }
-    
-    $stmt = $pdo->prepare("
-        SELECT * FROM equipment 
-        WHERE id = ? AND status != 'deleted'
-    ");
-    $stmt->execute([$id]);
-    $equipment = $stmt->fetch(PDO::FETCH_ASSOC);
+    // Check if equipment exists
+    $checkStmt = $pdo->prepare("SELECT equipment_code FROM equipment WHERE id = ?");
+    $checkStmt->execute([$id]);
+    $equipment = $checkStmt->fetch();
     
     if (!$equipment) {
-        throw new Exception('Equipment not found');
+        jsonResponse(false, 'Equipment not found', null, ['code' => 404]);
     }
     
-    echo json_encode([
-        'success' => true,
-        'data' => $equipment
-    ]);
-}
-
-function addEquipment() {
-    global $pdo;
-    
-    // Validate required fields
-    $required = ['name', 'type'];
-    foreach ($required as $field) {
-        if (empty($_POST[$field])) {
-            throw new Exception(ucfirst(str_replace('_', ' ', $field)) . ' is required');
-        }
+    try {
+        $stmt = $pdo->prepare("DELETE FROM equipment WHERE id = ?");
+        $stmt->execute([$id]);
+        
+        // Log activity
+        logActivity($_SESSION['user_id'], 'Equipment Deleted', "Deleted equipment: {$equipment['equipment_code']}");
+        
+        jsonResponse(true, 'Equipment deleted successfully');
+        
+    } catch (PDOException $e) {
+        jsonResponse(false, 'Error deleting equipment', null, ['code' => 500]);
     }
-    
-    // Sanitize inputs
-    $name = trim($_POST['name']);
-    $type = trim($_POST['type']);
-    $model = trim($_POST['model']) ?: null;
-    $serial_number = trim($_POST['serial_number']) ?: null;
-    $manufacturer = trim($_POST['manufacturer']) ?: null;
-    $purchase_date = $_POST['purchase_date'] ?: null;
-    
-    // Generate unique equipment ID
-    $equipment_id = generateEquipmentId();
-    
-    // Check for duplicate serial number if provided
-    if ($serial_number) {
-        $stmt = $pdo->prepare("SELECT id FROM equipment WHERE serial_number = ? AND status != 'deleted'");
-        $stmt->execute([$serial_number]);
-        if ($stmt->fetch()) {
-            throw new Exception('Serial number already exists');
-        }
-    }
-    
-    // Insert equipment
-    $stmt = $pdo->prepare("
-        INSERT INTO equipment (
-            equipment_id, name, type, model, serial_number, 
-            manufacturer, purchase_date, status, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, 'active', NOW())
-    ");
-    
-    $result = $stmt->execute([
-        $equipment_id,
-        $name,
-        $type,
-        $model,
-        $serial_number,
-        $manufacturer,
-        $purchase_date
-    ]);
-    
-    if (!$result) {
-        throw new Exception('Failed to add equipment');
-    }
-    
-    echo json_encode([
-        'success' => true,
-        'message' => 'Equipment added successfully',
-        'equipment_id' => $equipment_id,
-        'id' => $pdo->lastInsertId()
-    ]);
-}
-
-function updateEquipment() {
-    global $pdo;
-    
-    $id = $_POST['id'] ?? 0;
-    if (!$id) {
-        throw new Exception('Equipment ID is required');
-    }
-    
-    // Validate required fields
-    $required = ['name', 'type'];
-    foreach ($required as $field) {
-        if (empty($_POST[$field])) {
-            throw new Exception(ucfirst(str_replace('_', ' ', $field)) . ' is required');
-        }
-    }
-    
-    // Sanitize inputs
-    $name = trim($_POST['name']);
-    $type = trim($_POST['type']);
-    $model = trim($_POST['model']) ?: null;
-    $serial_number = trim($_POST['serial_number']) ?: null;
-    $manufacturer = trim($_POST['manufacturer']) ?: null;
-    $purchase_date = $_POST['purchase_date'] ?: null;
-    
-    // Check if equipment exists
-    $stmt = $pdo->prepare("SELECT id FROM equipment WHERE id = ? AND status != 'deleted'");
-    $stmt->execute([$id]);
-    if (!$stmt->fetch()) {
-        throw new Exception('Equipment not found');
-    }
-    
-    // Check for duplicate serial number (excluding current equipment)
-    if ($serial_number) {
-        $stmt = $pdo->prepare("SELECT id FROM equipment WHERE serial_number = ? AND id != ? AND status != 'deleted'");
-        $stmt->execute([$serial_number, $id]);
-        if ($stmt->fetch()) {
-            throw new Exception('Serial number already exists');
-        }
-    }
-    
-    // Update equipment
-    $stmt = $pdo->prepare("
-        UPDATE equipment SET 
-            name = ?, type = ?, model = ?, serial_number = ?, 
-            manufacturer = ?, purchase_date = ?, updated_at = NOW()
-        WHERE id = ?
-    ");
-    
-    $result = $stmt->execute([
-        $name,
-        $type,
-        $model,
-        $serial_number,
-        $manufacturer,
-        $purchase_date,
-        $id
-    ]);
-    
-    if (!$result) {
-        throw new Exception('Failed to update equipment');
-    }
-    
-    echo json_encode([
-        'success' => true,
-        'message' => 'Equipment updated successfully'
-    ]);
-}
-
-function deleteEquipment() {
-    global $pdo;
-    
-    $id = $_POST['id'] ?? 0;
-    if (!$id) {
-        throw new Exception('Equipment ID is required');
-    }
-    
-    // Check if equipment exists
-    $stmt = $pdo->prepare("SELECT id FROM equipment WHERE id = ? AND status != 'deleted'");
-    $stmt->execute([$id]);
-    if (!$stmt->fetch()) {
-        throw new Exception('Equipment not found');
-    }
-    
-    // Soft delete (update status instead of actual delete)
-    $stmt = $pdo->prepare("UPDATE equipment SET status = 'deleted', updated_at = NOW() WHERE id = ?");
-    $result = $stmt->execute([$id]);
-    
-    if (!$result) {
-        throw new Exception('Failed to delete equipment');
-    }
-    
-    echo json_encode([
-        'success' => true,
-        'message' => 'Equipment deleted successfully'
-    ]);
-}
-
-function generateEquipmentId() {
-    global $pdo;
-    
-    // Try to get the last equipment ID number
-    $stmt = $pdo->query("
-        SELECT equipment_id FROM equipment 
-        WHERE equipment_id LIKE 'EQ%' 
-        ORDER BY CAST(SUBSTRING(equipment_id, 3) AS UNSIGNED) DESC 
-        LIMIT 1
-    ");
-    
-    $lastId = $stmt->fetchColumn();
-    
-    if ($lastId && preg_match('/EQ(\d+)/', $lastId, $matches)) {
-        $nextNumber = intval($matches[1]) + 1;
-    } else {
-        $nextNumber = 1;
-    }
-    
-    $newId = 'EQ' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
-    
-    // Ensure uniqueness
-    $attempts = 0;
-    while ($attempts < 10) {
-        $stmt = $pdo->prepare("SELECT id FROM equipment WHERE equipment_id = ?");
-        $stmt->execute([$newId]);
-        if (!$stmt->fetch()) {
-            return $newId;
-        }
-        $nextNumber++;
-        $newId = 'EQ' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
-        $attempts++;
-    }
-    
-    // Fallback to random if sequential fails
-    return 'EQ' . str_pad(rand(1000, 9999), 4, '0', STR_PAD_LEFT);
 }
 ?>

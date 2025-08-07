@@ -50,6 +50,347 @@ include 'includes/adminlte_sidebar.php';
                 <i class="fas fa-list mr-2"></i>All Test Orders
               </h3>
               <div class="card-tools">
+                <button type="button" class="btn btn-info btn-sm" data-toggle="modal" data-target="#testOrderModal" onclick="openTestOrderModal()">
+                  <i class="fas fa-plus mr-1"></i>Create Order
+                </button>
+              </div>
+            </div>
+            <div class="card-body">
+              <table id="testOrdersTable" class="table table-bordered table-striped">
+                <thead>
+                  <tr>
+                    <th>Order #</th>
+                    <th>Patient</th>
+                    <th>Doctor</th>
+                    <th>Tests</th>
+                    <th>Status</th>
+                    <th>Priority</th>
+                    <th>Date</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- Data will be loaded via AJAX -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- Test Order Modal -->
+<div class="modal fade" id="testOrderModal" tabindex="-1" role="dialog" aria-labelledby="testOrderModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4 class="modal-title" id="testOrderModalLabel">Create Test Order</h4>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <form id="testOrderForm">
+        <div class="modal-body">
+          <input type="hidden" id="testOrderId" name="id">
+          
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="patientSelect">Patient <span class="text-danger">*</span></label>
+                <select class="form-control select2" id="patientSelect" name="patient_id" required style="width: 100%;">
+                  <option value="">Select Patient</option>
+                </select>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="doctorSelect">Doctor</label>
+                <select class="form-control select2" id="doctorSelect" name="doctor_id" style="width: 100%;">
+                  <option value="">Select Doctor</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="priority">Priority</label>
+                <select class="form-control" id="priority" name="priority">
+                  <option value="normal">Normal</option>
+                  <option value="high">High</option>
+                  <option value="urgent">Urgent</option>
+                </select>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="orderDate">Order Date</label>
+                <input type="datetime-local" class="form-control" id="orderDate" name="order_date" value="<?php echo date('Y-m-d\TH:i'); ?>">
+              </div>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label>Tests <span class="text-danger">*</span></label>
+            <div class="card">
+              <div class="card-body">
+                <div id="testsContainer">
+                  <!-- Tests will be loaded here -->
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="notes">Notes</label>
+            <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+          </div>
+          
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label>Total Amount</label>
+                <div class="input-group">
+                  <div class="input-group-prepend">
+                    <span class="input-group-text">$</span>
+                  </div>
+                  <input type="number" class="form-control" id="totalAmount" name="total_amount" step="0.01" readonly>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="discount">Discount</label>
+                <div class="input-group">
+                  <div class="input-group-prepend">
+                    <span class="input-group-text">$</span>
+                  </div>
+                  <input type="number" class="form-control" id="discount" name="discount" step="0.01" value="0">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-info">Create Order</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+$(document).ready(function() {
+    // Initialize DataTable
+    $('#testOrdersTable').DataTable({
+        processing: true,
+        serverSide: true,
+        ajax: {
+            url: 'ajax/test_orders_datatable.php',
+            type: 'POST'
+        },
+        columns: [
+            { data: 'order_number' },
+            { data: 'patient_name' },
+            { data: 'doctor_name' },
+            { data: 'test_count' },
+            { data: 'status' },
+            { data: 'priority' },
+            { data: 'order_date' },
+            { data: 'actions', orderable: false, searchable: false }
+        ],
+        order: [[0, 'desc']],
+        pageLength: 25,
+        responsive: true
+    });
+    
+    // Initialize Select2
+    $('.select2').select2({
+        theme: 'bootstrap4'
+    });
+    
+    // Handle form submission
+    $('#testOrderForm').on('submit', function(e) {
+        e.preventDefault();
+        saveTestOrder();
+    });
+    
+    // Load patients and doctors when modal opens
+    $('#testOrderModal').on('show.bs.modal', function() {
+        loadPatients();
+        loadDoctors();
+        loadTests();
+    });
+    
+    // Calculate total when discount changes
+    $('#discount').on('input', function() {
+        calculateTotal();
+    });
+});
+
+function openTestOrderModal(id = null) {
+    if (id) {
+        // Edit mode
+        $('#testOrderModalLabel').text('Edit Test Order');
+        loadTestOrderData(id);
+    } else {
+        // Add mode
+        $('#testOrderModalLabel').text('Create Test Order');
+        $('#testOrderForm')[0].reset();
+        $('#testOrderId').val('');
+        $('#orderDate').val(new Date().toISOString().slice(0, 16));
+    }
+}
+
+function loadPatients() {
+    $.ajax({
+        url: 'api/patients_api.php',
+        type: 'GET',
+        data: { limit: 1000, status: 'active' },
+        success: function(response) {
+            if (response.success) {
+                const select = $('#patientSelect');
+                select.empty().append('<option value="">Select Patient</option>');
+                response.data.patients.forEach(function(patient) {
+                    select.append(`<option value="${patient.id}">${patient.full_name} (${patient.patient_id})</option>`);
+                });
+            }
+        }
+    });
+}
+
+function loadDoctors() {
+    $.ajax({
+        url: 'api/doctors_api.php',
+        type: 'GET',
+        data: { limit: 1000, status: 'active' },
+        success: function(response) {
+            if (response.success) {
+                const select = $('#doctorSelect');
+                select.empty().append('<option value="">Select Doctor</option>');
+                response.data.doctors.forEach(function(doctor) {
+                    select.append(`<option value="${doctor.id}">${doctor.name} - ${doctor.specialization}</option>`);
+                });
+            }
+        }
+    });
+}
+
+function loadTests() {
+    $.ajax({
+        url: 'api/tests_api.php',
+        type: 'GET',
+        success: function(response) {
+            if (response.success) {
+                const container = $('#testsContainer');
+                container.empty();
+                
+                response.data.tests.forEach(function(test) {
+                    const testHtml = `
+                        <div class="form-check">
+                            <input class="form-check-input test-checkbox" type="checkbox" value="${test.id}" 
+                                   id="test_${test.id}" data-price="${test.price}" onchange="calculateTotal()">
+                            <label class="form-check-label" for="test_${test.id}">
+                                <strong>${test.name}</strong> - $${test.price}
+                                <br><small class="text-muted">${test.description || ''}</small>
+                            </label>
+                        </div>
+                    `;
+                    container.append(testHtml);
+                });
+            }
+        }
+    });
+}
+
+function calculateTotal() {
+    let total = 0;
+    $('.test-checkbox:checked').each(function() {
+        total += parseFloat($(this).data('price'));
+    });
+    
+    const discount = parseFloat($('#discount').val()) || 0;
+    const finalTotal = Math.max(0, total - discount);
+    
+    $('#totalAmount').val(finalTotal.toFixed(2));
+}
+
+function saveTestOrder() {
+    const selectedTests = [];
+    $('.test-checkbox:checked').each(function() {
+        selectedTests.push($(this).val());
+    });
+    
+    if (selectedTests.length === 0) {
+        toastr.error('Please select at least one test');
+        return;
+    }
+    
+    const formData = new FormData($('#testOrderForm')[0]);
+    formData.append('tests', JSON.stringify(selectedTests));
+    
+    const isEdit = $('#testOrderId').val() !== '';
+    
+    $.ajax({
+        url: 'api/test_orders_api.php',
+        type: isEdit ? 'PUT' : 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function(response) {
+            if (response.success) {
+                toastr.success(response.message);
+                $('#testOrderModal').modal('hide');
+                $('#testOrdersTable').DataTable().ajax.reload();
+            } else {
+                toastr.error(response.message);
+            }
+        },
+        error: function() {
+            toastr.error('Error saving test order');
+        }
+    });
+}
+
+function deleteTestOrder(id) {
+    Swal.fire({
+        title: 'Are you sure?',
+        text: "This will cancel the test order!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Yes, cancel it!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $.ajax({
+                url: 'api/test_orders_api.php',
+                type: 'DELETE',
+                data: { id: id },
+                success: function(response) {
+                    if (response.success) {
+                        toastr.success(response.message);
+                        $('#testOrdersTable').DataTable().ajax.reload();
+                    } else {
+                        toastr.error(response.message);
+                    }
+                },
+                error: function() {
+                    toastr.error('Error cancelling test order');
+                }
+            });
+        }
+    });
+}
+</script>
+
+<?php include 'includes/adminlte_template_footer.php'; ?>
+              </h3>
+              <div class="card-tools">
                 <button type="button" class="btn btn-info btn-sm" data-toggle="modal" data-target="#testOrderModal" onclick="openAddModal()">
                   <i class="fas fa-plus mr-1"></i>New Order
                 </button>
