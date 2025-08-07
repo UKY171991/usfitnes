@@ -71,49 +71,105 @@ echo "</div></div>";
 
 // Only show tables if connection is successful
 if (!$status['using_mock_data'] && $pdo) {
-    
-    echo "<ul>";
-    foreach ($tables as $table) {
-        echo "<li>$table";
+    try {
+        // Show all tables
+        echo "<div class='card setup-card'>";
+        echo "<div class='card-header'><h2>2. Database Tables</h2></div>";
+        echo "<div class='card-body'>";
         
-        // Count records in each table
-        try {
-            $count = $pdo->query("SELECT COUNT(*) FROM `$table`")->fetchColumn();
-            echo " ($count records)";
-        } catch (Exception $e) {
-            echo " (error counting records)";
+        $tables = $pdo->query("SHOW TABLES")->fetchAll(PDO::FETCH_COLUMN);
+        
+        if (empty($tables)) {
+            echo "<p class='status-info'>No tables found. Creating tables...</p>";
+            createTables($pdo);
+            $tables = $pdo->query("SHOW TABLES")->fetchAll(PDO::FETCH_COLUMN);
         }
-        echo "</li>";
+        
+        echo "<div class='row'>";
+        foreach ($tables as $table) {
+            echo "<div class='col-md-4 mb-3'>";
+            echo "<div class='card'>";
+            echo "<div class='card-body'>";
+            echo "<h6 class='card-title'>📋 $table</h6>";
+            
+            // Count records in each table
+            try {
+                $count = $pdo->query("SELECT COUNT(*) FROM `$table`")->fetchColumn();
+                echo "<p class='card-text'>Records: <span class='badge badge-primary'>$count</span></p>";
+            } catch (Exception $e) {
+                echo "<p class='card-text'><span class='badge badge-warning'>Error counting</span></p>";
+            }
+            echo "</div></div></div>";
+        }
+        echo "</div>";
+        echo "</div></div>";
+        
+        // Insert sample data
+        echo "<div class='card setup-card'>";
+        echo "<div class='card-header'><h3>3. Sample Data Insertion</h3></div>";
+        echo "<div class='card-body'>";
+        insertSampleData($pdo);
+        echo "</div></div>";
+        
+        // Verify CRUD operations
+        echo "<div class='card setup-card'>";
+        echo "<div class='card-header'><h4>4. CRUD Operations Test</h4></div>";
+        echo "<div class='card-body'>";
+        testCrudOperations($pdo);
+        echo "</div></div>";
+        
+    } catch (Exception $e) {
+        echo "<div class='alert alert-danger'>";
+        echo "<h4>Database Error</h4>";
+        echo "<p>" . $e->getMessage() . "</p>";
+        echo "</div>";
     }
-    echo "</ul>";
+}
+
+// Show next steps
+echo "<div class='card setup-card'>";
+echo "<div class='card-header bg-success text-white'><h2>5. Next Steps</h2></div>";
+echo "<div class='card-body'>";
+
+if (!$status['using_mock_data']) {
+    echo "<div class='alert alert-success'>";
+    echo "<h4>✅ Setup Complete!</h4>";
+    echo "<p>Your PathLab Pro system is ready to use.</p>";
+    echo "</div>";
     
-    echo "<hr>";
+    echo "<h5>Quick Links:</h5>";
+    echo "<div class='row'>";
+    echo "<div class='col-md-3'><a href='login.php' class='btn btn-primary btn-block'>🔐 Login Page</a></div>";
+    echo "<div class='col-md-3'><a href='dashboard.php' class='btn btn-info btn-block'>📊 Dashboard</a></div>";
+    echo "<div class='col-md-3'><a href='patients_clean.php' class='btn btn-success btn-block'>👥 Patients</a></div>";
+    echo "<div class='col-md-3'><a href='doctors.php' class='btn btn-warning btn-block'>👨‍⚕️ Doctors</a></div>";
+    echo "</div>";
+    echo "<br>";
+    echo "<div class='row'>";
+    echo "<div class='col-md-3'><a href='equipment.php' class='btn btn-secondary btn-block'>🔬 Equipment</a></div>";
+    echo "<div class='col-md-3'><a href='test-orders.php' class='btn btn-dark btn-block'>📋 Test Orders</a></div>";
+    echo "<div class='col-md-3'><a href='results.php' class='btn btn-info btn-block'>📊 Results</a></div>";
+    echo "<div class='col-md-3'><a href='reports.php' class='btn btn-primary btn-block'>📈 Reports</a></div>";
+    echo "</div>";
     
-    // Insert sample data
-    echo "<h2>3. Sample Data Insertion</h2>";
-    insertSampleData($pdo);
-    
-    echo "<hr>";
-    
-    // Verify CRUD operations
-    echo "<h2>4. CRUD Operations Test</h2>";
-    testCrudOperations($pdo);
-    
-} catch (Exception $e) {
-    echo "<p style='color: red;'>Database Error: " . $e->getMessage() . "</p>";
-    
-    // Suggest using XAMPP/WAMP
-    echo "<div style='background: #fff3cd; padding: 15px; border: 1px solid #ffeaa7; border-radius: 5px; margin: 10px 0;'>";
-    echo "<h3>Database Connection Failed</h3>";
-    echo "<p>It appears MySQL is not running on your system. Please:</p>";
-    echo "<ol>";
-    echo "<li>Install XAMPP, WAMP, or MAMP</li>";
-    echo "<li>Start Apache and MySQL services</li>";
-    echo "<li>Create a database named 'pathlab_pro'</li>";
-    echo "<li>Run this script again</li>";
-    echo "</ol>";
+    echo "<div class='mt-4'>";
+    echo "<h5>Default Login Credentials:</h5>";
+    echo "<div class='code-block'>";
+    echo "<strong>Username:</strong> admin<br>";
+    echo "<strong>Password:</strong> admin123";
+    echo "</div>";
+    echo "</div>";
+} else {
+    echo "<div class='alert alert-warning'>";
+    echo "<h4>⚠️ Setup Required</h4>";
+    echo "<p>Please install and configure MySQL before using the system.</p>";
     echo "</div>";
 }
+
+echo "</div></div>";
+
+echo "</div>"; // Close container
+echo "</body></html>";
 
 function insertSampleData($pdo) {
     // Insert sample patients
@@ -123,26 +179,26 @@ function insertSampleData($pdo) {
         $count = $stmt->fetchColumn();
         
         if ($count == 0) {
-            echo "<h3>Inserting Sample Patients...</h3>";
+            echo "<h5>👥 Inserting Sample Patients...</h5>";
             $patients = [
-                ['John', 'Doe', '+1234567890', 'john.doe@email.com', '1985-06-15', 'male'],
-                ['Jane', 'Smith', '+1234567891', 'jane.smith@email.com', '1990-03-22', 'female'],
-                ['Robert', 'Johnson', '+1234567892', 'robert.j@email.com', '1978-11-08', 'male'],
-                ['Mary', 'Williams', '+1234567893', 'mary.w@email.com', '1982-09-12', 'female'],
-                ['David', 'Brown', '+1234567894', 'david.brown@email.com', '1975-04-30', 'male']
+                ['John', 'Doe', '+1234567890', 'john.doe@email.com', '1985-06-15', 'male', 'A+'],
+                ['Jane', 'Smith', '+1234567891', 'jane.smith@email.com', '1990-03-22', 'female', 'B+'],
+                ['Robert', 'Johnson', '+1234567892', 'robert.j@email.com', '1978-11-08', 'male', 'O+'],
+                ['Mary', 'Williams', '+1234567893', 'mary.w@email.com', '1982-09-12', 'female', 'AB+'],
+                ['David', 'Brown', '+1234567894', 'david.brown@email.com', '1975-04-30', 'male', 'O-']
             ];
             
-            $stmt = $pdo->prepare("INSERT INTO patients (first_name, last_name, phone, email, date_of_birth, gender) VALUES (?, ?, ?, ?, ?, ?)");
+            $stmt = $pdo->prepare("INSERT INTO patients (first_name, last_name, phone, email, date_of_birth, gender, blood_group) VALUES (?, ?, ?, ?, ?, ?, ?)");
             
             foreach ($patients as $patient) {
                 $stmt->execute($patient);
             }
-            echo "✅ " . count($patients) . " sample patients inserted<br>";
+            echo "<p class='status-success'>✅ " . count($patients) . " sample patients inserted</p>";
         } else {
-            echo "ℹ️ Patients table already has $count records<br>";
+            echo "<p class='status-info'>ℹ️ Patients table already has $count records</p>";
         }
     } catch (Exception $e) {
-        echo "❌ Error inserting patients: " . $e->getMessage() . "<br>";
+        echo "<p class='status-failed'>❌ Error inserting patients: " . $e->getMessage() . "</p>";
     }
     
     // Insert sample doctors
@@ -152,7 +208,7 @@ function insertSampleData($pdo) {
         $count = $stmt->fetchColumn();
         
         if ($count == 0) {
-            echo "<h3>Inserting Sample Doctors...</h3>";
+            echo "<h5>👨‍⚕️ Inserting Sample Doctors...</h5>";
             $doctors = [
                 ['DR001', 'Dr. Sarah Wilson', 'Cardiology', 'sarah.wilson@hospital.com', '+1555001001', 'MD12345'],
                 ['DR002', 'Dr. Michael Chen', 'Neurology', 'michael.chen@hospital.com', '+1555001002', 'MD12346'],
@@ -165,12 +221,12 @@ function insertSampleData($pdo) {
             foreach ($doctors as $doctor) {
                 $stmt->execute($doctor);
             }
-            echo "✅ " . count($doctors) . " sample doctors inserted<br>";
+            echo "<p class='status-success'>✅ " . count($doctors) . " sample doctors inserted</p>";
         } else {
-            echo "ℹ️ Doctors table already has $count records<br>";
+            echo "<p class='status-info'>ℹ️ Doctors table already has $count records</p>";
         }
     } catch (Exception $e) {
-        echo "❌ Error inserting doctors: " . $e->getMessage() . "<br>";
+        echo "<p class='status-failed'>❌ Error inserting doctors: " . $e->getMessage() . "</p>";
     }
     
     // Insert sample equipment
@@ -180,7 +236,7 @@ function insertSampleData($pdo) {
         $count = $stmt->fetchColumn();
         
         if ($count == 0) {
-            echo "<h3>Inserting Sample Equipment...</h3>";
+            echo "<h5>🔬 Inserting Sample Equipment...</h5>";
             $equipment = [
                 ['X-Ray Machine', 'XR-500', 'Siemens', 'Radiology', 'XR500001', '2020-01-15', '2025-01-15'],
                 ['Blood Analyzer', 'BA-3000', 'Abbott', 'Hematology', 'BA3000001', '2021-06-10', '2026-06-10'],
@@ -193,67 +249,55 @@ function insertSampleData($pdo) {
             foreach ($equipment as $item) {
                 $stmt->execute($item);
             }
-            echo "✅ " . count($equipment) . " sample equipment inserted<br>";
+            echo "<p class='status-success'>✅ " . count($equipment) . " sample equipment inserted</p>";
         } else {
-            echo "ℹ️ Equipment table already has $count records<br>";
+            echo "<p class='status-info'>ℹ️ Equipment table already has $count records</p>";
         }
     } catch (Exception $e) {
-        echo "❌ Error inserting equipment: " . $e->getMessage() . "<br>";
+        echo "<p class='status-failed'>❌ Error inserting equipment: " . $e->getMessage() . "</p>";
     }
 }
 
 function testCrudOperations($pdo) {
-    echo "<h3>Testing CRUD Operations...</h3>";
+    echo "<h5>🧪 Testing CRUD Operations...</h5>";
     
     // Test CREATE operation
     try {
         $stmt = $pdo->prepare("INSERT INTO patients (first_name, last_name, phone, email) VALUES (?, ?, ?, ?)");
         $result = $stmt->execute(['Test', 'Patient', '+9999999999', 'test@test.com']);
         $test_id = $pdo->lastInsertId();
-        echo "✅ CREATE: Successfully inserted test patient (ID: $test_id)<br>";
+        echo "<p class='status-success'>✅ CREATE: Successfully inserted test patient (ID: $test_id)</p>";
         
         // Test READ operation
         $stmt = $pdo->prepare("SELECT * FROM patients WHERE id = ?");
         $stmt->execute([$test_id]);
         $patient = $stmt->fetch();
         if ($patient) {
-            echo "✅ READ: Successfully retrieved patient data<br>";
+            echo "<p class='status-success'>✅ READ: Successfully retrieved patient data</p>";
         } else {
-            echo "❌ READ: Failed to retrieve patient data<br>";
+            echo "<p class='status-failed'>❌ READ: Failed to retrieve patient data</p>";
         }
         
         // Test UPDATE operation
         $stmt = $pdo->prepare("UPDATE patients SET first_name = ? WHERE id = ?");
         $result = $stmt->execute(['Updated Test', $test_id]);
         if ($result && $stmt->rowCount() > 0) {
-            echo "✅ UPDATE: Successfully updated patient data<br>";
+            echo "<p class='status-success'>✅ UPDATE: Successfully updated patient data</p>";
         } else {
-            echo "❌ UPDATE: Failed to update patient data<br>";
+            echo "<p class='status-failed'>❌ UPDATE: Failed to update patient data</p>";
         }
         
         // Test DELETE operation
         $stmt = $pdo->prepare("DELETE FROM patients WHERE id = ?");
         $result = $stmt->execute([$test_id]);
         if ($result && $stmt->rowCount() > 0) {
-            echo "✅ DELETE: Successfully deleted test patient<br>";
+            echo "<p class='status-success'>✅ DELETE: Successfully deleted test patient</p>";
         } else {
-            echo "❌ DELETE: Failed to delete test patient<br>";
+            echo "<p class='status-failed'>❌ DELETE: Failed to delete test patient</p>";
         }
         
     } catch (Exception $e) {
-        echo "❌ CRUD Test Error: " . $e->getMessage() . "<br>";
+        echo "<p class='status-failed'>❌ CRUD Test Error: " . $e->getMessage() . "</p>";
     }
 }
-
-echo "<hr>";
-echo "<h2>5. Next Steps</h2>";
-echo "<p>✅ Database setup complete!</p>";
-echo "<p>📝 You can now:</p>";
-echo "<ul>";
-echo "<li>Access the <a href='login.php'>Login Page</a> (admin/admin123)</li>";
-echo "<li>View the <a href='dashboard.php'>Dashboard</a></li>";
-echo "<li>Manage <a href='patients.php'>Patients</a></li>";
-echo "<li>Manage <a href='doctors.php'>Doctors</a></li>";
-echo "<li>Manage <a href='equipment.php'>Equipment</a></li>";
-echo "</ul>";
 ?>

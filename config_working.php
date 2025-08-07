@@ -13,12 +13,13 @@ date_default_timezone_set('America/New_York');
 // Database configuration
 $db_config = [
     'host' => 'localhost',
-    'dbname' => 'pathlab_pro',
-    'username' => 'root',
-    'password' => '',
+    'dbname' => 'u902379465_fitness',
+    'username' => 'u902379465_fitness',
+    'password' => '4gS>#RKZV~R',
     'port' => '3306',
     'charset' => 'utf8mb4'
 ];
+
 
 // Alternative configurations to try
 $alternative_configs = [
