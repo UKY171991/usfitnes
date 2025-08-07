@@ -1,6 +1,6 @@
 <?php
 $page_title = "Test Orders";
-require_once 'includes/adminlte_header.php';
+require_once 'includes/adminlte_template_header.php';
 require_once 'includes/adminlte_sidebar.php';
 ?>
 
@@ -245,7 +245,7 @@ require_once 'includes/adminlte_sidebar.php';
     </div>
 </div>
 
-<?php require_once 'includes/adminlte_footer.php'; ?>
+<?php require_once 'includes/adminlte_template_footer.php'; ?>
 
     <!-- Custom CSS for enhanced styling -->
     <style>

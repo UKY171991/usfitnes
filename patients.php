@@ -6,7 +6,7 @@ $page_title = 'Patients Management - PathLab Pro';
 @include_once 'api/safe_config.php';
 
 // Include AdminLTE header and sidebar
-include 'includes/adminlte_header.php';
+include 'includes/adminlte_template_header.php';
 include 'includes/adminlte_sidebar.php';
 ?>
 
@@ -953,4 +953,4 @@ function setSubmitButtonLoading(loading) {
 }
 </script>
 
-<?php include 'includes/adminlte_footer.php'; ?>
+<?php include 'includes/adminlte_template_footer.php'; ?>

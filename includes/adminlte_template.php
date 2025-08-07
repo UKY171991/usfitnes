@@ -139,9 +139,6 @@ function renderTemplate($page_id, $content_callback, $additional_css = '', $addi
     echo '</div>'; // End content-wrapper
     
     // Include footer
-    include 'includes/adminlte_footer.php';
-    
-    // Include template footer with scripts
     include 'includes/adminlte_template_footer.php';
 }
 

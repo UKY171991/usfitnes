@@ -11,7 +11,7 @@ $recentOrders = $dashboardData->getRecentTestOrders(5);
 $systemAlerts = $dashboardData->getSystemAlerts();
 
 // Include AdminLTE header and sidebar
-include 'includes/adminlte_header.php';
+include 'includes/adminlte_template_header.php';
 include 'includes/adminlte_sidebar.php';
 ?>
 
@@ -352,4 +352,4 @@ function refreshDashboardData() {
 }
 </script>
 
-<?php include 'includes/adminlte_footer.php'; ?>
+<?php include 'includes/adminlte_template_footer.php'; ?>

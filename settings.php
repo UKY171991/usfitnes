@@ -3,7 +3,7 @@
 $page_title = 'Settings - PathLab Pro';
 
 // Include header and session handling
-include 'includes/adminlte_header.php';
+include 'includes/adminlte_template_header.php';
 include 'includes/adminlte_sidebar.php';
 
 // Handle form submissions
@@ -300,7 +300,7 @@ $lab_settings = $_SESSION['lab_settings'] ?? [
   </section>
 </div>
 
-<?php include 'includes/adminlte_footer.php'; ?>
+<?php include 'includes/adminlte_template_footer.php'; ?>
 
 <script>
 $(document).ready(function() {

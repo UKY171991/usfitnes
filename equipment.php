@@ -24,7 +24,7 @@ try {
 }
 
 // Include AdminLTE header and sidebar
-include 'includes/adminlte_header.php';
+include 'includes/adminlte_template_header.php';
 include 'includes/adminlte_sidebar.php';
 ?>
 
@@ -437,4 +437,4 @@ function deleteEquipment(id) {
 }
 </script>
 
-<?php include 'includes/adminlte_footer.php'; ?>
+<?php include 'includes/adminlte_template_footer.php'; ?>
