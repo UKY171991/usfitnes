@@ -1,11 +1,17 @@
 <?php
-// Set page title
-$page_title = 'Patients Management - PathLab Pro';
+require_once 'config.php';
+require_once 'includes/init.php';
 
-// Try to include database connection safely, but suppress all errors
-@include_once 'api/safe_config.php';
+// Check authentication
+if (!isset($_SESSION['user_id'])) {
+    header('Location: login.php');
+    exit;
+}
 
-// Include AdminLTE header and sidebar
+$pageTitle = 'Patients Management';
+$pageIcon = 'fas fa-user-injured';
+$breadcrumbs = ['Patients'];
+
 include 'includes/adminlte_template_header.php';
 include 'includes/adminlte_sidebar.php';
 ?>
@@ -18,18 +24,15 @@ include 'includes/adminlte_sidebar.php';
       <div class="row mb-2">
         <div class="col-sm-6">
           <h1 class="m-0">
-            <i class="fas fa-user-injured mr-2 text-primary"></i>
-            Patients Management
+            <i class="<?php echo $pageIcon; ?> mr-2 text-primary"></i><?php echo $pageTitle; ?>
           </h1>
         </div>
         <div class="col-sm-6">
           <ol class="breadcrumb float-sm-right">
-            <li class="breadcrumb-item">
-              <a href="dashboard.php">
-                <i class="fas fa-home"></i> Home
-              </a>
-            </li>
-            <li class="breadcrumb-item active">Patients</li>
+            <li class="breadcrumb-item"><a href="dashboard.php">Home</a></li>
+            <?php foreach($breadcrumbs as $index => $crumb): ?>
+              <li class="breadcrumb-item active"><?php echo $crumb; ?></li>
+            <?php endforeach; ?>
           </ol>
         </div>
       </div>
@@ -39,115 +42,308 @@ include 'includes/adminlte_sidebar.php';
   <!-- Main content -->
   <section class="content">
     <div class="container-fluid">
-      
-      <!-- Patients List -->
       <div class="row">
         <div class="col-12">
-          <div class="card card-outline card-primary">
+          <div class="card card-primary card-outline">
             <div class="card-header">
               <h3 class="card-title">
-                <i class="fas fa-list mr-1"></i>
-                All Patients
+                <i class="fas fa-list mr-2"></i>All Patients
               </h3>
               <div class="card-tools">
-                <button type="button" class="btn btn-primary btn-sm" id="addPatientBtn" onclick="openPatientModal()">
-                  <i class="fas fa-plus mr-1"></i>Add New Patient
+                <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#patientModal" onclick="openAddModal()">
+                  <i class="fas fa-plus mr-1"></i>Add Patient
                 </button>
-                <button type="button" class="btn btn-success btn-sm ml-1" id="refreshBtn" onclick="refreshPatients()">
+                <button type="button" class="btn btn-outline-secondary btn-sm ml-1" onclick="refreshTable()">
                   <i class="fas fa-sync-alt mr-1"></i>Refresh
                 </button>
               </div>
             </div>
             <div class="card-body">
-              <div id="loading" class="text-center p-4" style="display: none;">
-                <div class="spinner-border text-primary" role="status">
-                  <span class="sr-only">Loading...</span>
-                </div>
-                <p class="mt-2">Loading patients...</p>
-              </div>
-              
-              <div id="no-data" class="text-center p-4" style="display: none;">
-                <i class="fas fa-user-injured fa-3x text-muted mb-3"></i>
-                <h5 class="text-muted">No Patients Found</h5>
-                <p class="text-muted">Start by adding your first patient to the system.</p>
-                <button type="button" class="btn btn-primary" id="addFirstPatientBtn" onclick="openPatientModal()">
-                  <i class="fas fa-plus mr-2"></i>Add First Patient
-                </button>
-              </div>
-              
-              <div id="patients-table-container" style="display: none;">
-                <div class="table-responsive">
-                  <table id="patientsTable" class="table table-bordered table-striped table-hover">
-                    <thead>
-                      <tr>
-                        <th>ID</th>
-                        <th>Patient Name</th>
-                        <th>Phone</th>
-                        <th>Email</th>
-                        <th>Age</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody id="patients-tbody">
-                      <!-- Data will be loaded via AJAX -->
-                    </tbody>
-                  </table>
-                </div>
+              <div class="table-responsive">
+                <table id="patientsTable" class="table table-bordered table-striped table-hover">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Name</th>
+                      <th>Phone</th>
+                      <th>Email</th>
+                      <th>Age</th>
+                      <th>Gender</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <!-- Data will be loaded via DataTables AJAX -->
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
         </div>
       </div>
-      
-    </div><!-- /.container-fluid -->
+    </div>
   </section>
-  <!-- /.content -->
 </div>
-<!-- /.content-wrapper -->
 
 <!-- Patient Modal -->
-<div class="modal fade" id="patientModal" tabindex="-1" role="dialog" aria-labelledby="patientModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg" role="document">
+<div class="modal fade" id="patientModal" tabindex="-1" aria-labelledby="patientModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
     <div class="modal-content">
-      <div class="modal-header bg-primary text-white">
-        <h5 class="modal-title" id="patientModalLabel">
+      <div class="modal-header bg-primary">
+        <h5 class="modal-title text-white" id="patientModalLabel">
           <i class="fas fa-user-injured mr-2"></i>
-          <span id="modal-title">Add New Patient</span>
+          <span id="modalTitle">Add New Patient</span>
         </h5>
-        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
+        <button type="button" class="close text-white" data-dismiss="modal">
+          <span>&times;</span>
         </button>
       </div>
-      <form id="patientForm">
+      <form id="patientForm" novalidate>
         <div class="modal-body">
-          <input type="hidden" id="patient_id" name="patient_id">
+          <input type="hidden" id="patientId" name="id">
           
-          <!-- Essential Patient Information -->
-          <div class="card mb-3">
-            <div class="card-header bg-light">
-              <h6 class="mb-0"><i class="fas fa-user mr-2"></i>Personal Details</h6>
-            </div>
-            <div class="card-body">
-              <div class="row">
-                <div class="col-md-6">
-                  <div class="form-group">
-                    <label for="first_name">First Name <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control" id="first_name" name="first_name" required placeholder="Enter first name">
-                  </div>
-                </div>
-                <div class="col-md-6">
-                  <div class="form-group">
-                    <label for="last_name">Last Name <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control" id="last_name" name="last_name" required placeholder="Enter last name">
-                  </div>
-                </div>
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="firstName">First Name <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="firstName" name="first_name" required>
               </div>
-              
-              <div class="row">
-                <div class="col-md-6">
-                  <div class="form-group">
-                    <label for="phone">Phone Number <span class="text-danger">*</span></label>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="lastName">Last Name <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="lastName" name="last_name" required>
+              </div>
+            </div>
+          </div>
+          
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="phone">Phone Number <span class="text-danger">*</span></label>
+                <input type="tel" class="form-control" id="phone" name="phone" required>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" class="form-control" id="email" name="email">
+              </div>
+            </div>
+          </div>
+          
+          <div class="row">
+            <div class="col-md-4">
+              <div class="form-group">
+                <label for="dateOfBirth">Date of Birth <span class="text-danger">*</span></label>
+                <input type="date" class="form-control" id="dateOfBirth" name="date_of_birth" required>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group">
+                <label for="gender">Gender <span class="text-danger">*</span></label>
+                <select class="form-control" id="gender" name="gender" required>
+                  <option value="">Select Gender</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group">
+                <label for="status">Status</label>
+                <select class="form-control" id="status" name="status">
+                  <option value="Active">Active</option>
+                  <option value="Inactive">Inactive</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="address">Address</label>
+            <textarea class="form-control" id="address" name="address" rows="2"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save mr-1"></i>Save Patient
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+$(document).ready(function() {
+    // Initialize DataTable
+    initDataTable();
+});
+
+function initDataTable() {
+    $('#patientsTable').DataTable({
+        processing: true,
+        serverSide: true,
+        ajax: {
+            url: 'ajax/patients_datatable.php',
+            type: 'POST',
+            error: function(xhr, error, thrown) {
+                console.log('DataTables Error:', error);
+                showToast('error', 'Failed to load patient data. Please check your database connection.');
+            }
+        },
+        columns: [
+            { data: 'id', width: '60px' },
+            { data: 'full_name' },
+            { data: 'phone' },
+            { data: 'email' },
+            { data: 'age', width: '60px' },
+            { data: 'gender', width: '80px' },
+            { data: 'status', width: '100px' },
+            { data: 'actions', orderable: false, width: '120px' }
+        ],
+        order: [[0, 'desc']],
+        responsive: true,
+        language: {
+            processing: '<div class="spinner-border spinner-border-sm text-primary" role="status"></div> Loading...'
+        }
+    });
+}
+
+function refreshTable() {
+    $('#patientsTable').DataTable().ajax.reload(null, false);
+    showToast('success', 'Table refreshed successfully');
+}
+
+function openAddModal() {
+    $('#patientModalLabel #modalTitle').text('Add New Patient');
+    $('#patientForm')[0].reset();
+    $('#patientId').val('');
+    $('#patientForm').removeClass('was-validated');
+    $('#status').val('Active');
+}
+
+function editPatient(id) {
+    $('#patientModalLabel #modalTitle').text('Edit Patient');
+    
+    $.ajax({
+        url: 'api/patients_api.php',
+        type: 'GET',
+        data: { action: 'get', id: id },
+        dataType: 'json',
+        success: function(response) {
+            if (response.success) {
+                const patient = response.data;
+                $('#patientId').val(patient.id);
+                $('#firstName').val(patient.first_name);
+                $('#lastName').val(patient.last_name);
+                $('#phone').val(patient.phone);
+                $('#email').val(patient.email);
+                $('#dateOfBirth').val(patient.date_of_birth);
+                $('#gender').val(patient.gender);
+                $('#status').val(patient.status);
+                $('#address').val(patient.address);
+                $('#patientModal').modal('show');
+            } else {
+                showToast('error', response.message);
+            }
+        },
+        error: function() {
+            showToast('error', 'Failed to load patient data');
+        }
+    });
+}
+
+function deletePatient(id) {
+    if (confirm('Are you sure you want to delete this patient?')) {
+        $.ajax({
+            url: 'api/patients_api.php',
+            type: 'POST',
+            data: { 
+                action: 'delete', 
+                id: id 
+            },
+            dataType: 'json',
+            success: function(response) {
+                if (response.success) {
+                    showToast('success', 'Patient deleted successfully');
+                    refreshTable();
+                } else {
+                    showToast('error', response.message);
+                }
+            },
+            error: function() {
+                showToast('error', 'Failed to delete patient');
+            }
+        });
+    }
+}
+
+// Form submission
+$('#patientForm').on('submit', function(e) {
+    e.preventDefault();
+    
+    if (!this.checkValidity()) {
+        e.stopPropagation();
+        $(this).addClass('was-validated');
+        return;
+    }
+    
+    const formData = new FormData(this);
+    const isEdit = $('#patientId').val() !== '';
+    formData.append('action', isEdit ? 'update' : 'create');
+    
+    $.ajax({
+        url: 'api/patients_api.php',
+        type: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        dataType: 'json',
+        success: function(response) {
+            if (response.success) {
+                showToast('success', isEdit ? 'Patient updated successfully' : 'Patient created successfully');
+                $('#patientModal').modal('hide');
+                refreshTable();
+            } else {
+                showToast('error', response.message);
+            }
+        },
+        error: function() {
+            showToast('error', 'Failed to save patient');
+        }
+    });
+});
+
+function showToast(type, message) {
+    const toast = $(`
+        <div class="toast toast-${type}" role="alert" style="position: fixed; top: 20px; right: 20px; z-index: 9999;">
+            <div class="toast-header">
+                <i class="fas fa-${type === 'success' ? 'check-circle text-success' : 'exclamation-circle text-danger'} mr-2"></i>
+                <strong class="mr-auto">${type === 'success' ? 'Success' : 'Error'}</strong>
+                <button type="button" class="ml-2 mb-1 close" data-dismiss="toast">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="toast-body">${message}</div>
+        </div>
+    `);
+    
+    $('body').append(toast);
+    toast.toast({ delay: 3000 });
+    toast.toast('show');
+    
+    toast.on('hidden.bs.toast', function() {
+        $(this).remove();
+    });
+}
+</script>
+
+<?php include 'includes/adminlte_template_footer.php'; ?>
                     <input type="tel" class="form-control" id="phone" name="phone" required placeholder="Enter phone number">
                   </div>
                 </div>

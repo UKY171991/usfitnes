@@ -14,20 +14,257 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
+// Check database connection
+if (!isset($pdo) || !$pdo instanceof PDO) {
+    http_response_code(500);
+    echo json_encode(['success' => false, 'message' => 'Database connection not available']);
+    exit;
+}
+
+$method = $_SERVER['REQUEST_METHOD'];
 $action = $_REQUEST['action'] ?? '';
 
 try {
     switch ($action) {
-        case 'list':
-            listPatients();
-            break;
         case 'get':
             getPatient();
             break;
-        case 'add':
         case 'create':
-            addPatient();
+            createPatient();
             break;
+        case 'update':
+            updatePatient();
+            break;
+        case 'delete':
+            deletePatient();
+            break;
+        default:
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Invalid action']);
+            break;
+    }
+} catch (Exception $e) {
+    http_response_code(500);
+    echo json_encode(['success' => false, 'message' => 'Server error: ' . $e->getMessage()]);
+}
+
+function getPatient() {
+    global $pdo;
+    
+    $id = $_GET['id'] ?? '';
+    if (empty($id)) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'Patient ID is required']);
+        return;
+    }
+    
+    try {
+        $stmt = $pdo->prepare("SELECT * FROM patients WHERE id = ?");
+        $stmt->execute([$id]);
+        $patient = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if ($patient) {
+            echo json_encode(['success' => true, 'data' => $patient]);
+        } else {
+            http_response_code(404);
+            echo json_encode(['success' => false, 'message' => 'Patient not found']);
+        }
+    } catch (PDOException $e) {
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
+    }
+}
+
+function createPatient() {
+    global $pdo;
+    
+    // Validate required fields
+    $requiredFields = ['first_name', 'last_name', 'phone', 'date_of_birth', 'gender'];
+    foreach ($requiredFields as $field) {
+        if (empty($_POST[$field])) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => ucfirst(str_replace('_', ' ', $field)) . ' is required']);
+            return;
+        }
+    }
+    
+    try {
+        // Check if phone number already exists
+        $stmt = $pdo->prepare("SELECT id FROM patients WHERE phone = ?");
+        $stmt->execute([$_POST['phone']]);
+        if ($stmt->fetch()) {
+            http_response_code(409);
+            echo json_encode(['success' => false, 'message' => 'Phone number already exists']);
+            return;
+        }
+        
+        // Check if email exists (if provided)
+        if (!empty($_POST['email'])) {
+            $stmt = $pdo->prepare("SELECT id FROM patients WHERE email = ?");
+            $stmt->execute([$_POST['email']]);
+            if ($stmt->fetch()) {
+                http_response_code(409);
+                echo json_encode(['success' => false, 'message' => 'Email already exists']);
+                return;
+            }
+        }
+        
+        // Insert patient
+        $stmt = $pdo->prepare("
+            INSERT INTO patients (first_name, last_name, phone, email, date_of_birth, gender, status, address, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
+        ");
+        
+        $result = $stmt->execute([
+            $_POST['first_name'],
+            $_POST['last_name'],
+            $_POST['phone'],
+            $_POST['email'] ?? null,
+            $_POST['date_of_birth'],
+            $_POST['gender'],
+            $_POST['status'] ?? 'Active',
+            $_POST['address'] ?? null
+        ]);
+        
+        if ($result) {
+            $patientId = $pdo->lastInsertId();
+            echo json_encode([
+                'success' => true,
+                'message' => 'Patient created successfully',
+                'data' => ['id' => $patientId]
+            ]);
+        } else {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Failed to create patient']);
+        }
+        
+    } catch (PDOException $e) {
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
+    }
+}
+
+function updatePatient() {
+    global $pdo;
+    
+    $id = $_POST['id'] ?? '';
+    if (empty($id)) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'Patient ID is required']);
+        return;
+    }
+    
+    // Validate required fields
+    $requiredFields = ['first_name', 'last_name', 'phone', 'date_of_birth', 'gender'];
+    foreach ($requiredFields as $field) {
+        if (empty($_POST[$field])) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => ucfirst(str_replace('_', ' ', $field)) . ' is required']);
+            return;
+        }
+    }
+    
+    try {
+        // Check if phone number already exists for other patients
+        $stmt = $pdo->prepare("SELECT id FROM patients WHERE phone = ? AND id != ?");
+        $stmt->execute([$_POST['phone'], $id]);
+        if ($stmt->fetch()) {
+            http_response_code(409);
+            echo json_encode(['success' => false, 'message' => 'Phone number already exists']);
+            return;
+        }
+        
+        // Check if email exists for other patients (if provided)
+        if (!empty($_POST['email'])) {
+            $stmt = $pdo->prepare("SELECT id FROM patients WHERE email = ? AND id != ?");
+            $stmt->execute([$_POST['email'], $id]);
+            if ($stmt->fetch()) {
+                http_response_code(409);
+                echo json_encode(['success' => false, 'message' => 'Email already exists']);
+                return;
+            }
+        }
+        
+        // Update patient
+        $stmt = $pdo->prepare("
+            UPDATE patients 
+            SET first_name = ?, last_name = ?, phone = ?, email = ?, date_of_birth = ?, 
+                gender = ?, status = ?, address = ?, updated_at = NOW()
+            WHERE id = ?
+        ");
+        
+        $result = $stmt->execute([
+            $_POST['first_name'],
+            $_POST['last_name'],
+            $_POST['phone'],
+            $_POST['email'] ?? null,
+            $_POST['date_of_birth'],
+            $_POST['gender'],
+            $_POST['status'] ?? 'Active',
+            $_POST['address'] ?? null,
+            $id
+        ]);
+        
+        if ($result) {
+            echo json_encode(['success' => true, 'message' => 'Patient updated successfully']);
+        } else {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Failed to update patient']);
+        }
+        
+    } catch (PDOException $e) {
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
+    }
+}
+
+function deletePatient() {
+    global $pdo;
+    
+    $id = $_POST['id'] ?? '';
+    if (empty($id)) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'Patient ID is required']);
+        return;
+    }
+    
+    try {
+        // Check if patient exists
+        $stmt = $pdo->prepare("SELECT id FROM patients WHERE id = ?");
+        $stmt->execute([$id]);
+        if (!$stmt->fetch()) {
+            http_response_code(404);
+            echo json_encode(['success' => false, 'message' => 'Patient not found']);
+            return;
+        }
+        
+        // Check if patient has test orders (optional - you might want to prevent deletion)
+        $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM test_orders WHERE patient_id = ?");
+        $stmt->execute([$id]);
+        $result = $stmt->fetch();
+        if ($result && $result['count'] > 0) {
+            http_response_code(409);
+            echo json_encode(['success' => false, 'message' => 'Cannot delete patient with existing test orders']);
+            return;
+        }
+        
+        // Delete patient
+        $stmt = $pdo->prepare("DELETE FROM patients WHERE id = ?");
+        $result = $stmt->execute([$id]);
+        
+        if ($result) {
+            echo json_encode(['success' => true, 'message' => 'Patient deleted successfully']);
+        } else {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Failed to delete patient']);
+        }
+        
+    } catch (PDOException $e) {
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
+    }
+}
+?>
         case 'update':
             updatePatient();
             break;

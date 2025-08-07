@@ -1,6 +1,5 @@
 <?php
 require_once '../config.php';
-require_once '../includes/init.php';
 
 // Check authentication
 if (!isset($_SESSION['user_id'])) {
@@ -12,22 +11,127 @@ if (!isset($_SESSION['user_id'])) {
 header('Content-Type: application/json');
 
 try {
-    $conn = getDbConnection();
+    // Check if database connection exists
+    if (!isset($pdo) || !$pdo instanceof PDO) {
+        // Return empty data for development
+        echo json_encode([
+            'draw' => intval($_POST['draw'] ?? 1),
+            'recordsTotal' => 0,
+            'recordsFiltered' => 0,
+            'data' => [],
+            'error' => 'Database connection not available'
+        ]);
+        exit;
+    }
     
-    // DataTable parameters
-    $draw = (int)($_POST['draw'] ?? 1);
-    $start = (int)($_POST['start'] ?? 0);
-    $length = (int)($_POST['length'] ?? 10);
+    // DataTables parameters
+    $draw = intval($_POST['draw'] ?? 1);
+    $start = intval($_POST['start'] ?? 0);
+    $length = intval($_POST['length'] ?? 10);
     $search = $_POST['search']['value'] ?? '';
-    $orderColumn = (int)($_POST['order'][0]['column'] ?? 0);
+    $orderColumn = $_POST['order'][0]['column'] ?? 0;
     $orderDir = $_POST['order'][0]['dir'] ?? 'desc';
     
     // Column mapping
-    $columns = ['id', 'name', 'phone', 'email', 'age', 'gender', 'status'];
+    $columns = ['id', 'full_name', 'phone', 'email', 'age', 'gender', 'status', 'actions'];
     $orderBy = $columns[$orderColumn] ?? 'id';
     
     // Base query
-    $baseQuery = "FROM patients WHERE 1=1";
+    $whereClause = "WHERE 1=1";
+    $params = [];
+    
+    // Search functionality
+    if (!empty($search)) {
+        $whereClause .= " AND (CONCAT(first_name, ' ', last_name) LIKE :search 
+                              OR phone LIKE :search 
+                              OR email LIKE :search 
+                              OR gender LIKE :search 
+                              OR status LIKE :search)";
+        $params[':search'] = '%' . $search . '%';
+    }
+    
+    // Count total records
+    $totalQuery = "SELECT COUNT(*) as count FROM patients $whereClause";
+    $stmt = $pdo->prepare($totalQuery);
+    foreach ($params as $key => $value) {
+        $stmt->bindValue($key, $value);
+    }
+    $stmt->execute();
+    $totalRecords = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
+    
+    // Get data with pagination
+    $dataQuery = "SELECT id, first_name, last_name, phone, email, date_of_birth, gender, status, address, created_at
+                  FROM patients 
+                  $whereClause 
+                  ORDER BY $orderBy $orderDir 
+                  LIMIT :start, :length";
+    
+    $stmt = $pdo->prepare($dataQuery);
+    foreach ($params as $key => $value) {
+        $stmt->bindValue($key, $value);
+    }
+    $stmt->bindValue(':start', $start, PDO::PARAM_INT);
+    $stmt->bindValue(':length', $length, PDO::PARAM_INT);
+    $stmt->execute();
+    $patients = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Format data for DataTables
+    $data = [];
+    foreach ($patients as $patient) {
+        // Calculate age
+        $age = '';
+        if (!empty($patient['date_of_birth'])) {
+            $dob = new DateTime($patient['date_of_birth']);
+            $now = new DateTime();
+            $age = $now->diff($dob)->y;
+        }
+        
+        // Status badge
+        $statusClass = $patient['status'] === 'Active' ? 'success' : 'secondary';
+        $statusBadge = '<span class="badge badge-' . $statusClass . '">' . htmlspecialchars($patient['status']) . '</span>';
+        
+        // Actions
+        $actions = '
+            <div class="btn-group btn-group-sm">
+                <button class="btn btn-info btn-sm" onclick="editPatient(' . $patient['id'] . ')" title="Edit">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn btn-danger btn-sm" onclick="deletePatient(' . $patient['id'] . ')" title="Delete">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>';
+        
+        $data[] = [
+            'id' => $patient['id'],
+            'full_name' => htmlspecialchars($patient['first_name'] . ' ' . $patient['last_name']),
+            'phone' => htmlspecialchars($patient['phone']),
+            'email' => htmlspecialchars($patient['email'] ?: '-'),
+            'age' => $age ?: '-',
+            'gender' => htmlspecialchars($patient['gender']),
+            'status' => $statusBadge,
+            'actions' => $actions
+        ];
+    }
+    
+    // Response
+    echo json_encode([
+        'draw' => $draw,
+        'recordsTotal' => $totalRecords,
+        'recordsFiltered' => $totalRecords,
+        'data' => $data
+    ]);
+
+} catch (Exception $e) {
+    http_response_code(500);
+    echo json_encode([
+        'draw' => intval($_POST['draw'] ?? 1),
+        'recordsTotal' => 0,
+        'recordsFiltered' => 0,
+        'data' => [],
+        'error' => 'Server error: ' . $e->getMessage()
+    ]);
+}
+?>
     $params = [];
     
     // Search functionality
