@@ -2,10 +2,17 @@
 session_start();
 require_once 'includes/config.php';
 
-// Check if user is logged in
+// Check if user is logged in or demo mode
 if (!isset($_SESSION['user_id'])) {
-    header('Location: login.php');
-    exit();
+    // Allow demo mode
+    if (isset($_GET['demo'])) {
+        $_SESSION['user_id'] = 999;
+        $_SESSION['username'] = 'demo';
+        $_SESSION['full_name'] = 'Demo User';
+    } else {
+        header('Location: login.php');
+        exit();
+    }
 }
 
 $page_title = 'Patients Management';
