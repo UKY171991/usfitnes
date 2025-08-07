@@ -55,8 +55,8 @@ $page_title = $page_title ?? 'PathLab Pro - Laboratory Management System';
   <!-- Chart.js -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chart.js@4.2.1/dist/chart.min.css">
   
-  <!-- Custom CSS -->
-  <link rel="stylesheet" href="css/adminlte-custom.css?v=<?php echo time(); ?>">
+  <!-- PathLab Pro Custom CSS -->
+  <link rel="stylesheet" href="css/pathlab-custom.css?v=<?php echo time(); ?>">
   
   <style>
     /* PathLab Pro Custom Styles */
