@@ -1,4 +1,7 @@
 <?php
+// Include config for database connection and environment setup
+require_once 'config.php';
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -8,7 +11,6 @@ if(isset($_SESSION['user_id'])) {
     header("Location: dashboard.php");
     exit();
 }
-
 // Include init for logo functions
 require_once 'includes/init.php';
 ?>

@@ -267,13 +267,13 @@ function setCorsHeaders() {
     header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
     header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
     
-    if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
+    if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
         exit(0);
     }
 }
 
 // Handle preflight requests
-if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
+if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
     setCorsHeaders();
 }
 
@@ -485,7 +485,16 @@ try {
     foreach ($statements as $statement) {
         $statement = trim($statement);
         if (!empty($statement)) {
-            $pdo->exec($statement);
+            try {
+                $pdo->exec($statement);
+            } catch (PDOException $e) {
+                // Ignore table already exists errors
+                if (strpos($e->getMessage(), 'already exists') === false &&
+                    strpos($e->getMessage(), 'Duplicate key name') === false &&
+                    strpos($e->getMessage(), 'Duplicate entry') === false) {
+                    error_log("Table creation error: " . $e->getMessage());
+                }
+            }
         }
     }
     
@@ -512,7 +521,8 @@ try {
         } catch (PDOException $e) {
             // Ignore if constraint already exists
             if (strpos($e->getMessage(), 'Duplicate key name') === false && 
-                strpos($e->getMessage(), 'already exists') === false) {
+                strpos($e->getMessage(), 'already exists') === false &&
+                strpos($e->getMessage(), 'Duplicate entry') === false) {
                 error_log("Foreign key error: " . $e->getMessage());
             }
         }
@@ -523,12 +533,19 @@ try {
     $checkAdmin->execute();
     
     if ($checkAdmin->fetchColumn() == 0) {
-        $adminPassword = password_hash('password', PASSWORD_DEFAULT);
-        $insertAdmin = $pdo->prepare("
-            INSERT INTO users (username, password, email, name, user_type) 
-            VALUES ('admin', ?, 'admin@pathlabpro.com', 'System Administrator', 'admin')
-        ");
-        $insertAdmin->execute([$adminPassword]);
+        try {
+            $adminPassword = password_hash('password', PASSWORD_DEFAULT);
+            $insertAdmin = $pdo->prepare("
+                INSERT INTO users (username, password, email, name, user_type) 
+                VALUES ('admin', ?, 'admin@pathlabpro.com', 'System Administrator', 'admin')
+            ");
+            $insertAdmin->execute([$adminPassword]);
+        } catch (PDOException $e) {
+            // Ignore if admin already exists
+            if (strpos($e->getMessage(), 'Duplicate entry') === false) {
+                error_log("Admin user creation error: " . $e->getMessage());
+            }
+        }
     }
     
     // Insert sample data if tables are empty
@@ -548,7 +565,14 @@ try {
             
             $insertCategory = $pdo->prepare("INSERT INTO test_categories (category_name, description) VALUES (?, ?)");
             foreach ($categories as $category) {
-                $insertCategory->execute($category);
+                try {
+                    $insertCategory->execute($category);
+                } catch (PDOException $e) {
+                    // Ignore duplicate entries
+                    if (strpos($e->getMessage(), 'Duplicate entry') === false) {
+                        error_log("Category insertion error: " . $e->getMessage());
+                    }
+                }
             }
         }
         
@@ -570,7 +594,14 @@ try {
                 VALUES (?, ?, ?, ?, ?, ?, ?)
             ");
             foreach ($tests as $test) {
-                $insertTest->execute($test);
+                try {
+                    $insertTest->execute($test);
+                } catch (PDOException $e) {
+                    // Ignore duplicate entries
+                    if (strpos($e->getMessage(), 'Duplicate entry') === false) {
+                        error_log("Test insertion error: " . $e->getMessage());
+                    }
+                }
             }
         }
         
@@ -593,7 +624,14 @@ try {
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
         foreach ($patients as $patient) {
-            $insertPatient->execute($patient);
+            try {
+                $insertPatient->execute($patient);
+            } catch (PDOException $e) {
+                // Ignore duplicate entries
+                if (strpos($e->getMessage(), 'Duplicate entry') === false) {
+                    error_log("Patient insertion error: " . $e->getMessage());
+                }
+            }
         }
         
         // Insert sample doctors if empty
@@ -612,7 +650,14 @@ try {
                 VALUES (?, ?, ?, ?, ?, ?)
             ");
             foreach ($doctors as $doctor) {
-                $insertDoctor->execute($doctor);
+                try {
+                    $insertDoctor->execute($doctor);
+                } catch (PDOException $e) {
+                    // Ignore duplicate entries
+                    if (strpos($e->getMessage(), 'Duplicate entry') === false) {
+                        error_log("Doctor insertion error: " . $e->getMessage());
+                    }
+                }
             }
         }
         

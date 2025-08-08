@@ -1,235 +1,318 @@
 <?php
-require_once '../config.php';
+/**
+ * Users API - AdminLTE3 AJAX Handler
+ */
 
-// Check if user is logged in
-if (!isset($_SESSION['user_id'])) {
-    http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
-    exit();
-}
-
-// Check if user is admin
-$stmt = $pdo->prepare("SELECT user_type FROM users WHERE id = ?");
-$stmt->execute([$_SESSION['user_id']]);
-$user = $stmt->fetch();
-
-if (!$user || $user['user_type'] !== 'admin') {
-    http_response_code(403);
-    echo json_encode(['success' => false, 'message' => 'Access denied']);
-    exit();
-}
+// Get the correct path to config.php
+$config_path = dirname(__DIR__) . '/config.php';
+require_once $config_path;
 
 header('Content-Type: application/json');
 
-$method = $_SERVER['REQUEST_METHOD'];
-
 try {
-    switch ($method) {
-        case 'GET':
-            handleGet();
+    $action = $_REQUEST['action'] ?? '';
+    
+    switch ($action) {
+        case 'list':
+            echo json_encode(getUsersList());
             break;
-        case 'POST':
-            handlePost();
+            
+        case 'add_form':
+            echo getUserForm();
             break;
-        case 'PUT':
-            handlePut();
+            
+        case 'edit_form':
+            $id = (int)($_REQUEST['id'] ?? 0);
+            echo getUserForm($id);
             break;
-        case 'DELETE':
-            handleDelete();
+            
+        case 'view':
+            $id = (int)($_REQUEST['id'] ?? 0);
+            echo getUserView($id);
             break;
+            
+        case 'save':
+            echo json_encode(saveUser());
+            break;
+            
+        case 'delete':
+            $id = (int)($_REQUEST['id'] ?? 0);
+            echo json_encode(deleteUser($id));
+            break;
+            
         default:
-            throw new Exception('Method not allowed');
+            echo json_encode(getUsersList());
     }
+    
 } catch (Exception $e) {
     echo json_encode([
         'success' => false,
-        'message' => $e->getMessage(),
-        'data' => null
+        'message' => $e->getMessage()
     ]);
 }
 
-function handleGet() {
-    global $pdo;
-    
-    if (isset($_GET['action'])) {
-        if ($_GET['action'] === 'get' && isset($_GET['id'])) {
-            // Get single user
-            try {
-                $stmt = $pdo->prepare("SELECT id, name, email, username, user_type, phone, status, last_login, login_count, created_at, updated_at FROM users WHERE id = ?");
-                $stmt->execute([$_GET['id']]);
-                $user = $stmt->fetch(PDO::FETCH_ASSOC);
-                
-                if ($user) {
-                    echo json_encode([
-                        'success' => true,
-                        'message' => 'User retrieved successfully',
-                        'data' => $user
-                    ]);
-                } else {
-                    echo json_encode([
-                        'success' => false,
-                        'message' => 'User not found',
-                        'data' => null
-                    ]);
-                }
-            } catch (Exception $e) {
-                // Return sample data if database error
-                echo json_encode([
-                    'success' => true,
-                    'message' => 'User retrieved successfully',
-                    'data' => [
-                        'id' => $_GET['id'],
-                        'name' => 'Sample User',
-                        'email' => 'user@example.com',
-                        'username' => 'sampleuser',
-                        'user_type' => 'admin',
-                        'phone' => '123-456-7890',
-                        'status' => 'active',
-                        'last_login' => date('Y-m-d H:i:s'),
-                        'login_count' => 10,
-                        'created_at' => date('Y-m-d H:i:s'),
-                        'updated_at' => date('Y-m-d H:i:s')
-                    ]
-                ]);
-            }
-            return;
-        } elseif ($_GET['action'] === 'reset_password') {
-            // Handle password reset
-            $user_id = $_POST['user_id'] ?? null;
-            $new_password = $_POST['new_password'] ?? null;
-            $confirm_password = $_POST['confirm_password'] ?? null;
-            
-            if (!$user_id || !$new_password || !$confirm_password) {
-                throw new Exception('All fields are required');
-            }
-            
-            if ($new_password !== $confirm_password) {
-                throw new Exception('Passwords do not match');
-            }
-            
-            if (strlen($new_password) < 6) {
-                throw new Exception('Password must be at least 6 characters long');
-            }
-            
-            echo json_encode([
-                'success' => true,
-                'message' => 'Password reset successfully',
-                'data' => ['user_id' => $user_id]
-            ]);
-            return;
-        }
-    }
-    
-    // Default: return paginated list (for DataTables)
-    echo json_encode([
-        'success' => true,
-        'message' => 'Users retrieved successfully',
-        'data' => []
-    ]);
-}
-
-function handlePost() {
-    global $pdo;
-    
-    if (isset($_GET['action']) && $_GET['action'] === 'reset_password') {
-        // Handle password reset
-        $user_id = $_POST['user_id'] ?? null;
-        $new_password = $_POST['new_password'] ?? null;
-        $confirm_password = $_POST['confirm_password'] ?? null;
-        
-        if (!$user_id || !$new_password || !$confirm_password) {
-            throw new Exception('All fields are required');
-        }
-        
-        if ($new_password !== $confirm_password) {
-            throw new Exception('Passwords do not match');
-        }
-        
-        if (strlen($new_password) < 6) {
-            throw new Exception('Password must be at least 6 characters long');
-        }
-        
-        echo json_encode([
-            'success' => true,
-            'message' => 'Password reset successfully',
-            'data' => ['user_id' => $user_id]
-        ]);
-        return;
-    }
-    
+function getUsersList() {
     try {
-        // Get form data
-        $name = $_POST['name'] ?? null;
-        $email = $_POST['email'] ?? null;
-        $username = $_POST['username'] ?? null;
-        $password = $_POST['password'] ?? null;
-        $user_type = $_POST['user_type'] ?? null;
-        $phone = $_POST['phone'] ?? '';
-        $status = $_POST['status'] ?? 'active';
+        $conn = getDatabaseConnection();
         
-        if (!$name || !$email || !$username || !$password || !$user_type) {
-            throw new Exception('All required fields must be filled');
+        $draw = (int)($_POST['draw'] ?? 1);
+        $start = (int)($_POST['start'] ?? 0);
+        $length = (int)($_POST['length'] ?? 25);
+        $search = $_POST['search']['value'] ?? '';
+        
+        $where = "1=1";
+        $params = [];
+        
+        if (!empty($search)) {
+            $where .= " AND (username LIKE ? OR name LIKE ? OR email LIKE ?)";
+            $searchParam = "%{$search}%";
+            $params = [$searchParam, $searchParam, $searchParam];
         }
         
-        if (strlen($password) < 6) {
-            throw new Exception('Password must be at least 6 characters long');
-        }
+        $stmt = $conn->prepare("SELECT COUNT(*) FROM users WHERE {$where}");
+        $stmt->execute($params);
+        $totalRecords = $stmt->fetchColumn();
         
-        // For now, just return success (would normally insert into database)
-        echo json_encode([
-            'success' => true,
-            'message' => 'User created successfully',
-            'data' => [
-                'id' => rand(1000, 9999),
-                'name' => $name,
-                'email' => $email,
-                'username' => $username,
-                'user_type' => $user_type,
-                'phone' => $phone,
-                'status' => $status,
-                'created_at' => date('Y-m-d H:i:s')
-            ]
-        ]);
+        $sql = "SELECT id, username, name, email, user_type, created_at FROM users WHERE {$where} ORDER BY id DESC LIMIT {$start}, {$length}";
+        $stmt = $conn->prepare($sql);
+        $stmt->execute($params);
+        $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        return [
+            'draw' => $draw,
+            'recordsTotal' => $totalRecords,
+            'recordsFiltered' => $totalRecords,
+            'data' => $data
+        ];
         
     } catch (Exception $e) {
-        echo json_encode([
+        return [
+            'draw' => 1,
+            'recordsTotal' => 0,
+            'recordsFiltered' => 0,
+            'data' => []
+        ];
+    }
+}
+
+function getUserForm($id = 0) {
+    $user = null;
+    $title = 'Add New User';
+    
+    if ($id > 0) {
+        $conn = getDatabaseConnection();
+        $stmt = $conn->prepare("SELECT * FROM users WHERE id = ?");
+        $stmt->execute([$id]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+        $title = 'Edit User';
+    }
+    
+    ob_start();
+    ?>
+    <div class="modal-header">
+        <h4 class="modal-title"><?= $title ?></h4>
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+    </div>
+    <form id="userForm" action="api/users_api.php" method="POST" onsubmit="return saveUser()">
+        <div class="modal-body">
+            <input type="hidden" name="action" value="save">
+            <?php if ($user): ?>
+                <input type="hidden" name="id" value="<?= $user['id'] ?>">
+            <?php endif; ?>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Username *</label>
+                        <input type="text" class="form-control" name="username" 
+                               value="<?= htmlspecialchars($user['username'] ?? '') ?>" required>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Full Name *</label>
+                        <input type="text" class="form-control" name="name" 
+                               value="<?= htmlspecialchars($user['name'] ?? '') ?>" required>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" class="form-control" name="email" 
+                               value="<?= htmlspecialchars($user['email'] ?? '') ?>">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>User Type</label>
+                        <select class="form-control" name="user_type">
+                            <option value="admin" <?= ($user && $user['user_type'] == 'admin') ? 'selected' : '' ?>>Admin</option>
+                            <option value="lab_technician" <?= ($user && $user['user_type'] == 'lab_technician') ? 'selected' : '' ?>>Lab Technician</option>
+                            <option value="receptionist" <?= ($user && $user['user_type'] == 'receptionist') ? 'selected' : '' ?>>Receptionist</option>
+                            <option value="doctor" <?= ($user && $user['user_type'] == 'doctor') ? 'selected' : '' ?>>Doctor</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <?php if (!$user): ?>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Password *</label>
+                        <input type="password" class="form-control" name="password" required>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Phone</label>
+                        <input type="text" class="form-control" name="phone" 
+                               value="<?= htmlspecialchars($user['phone'] ?? '') ?>">
+                    </div>
+                </div>
+            </div>
+            <?php endif; ?>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save User</button>
+        </div>
+    </form>
+    <?php
+    return ob_get_clean();
+}
+
+function getUserView($id) {
+    $conn = getDatabaseConnection();
+    $stmt = $conn->prepare("SELECT * FROM users WHERE id = ?");
+    $stmt->execute([$id]);
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if (!$user) {
+        return '<div class="modal-body">User not found.</div>';
+    }
+    
+    ob_start();
+    ?>
+    <div class="modal-header">
+        <h4 class="modal-title">User Details</h4>
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+    </div>
+    <div class="modal-body">
+        <table class="table table-striped">
+            <tr><th width="150">ID:</th><td><?= $user['id'] ?></td></tr>
+            <tr><th>Username:</th><td><?= htmlspecialchars($user['username']) ?></td></tr>
+            <tr><th>Name:</th><td><?= htmlspecialchars($user['name']) ?></td></tr>
+            <tr><th>Email:</th><td><?= htmlspecialchars($user['email'] ?: 'N/A') ?></td></tr>
+            <tr><th>Phone:</th><td><?= htmlspecialchars($user['phone'] ?: 'N/A') ?></td></tr>
+            <tr><th>User Type:</th><td><span class="badge badge-info"><?= strtoupper(str_replace('_', ' ', $user['user_type'])) ?></span></td></tr>
+            <tr><th>Created:</th><td><?= date('M j, Y g:i A', strtotime($user['created_at'])) ?></td></tr>
+        </table>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary" onclick="editUser(<?= $user['id'] ?>)">Edit</button>
+    </div>
+    <?php
+    return ob_get_clean();
+}
+
+function saveUser() {
+    try {
+        $conn = getDatabaseConnection();
+        
+        $id = (int)($_POST['id'] ?? 0);
+        $username = trim($_POST['username'] ?? '');
+        $name = trim($_POST['name'] ?? '');
+        $email = trim($_POST['email'] ?? '');
+        $phone = trim($_POST['phone'] ?? '');
+        $user_type = $_POST['user_type'] ?? 'lab_technician';
+        $password = trim($_POST['password'] ?? '');
+        
+        if (empty($username)) {
+            throw new Exception('Username is required');
+        }
+        
+        if (empty($name)) {
+            throw new Exception('Full name is required');
+        }
+        
+        if ($email && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            throw new Exception('Please enter a valid email address');
+        }
+        
+        // Check username uniqueness
+        if ($id > 0) {
+            $stmt = $conn->prepare("SELECT COUNT(*) FROM users WHERE username = ? AND id != ?");
+            $stmt->execute([$username, $id]);
+        } else {
+            $stmt = $conn->prepare("SELECT COUNT(*) FROM users WHERE username = ?");
+            $stmt->execute([$username]);
+        }
+        
+        if ($stmt->fetchColumn() > 0) {
+            throw new Exception('Username already exists');
+        }
+        
+        if ($id > 0) {
+            $sql = "UPDATE users SET username = ?, name = ?, email = ?, phone = ?, user_type = ? WHERE id = ?";
+            $params = [$username, $name, $email, $phone, $user_type, $id];
+            $message = 'User updated successfully';
+        } else {
+            if (empty($password)) {
+                throw new Exception('Password is required for new users');
+            }
+            $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+            $sql = "INSERT INTO users (username, name, email, phone, user_type, password) VALUES (?, ?, ?, ?, ?, ?)";
+            $params = [$username, $name, $email, $phone, $user_type, $hashedPassword];
+            $message = 'User created successfully';
+        }
+        
+        $stmt = $conn->prepare($sql);
+        $stmt->execute($params);
+        
+        return [
+            'success' => true,
+            'message' => $message
+        ];
+        
+    } catch (Exception $e) {
+        return [
             'success' => false,
-            'message' => $e->getMessage(),
-            'data' => null
-        ]);
+            'message' => $e->getMessage()
+        ];
     }
 }
 
-function handlePut() {
-    global $pdo;
-    
-    // Parse PUT data
-    parse_str(file_get_contents("php://input"), $put_data);
-    
-    $id = $put_data['id'] ?? null;
-    if (!$id) {
-        throw new Exception('User ID is required');
+function deleteUser($id) {
+    try {
+        $conn = getDatabaseConnection();
+        
+        // Don't allow deletion of admin user
+        $stmt = $conn->prepare("SELECT user_type FROM users WHERE id = ?");
+        $stmt->execute([$id]);
+        $userType = $stmt->fetchColumn();
+        
+        if ($userType === 'admin') {
+            throw new Exception('Cannot delete admin user');
+        }
+        
+        $stmt = $conn->prepare("DELETE FROM users WHERE id = ?");
+        $stmt->execute([$id]);
+        
+        return [
+            'success' => true,
+            'message' => 'User deleted successfully'
+        ];
+        
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => $e->getMessage()
+        ];
     }
-    
-    echo json_encode([
-        'success' => true,
-        'message' => 'User updated successfully',
-        'data' => ['id' => $id]
-    ]);
-}
-
-function handleDelete() {
-    global $pdo;
-    
-    $id = $_POST['id'] ?? null;
-    if (!$id) {
-        throw new Exception('User ID is required');
-    }
-    
-    echo json_encode([
-        'success' => true,
-        'message' => 'User deleted successfully',
-        'data' => ['id' => $id]
-    ]);
 }
 ?>

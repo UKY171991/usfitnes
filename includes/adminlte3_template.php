@@ -9,10 +9,13 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
-require_once __DIR__ . '/config.php';
+// Get the correct path to config.php from includes folder
+$config_path = dirname(__DIR__) . '/config.php';
+require_once $config_path;
 
 // Get user information
-$stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
+$conn = getDatabaseConnection();
+$stmt = $conn->prepare("SELECT * FROM users WHERE id = ?");
 $stmt->execute([$_SESSION['user_id']]);
 $user = $stmt->fetch();
 
@@ -161,7 +164,7 @@ if (!$user) {
             <!-- Sidebar user panel -->
             <div class="user-panel mt-3 pb-3 mb-3 d-flex">
                 <div class="image">
-                    <img src="img/user-avatar.png" class="img-circle elevation-2" alt="User Image">
+                    <img src="img/avatar-default.svg" class="img-circle elevation-2" alt="User Image">
                 </div>
                 <div class="info">
                     <a href="#" class="d-block"><?php echo htmlspecialchars($user['name']); ?></a>

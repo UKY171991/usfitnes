@@ -57,35 +57,6 @@ try {
     }
 }
 
-// Helper functions for AJAX responses
-function jsonResponse($success, $message, $data = null, $extra = []) {
-    $response = [
-        'success' => $success,
-        'message' => $message
-    ];
-    
-    if ($data !== null) {
-        $response['data'] = $data;
-    }
-    
-    // Add any extra fields
-    foreach ($extra as $key => $value) {
-        $response[$key] = $value;
-    }
-    
-    header('Content-Type: application/json');
-    echo json_encode($response);
-    exit;
-}
-
-function successResponse($message, $data = null, $extra = []) {
-    jsonResponse(true, $message, $data, $extra);
-}
-
-function errorResponse($message, $data = null, $extra = []) {
-    jsonResponse(false, $message, $data, $extra);
-}
-
 // Security functions
 function sanitizeInput($data) {
     if (is_array($data)) {

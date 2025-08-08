@@ -1,52 +1,81 @@
-# USFitness Lab API Documentation
+# USFitness Lab API Documentation - AdminLTE3 AJAX System
 
 ## API Endpoints
 
 ### Dashboard API (`/api/dashboard_api.php`)
-- **GET/POST** `?action=get_counts` - Get dashboard statistics
-  - Returns: total_patients, todays_orders, pending_results, total_doctors
-- **GET/POST** `?action=get_recent_activities` - Get recent activities 
-  - Params: limit (default: 10)
-- **GET/POST** `?action=get_recent_orders` - Get recent test orders
-  - Params: limit (default: 10)
-- **GET/POST** `?action=get_monthly_stats` - Get monthly statistics for charts
+- **POST** `action=stats` - Get dashboard statistics
+  - Returns: patients, doctors, test_orders, equipment counts
+- **POST** `action=monthly_stats` - Get monthly statistics for charts
+  - Returns: months[], orders[], patients[] arrays for Chart.js
+- **POST** `action=test_types` - Get test types distribution for pie chart
+  - Returns: labels[], values[] arrays for Chart.js
+- **POST** `action=recent_orders` - Get recent test orders (limit 10)
+  - Returns: array of orders with patient/doctor names
+- **POST** `action=recent_activities` - Get recent activities timeline
+  - Returns: array of activities with type, title, description, date
 
 ### Patients API (`/api/patients_api.php`)
-- **POST** `action=list` - Get patients list (DataTables)
+- **POST** `action=list` - Get patients list (DataTables server-side)
   - Params: draw, start, length, search
   - Returns: DataTables format response
-- **GET** `action=add_form` - Get add patient form HTML
-- **GET** `action=edit_form&id=X` - Get edit patient form HTML
-- **GET** `action=view&id=X` - Get patient details view HTML
+- **POST** `action=add_form` - Get add patient form HTML for modal
+- **POST** `action=edit_form&id=X` - Get edit patient form HTML for modal
+- **POST** `action=view&id=X` - Get patient details view HTML for modal
 - **POST** `action=save` - Save patient (add/update)
-  - Fields: id (for update), name*, email, phone, date_of_birth, gender
+  - Fields: id (for update), name*, email, phone, date_of_birth, gender, address
 - **POST** `action=delete&id=X` - Delete patient
 
-### Doctors API (`/api/doctors_api.php`)
-- **POST** `action=list` - Get doctors list (DataTables)
-- **GET** `action=add_form` - Get add doctor form HTML
-- **GET** `action=edit_form&id=X` - Get edit doctor form HTML  
-- **GET** `action=view&id=X` - Get doctor details view HTML
+### Users API (`/api/users_api.php`)
+- **POST** `action=list` - Get users list (DataTables server-side)
+  - Params: draw, start, length, search
+  - Returns: DataTables format response
+- **POST** `action=add_form` - Get add user form HTML for modal
+- **POST** `action=edit_form&id=X` - Get edit user form HTML for modal
+- **POST** `action=view&id=X` - Get user details view HTML for modal
+- **POST** `action=save` - Save user (add/update)
+  - Fields: id (for update), username*, name*, email, phone, user_type*, password* (for new)
+- **POST** `action=delete&id=X` - Delete user (cannot delete admin users)
+
+### Doctors API (`/api/doctors_api.php`) - TO BE UPDATED
+- **POST** `action=list` - Get doctors list (DataTables server-side)
+- **POST** `action=add_form` - Get add doctor form HTML for modal
+- **POST** `action=edit_form&id=X` - Get edit doctor form HTML for modal
+- **POST** `action=view&id=X` - Get doctor details view HTML for modal
 - **POST** `action=save` - Save doctor (add/update)
-  - Fields: id, name*, email, phone, specialization, license_number
+  - Fields: id (for update), name*, email, phone, specialization, license_number
 - **POST** `action=delete&id=X` - Delete doctor
 
-### Test Orders API (`/api/test_orders_api.php`)
-- **POST** `action=list` - Get test orders list (DataTables)
-- **GET** `action=add_form` - Get add test order form HTML
-- **GET** `action=edit_form&id=X` - Get edit test order form HTML
-- **GET** `action=view&id=X` - Get test order details view HTML
+### Test Orders API (`/api/test_orders_api.php`) - ✅ COMPLETED
+- **POST** `action=list` - Get test orders list (DataTables server-side)
+  - Params: draw, start, length, search
+  - Returns: DataTables format response with patient/doctor names
+- **POST** `action=add_form` - Get add test order form HTML for modal
+- **POST** `action=edit_form&id=X` - Get edit test order form HTML for modal
+- **POST** `action=view&id=X` - Get test order details view HTML for modal
 - **POST** `action=save` - Save test order (add/update)
-  - Fields: id, order_number*, patient_id*, doctor_id, status
+  - Fields: id (for update), order_number*, patient_id*, doctor_id, test_type*, status, test_date, notes
 - **POST** `action=delete&id=X` - Delete test order
+- **POST** `action=get_patients` - Get patients list for dropdown
+- **POST** `action=get_doctors` - Get doctors list for dropdown
 
-### Users API (`/api/users_api.php`)
-- **POST** `action=list` - Get users list (DataTables)
-- **GET** `action=add_form` - Get add user form HTML
-- **GET** `action=edit_form&id=X` - Get edit user form HTML
-- **POST** `action=save` - Save user (add/update)
-  - Fields: id, username*, email*, password (for new), role
-- **POST** `action=delete&id=X` - Delete user
+### Equipment API (`/api/equipment_api.php`) - TO BE UPDATED
+- **POST** `action=list` - Get equipment list (DataTables server-side)
+- **POST** `action=add_form` - Get add equipment form HTML for modal
+- **POST** `action=edit_form&id=X` - Get edit equipment form HTML for modal
+- **POST** `action=view&id=X` - Get equipment details view HTML for modal
+- **POST** `action=save` - Save equipment (add/update)
+  - Fields: id (for update), name*, model, manufacturer, status, purchase_date
+- **POST** `action=delete&id=X` - Delete equipment
+
+### Reports API (`/api/reports_api.php`) - ✅ COMPLETED
+- **POST** `action=stats` - Get report statistics (total, completed, pending, urgent tests)
+- **POST** `action=list` - Get reports list (DataTables server-side)
+  - Params: draw, start, length, search, date_range, report_type
+  - Returns: DataTables format response with test order data
+- **POST** `action=generate` - Generate new report with filters
+  - Fields: date_range, from_date, to_date, report_type
+- **POST** `action=charts` - Get charts data for test distribution and monthly trends
+- **GET** `action=export&format=csv/excel/pdf` - Export reports in specified format
 
 ## AJAX Files (`/ajax/`)
 

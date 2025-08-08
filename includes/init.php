@@ -4,9 +4,6 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Include database configuration
-require_once __DIR__ . '/config.php';
-
 // Check if user is logged in
 if(!isset($_SESSION['user_id'])) {
     // Only redirect if we're not already on the login page or handling an API request

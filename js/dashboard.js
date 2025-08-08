@@ -1,344 +1,352 @@
-/**
- * Dashboard JavaScript for USFitness Lab
- * Handles dashboard-specific AJAX operations and charts
- */
-
 $(document).ready(function() {
+    // Initialize dashboard
+    initializeDashboard();
+    
     // Load dashboard data
     loadDashboardStats();
-    loadRecentActivities();
-    loadRecentOrders();
     loadMonthlyChart();
+    loadPieChart();
+    loadRecentOrders();
+    loadRecentActivities();
     
-    // Refresh dashboard data every 60 seconds
+    // Auto-refresh every 5 minutes
     setInterval(function() {
         loadDashboardStats();
-        loadRecentActivities();
         loadRecentOrders();
-    }, 60000);
-    
-    showToast('info', 'Dashboard loaded successfully');
+        loadRecentActivities();
+    }, 300000);
 });
 
-/**
- * Refresh all dashboard data manually
- */
-function refreshData() {
-    showToast('info', 'Refreshing dashboard data...');
-    loadDashboardStats();
-    loadRecentActivities();
-    loadRecentOrders();
-    loadMonthlyChart();
-}
-
-/**
- * Logout function
- */
-function logout() {
-    if (confirm('Are you sure you want to logout?')) {
-        window.location.href = 'logout.php';
+// Initialize dashboard functions
+function initializeDashboard() {
+    console.log('Dashboard initialized');
+    
+    // Configure toastr if available
+    if (typeof toastr !== 'undefined') {
+        toastr.options = {
+            closeButton: true,
+            debug: false,
+            newestOnTop: false,
+            progressBar: true,
+            positionClass: 'toast-top-right',
+            preventDuplicates: false,
+            onclick: null,
+            showDuration: '300',
+            hideDuration: '1000',
+            timeOut: '5000',
+            extendedTimeOut: '1000',
+            showEasing: 'swing',
+            hideEasing: 'linear',
+            showMethod: 'fadeIn',
+            hideMethod: 'fadeOut'
+        };
     }
 }
 
-/**
- * Load dashboard statistics
- */
+// Load dashboard statistics
 function loadDashboardStats() {
-    $.get('api/dashboard_api.php', { action: 'get_counts' })
-        .done(function(response) {
-            if (response.success && response.data) {
-                renderStatsCards(response.data);
+    $.ajax({
+        url: 'api/dashboard_api.php',
+        method: 'POST',
+        data: { action: 'stats' },
+        dataType: 'json',
+        success: function(response) {
+            if (response.success) {
+                const stats = response.data;
+                $('#patientsCount').text(stats.patients || 0);
+                $('#doctorsCount').text(stats.doctors || 0);
+                $('#testOrdersCount').text(stats.test_orders || 0);
+                $('#equipmentCount').text(stats.equipment || 0);
             } else {
-                showToast('error', 'Failed to load dashboard statistics');
+                console.error('Failed to load stats:', response.message);
             }
-        })
-        .fail(function() {
-            showToast('error', 'Failed to load dashboard statistics');
-        });
-}
-
-/**
- * Render statistics cards
- */
-function renderStatsCards(data) {
-    const statsHTML = `
-        <!-- Total Patients -->
-        <div class="col-lg-3 col-6">
-            <div class="small-box bg-info">
-                <div class="inner">
-                    <h3>${data.total_patients || 0}</h3>
-                    <p>Total Patients</p>
-                </div>
-                <div class="icon">
-                    <i class="fas fa-users"></i>
-                </div>
-                <a href="patients.php" class="small-box-footer">
-                    More info <i class="fas fa-arrow-circle-right"></i>
-                </a>
-            </div>
-        </div>
-
-        <!-- Today's Orders -->
-        <div class="col-lg-3 col-6">
-            <div class="small-box bg-success">
-                <div class="inner">
-                    <h3>${data.todays_orders || 0}</h3>
-                    <p>Today's Orders</p>
-                </div>
-                <div class="icon">
-                    <i class="fas fa-clipboard-list"></i>
-                </div>
-                <a href="test-orders.php" class="small-box-footer">
-                    More info <i class="fas fa-arrow-circle-right"></i>
-                </a>
-            </div>
-        </div>
-
-        <!-- Pending Results -->
-        <div class="col-lg-3 col-6">
-            <div class="small-box bg-warning">
-                <div class="inner">
-                    <h3>${data.pending_results || 0}</h3>
-                    <p>Pending Results</p>
-                </div>
-                <div class="icon">
-                    <i class="fas fa-vial"></i>
-                </div>
-                <a href="results.php" class="small-box-footer">
-                    More info <i class="fas fa-arrow-circle-right"></i>
-                </a>
-            </div>
-        </div>
-
-        <!-- Total Doctors -->
-        <div class="col-lg-3 col-6">
-            <div class="small-box bg-danger">
-                <div class="inner">
-                    <h3>${data.total_doctors || 0}</h3>
-                    <p>Total Doctors</p>
-                </div>
-                <div class="icon">
-                    <i class="fas fa-user-md"></i>
-                </div>
-                <a href="doctors.php" class="small-box-footer">
-                    More info <i class="fas fa-arrow-circle-right"></i>
-                </a>
-            </div>
-        </div>
-    `;
-    
-    $('#stats-cards').html(statsHTML);
-}
-
-/**
- * Load recent activities
- */
-function loadRecentActivities() {
-    $.get('api/dashboard_api.php', { action: 'get_recent_activities', limit: 10 })
-        .done(function(response) {
-            if (response.success && response.data) {
-                renderRecentActivities(response.data.activities || []);
-            } else {
-                $('#recent-activities').html('<div class="text-center text-muted">No recent activities found</div>');
-            }
-        })
-        .fail(function() {
-            $('#recent-activities').html('<div class="text-center text-danger">Failed to load activities</div>');
-        });
-}
-
-/**
- * Render recent activities
- */
-function renderRecentActivities(activities) {
-    if (activities.length === 0) {
-        $('#recent-activities').html('<div class="text-center text-muted">No recent activities found</div>');
-        return;
-    }
-    
-    let html = '';
-    
-    activities.forEach(function(activity, index) {
-        const iconClass = getActivityIcon(activity.action);
-        const colorClass = getActivityColor(activity.action);
-        
-        html += `
-            <div class="d-flex align-items-center mb-2">
-                <div class="mr-3">
-                    <i class="${iconClass} text-${colorClass}"></i>
-                </div>
-                <div class="flex-grow-1">
-                    <div class="font-weight-bold">${activity.action}</div>
-                    <div class="small text-muted">${activity.details || 'No additional details'}</div>
-                    <div class="small text-muted">${activity.time_ago || formatDate(activity.created_at)}</div>
-                </div>
-            </div>
-        `;
+        },
+        error: function(xhr, status, error) {
+            console.error('Stats error:', error);
+            // Set default values on error
+            $('#patientsCount').text('--');
+            $('#doctorsCount').text('--');
+            $('#testOrdersCount').text('--');
+            $('#equipmentCount').text('--');
+        }
     });
-    
-    $('#recent-activities').html(html);
 }
 
-/**
- * Get activity icon based on action
- */
-function getActivityIcon(action) {
-    const iconMap = {
-        'login': 'fas fa-sign-in-alt',
-        'logout': 'fas fa-sign-out-alt',
-        'patient_created': 'fas fa-user-plus',
-        'patient_updated': 'fas fa-user-edit',
-        'order_created': 'fas fa-plus-circle',
-        'order_updated': 'fas fa-edit',
-        'result_added': 'fas fa-vial'
-    };
-    
-    return iconMap[action] || 'fas fa-info-circle';
-}
+// Chart variables
+let monthlyChart = null;
+let pieChart = null;
 
-/**
- * Get activity color based on action
- */
-function getActivityColor(action) {
-    const colorMap = {
-        'login': 'success',
-        'logout': 'secondary',
-        'patient_created': 'info',
-        'patient_updated': 'warning',
-        'order_created': 'primary',
-        'order_updated': 'warning',
-        'result_added': 'success'
-    };
-    
-    return colorMap[action] || 'info';
-}
-
-/**
- * Load recent orders
- */
-function loadRecentOrders() {
-    $.get('api/dashboard_api.php', { action: 'get_recent_orders', limit: 10 })
-        .done(function(response) {
-            if (response.success && response.data) {
-                renderRecentOrders(response.data.orders || []);
-            } else {
-                $('#recent-orders-body').html('<tr><td colspan="5" class="text-center text-muted">No recent orders found</td></tr>');
-            }
-        })
-        .fail(function() {
-            $('#recent-orders-body').html('<tr><td colspan="5" class="text-center text-danger">Failed to load orders</td></tr>');
-        });
-}
-
-/**
- * Render recent orders
- */
-function renderRecentOrders(orders) {
-    if (orders.length === 0) {
-        $('#recent-orders-body').html('<tr><td colspan="5" class="text-center text-muted">No recent orders found</td></tr>');
-        return;
-    }
-    
-    let html = '';
-    
-    orders.forEach(function(order) {
-        const statusClass = getStatusClass(order.status);
-        
-        html += `
-            <tr>
-                <td>
-                    <a href="test-orders.php?id=${order.id}" class="text-primary">
-                        ${order.order_number}
-                    </a>
-                </td>
-                <td>
-                    <a href="patients.php?id=${order.patient_id}" class="text-info">
-                        ${order.patient_name}
-                    </a>
-                </td>
-                <td>${order.doctor_name || '<em>Not assigned</em>'}</td>
-                <td>
-                    <span class="badge ${statusClass}">
-                        ${capitalize(order.status)}
-                    </span>
-                </td>
-                <td>${formatDate(order.order_date)}</td>
-            </tr>
-        `;
-    });
-    
-    $('#recent-orders-body').html(html);
-}
-
-/**
- * Get CSS class for status badges
- */
-function getStatusClass(status) {
-    const statusMap = {
-        'pending': 'badge-warning',
-        'processing': 'badge-info',
-        'completed': 'badge-success',
-        'cancelled': 'badge-danger'
-    };
-    
-    return statusMap[status] || 'badge-secondary';
-}
-
-/**
- * Load and render monthly statistics chart
- */
+// Load monthly statistics chart
 function loadMonthlyChart() {
-    $.get('api/dashboard_api.php', { action: 'get_monthly_stats' })
-        .done(function(response) {
-            if (response.success && response.data) {
-                renderMonthlyChart(response.data);
+    $.ajax({
+        url: 'api/dashboard_api.php',
+        method: 'POST',
+        data: { action: 'monthly_stats' },
+        dataType: 'json',
+        success: function(response) {
+            if (response.success) {
+                const data = response.data;
+                renderMonthlyChart(data);
+            } else {
+                console.error('Failed to load monthly stats:', response.message);
             }
-        })
-        .fail(function() {
-            console.log('Failed to load monthly chart data');
-        });
+        },
+        error: function(xhr, status, error) {
+            console.error('Monthly stats error:', error);
+        }
+    });
 }
 
-/**
- * Render monthly chart using Chart.js
- */
+// Render monthly chart
 function renderMonthlyChart(data) {
     const ctx = document.getElementById('monthlyChart').getContext('2d');
     
-    new Chart(ctx, {
+    if (monthlyChart) {
+        monthlyChart.destroy();
+    }
+    
+    monthlyChart = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: data.months || ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+            labels: data.months || [],
             datasets: [{
                 label: 'Test Orders',
-                data: data.orders || [12, 19, 3, 5, 2, 3],
-                borderColor: '#007bff',
-                backgroundColor: 'rgba(0, 123, 255, 0.1)',
-                tension: 0.4
+                data: data.orders || [],
+                borderColor: 'rgb(75, 192, 192)',
+                backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                tension: 0.1
             }, {
-                label: 'Completed Results',
-                data: data.results || [7, 11, 5, 8, 3, 7],
-                borderColor: '#28a745',
-                backgroundColor: 'rgba(40, 167, 69, 0.1)',
-                tension: 0.4
+                label: 'New Patients',
+                data: data.patients || [],
+                borderColor: 'rgb(255, 99, 132)',
+                backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                tension: 0.1
             }]
         },
         options: {
             responsive: true,
-            plugins: {
-                legend: {
-                    position: 'top',
-                },
-                title: {
-                    display: true,
-                    text: 'Monthly Statistics Overview'
-                }
-            },
+            maintainAspectRatio: false,
             scales: {
                 y: {
                     beginAtZero: true
+                }
+            },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top'
                 }
             }
         }
     });
 }
+
+// Load pie chart data
+function loadPieChart() {
+    $.ajax({
+        url: 'api/dashboard_api.php',
+        method: 'POST',
+        data: { action: 'test_types' },
+        dataType: 'json',
+        success: function(response) {
+            if (response.success) {
+                const data = response.data;
+                renderPieChart(data);
+            } else {
+                console.error('Failed to load test types:', response.message);
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('Test types error:', error);
+        }
+    });
+}
+
+// Render pie chart
+function renderPieChart(data) {
+    const ctx = document.getElementById('pieChart').getContext('2d');
+    
+    if (pieChart) {
+        pieChart.destroy();
+    }
+    
+    pieChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: data.labels || [],
+            datasets: [{
+                data: data.values || [],
+                backgroundColor: [
+                    'rgba(255, 99, 132, 0.8)',
+                    'rgba(54, 162, 235, 0.8)',
+                    'rgba(255, 205, 86, 0.8)',
+                    'rgba(75, 192, 192, 0.8)',
+                    'rgba(153, 102, 255, 0.8)',
+                    'rgba(255, 159, 64, 0.8)'
+                ],
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+}
+
+// Load recent orders
+function loadRecentOrders() {
+    $.ajax({
+        url: 'api/dashboard_api.php',
+        method: 'POST',
+        data: { action: 'recent_orders' },
+        dataType: 'json',
+        success: function(response) {
+            if (response.success) {
+                const orders = response.data;
+                renderRecentOrders(orders);
+            } else {
+                $('#recentOrdersTable').html('<tr><td colspan="6" class="text-center">No recent orders found</td></tr>');
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('Recent orders error:', error);
+            $('#recentOrdersTable').html('<tr><td colspan="6" class="text-center text-danger">Error loading orders</td></tr>');
+        }
+    });
+}
+
+// Render recent orders
+function renderRecentOrders(orders) {
+    let html = '';
+    
+    if (orders.length === 0) {
+        html = '<tr><td colspan="6" class="text-center">No recent orders found</td></tr>';
+    } else {
+        orders.forEach(function(order) {
+            const statusBadges = {
+                'pending': 'warning',
+                'in_progress': 'info',
+                'completed': 'success',
+                'cancelled': 'danger'
+            };
+            
+            html += `
+                <tr>
+                    <td><strong>#${order.id}</strong></td>
+                    <td>${order.patient_name || 'N/A'}</td>
+                    <td>${order.doctor_name || 'N/A'}</td>
+                    <td>${order.test_type || 'N/A'}</td>
+                    <td><span class="badge badge-${statusBadges[order.status] || 'secondary'}">${(order.status || 'unknown').toUpperCase()}</span></td>
+                    <td>${order.created_at ? new Date(order.created_at).toLocaleDateString() : 'N/A'}</td>
+                </tr>
+            `;
+        });
+    }
+    
+    $('#recentOrdersTable').html(html);
+}
+
+// Load recent activities
+function loadRecentActivities() {
+    $.ajax({
+        url: 'api/dashboard_api.php',
+        method: 'POST',
+        data: { action: 'recent_activities' },
+        dataType: 'json',
+        success: function(response) {
+            if (response.success) {
+                const activities = response.data;
+                renderRecentActivities(activities);
+            } else {
+                $('#activitiesTimeline').html('<div class="text-center">No recent activities found</div>');
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('Recent activities error:', error);
+            $('#activitiesTimeline').html('<div class="text-center text-danger">Error loading activities</div>');
+        }
+    });
+}
+
+// Render recent activities
+function renderRecentActivities(activities) {
+    let html = '';
+    
+    if (activities.length === 0) {
+        html = '<div class="text-center">No recent activities found</div>';
+    } else {
+        activities.forEach(function(activity, index) {
+            const icons = {
+                'patient_added': 'fas fa-user-plus text-success',
+                'order_created': 'fas fa-clipboard-list text-info',
+                'result_uploaded': 'fas fa-vial text-warning',
+                'user_login': 'fas fa-sign-in-alt text-primary'
+            };
+            
+            html += `
+                <div class="timeline-item">
+                    <i class="${icons[activity.type] || 'fas fa-circle text-secondary'}"></i>
+                    <div class="timeline-item">
+                        <span class="time"><i class="far fa-clock"></i> ${activity.created_at ? new Date(activity.created_at).toLocaleDateString() : 'Recent'}</span>
+                        <h3 class="timeline-header">${activity.title || 'Activity'}</h3>
+                        <div class="timeline-body">
+                            ${activity.description || 'No description available'}
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+    }
+    
+    $('#activitiesTimeline').html(html);
+}
+
+// Refresh functions
+function refreshDashboard() {
+    if (typeof toastr !== 'undefined') {
+        toastr.info('Refreshing dashboard data...');
+    }
+    loadDashboardStats();
+    loadRecentOrders();
+    loadRecentActivities();
+}
+
+function refreshMonthlyChart() {
+    if (typeof toastr !== 'undefined') {
+        toastr.info('Refreshing monthly chart...');
+    }
+    loadMonthlyChart();
+}
+
+function refreshPieChart() {
+    if (typeof toastr !== 'undefined') {
+        toastr.info('Refreshing pie chart...');
+    }
+    loadPieChart();
+}
+
+function refreshRecentOrders() {
+    if (typeof toastr !== 'undefined') {
+        toastr.info('Refreshing recent orders...');
+    }
+    loadRecentOrders();
+}
+
+function refreshActivities() {
+    if (typeof toastr !== 'undefined') {
+        toastr.info('Refreshing activities...');
+    }
+    loadRecentActivities();
+}
+
+// Global refresh function
+window.refreshData = function() {
+    refreshDashboard();
+};

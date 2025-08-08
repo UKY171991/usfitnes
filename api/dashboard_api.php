@@ -1,31 +1,40 @@
 <?php
-require_once '../config.php';
+/**
+ * Dashboard API - AdminLTE3 AJAX Handler
+ */
+
+// Get the correct path to config.php
+$config_path = dirname(__DIR__) . '/config.php';
+require_once $config_path;
+
 header('Content-Type: application/json');
 
 try {
     $action = $_REQUEST['action'] ?? '';
     
     switch ($action) {
-        case 'get_counts':
-            echo json_encode(getDashboardCounts());
+        case 'stats':
+            echo json_encode(getDashboardStats());
             break;
             
-        case 'get_recent_activities':
-            $limit = (int)($_REQUEST['limit'] ?? 10);
-            echo json_encode(getRecentActivities($limit));
-            break;
-            
-        case 'get_recent_orders':
-            $limit = (int)($_REQUEST['limit'] ?? 10);
-            echo json_encode(getRecentOrders($limit));
-            break;
-            
-        case 'get_monthly_stats':
+        case 'monthly_stats':
             echo json_encode(getMonthlyStats());
             break;
             
+        case 'test_types':
+            echo json_encode(getTestTypesStats());
+            break;
+            
+        case 'recent_orders':
+            echo json_encode(getRecentOrders());
+            break;
+            
+        case 'recent_activities':
+            echo json_encode(getRecentActivities());
+            break;
+            
         default:
-            throw new Exception('Invalid action');
+            echo json_encode(getDashboardStats());
     }
     
 } catch (Exception $e) {
@@ -35,38 +44,33 @@ try {
     ]);
 }
 
-/**
- * Get dashboard counts
- */
-function getDashboardCounts() {
+function getDashboardStats() {
     try {
         $conn = getDatabaseConnection();
         
-        // Get total patients
+        // Get patients count
         $stmt = $conn->query("SELECT COUNT(*) FROM patients");
-        $total_patients = $stmt->fetchColumn();
+        $patients = $stmt->fetchColumn();
         
-        // Get today's orders
-        $stmt = $conn->prepare("SELECT COUNT(*) FROM test_orders WHERE DATE(order_date) = CURDATE()");
-        $stmt->execute();
-        $todays_orders = $stmt->fetchColumn();
-        
-        // Get pending results
-        $stmt = $conn->prepare("SELECT COUNT(*) FROM test_orders WHERE status IN ('pending', 'processing')");
-        $stmt->execute();
-        $pending_results = $stmt->fetchColumn();
-        
-        // Get total doctors
+        // Get doctors count
         $stmt = $conn->query("SELECT COUNT(*) FROM doctors");
-        $total_doctors = $stmt->fetchColumn();
+        $doctors = $stmt->fetchColumn();
+        
+        // Get test orders count
+        $stmt = $conn->query("SELECT COUNT(*) FROM test_orders");
+        $testOrders = $stmt->fetchColumn();
+        
+        // Get equipment count
+        $stmt = $conn->query("SELECT COUNT(*) FROM equipment");
+        $equipment = $stmt->fetchColumn();
         
         return [
             'success' => true,
             'data' => [
-                'total_patients' => (int)$total_patients,
-                'todays_orders' => (int)$todays_orders,
-                'pending_results' => (int)$pending_results,
-                'total_doctors' => (int)$total_doctors
+                'patients' => $patients,
+                'doctors' => $doctors,
+                'test_orders' => $testOrders,
+                'equipment' => $equipment
             ]
         ];
         
@@ -78,148 +82,29 @@ function getDashboardCounts() {
     }
 }
 
-/**
- * Get recent activities
- */
-function getRecentActivities($limit = 10) {
-    try {
-        $conn = getDatabaseConnection();
-        
-        // Check if activity_logs table exists
-        $stmt = $conn->query("SHOW TABLES LIKE 'activity_logs'");
-        if (!$stmt->fetch()) {
-            // Create sample activities if no activity table exists
-            $activities = [
-                [
-                    'action' => 'patient_created',
-                    'details' => 'New patient John Doe registered',
-                    'created_at' => date('Y-m-d H:i:s', strtotime('-2 hours')),
-                    'time_ago' => '2 hours ago'
-                ],
-                [
-                    'action' => 'order_created',
-                    'details' => 'Blood test order #12345 created',
-                    'created_at' => date('Y-m-d H:i:s', strtotime('-4 hours')),
-                    'time_ago' => '4 hours ago'
-                ],
-                [
-                    'action' => 'login',
-                    'details' => 'User logged in from dashboard',
-                    'created_at' => date('Y-m-d H:i:s', strtotime('-6 hours')),
-                    'time_ago' => '6 hours ago'
-                ]
-            ];
-        } else {
-            // Fetch from activity logs table
-            $stmt = $conn->prepare("
-                SELECT 
-                    action,
-                    details,
-                    created_at,
-                    CASE 
-                        WHEN created_at >= NOW() - INTERVAL 1 HOUR THEN CONCAT(TIMESTAMPDIFF(MINUTE, created_at, NOW()), ' minutes ago')
-                        WHEN created_at >= NOW() - INTERVAL 1 DAY THEN CONCAT(TIMESTAMPDIFF(HOUR, created_at, NOW()), ' hours ago')
-                        ELSE CONCAT(TIMESTAMPDIFF(DAY, created_at, NOW()), ' days ago')
-                    END as time_ago
-                FROM activity_logs 
-                ORDER BY created_at DESC 
-                LIMIT ?
-            ");
-            $stmt->execute([$limit]);
-            $activities = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        }
-        
-        return [
-            'success' => true,
-            'data' => [
-                'activities' => $activities
-            ]
-        ];
-        
-    } catch (Exception $e) {
-        return [
-            'success' => false,
-            'message' => $e->getMessage()
-        ];
-    }
-}
-
-/**
- * Get recent test orders
- */
-function getRecentOrders($limit = 10) {
-    try {
-        $conn = getDatabaseConnection();
-        
-        $stmt = $conn->prepare("
-            SELECT 
-                o.id,
-                o.order_number,
-                o.order_date,
-                o.status,
-                p.name as patient_name,
-                p.id as patient_id,
-                d.name as doctor_name
-            FROM test_orders o
-            LEFT JOIN patients p ON o.patient_id = p.id
-            LEFT JOIN doctors d ON o.doctor_id = d.id
-            ORDER BY o.order_date DESC
-            LIMIT ?
-        ");
-        
-        $stmt->execute([$limit]);
-        $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
-        return [
-            'success' => true,
-            'data' => [
-                'orders' => $orders
-            ]
-        ];
-        
-    } catch (Exception $e) {
-        return [
-            'success' => false,
-            'message' => $e->getMessage()
-        ];
-    }
-}
-
-/**
- * Get monthly statistics for charts
- */
 function getMonthlyStats() {
     try {
         $conn = getDatabaseConnection();
         
-        // Get last 6 months data
         $months = [];
         $orders = [];
-        $results = [];
+        $patients = [];
         
+        // Get last 6 months data
         for ($i = 5; $i >= 0; $i--) {
             $date = date('Y-m', strtotime("-{$i} months"));
             $monthName = date('M Y', strtotime("-{$i} months"));
             $months[] = $monthName;
             
             // Get orders count for this month
-            $stmt = $conn->prepare("
-                SELECT COUNT(*) 
-                FROM test_orders 
-                WHERE DATE_FORMAT(order_date, '%Y-%m') = ?
-            ");
+            $stmt = $conn->prepare("SELECT COUNT(*) FROM test_orders WHERE DATE_FORMAT(created_at, '%Y-%m') = ?");
             $stmt->execute([$date]);
             $orders[] = (int)$stmt->fetchColumn();
             
-            // Get completed results count for this month
-            $stmt = $conn->prepare("
-                SELECT COUNT(*) 
-                FROM test_orders 
-                WHERE DATE_FORMAT(order_date, '%Y-%m') = ? 
-                AND status = 'completed'
-            ");
+            // Get patients count for this month
+            $stmt = $conn->prepare("SELECT COUNT(*) FROM patients WHERE DATE_FORMAT(created_at, '%Y-%m') = ?");
             $stmt->execute([$date]);
-            $results[] = (int)$stmt->fetchColumn();
+            $patients[] = (int)$stmt->fetchColumn();
         }
         
         return [
@@ -227,8 +112,128 @@ function getMonthlyStats() {
             'data' => [
                 'months' => $months,
                 'orders' => $orders,
-                'results' => $results
+                'patients' => $patients
             ]
+        ];
+        
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => $e->getMessage()
+        ];
+    }
+}
+
+function getTestTypesStats() {
+    try {
+        $conn = getDatabaseConnection();
+        
+        $stmt = $conn->query("
+            SELECT test_type, COUNT(*) as count 
+            FROM test_orders 
+            GROUP BY test_type 
+            ORDER BY count DESC 
+            LIMIT 6
+        ");
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        $labels = [];
+        $values = [];
+        
+        foreach ($results as $row) {
+            $labels[] = ucwords(str_replace('_', ' ', $row['test_type']));
+            $values[] = (int)$row['count'];
+        }
+        
+        return [
+            'success' => true,
+            'data' => [
+                'labels' => $labels,
+                'values' => $values
+            ]
+        ];
+        
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => $e->getMessage()
+        ];
+    }
+}
+
+function getRecentOrders() {
+    try {
+        $conn = getDatabaseConnection();
+        
+        $stmt = $conn->query("
+            SELECT 
+                to.id,
+                to.test_type,
+                to.status,
+                to.created_at,
+                p.name as patient_name,
+                d.name as doctor_name
+            FROM test_orders to
+            JOIN patients p ON to.patient_id = p.id
+            JOIN doctors d ON to.doctor_id = d.id
+            ORDER BY to.created_at DESC
+            LIMIT 10
+        ");
+        $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        return [
+            'success' => true,
+            'data' => $orders
+        ];
+        
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => $e->getMessage()
+        ];
+    }
+}
+
+function getRecentActivities() {
+    try {
+        $conn = getDatabaseConnection();
+        
+        $activities = [];
+        
+        // Recent patient additions
+        $stmt = $conn->query("
+            SELECT 'patient_added' as type, 'New Patient Added' as title, 
+                   CONCAT('Patient ', name, ' was added to the system') as description,
+                   created_at
+            FROM patients 
+            ORDER BY created_at DESC 
+            LIMIT 5
+        ");
+        $activities = array_merge($activities, $stmt->fetchAll(PDO::FETCH_ASSOC));
+        
+        // Recent order creations
+        $stmt = $conn->query("
+            SELECT 'order_created' as type, 'Test Order Created' as title,
+                   CONCAT('Test order #', to.id, ' created for patient ', p.name) as description,
+                   to.created_at
+            FROM test_orders to
+            JOIN patients p ON to.patient_id = p.id
+            ORDER BY to.created_at DESC 
+            LIMIT 5
+        ");
+        $activities = array_merge($activities, $stmt->fetchAll(PDO::FETCH_ASSOC));
+        
+        // Sort by date
+        usort($activities, function($a, $b) {
+            return strtotime($b['created_at']) - strtotime($a['created_at']);
+        });
+        
+        // Get only latest 10
+        $activities = array_slice($activities, 0, 10);
+        
+        return [
+            'success' => true,
+            'data' => $activities
         ];
         
     } catch (Exception $e) {

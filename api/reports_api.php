@@ -1,308 +1,310 @@
 <?php
+/**
+ * Reports API - AdminLTE3 AJAX Handler
+ */
+
+// Get the correct path to config.php
+$config_path = dirname(__DIR__) . '/config.php';
+require_once $config_path;
+
 header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET');
-header('Access-Control-Allow-Headers: Content-Type');
-
-// Start session if not already started
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-// Check if user is logged in
-if (!isset($_SESSION['user_id'])) {
-    http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'Unauthorized access']);
-    exit;
-}
-
-require_once '../config.php';
-
-$method = $_SERVER['REQUEST_METHOD'];
 
 try {
-    switch ($method) {
-        case 'GET':
-            handleGet($pdo);
-            break;
-        default:
-            http_response_code(405);
-            echo json_encode(['success' => false, 'message' => 'Method not allowed']);
-            break;
-    }
-} catch (Exception $e) {
-    http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Server error: ' . $e->getMessage()]);
-}
-
-function handleGet($pdo) {
-    $action = $_GET['action'] ?? '';
+    $action = $_REQUEST['action'] ?? '';
     
     switch ($action) {
+        case 'stats':
+            echo json_encode(getReportsStats());
+            break;
+            
+        case 'list':
+            echo json_encode(getReportsList());
+            break;
+            
         case 'generate':
-            generateReport($pdo);
+            echo json_encode(generateReport());
             break;
-        case 'types':
-            getReportTypes($pdo);
+            
+        case 'charts':
+            echo json_encode(getChartsData());
             break;
+            
+        case 'export':
+            exportReports();
+            break;
+            
         default:
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Invalid action']);
-            break;
+            echo json_encode(getReportsStats());
     }
-}
-
-function generateReport($pdo) {
-    try {
-        $reportType = $_GET['report_type'] ?? '';
-        $dateFrom = $_GET['date_from'] ?? date('Y-m-d', strtotime('-30 days'));
-        $dateTo = $_GET['date_to'] ?? date('Y-m-d');
-        
-        // Validate inputs
-        if (empty($reportType)) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Report type is required']);
-            return;
-        }
-        
-        // Generate different reports based on type
-        switch ($reportType) {
-            case 'test_volume':
-                generateTestVolumeReport($pdo, $dateFrom, $dateTo);
-                break;
-            case 'revenue':
-                generateRevenueReport($pdo, $dateFrom, $dateTo);
-                break;
-            case 'doctor_performance':
-                generateDoctorReport($pdo, $dateFrom, $dateTo);
-                break;
-            default:
-                http_response_code(400);
-                echo json_encode(['success' => false, 'message' => 'Invalid report type']);
-                break;
-        }
-    } catch (Exception $e) {
-        http_response_code(500);
-        echo json_encode(['success' => false, 'message' => 'Error generating report: ' . $e->getMessage()]);
-    }
-}
-
-function getReportTypes($pdo) {
-    $types = [
-        ['id' => 'test_volume', 'name' => 'Test Volume Report'],
-        ['id' => 'revenue', 'name' => 'Revenue Report'],
-        ['id' => 'doctor_performance', 'name' => 'Doctor Performance Report']
-    ];
     
-    echo json_encode(['success' => true, 'data' => $types]);
+} catch (Exception $e) {
+    echo json_encode([
+        'success' => false,
+        'message' => $e->getMessage()
+    ]);
 }
 
-function generateTestVolumeReport($pdo, $dateFrom, $dateTo) {
+function getReportsStats() {
     try {
-        // Get test volume by day
-        $stmt = $pdo->prepare("
-            SELECT 
-                DATE(order_date) as date,
-                COUNT(*) as test_count
-            FROM test_orders
-            WHERE order_date BETWEEN :date_from AND :date_to
-            GROUP BY DATE(order_date)
-            ORDER BY date
-        ");
-        $stmt->execute([
-            'date_from' => $dateFrom,
-            'date_to' => $dateTo
-        ]);
-        $dailyVolume = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $conn = getDatabaseConnection();
         
-        // Get test volume by test type
-        $stmt = $pdo->prepare("
-            SELECT 
-                test_name,
-                COUNT(*) as test_count
-            FROM test_orders
-            WHERE order_date BETWEEN :date_from AND :date_to
-            GROUP BY test_name
-            ORDER BY test_count DESC
-        ");
-        $stmt->execute([
-            'date_from' => $dateFrom,
-            'date_to' => $dateTo
-        ]);
-        $testTypeVolume = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        // Get test statistics
+        $totalTests = $conn->query("SELECT COUNT(*) FROM test_orders")->fetchColumn();
+        $completedTests = $conn->query("SELECT COUNT(*) FROM test_orders WHERE status = 'completed'")->fetchColumn();
+        $pendingTests = $conn->query("SELECT COUNT(*) FROM test_orders WHERE status = 'pending'")->fetchColumn();
+        $urgentTests = $conn->query("SELECT COUNT(*) FROM test_orders WHERE status = 'in_progress'")->fetchColumn();
         
-        // Get test volume by status
-        $stmt = $pdo->prepare("
-            SELECT 
-                status,
-                COUNT(*) as test_count
-            FROM test_orders
-            WHERE order_date BETWEEN :date_from AND :date_to
-            GROUP BY status
-        ");
-        $stmt->execute([
-            'date_from' => $dateFrom,
-            'date_to' => $dateTo
-        ]);
-        $statusVolume = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
-        // Calculate total test count
-        $stmt = $pdo->prepare("
-            SELECT 
-                COUNT(*) as total_count
-            FROM test_orders
-            WHERE order_date BETWEEN :date_from AND :date_to
-        ");
-        $stmt->execute([
-            'date_from' => $dateFrom,
-            'date_to' => $dateTo
-        ]);
-        $totalCount = $stmt->fetchColumn();
-        
-        $data = [
-            'daily_volume' => $dailyVolume,
-            'test_type_volume' => $testTypeVolume,
-            'status_volume' => $statusVolume,
-            'total_count' => $totalCount,
-            'date_range' => [
-                'from' => $dateFrom,
-                'to' => $dateTo
+        return [
+            'success' => true,
+            'data' => [
+                'totalTests' => $totalTests,
+                'completedTests' => $completedTests,
+                'pendingTests' => $pendingTests,
+                'urgentTests' => $urgentTests
             ]
         ];
         
-        echo json_encode(['success' => true, 'data' => $data]);
-        
-    } catch (PDOException $e) {
-        http_response_code(500);
-        echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => $e->getMessage()
+        ];
     }
 }
 
-function generateRevenueReport($pdo, $dateFrom, $dateTo) {
+function getReportsList() {
     try {
-        // Get revenue by day
-        $stmt = $pdo->prepare("
-            SELECT 
-                DATE(order_date) as date,
-                SUM(total_amount) as revenue
-            FROM test_orders
-            WHERE order_date BETWEEN :date_from AND :date_to
-            GROUP BY DATE(order_date)
-            ORDER BY date
-        ");
-        $stmt->execute([
-            'date_from' => $dateFrom,
-            'date_to' => $dateTo
-        ]);
-        $dailyRevenue = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $conn = getDatabaseConnection();
         
-        // Get revenue by test type
-        $stmt = $pdo->prepare("
-            SELECT 
-                test_name,
-                COUNT(*) as test_count,
-                SUM(total_amount) as revenue,
-                AVG(total_amount) as avg_price
-            FROM test_orders
-            WHERE order_date BETWEEN :date_from AND :date_to
-            GROUP BY test_name
-            ORDER BY revenue DESC
-        ");
-        $stmt->execute([
-            'date_from' => $dateFrom,
-            'date_to' => $dateTo
-        ]);
-        $testTypeRevenue = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $draw = (int)($_POST['draw'] ?? 1);
+        $start = (int)($_POST['start'] ?? 0);
+        $length = (int)($_POST['length'] ?? 25);
+        $search = $_POST['search']['value'] ?? '';
         
-        // Calculate total revenue
-        $stmt = $pdo->prepare("
-            SELECT 
-                SUM(total_amount) as total_revenue,
-                COUNT(*) as total_count,
-                AVG(total_amount) as avg_revenue_per_test
-            FROM test_orders
-            WHERE order_date BETWEEN :date_from AND :date_to
-        ");
-        $stmt->execute([
-            'date_from' => $dateFrom,
-            'date_to' => $dateTo
-        ]);
-        $totalRevenue = $stmt->fetch(PDO::FETCH_ASSOC);
+        $dateRange = $_POST['date_range'] ?? '';
+        $reportType = $_POST['report_type'] ?? '';
         
-        $data = [
-            'daily_revenue' => $dailyRevenue,
-            'test_type_revenue' => $testTypeRevenue,
-            'total_revenue' => $totalRevenue,
-            'date_range' => [
-                'from' => $dateFrom,
-                'to' => $dateTo
-            ]
+        $where = "1=1";
+        $params = [];
+        
+        // Apply filters
+        if (!empty($search)) {
+            $where .= " AND (to.order_number LIKE ? OR p.name LIKE ? OR to.test_type LIKE ?)";
+            $searchParam = "%{$search}%";
+            $params = array_merge($params, [$searchParam, $searchParam, $searchParam]);
+        }
+        
+        if (!empty($dateRange) && $dateRange !== 'all') {
+            switch ($dateRange) {
+                case 'today':
+                    $where .= " AND DATE(to.created_at) = CURDATE()";
+                    break;
+                case 'this_week':
+                    $where .= " AND WEEK(to.created_at) = WEEK(CURDATE())";
+                    break;
+                case 'this_month':
+                    $where .= " AND MONTH(to.created_at) = MONTH(CURDATE()) AND YEAR(to.created_at) = YEAR(CURDATE())";
+                    break;
+            }
+        }
+        
+        if (!empty($reportType) && $reportType !== 'all') {
+            if ($reportType === 'tests') {
+                $where .= " AND to.test_type IS NOT NULL";
+            }
+        }
+        
+        // Get total count
+        $stmt = $conn->prepare("
+            SELECT COUNT(*) 
+            FROM test_orders to 
+            LEFT JOIN patients p ON to.patient_id = p.id 
+            LEFT JOIN doctors d ON to.doctor_id = d.id 
+            WHERE {$where}
+        ");
+        $stmt->execute($params);
+        $totalRecords = $stmt->fetchColumn();
+        
+        // Get data
+        $sql = "
+            SELECT to.id, to.order_number as report_id, to.created_at as date, 
+                   'Test Report' as type, p.name as patient_name, to.test_type as test,
+                   to.status, d.name as doctor_name
+            FROM test_orders to
+            LEFT JOIN patients p ON to.patient_id = p.id
+            LEFT JOIN doctors d ON to.doctor_id = d.id
+            WHERE {$where}
+            ORDER BY to.created_at DESC 
+            LIMIT {$start}, {$length}
+        ";
+        $stmt = $conn->prepare($sql);
+        $stmt->execute($params);
+        $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        return [
+            'draw' => $draw,
+            'recordsTotal' => $totalRecords,
+            'recordsFiltered' => $totalRecords,
+            'data' => $data
         ];
         
-        echo json_encode(['success' => true, 'data' => $data]);
-        
-    } catch (PDOException $e) {
-        http_response_code(500);
-        echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
+    } catch (Exception $e) {
+        return [
+            'draw' => 1,
+            'recordsTotal' => 0,
+            'recordsFiltered' => 0,
+            'data' => []
+        ];
     }
 }
 
-function generateDoctorReport($pdo, $dateFrom, $dateTo) {
+function getChartsData() {
     try {
-        // Get test orders by doctor
-        $stmt = $pdo->prepare("
-            SELECT 
-                d.doctor_id,
-                d.first_name,
-                d.last_name,
-                COUNT(o.order_id) as test_count,
-                SUM(o.total_amount) as total_revenue
-            FROM test_orders o
-            JOIN doctors d ON o.doctor_id = d.doctor_id
-            WHERE o.order_date BETWEEN :date_from AND :date_to
-            GROUP BY d.doctor_id, d.first_name, d.last_name
-            ORDER BY test_count DESC
-        ");
-        $stmt->execute([
-            'date_from' => $dateFrom,
-            'date_to' => $dateTo
-        ]);
-        $doctorStats = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $conn = getDatabaseConnection();
         
-        // Get test types by doctor
-        $stmt = $pdo->prepare("
-            SELECT 
-                d.doctor_id,
-                d.first_name,
-                d.last_name,
-                o.test_name,
-                COUNT(o.order_id) as test_count
-            FROM test_orders o
-            JOIN doctors d ON o.doctor_id = d.doctor_id
-            WHERE o.order_date BETWEEN :date_from AND :date_to
-            GROUP BY d.doctor_id, d.first_name, d.last_name, o.test_name
-            ORDER BY d.doctor_id, test_count DESC
+        // Test distribution chart
+        $stmt = $conn->query("
+            SELECT test_type, COUNT(*) as count 
+            FROM test_orders 
+            WHERE test_type IS NOT NULL 
+            GROUP BY test_type 
+            ORDER BY count DESC 
+            LIMIT 10
         ");
-        $stmt->execute([
-            'date_from' => $dateFrom,
-            'date_to' => $dateTo
-        ]);
-        $doctorTestTypes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $testDistribution = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
-        $data = [
-            'doctor_stats' => $doctorStats,
-            'doctor_test_types' => $doctorTestTypes,
-            'date_range' => [
-                'from' => $dateFrom,
-                'to' => $dateTo
+        // Monthly trends chart
+        $stmt = $conn->query("
+            SELECT 
+                MONTH(created_at) as month,
+                MONTHNAME(created_at) as month_name,
+                COUNT(*) as count
+            FROM test_orders 
+            WHERE YEAR(created_at) = YEAR(CURDATE())
+            GROUP BY MONTH(created_at), MONTHNAME(created_at)
+            ORDER BY MONTH(created_at)
+        ");
+        $monthlyTrends = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        return [
+            'success' => true,
+            'data' => [
+                'testDistribution' => [
+                    'labels' => array_column($testDistribution, 'test_type'),
+                    'data' => array_column($testDistribution, 'count')
+                ],
+                'monthlyTrends' => [
+                    'labels' => array_column($monthlyTrends, 'month_name'),
+                    'data' => array_column($monthlyTrends, 'count')
+                ]
             ]
         ];
         
-        echo json_encode(['success' => true, 'data' => $data]);
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => $e->getMessage()
+        ];
+    }
+}
+
+function generateReport() {
+    try {
+        $dateRange = $_POST['date_range'] ?? 'this_month';
+        $fromDate = $_POST['from_date'] ?? '';
+        $toDate = $_POST['to_date'] ?? '';
+        $reportType = $_POST['report_type'] ?? 'all';
         
-    } catch (PDOException $e) {
-        http_response_code(500);
-        echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
+        // Generate report based on parameters
+        $reportData = getReportData($dateRange, $fromDate, $toDate, $reportType);
+        
+        return [
+            'success' => true,
+            'message' => 'Report generated successfully',
+            'data' => $reportData
+        ];
+        
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => $e->getMessage()
+        ];
+    }
+}
+
+function getReportData($dateRange, $fromDate, $toDate, $reportType) {
+    $conn = getDatabaseConnection();
+    
+    $where = "1=1";
+    $params = [];
+    
+    // Date filtering
+    if ($dateRange === 'custom' && !empty($fromDate) && !empty($toDate)) {
+        $where .= " AND DATE(to.created_at) BETWEEN ? AND ?";
+        $params[] = $fromDate;
+        $params[] = $toDate;
+    } elseif ($dateRange !== 'all') {
+        switch ($dateRange) {
+            case 'today':
+                $where .= " AND DATE(to.created_at) = CURDATE()";
+                break;
+            case 'this_week':
+                $where .= " AND WEEK(to.created_at) = WEEK(CURDATE())";
+                break;
+            case 'this_month':
+                $where .= " AND MONTH(to.created_at) = MONTH(CURDATE()) AND YEAR(to.created_at) = YEAR(CURDATE())";
+                break;
+        }
+    }
+    
+    $sql = "
+        SELECT to.*, p.name as patient_name, p.phone as patient_phone,
+               d.name as doctor_name, d.specialization
+        FROM test_orders to
+        LEFT JOIN patients p ON to.patient_id = p.id
+        LEFT JOIN doctors d ON to.doctor_id = d.id
+        WHERE {$where}
+        ORDER BY to.created_at DESC
+    ";
+    
+    $stmt = $conn->prepare($sql);
+    $stmt->execute($params);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+function exportReports() {
+    $format = $_GET['format'] ?? 'excel';
+    $dateRange = $_GET['date_range'] ?? 'this_month';
+    $reportType = $_GET['report_type'] ?? 'all';
+    
+    $data = getReportData($dateRange, '', '', $reportType);
+    
+    if ($format === 'csv') {
+        header('Content-Type: text/csv');
+        header('Content-Disposition: attachment; filename="reports_' . date('Y-m-d') . '.csv"');
+        
+        $output = fopen('php://output', 'w');
+        fputcsv($output, ['Order Number', 'Patient', 'Doctor', 'Test Type', 'Status', 'Date']);
+        
+        foreach ($data as $row) {
+            fputcsv($output, [
+                $row['order_number'],
+                $row['patient_name'] ?: 'N/A',
+                $row['doctor_name'] ?: 'N/A',
+                $row['test_type'],
+                $row['status'],
+                date('Y-m-d H:i', strtotime($row['created_at']))
+            ]);
+        }
+        
+        fclose($output);
+    } else {
+        // For Excel/PDF export, you would typically use a library like PhpSpreadsheet
+        echo json_encode([
+            'success' => true,
+            'message' => 'Export feature coming soon',
+            'data' => $data
+        ]);
     }
 }
 ?>
